@@ -8,6 +8,7 @@ import {
     showLoading,
     pluralize,
     truncate,
+    formatDateRange,
     PROPOSAL_STATUSES,
     TALK_FORMATS,
     EXPERIENCE_LEVELS
@@ -404,8 +405,9 @@ function renderEventsList(events) {
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1 event-title">${escapeHtml(event.name)}</h6>
+                                <span class="text-muted small">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
                                 ${cfpStatus ? `
-                                    <span class="cfp-status small">${escapeHtml(cfpStatus)}</span>
+                                    <span class="cfp-status small ms-2">${escapeHtml(cfpStatus)}</span>
                                 ` : ''}
                             </div>
                             <div class="text-end">

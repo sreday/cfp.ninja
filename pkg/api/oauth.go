@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
@@ -619,10 +620,12 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Build response
 		type ManagingEvent struct {
-			ID            uint   `json:"id"`
-			Name          string `json:"name"`
-			CFPStatus     string `json:"cfp_status"`
-			ProposalCount int64  `json:"proposal_count"`
+			ID            uint      `json:"id"`
+			Name          string    `json:"name"`
+			StartDate     time.Time `json:"start_date"`
+			EndDate       time.Time `json:"end_date"`
+			CFPStatus     string    `json:"cfp_status"`
+			ProposalCount int64     `json:"proposal_count"`
 		}
 
 		type MyProposal struct {
@@ -646,6 +649,8 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			managing = append(managing, ManagingEvent{
 				ID:            e.ID,
 				Name:          e.Name,
+				StartDate:     e.StartDate,
+				EndDate:       e.EndDate,
 				CFPStatus:     string(e.CFPStatus),
 				ProposalCount: count,
 			})
