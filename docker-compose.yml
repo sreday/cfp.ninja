@@ -1,0 +1,27 @@
+services:
+  test-db:
+    image: postgres:16-alpine
+    container_name: cfpninja-test-db
+    environment:
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: test
+      POSTGRES_DB: cfpninja_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data  # Fast, ephemeral storage
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d cfpninja_test"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  adminer:
+    image: adminer:latest
+    container_name: cfpninja-adminer
+    ports:
+      - "8081:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: test-db
+    depends_on:
+      - test-db

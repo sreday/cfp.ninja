@@ -17,6 +17,9 @@ coverage.*
 *.coverprofile
 profile.cov
 
+# E2E test screenshots
+tests/e2e/test-screenshots/
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
