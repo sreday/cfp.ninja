@@ -427,7 +427,7 @@ function renderEventsList(events) {
                     <div class="list-group-item list-group-item-action${cfpStatus === 'draft' ? ' event-draft' : ''}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <h6 class="mb-1 event-title">${escapeHtml(event.name)}</h6>
+                                <h6 class="mb-1 event-title"><a href="/dashboard/events/${event.ID || event.id}/proposals" class="text-decoration-none">${escapeHtml(event.name)}</a></h6>
                                 <span class="text-muted small">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
                                 ${cfpStatus ? `
                                     <span class="cfp-status small ms-2">${escapeHtml(cfpStatus)}</span>
@@ -438,8 +438,8 @@ function renderEventsList(events) {
                             </div>
                         </div>
                         <div class="mt-2">
-                            <a href="/dashboard/events/${event.ID || event.id}" class="btn btn-sm btn-success me-1">Manage</a>
-                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-warning">Review Proposals</a>
+                            <a href="/dashboard/events/${event.ID || event.id}" class="btn btn-sm btn-warning me-1">Edit</a>
+                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success">Review Proposals</a>
                         </div>
                     </div>
                 `;
