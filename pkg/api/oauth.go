@@ -651,10 +651,11 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		type MyProposal struct {
-			ID     uint   `json:"id"`
-			Title  string `json:"title"`
-			Status string `json:"status"`
-			Rating *int   `json:"rating,omitempty"`
+			ID                    uint   `json:"id"`
+			Title                 string `json:"title"`
+			Status                string `json:"status"`
+			Rating                *int   `json:"rating,omitempty"`
+			AttendanceConfirmed   bool   `json:"attendance_confirmed"`
 		}
 
 		type SubmittedEvent struct {
@@ -686,10 +687,11 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			myProposals := make([]MyProposal, 0)
 			for _, p := range proposals {
 				myProposals = append(myProposals, MyProposal{
-					ID:     p.ID,
-					Title:  p.Title,
-					Status: string(p.Status),
-					Rating: p.Rating,
+					ID:                    p.ID,
+					Title:                 p.Title,
+					Status:                string(p.Status),
+					Rating:                p.Rating,
+					AttendanceConfirmed:   p.AttendanceConfirmed,
 				})
 			}
 

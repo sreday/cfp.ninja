@@ -230,7 +230,7 @@ function renderProposalItem(proposal) {
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <span class="badge ${statusInfo.class}">${escapeHtml(statusInfo.label)}</span>
                         ${status === 'accepted' ? (proposal.attendance_confirmed
-                            ? '<span class="badge bg-success">&#10003; Confirmed</span>'
+                            ? '<span class="badge bg-success">&#10003; Attendance Confirmed</span>'
                             : '<span class="badge bg-warning text-dark">&#9203; Awaiting Confirmation</span>'
                         ) : ''}
                         <span class="badge bg-light text-dark">${escapeHtml(proposal.format)}</span>

@@ -222,6 +222,29 @@ function attachProposalHandlers(container) {
             showDeleteConfirmation(proposalId, proposalTitle);
         });
     });
+
+    // Confirm attendance buttons
+    container.querySelectorAll('.confirm-attendance-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const proposalId = btn.dataset.proposalId;
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Confirming...';
+                await API.confirmAttendance(proposalId);
+                toast.success('Attendance confirmed!');
+                const deleteBtn = btn.parentElement.querySelector('.delete-proposal-btn');
+                if (deleteBtn) deleteBtn.remove();
+                btn.replaceWith(Object.assign(document.createElement('span'), {
+                    className: 'badge bg-success ms-1',
+                    innerHTML: '&#10003; Attendance Confirmed'
+                }));
+            } catch (error) {
+                toast.error(error.message || 'Failed to confirm attendance.');
+                btn.disabled = false;
+                btn.textContent = 'Confirm Attendance';
+            }
+        });
+    });
 }
 
 function openModal(modalId) {
@@ -443,7 +466,9 @@ function renderProposalsList(proposals) {
                         </div>
                         <div class="mt-2">
                             <button class="btn btn-sm btn-outline-primary me-1 view-proposal-btn" data-proposal-id="${proposalId}">View</button>
-                            <button class="btn btn-sm btn-outline-danger delete-proposal-btn" data-proposal-id="${proposalId}" data-proposal-title="${escapeHtml(proposal.title)}">Delete</button>
+                            ${!(proposal.status === 'accepted' && proposal.attendance_confirmed) ? `<button class="btn btn-sm btn-outline-danger me-1 delete-proposal-btn" data-proposal-id="${proposalId}" data-proposal-title="${escapeHtml(proposal.title)}">Delete</button>` : ''}
+                            ${proposal.status === 'accepted' && !proposal.attendance_confirmed ? `<button class="btn btn-sm btn-success confirm-attendance-btn" data-proposal-id="${proposalId}">Confirm Attendance</button>` : ''}
+                            ${proposal.status === 'accepted' && proposal.attendance_confirmed ? `<span class="badge bg-success ms-1">&#10003; Attendance Confirmed</span>` : ''}
                         </div>
                     </div>
                 `;
