@@ -51,6 +51,11 @@ func InitConfig() (*Config, error) {
 	syncInterval := flag.Duration("sync-interval", 1*time.Hour, "event sync interval (e.g. 30m, 2h)")
 	flag.Parse()
 
+	// Determine insecure mode early so we can use it for validation
+	// Only accept explicitly truthy values to avoid INSECURE=false enabling insecure mode
+	insecureEnv := strings.ToLower(os.Getenv("INSECURE"))
+	insecureMode := *insecure || insecureEnv == "true" || insecureEnv == "1" || insecureEnv == "yes"
+
 	// Port: flag > env > default
 	portVal := *port
 	if portVal == "" {
@@ -63,7 +68,11 @@ func InitConfig() (*Config, error) {
 	// Database URL
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		dsn = "host=localhost user=postgres password=postgres dbname=cfpninja port=5432 sslmode=disable"
+		if insecureMode {
+			dsn = "host=localhost user=postgres password=postgres dbname=cfpninja port=5432 sslmode=disable"
+		} else {
+			return nil, fmt.Errorf("DATABASE_URL environment variable is required in production")
+		}
 	} else if strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://") {
 		// Auto-add sslmode=require for Heroku-style URLs
 		if !strings.Contains(dsn, "sslmode=") {
@@ -123,11 +132,6 @@ func InitConfig() (*Config, error) {
 
 	// JWT
 	jwtSecret := os.Getenv("JWT_SECRET")
-
-	// Determine insecure mode early so we can use it for validation
-	// Only accept explicitly truthy values to avoid INSECURE=false enabling insecure mode
-	insecureEnv := strings.ToLower(os.Getenv("INSECURE"))
-	insecureMode := *insecure || insecureEnv == "true" || insecureEnv == "1" || insecureEnv == "yes"
 
 	// Warnings
 	if googleClientID == "" {

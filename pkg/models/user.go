@@ -1,10 +1,6 @@
 package models
 
 import (
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -21,11 +17,6 @@ type User struct {
 
 	// GitHub OAuth - partial unique index created in migration (allows empty)
 	GitHubID string `gorm:"index" json:"-"`
-
-	// API Key auth (for programmatic access)
-	// Partial unique index created in migration (allows empty)
-	APIKeyHash   string `gorm:"index" json:"-"` // SHA-256 hash
-	APIKeyPrefix string `json:"-"`              // First 8 chars for identification (ocfp_xxxx)
 
 	IsActive bool `gorm:"default:true"`
 }
@@ -49,6 +40,14 @@ func CreatePartialUniqueIndexes(db *gorm.DB) error {
 		slog.Warn("failed to drop api_key_hash index", "error", err)
 	}
 
+	// Drop API key columns if they exist (cleanup from previous versions)
+	if err := db.Exec("ALTER TABLE users DROP COLUMN IF EXISTS api_key_hash").Error; err != nil {
+		slog.Warn("failed to drop api_key_hash column", "error", err)
+	}
+	if err := db.Exec("ALTER TABLE users DROP COLUMN IF EXISTS api_key_prefix").Error; err != nil {
+		slog.Warn("failed to drop api_key_prefix column", "error", err)
+	}
+
 	// Create partial unique indexes that only apply to non-empty values
 	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id ON users (google_id) WHERE google_id != ''").Error; err != nil {
 		return err
@@ -56,42 +55,7 @@ func CreatePartialUniqueIndexes(db *gorm.DB) error {
 	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_git_hub_id ON users (git_hub_id) WHERE git_hub_id != ''").Error; err != nil {
 		return err
 	}
-	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_api_key_hash ON users (api_key_hash) WHERE api_key_hash != ''").Error; err != nil {
-		return err
-	}
 	return nil
-}
-
-// GenerateAPIKey creates a new API key for the user
-// Returns the plain key (only shown once), the hash, and the prefix
-func GenerateAPIKey() (plainKey string, hash string, prefix string, err error) {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", "", "", fmt.Errorf("failed to generate random bytes: %w", err)
-	}
-
-	plainKey = "ocfp_" + hex.EncodeToString(bytes)
-	hashBytes := sha256.Sum256([]byte(plainKey))
-	hash = hex.EncodeToString(hashBytes[:])
-	prefix = plainKey[:13] // "ocfp_" + first 8 hex chars
-
-	return plainKey, hash, prefix, nil
-}
-
-// HashAPIKey hashes an API key for comparison
-func HashAPIKey(apiKey string) string {
-	hashBytes := sha256.Sum256([]byte(apiKey))
-	return hex.EncodeToString(hashBytes[:])
-}
-
-// GetUserByAPIKey looks up a user by their API key
-func GetUserByAPIKey(db *gorm.DB, apiKey string) (*User, error) {
-	hash := HashAPIKey(apiKey)
-	var user User
-	if err := db.Where("api_key_hash = ? AND is_active = ?", hash, true).First(&user).Error; err != nil {
-		return nil, err
-	}
-	return &user, nil
 }
 
 // GetUserByGoogleID looks up a user by their Google ID
@@ -125,7 +89,7 @@ func GetUserByEmail(db *gorm.DB, email string) (*User, error) {
 	return &user, nil
 }
 
-// CreateUser creates a new user (without API key)
+// CreateUser creates a new user
 func CreateUser(db *gorm.DB, email, name, googleID, pictureURL string) (*User, error) {
 	user := &User{
 		Email:      email,
@@ -210,27 +174,3 @@ func CreateOrUpdateUserFromGitHub(db *gorm.DB, gitHubID, email, name, pictureURL
 	return &user, nil
 }
 
-// GenerateAndSaveAPIKey generates a new API key and saves it to the user
-// Returns the plain key (only shown once)
-func (u *User) GenerateAndSaveAPIKey(db *gorm.DB) (string, error) {
-	plainKey, hash, prefix, err := GenerateAPIKey()
-	if err != nil {
-		return "", err
-	}
-
-	u.APIKeyHash = hash
-	u.APIKeyPrefix = prefix
-
-	if err := db.Save(u).Error; err != nil {
-		return "", err
-	}
-
-	return plainKey, nil
-}
-
-// RevokeAPIKey removes the user's API key
-func (u *User) RevokeAPIKey(db *gorm.DB) error {
-	u.APIKeyHash = ""
-	u.APIKeyPrefix = ""
-	return db.Save(u).Error
-}

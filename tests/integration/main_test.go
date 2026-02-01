@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/sreday/cfp.ninja/pkg/server"
@@ -71,9 +72,9 @@ func cleanDatabase() {
 	db.Exec("SET session_replication_role = 'origin'")
 }
 
-// createTestUserWithAPIKey creates a user directly in the database and generates an API key
-// This is needed because there's no signup endpoint - users come from Google OAuth
-func createTestUserWithAPIKey(email, name string) (*models.User, string) {
+// createTestUserWithJWT creates a user directly in the database and generates a JWT token.
+// This is needed because there's no signup endpoint - users come from OAuth.
+func createTestUserWithJWT(email, name string) (*models.User, string) {
 	db := testConfig.DB
 
 	user := &models.User{
@@ -89,12 +90,12 @@ func createTestUserWithAPIKey(email, name string) (*models.User, string) {
 		os.Exit(1)
 	}
 
-	// Generate API key
-	apiKey, err := user.GenerateAndSaveAPIKey(db)
+	// Generate JWT token
+	token, err := api.GenerateJWT(testConfig, user)
 	if err != nil {
-		slog.Error("failed to generate API key", "email", email, "error", err)
+		slog.Error("failed to generate JWT", "email", email, "error", err)
 		os.Exit(1)
 	}
 
-	return user, apiKey
+	return user, token
 }

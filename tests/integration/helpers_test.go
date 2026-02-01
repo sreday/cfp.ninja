@@ -42,24 +42,24 @@ func doGet(path string) *http.Response {
 	return doRequest(http.MethodGet, path, nil, "")
 }
 
-// doAuthGet makes a GET request with API key authentication
-func doAuthGet(path, apiKey string) *http.Response {
-	return doRequest(http.MethodGet, path, nil, apiKey)
+// doAuthGet makes a GET request with authentication
+func doAuthGet(path, token string) *http.Response {
+	return doRequest(http.MethodGet, path, nil, token)
 }
 
-// doPost makes a POST request with API key authentication
-func doPost(path string, body interface{}, apiKey string) *http.Response {
-	return doRequest(http.MethodPost, path, body, apiKey)
+// doPost makes a POST request with authentication
+func doPost(path string, body interface{}, token string) *http.Response {
+	return doRequest(http.MethodPost, path, body, token)
 }
 
-// doPut makes a PUT request with API key authentication
-func doPut(path string, body interface{}, apiKey string) *http.Response {
-	return doRequest(http.MethodPut, path, body, apiKey)
+// doPut makes a PUT request with authentication
+func doPut(path string, body interface{}, token string) *http.Response {
+	return doRequest(http.MethodPut, path, body, token)
 }
 
-// doDelete makes a DELETE request with API key authentication
-func doDelete(path string, apiKey string) *http.Response {
-	return doRequest(http.MethodDelete, path, nil, apiKey)
+// doDelete makes a DELETE request with authentication
+func doDelete(path string, token string) *http.Response {
+	return doRequest(http.MethodDelete, path, nil, token)
 }
 
 // parseJSON parses the response body as JSON
@@ -173,11 +173,6 @@ type StatsResponse struct {
 
 // CountriesResponse is just an alias for []string since the API returns an array directly
 type CountriesResponse = []string
-
-// APIKeyResponse represents the response when generating an API key
-type APIKeyResponse struct {
-	APIKey string `json:"api_key"`
-}
 
 // EventInput represents the input for creating/updating an event
 type EventInput struct {

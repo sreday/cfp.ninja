@@ -123,12 +123,10 @@ func (c *Client) doRequest(method, path string, body interface{}) ([]byte, error
 
 // UserInfo represents the current user's information
 type UserInfo struct {
-	ID           uint   `json:"id"`
-	Email        string `json:"email"`
-	Name         string `json:"name"`
-	PictureURL   string `json:"picture_url"`
-	HasAPIKey    bool   `json:"has_api_key"`
-	APIKeyPrefix string `json:"api_key_prefix"`
+	ID         uint   `json:"id"`
+	Email      string `json:"email"`
+	Name       string `json:"name"`
+	PictureURL string `json:"picture_url"`
 }
 
 // GetMe returns the current user's information

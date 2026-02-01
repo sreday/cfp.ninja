@@ -72,9 +72,6 @@ func (f *Formatter) PrintUser(user *UserInfo) error {
 		fmt.Fprintf(f.Writer, "Name:    %s\n", user.Name)
 		fmt.Fprintf(f.Writer, "Email:   %s\n", user.Email)
 		fmt.Fprintf(f.Writer, "ID:      %d\n", user.ID)
-		if user.HasAPIKey {
-			fmt.Fprintf(f.Writer, "API Key: %s...\n", user.APIKeyPrefix)
-		}
 		return nil
 	}
 }

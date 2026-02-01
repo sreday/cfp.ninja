@@ -78,7 +78,7 @@ function renderEventsPage(container, events, filters, currentPage, totalPages, c
         <div id="pagination-container" class="mt-4"></div>
 
         <div class="text-center mt-1 mb-1">
-            <img src="/img/cfpninja-logo.png" alt="CFP.ninja" style="max-width: 175px; width: 100%;" class="opacity-75 logo-spin">
+            <img src="/img/cfpninja-logo.png" alt="CFP.ninja" class="opacity-75 logo-spin logo-hero">
         </div>
     `;
 

@@ -199,24 +199,15 @@ func assertExitCode(t *testing.T, actual, expected int) {
 
 // createTestUser creates a user directly in the database with unique identifiers
 func createTestUser(email, name string) *models.User {
-	// Generate a unique API key to avoid unique constraint violations
-	_, hash, prefix, err := models.GenerateAPIKey()
-	if err != nil {
-		slog.Error("failed to generate API key", "error", err)
-		os.Exit(1)
-	}
-
 	// Generate unique IDs for Google and GitHub to avoid unique constraint violations
 	uniqueID := fmt.Sprintf("test-%d-%s", time.Now().UnixNano(), email)
 
 	user := &models.User{
-		Email:        email,
-		Name:         name,
-		IsActive:     true,
-		APIKeyHash:   hash,
-		APIKeyPrefix: prefix,
-		GoogleID:     uniqueID,
-		GitHubID:     uniqueID,
+		Email:    email,
+		Name:     name,
+		IsActive: true,
+		GoogleID: uniqueID,
+		GitHubID: uniqueID,
 	}
 	if err := testDB.Create(user).Error; err != nil {
 		slog.Error("failed to create test user", "error", err)

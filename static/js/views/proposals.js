@@ -57,7 +57,7 @@ function renderProposalsView(container, event, proposals) {
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body py-3">
-                        <div class="stat-value">${stats.total}</div>
+                        <div class="stat-value">${escapeHtml(String(stats.total))}</div>
                         <div class="stat-label">Total</div>
                     </div>
                 </div>
@@ -65,7 +65,7 @@ function renderProposalsView(container, event, proposals) {
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body py-3">
-                        <div class="stat-value" style="color: var(--warning)">${stats.pending}</div>
+                        <div class="stat-value stat-value-warning">${escapeHtml(String(stats.pending))}</div>
                         <div class="stat-label">Pending</div>
                     </div>
                 </div>
@@ -73,7 +73,7 @@ function renderProposalsView(container, event, proposals) {
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body py-3">
-                        <div class="stat-value" style="color: var(--success)">${stats.accepted}</div>
+                        <div class="stat-value stat-value-success">${escapeHtml(String(stats.accepted))}</div>
                         <div class="stat-label">Accepted</div>
                     </div>
                 </div>
@@ -81,7 +81,7 @@ function renderProposalsView(container, event, proposals) {
             <div class="col-md-3">
                 <div class="card text-center">
                     <div class="card-body py-3">
-                        <div class="stat-value" style="color: var(--error)">${stats.rejected}</div>
+                        <div class="stat-value stat-value-error">${escapeHtml(String(stats.rejected))}</div>
                         <div class="stat-label">Rejected</div>
                     </div>
                 </div>
@@ -164,7 +164,7 @@ function renderProposalItem(proposal) {
                             : '<span class="badge bg-warning text-dark">&#9203; Awaiting Confirmation</span>'
                         ) : ''}
                         <span class="badge bg-light text-dark">${escapeHtml(proposal.format)}</span>
-                        <span class="badge bg-light text-dark">${proposal.duration} min</span>
+                        <span class="badge bg-light text-dark">${escapeHtml(String(proposal.duration))} min</span>
                         ${levelInfo ? `<span class="badge bg-light text-dark">${escapeHtml(levelInfo.label)}</span>` : ''}
                         ${!anonymousMode && speakers.length > 0 ? `
                             <span class="text-muted small">by ${escapeHtml(speakers.map(s => s.name).join(', '))}</span>
@@ -183,7 +183,7 @@ function renderProposalItem(proposal) {
 function renderRating(rating) {
     const stars = [];
     for (let i = 1; i <= 5; i++) {
-        stars.push(`<span class="rating-star ${i <= (rating || 0) ? 'active' : ''}" style="font-size: 1rem;">★</span>`);
+        stars.push(`<span class="rating-star font-size-1 ${i <= (rating || 0) ? 'active' : ''}">★</span>`);
     }
     return `<div class="rating">${stars.join('')}</div>`;
 }
@@ -232,7 +232,7 @@ function renderProposalModal(proposal) {
             <div class="mb-3">
                 <span class="badge ${statusInfo.class} me-2">${escapeHtml(statusInfo.label)}</span>
                 <span class="badge bg-light text-dark me-2">${escapeHtml(proposal.format)}</span>
-                <span class="badge bg-light text-dark me-2">${proposal.duration} min</span>
+                <span class="badge bg-light text-dark me-2">${escapeHtml(String(proposal.duration))} min</span>
                 <span class="badge bg-light text-dark">${escapeHtml(proposal.level)}</span>
             </div>
 
@@ -303,10 +303,7 @@ function renderProposalModal(proposal) {
 }
 
 function downloadCSV(eventId, format) {
-    const token = localStorage.getItem('cfpninja_token');
-    fetch(`/api/v0/events/${eventId}/proposals/export?format=${format}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-    })
+    fetch(`/api/v0/events/${eventId}/proposals/export?format=${format}`)
     .then(resp => {
         if (!resp.ok) throw new Error('Export failed');
         return resp.blob();

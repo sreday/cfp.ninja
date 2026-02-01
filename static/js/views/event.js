@@ -168,7 +168,7 @@ function renderCfpInfo(event, cfpStatus, isLoggedIn, cfpStart, cfpEnd) {
             <h5 class="card-title mb-3">Call for Proposals</h5>
 
             <div class="mb-3">
-                <span class="cfp-status ${cfpStatus.class}" style="font-size: 1rem;">
+                <span class="cfp-status font-size-1 ${cfpStatus.class}">
                     ${cfpStatus.status === 'open' ? '● ' : cfpStatus.status === 'upcoming' ? '○ ' : '✕ '}
                     ${escapeHtml(cfpStatus.label)}
                 </span>

@@ -121,6 +121,45 @@ func decodeOAuthState(state string) (isCLI bool, redirectPort string) {
 }
 
 const oauthStateCookieName = "oauth_state"
+const sessionCookieName = "cfpninja_session"
+
+// setSessionCookie sets an HttpOnly cookie containing the JWT for browser sessions.
+func setSessionCookie(w http.ResponseWriter, jwt string, insecure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    jwt,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60, // 7 days (matches JWT expiry)
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   !insecure,
+	})
+}
+
+// clearSessionCookie removes the session cookie.
+func clearSessionCookie(w http.ResponseWriter, insecure bool) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     sessionCookieName,
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   !insecure,
+	})
+}
+
+// LogoutHandler clears the session cookie.
+func LogoutHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		clearSessionCookie(w, cfg.Insecure)
+		encodeResponse(w, r, map[string]string{"message": "Logged out"})
+	}
+}
 
 // setOAuthStateCookie stores the OAuth state in a short-lived HTTP-only cookie
 // for CSRF validation on callback.
@@ -276,7 +315,9 @@ func GoogleCallbackHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Browser mode: return HTML page that posts message to parent window
+		// Browser mode: set session cookie and return HTML that signals the opener
+		setSessionCookie(w, jwtToken, cfg.Insecure)
+
 		nonce, err := generateCSPNonce()
 		if err != nil {
 			cfg.Logger.Error("failed to generate CSP nonce", "error", err)
@@ -296,8 +337,7 @@ func GoogleCallbackHandler(cfg *config.Config) http.HandlerFunc {
 <script nonce="%s">
 if (window.opener) {
     window.opener.postMessage({
-        type: 'oauth-success',
-        token: %q
+        type: 'oauth-success'
     }, window.location.origin);
     window.close();
 } else {
@@ -305,7 +345,7 @@ if (window.opener) {
 }
 </script>
 </body>
-</html>`, nonce, jwtToken)
+</html>`, nonce)
 	}
 }
 
@@ -438,7 +478,9 @@ func GitHubCallbackHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Browser mode: return HTML page that posts message to parent window
+		// Browser mode: set session cookie and return HTML that signals the opener
+		setSessionCookie(w, jwtToken, cfg.Insecure)
+
 		nonce, err := generateCSPNonce()
 		if err != nil {
 			cfg.Logger.Error("failed to generate CSP nonce", "error", err)
@@ -458,8 +500,7 @@ func GitHubCallbackHandler(cfg *config.Config) http.HandlerFunc {
 <script nonce="%s">
 if (window.opener) {
     window.opener.postMessage({
-        type: 'oauth-success',
-        token: %q
+        type: 'oauth-success'
     }, window.location.origin);
     window.close();
 } else {
@@ -467,7 +508,7 @@ if (window.opener) {
 }
 </script>
 </body>
-</html>`, nonce, jwtToken)
+</html>`, nonce)
 	}
 }
 
@@ -506,61 +547,6 @@ func fetchGitHubPrimaryEmail(client *http.Client) (string, error) {
 	return "", fmt.Errorf("no verified email found")
 }
 
-// GenerateAPIKeyHandler generates a new API key for the authenticated user
-func GenerateAPIKeyHandler(cfg *config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		user := GetUserFromContext(r.Context())
-		if user == nil {
-			encodeError(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		// Generate and save new API key
-		plainKey, err := user.GenerateAndSaveAPIKey(cfg.DB)
-		if err != nil {
-			cfg.Logger.Error("failed to generate API key", "error", err)
-			encodeError(w, "Failed to generate API key", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-		encodeResponse(w, r, map[string]interface{}{
-			"api_key": plainKey,
-			"message": "Store this key securely. It will not be shown again.",
-		})
-	}
-}
-
-// RevokeAPIKeyHandler revokes the user's API key
-func RevokeAPIKeyHandler(cfg *config.Config) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		user := GetUserFromContext(r.Context())
-		if user == nil {
-			encodeError(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		if err := user.RevokeAPIKey(cfg.DB); err != nil {
-			cfg.Logger.Error("failed to revoke API key", "error", err)
-			encodeError(w, "Failed to revoke API key", http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-		encodeResponse(w, r, map[string]string{"message": "API key revoked"})
-	}
-}
-
 // GetMeHandler returns the current user's info
 func GetMeHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -576,12 +562,10 @@ func GetMeHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		encodeResponse(w, r, map[string]interface{}{
-			"id":           user.ID,
-			"email":        user.Email,
-			"name":         user.Name,
-			"picture_url":  user.PictureURL,
-			"has_api_key":  user.APIKeyHash != "",
-			"api_key_prefix": user.APIKeyPrefix,
+			"id":          user.ID,
+			"email":       user.Email,
+			"name":        user.Name,
+			"picture_url": user.PictureURL,
 		})
 	}
 }

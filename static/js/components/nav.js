@@ -123,7 +123,7 @@ function renderThemeToggle() {
     const isDark = getTheme() === 'dark';
     return `
         <li class="nav-item">
-            <button class="btn btn-link nav-link" id="theme-toggle" title="Toggle theme" style="font-size: 1.25rem; text-decoration: none;">
+            <button class="btn btn-link nav-link font-size-1-25 text-decoration-none" id="theme-toggle" title="Toggle theme">
                 ${isDark ? '☀️' : '🌙'}
             </button>
         </li>
@@ -188,7 +188,7 @@ function renderUserMenu(user) {
     return `
         <li class="nav-item dropdown user-dropdown">
             <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" aria-expanded="false">
-                <span class="badge bg-primary rounded-circle" style="width: 32px; height: 32px; line-height: 24px;">${escapeHtml(initial)}</span>
+                <span class="badge bg-primary rounded-circle avatar-badge">${escapeHtml(initial)}</span>
                 <span class="d-none d-md-inline">${escapeHtml(name)}</span>
             </a>
             <ul class="dropdown-menu dropdown-menu-end">

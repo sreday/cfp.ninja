@@ -261,7 +261,7 @@ make test-db-delete
 
 **Integration Tests** (`tests/integration/`)
 - API endpoint testing for all routes
-- Authentication (JWT and API key)
+- Authentication (JWT)
 - Events CRUD operations
 - Proposals submission and management
 - Organizer permissions
@@ -357,8 +357,6 @@ All API endpoints are prefixed with `/api/v0/`.
 - `GET /api/v0/auth/github/callback` - GitHub OAuth callback
 - `GET /api/v0/auth/google` - Start Google OAuth flow
 - `GET /api/v0/auth/google/callback` - Google OAuth callback
-- `POST /api/v0/auth/api-key` - Generate API key
-- `DELETE /api/v0/auth/api-key` - Revoke API key
 - `GET /api/v0/auth/me` - Get current user
 - `GET /api/v0/me/events` - List user's events
 

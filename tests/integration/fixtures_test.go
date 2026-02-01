@@ -10,14 +10,14 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
-// Test users and their API keys
+// Test users and their JWT tokens
 var (
-	userAdmin   *models.User
-	adminKey    string
-	userSpeaker *models.User
-	speakerKey  string
-	userOther   *models.User
-	otherKey    string
+	userAdmin    *models.User
+	adminToken   string
+	userSpeaker  *models.User
+	speakerToken string
+	userOther    *models.User
+	otherToken   string
 )
 
 // Test events
@@ -38,9 +38,9 @@ var (
 // seedTestData creates all test fixtures via API endpoints
 func seedTestData() {
 	// Create test users directly in the database (no signup endpoint)
-	userAdmin, adminKey = createTestUserWithAPIKey("admin@test.com", "Admin User")
-	userSpeaker, speakerKey = createTestUserWithAPIKey("speaker@test.com", "Speaker User")
-	userOther, otherKey = createTestUserWithAPIKey("other@test.com", "Other User")
+	userAdmin, adminToken = createTestUserWithJWT("admin@test.com", "Admin User")
+	userSpeaker, speakerToken = createTestUserWithJWT("speaker@test.com", "Speaker User")
+	userOther, otherToken = createTestUserWithJWT("other@test.com", "Other User")
 
 	// Create events via API (this tests the create endpoint as part of setup)
 	now := time.Now()
@@ -51,7 +51,7 @@ func seedTestData() {
 	oneYearLater := now.AddDate(1, 0, 0)
 
 	// Event 1: GopherCon - USA, open CFP, go tag
-	eventGopherCon = createTestEvent(adminKey, EventInput{
+	eventGopherCon = createTestEvent(adminToken, EventInput{
 		Name:           "GopherCon 2025",
 		Slug:           "gophercon-2025",
 		Description:    "The premier Go conference",
@@ -65,10 +65,10 @@ func seedTestData() {
 		CFPOpenAt:      now.AddDate(0, 0, -7).Format(time.RFC3339), // Opened a week ago
 		CFPCloseAt:     oneWeekLater.Format(time.RFC3339),         // Closes in a week
 	})
-	updateCFPStatus(adminKey, eventGopherCon.ID, "open")
+	updateCFPStatus(adminToken, eventGopherCon.ID, "open")
 
 	// Event 2: DevOpsCon - Germany, open CFP, devops tag
-	eventDevOpsCon = createTestEvent(adminKey, EventInput{
+	eventDevOpsCon = createTestEvent(adminToken, EventInput{
 		Name:           "DevOpsCon Berlin",
 		Slug:           "devopscon-berlin-2025",
 		Description:    "DevOps and cloud conference",
@@ -82,10 +82,10 @@ func seedTestData() {
 		CFPOpenAt:      now.AddDate(0, 0, -3).Format(time.RFC3339),
 		CFPCloseAt:     twoWeeksLater.Format(time.RFC3339),
 	})
-	updateCFPStatus(adminKey, eventDevOpsCon.ID, "open")
+	updateCFPStatus(adminToken, eventDevOpsCon.ID, "open")
 
 	// Event 3: PyCon - UK, open CFP, python tag
-	eventPyCon = createTestEvent(adminKey, EventInput{
+	eventPyCon = createTestEvent(adminToken, EventInput{
 		Name:        "PyCon UK",
 		Slug:        "pycon-uk-2025",
 		Description: "Python conference in the UK",
@@ -98,10 +98,10 @@ func seedTestData() {
 		CFPOpenAt:   now.AddDate(0, 0, -1).Format(time.RFC3339),
 		CFPCloseAt:  oneMonthLater.Format(time.RFC3339),
 	})
-	updateCFPStatus(adminKey, eventPyCon.ID, "open")
+	updateCFPStatus(adminToken, eventPyCon.ID, "open")
 
 	// Event 4: Draft event (CFP not open)
-	eventDraftEvent = createTestEvent(adminKey, EventInput{
+	eventDraftEvent = createTestEvent(adminToken, EventInput{
 		Name:        "Draft Conference",
 		Slug:        "draft-conf-2025",
 		Description: "A conference still in draft",
@@ -116,7 +116,7 @@ func seedTestData() {
 	// Keep as draft (default status)
 
 	// Event 5: Closed CFP event
-	eventClosedEvent = createTestEvent(adminKey, EventInput{
+	eventClosedEvent = createTestEvent(adminToken, EventInput{
 		Name:        "Past Conference",
 		Slug:        "past-conf-2024",
 		Description: "A conference with closed CFP",
@@ -128,10 +128,10 @@ func seedTestData() {
 		CFPOpenAt:   now.AddDate(0, 0, -90).Format(time.RFC3339),
 		CFPCloseAt:  now.AddDate(0, 0, -60).Format(time.RFC3339),
 	})
-	updateCFPStatus(adminKey, eventClosedEvent.ID, "closed")
+	updateCFPStatus(adminToken, eventClosedEvent.ID, "closed")
 
 	// Create proposals via API
-	proposalGoPerf = createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposalGoPerf = createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Go Performance Tips",
 		Abstract: "Learn how to optimize your Go code for maximum performance.",
 		Format:   "talk",
@@ -143,7 +143,7 @@ func seedTestData() {
 		},
 	})
 
-	proposalGoChannels = createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposalGoChannels = createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Mastering Go Channels",
 		Abstract: "Deep dive into Go channels and concurrency patterns.",
 		Format:   "talk",
@@ -157,8 +157,8 @@ func seedTestData() {
 }
 
 // createTestEvent creates an event via the API and returns it
-func createTestEvent(apiKey string, input EventInput) *EventResponse {
-	resp := doPost("/api/v0/events", input, apiKey)
+func createTestEvent(token string, input EventInput) *EventResponse {
+	resp := doPost("/api/v0/events", input, token)
 	if resp.StatusCode != http.StatusCreated {
 		body := readBody(resp)
 		slog.Error("failed to create event", "slug", input.Slug, "status", resp.StatusCode, "body", body)
@@ -174,8 +174,8 @@ func createTestEvent(apiKey string, input EventInput) *EventResponse {
 }
 
 // updateCFPStatus updates an event's CFP status
-func updateCFPStatus(apiKey string, eventID uint, status string) {
-	resp := doPut("/api/v0/events/"+uintToStr(eventID)+"/cfp-status", CFPStatusInput{Status: status}, apiKey)
+func updateCFPStatus(token string, eventID uint, status string) {
+	resp := doPut("/api/v0/events/"+uintToStr(eventID)+"/cfp-status", CFPStatusInput{Status: status}, token)
 	if resp.StatusCode != http.StatusOK {
 		body := readBody(resp)
 		slog.Error("failed to update CFP status", "event_id", eventID, "status", resp.StatusCode, "body", body)
@@ -185,8 +185,8 @@ func updateCFPStatus(apiKey string, eventID uint, status string) {
 }
 
 // createTestProposal creates a proposal via the API and returns it
-func createTestProposal(apiKey string, eventID uint, input ProposalInput) *ProposalResponse {
-	resp := doPost("/api/v0/events/"+uintToStr(eventID)+"/proposals", input, apiKey)
+func createTestProposal(token string, eventID uint, input ProposalInput) *ProposalResponse {
+	resp := doPost("/api/v0/events/"+uintToStr(eventID)+"/proposals", input, token)
 	if resp.StatusCode != http.StatusCreated {
 		body := readBody(resp)
 		slog.Error("failed to create proposal", "title", input.Title, "status", resp.StatusCode, "body", body)

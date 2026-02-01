@@ -10,7 +10,7 @@ import (
 var whoamiCmd = &cobra.Command{
 	Use:   "whoami",
 	Short: "Display current user information",
-	Long:  `Shows the currently authenticated user's name, email, and API key status.`,
+	Long:  `Shows the currently authenticated user's name, email, and ID.`,
 	RunE:  runWhoami,
 }
 

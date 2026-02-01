@@ -89,7 +89,7 @@ function renderDashboard(container, managing, submitted) {
                             <button type="button" class="btn btn-outline-secondary" data-filter="closed">Closed</button>
                             <button type="button" class="btn btn-outline-secondary" data-filter="all">All</button>
                         </div>
-                        <input type="search" class="form-control form-control-sm" id="event-search" placeholder="Search..." style="max-width: 130px;">
+                        <input type="search" class="form-control form-control-sm max-w-search" id="event-search" placeholder="Search...">
                     </div>
                     <div id="events-list-container"></div>
                 ` : renderEmptyEvents()}
@@ -111,7 +111,7 @@ function renderDashboard(container, managing, submitted) {
                             <button type="button" class="btn btn-outline-secondary" data-filter="rejected">Rejected</button>
                             <button type="button" class="btn btn-outline-secondary" data-filter="tentative">Tentative</button>
                         </div>
-                        <input type="search" class="form-control form-control-sm" id="proposal-search" placeholder="Search..." style="max-width: 130px;">
+                        <input type="search" class="form-control form-control-sm max-w-search" id="proposal-search" placeholder="Search...">
                     </div>
                     <div id="proposals-list-container"></div>
                 ` : renderEmptyProposals()}
@@ -306,7 +306,7 @@ async function showProposalDetail(proposalId) {
                     </div>
                     <div class="col-md-4">
                         <small class="text-muted d-block">Duration</small>
-                        <span>${proposal.duration} minutes</span>
+                        <span>${escapeHtml(String(proposal.duration))} minutes</span>
                     </div>
                     <div class="col-md-4">
                         <small class="text-muted d-block">Level</small>
@@ -317,13 +317,13 @@ async function showProposalDetail(proposalId) {
 
             <div class="mb-4">
                 <h6>Abstract</h6>
-                <p style="white-space: pre-wrap;">${escapeHtml(proposal.abstract)}</p>
+                <p class="white-space-pre-wrap">${escapeHtml(proposal.abstract)}</p>
             </div>
 
             ${proposal.speaker_notes ? `
                 <div class="mb-4">
                     <h6>Speaker Notes <small class="text-muted">(visible to organizers only)</small></h6>
-                    <p style="white-space: pre-wrap;">${escapeHtml(proposal.speaker_notes)}</p>
+                    <p class="white-space-pre-wrap">${escapeHtml(proposal.speaker_notes)}</p>
                 </div>
             ` : ''}
 

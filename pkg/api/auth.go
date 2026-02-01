@@ -28,15 +28,23 @@ func GetUserFromContext(ctx context.Context) *models.User {
 	return user
 }
 
+// getJWTFromCookie reads the session cookie value, returning "" if absent.
+func getJWTFromCookie(r *http.Request) string {
+	c, err := r.Cookie(sessionCookieName)
+	if err != nil || c.Value == "" {
+		return ""
+	}
+	return c.Value
+}
+
 // AuthHandler wraps a handler with authentication middleware.
 //
 // Authentication flow:
 //  1. OPTIONS requests (CORS preflight) bypass auth entirely
 //  2. Insecure mode (INSECURE env var set): Uses either a real user from
 //     INSECURE_USER_EMAIL or a dummy user. Used for testing only.
-//  3. Normal mode requires "Authorization: Bearer <token>" header with either:
-//     - API key (prefix "ocfp_"): Programmatic access for CLI tools
-//     - JWT token: Browser sessions from OAuth login
+//  3. Normal mode requires "Authorization: Bearer <token>" header with a JWT token
+//     from OAuth login, or a session cookie set by the OAuth callback.
 //
 // The authenticated user is re-fetched from the database on each request to ensure
 // we have current user state (active status, permissions, etc.) rather than relying
@@ -75,42 +83,33 @@ func AuthHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Extract Authorization header
+		// Extract token from Authorization header or session cookie
+		var token string
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			encodeError(w, "Missing Authorization header", http.StatusUnauthorized)
-			return
-		}
-
-		// Expect "Bearer <token>"
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			encodeError(w, "Invalid Authorization header format", http.StatusUnauthorized)
-			return
-		}
-
-		token := parts[1]
-
-		// Determine if it's an API key or JWT
-		var user *models.User
-		var err error
-
-		if strings.HasPrefix(token, "ocfp_") {
-			// API key authentication
-			user, err = models.GetUserByAPIKey(cfg.DB, token)
-			if err != nil {
-				cfg.Logger.Warn("API key authentication failed", "error", err.Error())
-				encodeError(w, "Invalid API key", http.StatusUnauthorized)
+		if authHeader != "" {
+			// Expect "Bearer <token>"
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+				encodeError(w, "Invalid Authorization header format", http.StatusUnauthorized)
 				return
 			}
+			token = parts[1]
 		} else {
-			// JWT authentication
-			user, err = validateJWT(cfg, token)
-			if err != nil {
-				cfg.Logger.Warn("JWT authentication failed", "error", err.Error())
-				encodeError(w, "Invalid or expired token", http.StatusUnauthorized)
-				return
-			}
+			// Fall back to session cookie (browser sessions)
+			token = getJWTFromCookie(r)
+		}
+
+		if token == "" {
+			encodeError(w, "Missing authentication", http.StatusUnauthorized)
+			return
+		}
+
+		// JWT authentication
+		user, err := validateJWT(cfg, token)
+		if err != nil {
+			cfg.Logger.Warn("JWT authentication failed", "error", err.Error())
+			encodeError(w, "Invalid or expired token", http.StatusUnauthorized)
+			return
 		}
 
 		// Add user to context and call next handler
@@ -127,29 +126,26 @@ func AuthCorsHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc
 // OptionalAuthHandler tries to authenticate but doesn't fail if no auth provided
 func OptionalAuthHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract token from Authorization header or session cookie
+		var token string
 		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			next(w, r)
-			return
-		}
-
-		// Try to authenticate
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			next(w, r)
-			return
-		}
-
-		token := parts[1]
-		var user *models.User
-		var err error
-
-		if strings.HasPrefix(token, "ocfp_") {
-			user, err = models.GetUserByAPIKey(cfg.DB, token)
+		if authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+				next(w, r)
+				return
+			}
+			token = parts[1]
 		} else {
-			user, err = validateJWT(cfg, token)
+			token = getJWTFromCookie(r)
 		}
 
+		if token == "" {
+			next(w, r)
+			return
+		}
+
+		user, err := validateJWT(cfg, token)
 		if err == nil && user != nil {
 			ctx := context.WithValue(r.Context(), UserContextKey, user)
 			next(w, r.WithContext(ctx))

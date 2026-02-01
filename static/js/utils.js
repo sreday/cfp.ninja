@@ -206,17 +206,6 @@ export function showLoading(container) {
     `;
 }
 
-// Empty state helper
-export function showEmptyState(container, title, message, actionHtml = '') {
-    container.innerHTML = `
-        <div class="empty-state">
-            <h3>${escapeHtml(title)}</h3>
-            <p class="text-muted">${escapeHtml(message)}</p>
-            ${actionHtml}
-        </div>
-    `;
-}
-
 // Error state helper
 export function showError(container, message) {
     container.innerHTML = `

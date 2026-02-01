@@ -273,7 +273,7 @@ func TestCreateEvent(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        EventInput
-		apiKey       string
+		token       string
 		expectedCode int
 		expectedErr  string
 	}{
@@ -288,7 +288,7 @@ func TestCreateEvent(t *testing.T) {
 				StartDate:   now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:     now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusCreated,
 		},
 		{
@@ -299,7 +299,7 @@ func TestCreateEvent(t *testing.T) {
 				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusConflict,
 		},
 		{
@@ -307,7 +307,7 @@ func TestCreateEvent(t *testing.T) {
 			input: EventInput{
 				Description: "Only description",
 			},
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -318,14 +318,14 @@ func TestCreateEvent(t *testing.T) {
 				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doPost("/api/v0/events", tc.input, tc.apiKey)
+			resp := doPost("/api/v0/events", tc.input, tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 
 			if tc.expectedCode == http.StatusCreated {
@@ -347,7 +347,7 @@ func TestCreateEvent(t *testing.T) {
 func TestUpdateEvent(t *testing.T) {
 	// Create a test event first
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Event to Update",
 		Slug:      "event-to-update-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -358,7 +358,7 @@ func TestUpdateEvent(t *testing.T) {
 		name         string
 		eventID      uint
 		input        EventInput
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
@@ -371,7 +371,7 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate:   event.StartDate,
 				EndDate:     event.EndDate,
 			},
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -383,7 +383,7 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate: event.StartDate,
 				EndDate:   event.EndDate,
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
@@ -395,14 +395,14 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate: event.StartDate,
 				EndDate:   event.EndDate,
 			},
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doPut(fmt.Sprintf("/api/v0/events/%d", tc.eventID), tc.input, tc.apiKey)
+			resp := doPut(fmt.Sprintf("/api/v0/events/%d", tc.eventID), tc.input, tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -411,7 +411,7 @@ func TestUpdateEvent(t *testing.T) {
 func TestUpdateCFPStatus(t *testing.T) {
 	// Create a test event first
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:       "CFP Status Test Event",
 		Slug:       "cfp-status-test-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -423,31 +423,31 @@ func TestUpdateCFPStatus(t *testing.T) {
 	tests := []struct {
 		name         string
 		status       string
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
 			name:         "set to open",
 			status:       "open",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "set to closed",
 			status:       "closed",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "invalid status",
 			status:       "invalid",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot update",
 			status:       "open",
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -457,7 +457,7 @@ func TestUpdateCFPStatus(t *testing.T) {
 			resp := doPut(
 				fmt.Sprintf("/api/v0/events/%d/cfp-status", event.ID),
 				CFPStatusInput{Status: tc.status},
-				tc.apiKey,
+				tc.token,
 			)
 			assertStatus(t, resp, tc.expectedCode)
 		})
@@ -467,33 +467,33 @@ func TestUpdateCFPStatus(t *testing.T) {
 func TestGetMyEvents(t *testing.T) {
 	tests := []struct {
 		name                   string
-		apiKey                 string
+		token                 string
 		expectedCode           int
 		expectManagingAtLeast  int
 		expectSubmittedAtLeast int
 	}{
 		{
 			name:                  "admin's events",
-			apiKey:                adminKey,
+			token:                adminToken,
 			expectedCode:          http.StatusOK,
 			expectManagingAtLeast: 5, // Created 5 events in fixtures
 		},
 		{
 			name:                   "speaker's events",
-			apiKey:                 speakerKey,
+			token:                 speakerToken,
 			expectedCode:           http.StatusOK,
 			expectSubmittedAtLeast: 1, // Speaker submitted to GopherCon
 		},
 		{
 			name:         "unauthorized",
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doAuthGet("/api/v0/me/events", tc.apiKey)
+			resp := doAuthGet("/api/v0/me/events", tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 
 			if tc.expectedCode == http.StatusOK {
@@ -520,7 +520,7 @@ func TestGetMyEvents(t *testing.T) {
 func TestAddOrganizer_Success(t *testing.T) {
 	// Create a test event
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Organizer Test Event",
 		Slug:      "organizer-test-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -531,18 +531,18 @@ func TestAddOrganizer_Success(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "speaker@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
 	// Verify speaker can now access organizer-only endpoints
-	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), speakerKey)
+	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), speakerToken)
 	assertStatus(t, resp, http.StatusOK)
 }
 
 func TestAddOrganizer_AlreadyOrganizer(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Already Organizer Test",
 		Slug:      "already-org-test-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -553,7 +553,7 @@ func TestAddOrganizer_AlreadyOrganizer(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "other@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
@@ -561,14 +561,14 @@ func TestAddOrganizer_AlreadyOrganizer(t *testing.T) {
 	resp = doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "other@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusConflict)
 }
 
 func TestAddOrganizer_NotFound(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Organizer Not Found Test",
 		Slug:      "org-not-found-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -579,14 +579,14 @@ func TestAddOrganizer_NotFound(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "nonexistent@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusNotFound)
 }
 
 func TestAddOrganizer_Forbidden(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Forbidden Add Test",
 		Slug:      "forbidden-add-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -597,14 +597,14 @@ func TestAddOrganizer_Forbidden(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "other@test.com"},
-		speakerKey,
+		speakerToken,
 	)
 	assertStatus(t, resp, http.StatusForbidden)
 }
 
 func TestRemoveOrganizer_Success(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Remove Organizer Test",
 		Slug:      "remove-org-test-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -615,25 +615,25 @@ func TestRemoveOrganizer_Success(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "other@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
 	// Remove the organizer (by creator)
 	resp = doDelete(
 		fmt.Sprintf("/api/v0/events/%d/organizers/%d", event.ID, userOther.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 
 	// Verify they can no longer access organizer endpoints
-	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), otherKey)
+	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), otherToken)
 	assertStatus(t, resp, http.StatusForbidden)
 }
 
 func TestRemoveOrganizer_CannotRemoveCreator(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Cannot Remove Creator Test",
 		Slug:      "no-remove-creator-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -643,14 +643,14 @@ func TestRemoveOrganizer_CannotRemoveCreator(t *testing.T) {
 	// Try to remove the creator
 	resp := doDelete(
 		fmt.Sprintf("/api/v0/events/%d/organizers/%d", event.ID, userAdmin.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusBadRequest)
 }
 
 func TestRemoveOrganizer_OnlyCreatorCanRemove(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Only Creator Can Remove Test",
 		Slug:      "only-creator-remove-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -661,7 +661,7 @@ func TestRemoveOrganizer_OnlyCreatorCanRemove(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "speaker@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
@@ -669,21 +669,21 @@ func TestRemoveOrganizer_OnlyCreatorCanRemove(t *testing.T) {
 	resp = doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "other@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
 	// Speaker (co-organizer but not creator) tries to remove other
 	resp = doDelete(
 		fmt.Sprintf("/api/v0/events/%d/organizers/%d", event.ID, userOther.ID),
-		speakerKey,
+		speakerToken,
 	)
 	assertStatus(t, resp, http.StatusForbidden)
 }
 
 func TestGetEventOrganizers(t *testing.T) {
 	now := time.Now()
-	event := createTestEvent(adminKey, EventInput{
+	event := createTestEvent(adminToken, EventInput{
 		Name:      "Get Organizers Test",
 		Slug:      "get-organizers-" + fmt.Sprintf("%d", now.UnixNano()),
 		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
@@ -694,12 +694,12 @@ func TestGetEventOrganizers(t *testing.T) {
 	resp := doPost(
 		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
 		OrganizerInput{Email: "speaker@test.com"},
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
 	// Get organizers
-	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), adminKey)
+	resp = doAuthGet(fmt.Sprintf("/api/v0/events/%d/organizers", event.ID), adminToken)
 	assertStatus(t, resp, http.StatusOK)
 
 	var organizers []struct {

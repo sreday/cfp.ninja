@@ -108,7 +108,7 @@ func TestXSSPayloadsInEventFields(t *testing.T) {
 				EndDate:     now.AddDate(0, 1, 1).Format(time.RFC3339),
 				CFPOpenAt:   now.AddDate(0, 0, -7).Format(time.RFC3339),
 				CFPCloseAt:  now.AddDate(0, 0, -1).Format(time.RFC3339),
-			}, adminKey)
+			}, adminToken)
 			assertStatus(t, resp, http.StatusCreated)
 
 			var event EventResponse
@@ -117,7 +117,7 @@ func TestXSSPayloadsInEventFields(t *testing.T) {
 			}
 
 			// Make event visible publicly (default is draft, which is hidden)
-			updateCFPStatus(adminKey, event.ID, "closed")
+			updateCFPStatus(adminToken, event.ID, "closed")
 
 			// Payloads must be stored and returned verbatim
 			if event.Name != tc.payload {
@@ -168,7 +168,7 @@ func TestXSSPayloadsInProposalFields(t *testing.T) {
 				},
 			},
 		},
-		speakerKey,
+		speakerToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
@@ -207,14 +207,14 @@ func TestCSVFormulaInjection(t *testing.T) {
 				},
 			},
 		},
-		speakerKey,
+		speakerToken,
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
 	t.Run("in-person format", func(t *testing.T) {
 		resp := doAuthGet(
 			fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
-			adminKey,
+			adminToken,
 		)
 		assertStatus(t, resp, http.StatusOK)
 
@@ -260,7 +260,7 @@ func TestCSVFormulaInjection(t *testing.T) {
 	t.Run("online format", func(t *testing.T) {
 		resp := doAuthGet(
 			fmt.Sprintf("/api/v0/events/%d/proposals/export?format=online", eventGopherCon.ID),
-			adminKey,
+			adminToken,
 		)
 		assertStatus(t, resp, http.StatusOK)
 
@@ -318,7 +318,7 @@ func TestOversizedRequestBodyRejected(t *testing.T) {
 			Description: oversized,
 			StartDate:   now.AddDate(0, 1, 0).Format(time.RFC3339),
 			EndDate:     now.AddDate(0, 1, 1).Format(time.RFC3339),
-		}, adminKey)
+		}, adminToken)
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
@@ -339,7 +339,7 @@ func TestOversizedRequestBodyRejected(t *testing.T) {
 					},
 				},
 			},
-			speakerKey,
+			speakerToken,
 		)
 		assertStatus(t, resp, http.StatusBadRequest)
 	})

@@ -10,21 +10,21 @@ func TestGetEventProposals(t *testing.T) {
 	tests := []struct {
 		name          string
 		eventID       uint
-		apiKey        string
+		token        string
 		expectedCode  int
 		expectAtLeast int
 	}{
 		{
 			name:          "organizer sees all proposals",
 			eventID:       eventGopherCon.ID,
-			apiKey:        adminKey,
+			token:        adminToken,
 			expectedCode:  http.StatusOK,
 			expectAtLeast: 2, // Created 2 proposals in fixtures
 		},
 		{
 			name:         "speaker sees own proposals",
 			eventID:      eventGopherCon.ID,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusOK,
 			// Speaker created 2 proposals
 			expectAtLeast: 2,
@@ -32,21 +32,21 @@ func TestGetEventProposals(t *testing.T) {
 		{
 			name:         "other user sees no proposals (not organizer, no submissions)",
 			eventID:      eventGopherCon.ID,
-			apiKey:       otherKey,
+			token:       otherToken,
 			expectedCode: http.StatusOK,
 			// Other user has no proposals and is not organizer
 		},
 		{
 			name:         "unauthorized",
 			eventID:      eventGopherCon.ID,
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doAuthGet(fmt.Sprintf("/api/v0/events/%d/proposals", tc.eventID), tc.apiKey)
+			resp := doAuthGet(fmt.Sprintf("/api/v0/events/%d/proposals", tc.eventID), tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 
 			if tc.expectedCode == http.StatusOK {
@@ -67,7 +67,7 @@ func TestCreateProposal(t *testing.T) {
 		name         string
 		eventID      uint
 		input        ProposalInput
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
@@ -83,7 +83,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "test@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/test", Primary: true},
 				},
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusCreated,
 		},
 		{
@@ -97,7 +97,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "test@test.com", Primary: true},
 				},
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -111,7 +111,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "test@test.com", Primary: true},
 				},
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -120,7 +120,7 @@ func TestCreateProposal(t *testing.T) {
 			input: ProposalInput{
 				Abstract: "Only abstract",
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -130,7 +130,7 @@ func TestCreateProposal(t *testing.T) {
 				Title:    "Unauthorized Proposal",
 				Abstract: "Should not work",
 			},
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -140,7 +140,7 @@ func TestCreateProposal(t *testing.T) {
 			resp := doPost(
 				fmt.Sprintf("/api/v0/events/%d/proposals", tc.eventID),
 				tc.input,
-				tc.apiKey,
+				tc.token,
 			)
 			assertStatus(t, resp, tc.expectedCode)
 
@@ -164,44 +164,44 @@ func TestGetProposal(t *testing.T) {
 	tests := []struct {
 		name         string
 		proposalID   uint
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
 			name:         "owner can view",
 			proposalID:   proposalGoPerf.ID,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can view",
 			proposalID:   proposalGoPerf.ID,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "other user cannot view",
 			proposalID:   proposalGoPerf.ID,
-			apiKey:       otherKey,
+			token:       otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
 			name:         "non-existent proposal",
 			proposalID:   99999,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusNotFound,
 		},
 		{
 			name:         "unauthorized",
 			proposalID:   proposalGoPerf.ID,
-			apiKey:       "",
+			token:       "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doAuthGet(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.apiKey)
+			resp := doAuthGet(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -209,7 +209,7 @@ func TestGetProposal(t *testing.T) {
 
 func TestUpdateProposal(t *testing.T) {
 	// Create a proposal to update
-	proposal := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Proposal to Update",
 		Abstract: "Original abstract",
 		Format:   "talk",
@@ -223,7 +223,7 @@ func TestUpdateProposal(t *testing.T) {
 		name         string
 		proposalID   uint
 		input        ProposalInput
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
@@ -238,7 +238,7 @@ func TestUpdateProposal(t *testing.T) {
 					{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 				},
 			},
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -253,7 +253,7 @@ func TestUpdateProposal(t *testing.T) {
 					{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 				},
 			},
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -264,14 +264,14 @@ func TestUpdateProposal(t *testing.T) {
 				Abstract: "Not allowed",
 				Format:   "talk",
 			},
-			apiKey:       otherKey,
+			token:       otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doPut(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.input, tc.apiKey)
+			resp := doPut(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.input, tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -279,7 +279,7 @@ func TestUpdateProposal(t *testing.T) {
 
 func TestDeleteProposal(t *testing.T) {
 	// Create proposals to delete
-	proposalToDeleteByOwner := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposalToDeleteByOwner := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "To Delete by Owner",
 		Abstract: "Will be deleted",
 		Format:   "talk",
@@ -288,7 +288,7 @@ func TestDeleteProposal(t *testing.T) {
 		},
 	})
 
-	proposalToDeleteByOther := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposalToDeleteByOther := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "To Delete by Other",
 		Abstract: "Should not be deleted",
 		Format:   "talk",
@@ -300,32 +300,32 @@ func TestDeleteProposal(t *testing.T) {
 	tests := []struct {
 		name         string
 		proposalID   uint
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
 			name:         "owner can delete",
 			proposalID:   proposalToDeleteByOwner.ID,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "other user cannot delete",
 			proposalID:   proposalToDeleteByOther.ID,
-			apiKey:       otherKey,
+			token:       otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
 			name:         "non-existent proposal",
 			proposalID:   99999,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusNotFound,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			resp := doDelete(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.apiKey)
+			resp := doDelete(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.token)
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -333,7 +333,7 @@ func TestDeleteProposal(t *testing.T) {
 
 func TestUpdateProposalStatus(t *testing.T) {
 	// Create a proposal for status tests
-	proposal := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Status Test Proposal",
 		Abstract: "For testing status updates",
 		Format:   "talk",
@@ -346,42 +346,42 @@ func TestUpdateProposalStatus(t *testing.T) {
 		name         string
 		proposalID   uint
 		status       string
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
 			name:         "organizer can accept",
 			proposalID:   proposal.ID,
 			status:       "accepted",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can reject",
 			proposalID:   proposal.ID,
 			status:       "rejected",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can set tentative",
 			proposalID:   proposal.ID,
 			status:       "tentative",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "invalid status",
 			proposalID:   proposal.ID,
 			status:       "invalid",
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot update status",
 			proposalID:   proposal.ID,
 			status:       "accepted",
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -391,7 +391,7 @@ func TestUpdateProposalStatus(t *testing.T) {
 			resp := doPut(
 				fmt.Sprintf("/api/v0/proposals/%d/status", tc.proposalID),
 				ProposalStatusInput{Status: tc.status},
-				tc.apiKey,
+				tc.token,
 			)
 			assertStatus(t, resp, tc.expectedCode)
 		})
@@ -400,7 +400,7 @@ func TestUpdateProposalStatus(t *testing.T) {
 
 func TestUpdateProposalRating(t *testing.T) {
 	// Create a proposal for rating tests
-	proposal := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	proposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Rating Test Proposal",
 		Abstract: "For testing ratings",
 		Format:   "talk",
@@ -413,49 +413,49 @@ func TestUpdateProposalRating(t *testing.T) {
 		name         string
 		proposalID   uint
 		rating       int
-		apiKey       string
+		token       string
 		expectedCode int
 	}{
 		{
 			name:         "organizer can rate 5",
 			proposalID:   proposal.ID,
 			rating:       5,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can rate 0",
 			proposalID:   proposal.ID,
 			rating:       0,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can rate 3",
 			proposalID:   proposal.ID,
 			rating:       3,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "rating above 5 invalid",
 			proposalID:   proposal.ID,
 			rating:       6,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "negative rating invalid",
 			proposalID:   proposal.ID,
 			rating:       -1,
-			apiKey:       adminKey,
+			token:       adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot rate",
 			proposalID:   proposal.ID,
 			rating:       4,
-			apiKey:       speakerKey,
+			token:       speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -465,7 +465,7 @@ func TestUpdateProposalRating(t *testing.T) {
 			resp := doPut(
 				fmt.Sprintf("/api/v0/proposals/%d/rating", tc.proposalID),
 				ProposalRatingInput{Rating: tc.rating},
-				tc.apiKey,
+				tc.token,
 			)
 			assertStatus(t, resp, tc.expectedCode)
 		})

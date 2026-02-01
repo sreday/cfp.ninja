@@ -34,6 +34,41 @@ const (
 	MaxSpeakerLinkedInLen       = 500
 )
 
+// MaxCustomAnswerLen is the maximum length for a custom question answer value.
+const MaxCustomAnswerLen = 5000
+
+// validateCustomAnswers checks that custom answer values match expected types
+// from the event's question definitions. Returns an error message or empty string.
+func validateCustomAnswers(answers map[string]interface{}, questions []models.CustomQuestion) string {
+	questionMap := make(map[string]models.CustomQuestion)
+	for _, q := range questions {
+		questionMap[q.ID] = q
+	}
+
+	for id, val := range answers {
+		q, known := questionMap[id]
+		if !known {
+			continue // ignore answers to unknown questions
+		}
+
+		switch q.Type {
+		case "checkbox":
+			if _, ok := val.(bool); !ok {
+				return "Answer for '" + id + "' must be a boolean"
+			}
+		default: // text, select, multiselect, and any future string types
+			str, ok := val.(string)
+			if !ok {
+				return "Answer for '" + id + "' must be a string"
+			}
+			if len(str) > MaxCustomAnswerLen {
+				return "Answer for '" + id + "' must be at most 5000 characters"
+			}
+		}
+	}
+	return ""
+}
+
 // linkedInURLRegex matches valid LinkedIn profile URLs.
 // Valid examples:
 //   - "https://linkedin.com/in/johndoe"
@@ -187,6 +222,11 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 							return
 						}
 					}
+				}
+
+				if errMsg := validateCustomAnswers(answers, questions); errMsg != "" {
+					encodeError(w, errMsg, http.StatusBadRequest)
+					return
 				}
 			}
 		}
@@ -404,6 +444,21 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		if notes, ok := updates["organizer_notes"].(string); ok && len(notes) > MaxProposalOrganizerNotesLen {
 			encodeError(w, "Organizer notes must be at most 5000 characters", http.StatusBadRequest)
 			return
+		}
+
+		// Validate custom answer types if being updated
+		if answersData, ok := updates["custom_answers"]; ok && answersData != nil {
+			if answersMap, ok := answersData.(map[string]interface{}); ok {
+				if event.CFPQuestions != nil && len(event.CFPQuestions) > 0 {
+					var questions []models.CustomQuestion
+					if err := json.Unmarshal(event.CFPQuestions, &questions); err == nil {
+						if errMsg := validateCustomAnswers(answersMap, questions); errMsg != "" {
+							encodeError(w, errMsg, http.StatusBadRequest)
+							return
+						}
+					}
+				}
+			}
 		}
 
 		if err := cfg.DB.Model(&proposal).Updates(updates).Error; err != nil {

@@ -12,7 +12,7 @@ import (
 func TestExportProposals_InPersonFormat(t *testing.T) {
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 
@@ -101,7 +101,7 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 func TestExportProposals_OnlineFormat(t *testing.T) {
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=online", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 
@@ -169,7 +169,7 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 
 func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 	// Create a proposal with two speakers
-	twoSpeakerProposal := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	twoSpeakerProposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Two Speaker Talk InPerson",
 		Abstract: "A talk by two speakers",
 		Format:   "talk",
@@ -184,7 +184,7 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 
@@ -223,7 +223,7 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 
 func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 	// Create a proposal with two speakers (for online format)
-	twoSpeakerProposal := createTestProposal(speakerKey, eventGopherCon.ID, ProposalInput{
+	twoSpeakerProposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Two Speaker Talk Online",
 		Abstract: "A talk by two speakers for online",
 		Format:   "talk",
@@ -238,7 +238,7 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=online", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 
@@ -298,7 +298,7 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 func TestExportProposals_InvalidFormat(t *testing.T) {
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=invalid", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusBadRequest)
 }
@@ -306,7 +306,7 @@ func TestExportProposals_InvalidFormat(t *testing.T) {
 func TestExportProposals_MissingFormat(t *testing.T) {
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export", eventGopherCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusBadRequest)
 }
@@ -322,7 +322,7 @@ func TestExportProposals_Unauthorized(t *testing.T) {
 func TestExportProposals_NonOrganizer(t *testing.T) {
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
-		otherKey,
+		otherToken,
 	)
 	assertStatus(t, resp, http.StatusForbidden)
 }
@@ -330,7 +330,7 @@ func TestExportProposals_NonOrganizer(t *testing.T) {
 func TestExportProposals_NonExistentEvent(t *testing.T) {
 	resp := doAuthGet(
 		"/api/v0/events/99999/proposals/export?format=in-person",
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusNotFound)
 }
@@ -339,7 +339,7 @@ func TestExportProposals_EmptyEvent(t *testing.T) {
 	// DevOpsCon has no proposals
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=online", eventDevOpsCon.ID),
-		adminKey,
+		adminToken,
 	)
 	assertStatus(t, resp, http.StatusOK)
 

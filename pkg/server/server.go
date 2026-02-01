@@ -77,7 +77,7 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 		writeLimiter = api.NewRateLimiter(1000, 10000, cfg.TrustedProxies)
 		readLimiter = api.NewRateLimiter(1000, 10000, cfg.TrustedProxies)
 	} else {
-		authLimiter = api.NewRateLimiter(5, 10, cfg.TrustedProxies)     // 5 req/s, burst 10 (OAuth, API key)
+		authLimiter = api.NewRateLimiter(5, 10, cfg.TrustedProxies)     // 5 req/s, burst 10 (OAuth)
 		writeLimiter = api.NewRateLimiter(10, 20, cfg.TrustedProxies)   // 10 req/s, burst 20 (create/update)
 		readLimiter = api.NewRateLimiter(30, 60, cfg.TrustedProxies)    // 30 req/s, burst 60 (public reads)
 	}
@@ -107,18 +107,7 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	// Auth endpoints - GitHub OAuth (rate limited)
 	mux.HandleFunc("/api/v0/auth/github", api.CorsHandler(cfg, authLimiter.Middleware(api.GitHubAuthHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/github/callback", api.CorsHandler(cfg, authLimiter.Middleware(api.GitHubCallbackHandler(cfg))))
-	mux.HandleFunc("/api/v0/auth/api-key", api.AuthCorsHandler(cfg, authLimiter.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodPost:
-			api.GenerateAPIKeyHandler(cfg)(w, r)
-		case http.MethodDelete:
-			api.RevokeAPIKeyHandler(cfg)(w, r)
-		case http.MethodOptions:
-			// CORS preflight handled by wrapper
-		default:
-			http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-		}
-	})))
+	mux.HandleFunc("/api/v0/auth/logout", api.CorsHandler(cfg, authLimiter.Middleware(api.LogoutHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/me", api.AuthCorsHandler(cfg, api.GetMeHandler(cfg)))
 	mux.HandleFunc("/api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
 

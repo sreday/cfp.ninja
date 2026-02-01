@@ -37,9 +37,10 @@ export const API = {
             'Content-Type': 'application/json',
         };
 
-        const authToken = token || Auth.getToken();
-        if (authToken) {
-            headers['Authorization'] = `Bearer ${authToken}`;
+        // Only set Authorization header when an explicit token is provided (e.g. CLI).
+        // Browser sessions rely on the HttpOnly session cookie (auto-sent by fetch).
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
         }
 
         const options = {
@@ -162,18 +163,9 @@ export const API = {
     }
 };
 
-// Token management
+// Auth management (session cookie for browser, Authorization header for CLI/API keys)
 export const Auth = {
-    TOKEN_KEY: 'cfpninja_token',
     USER_KEY: 'cfpninja_user',
-
-    getToken() {
-        return localStorage.getItem(this.TOKEN_KEY);
-    },
-
-    setToken(token) {
-        localStorage.setItem(this.TOKEN_KEY, token);
-    },
 
     getUser() {
         const user = localStorage.getItem(this.USER_KEY);
@@ -182,7 +174,6 @@ export const Auth = {
             return JSON.parse(user);
         } catch (e) {
             localStorage.removeItem(this.USER_KEY);
-            localStorage.removeItem(this.TOKEN_KEY);
             return null;
         }
     },
@@ -191,16 +182,21 @@ export const Auth = {
         localStorage.setItem(this.USER_KEY, JSON.stringify(user));
     },
 
-    logout() {
-        localStorage.removeItem(this.TOKEN_KEY);
+    async logout() {
+        // Clear server-side session cookie (best-effort)
+        try {
+            await fetch('/api/v0/auth/logout', { method: 'POST' });
+        } catch (_) { /* ignore */ }
         localStorage.removeItem(this.USER_KEY);
+        // Clean up legacy token if present
+        localStorage.removeItem('cfpninja_token');
         renderNav();
         router.navigate('/');
         toast.info('You have been logged out.');
     },
 
     isLoggedIn() {
-        return !!this.getToken();
+        return !!this.getUser();
     },
 
     // OAuth popup login
@@ -226,13 +222,11 @@ export const Auth = {
         const handleMessage = async (event) => {
             if (event.origin !== window.location.origin) return;
 
-            if (event.data.type === 'oauth-success' && event.data.token) {
+            if (event.data.type === 'oauth-success') {
                 cleanup();
                 popup?.close();
 
-                this.setToken(event.data.token);
-
-                // Fetch user info
+                // Fetch user info (cookie was set by the callback)
                 try {
                     const user = await API.getMe();
                     this.setUser(user);
@@ -269,15 +263,16 @@ export const Auth = {
 
     // Initialize auth state
     async init() {
-        if (this.isLoggedIn()) {
-            try {
-                const user = await API.getMe();
-                this.setUser(user);
-            } catch (error) {
-                // Token invalid, clear it
-                console.error('Token validation failed:', error);
-                this.logout();
-            }
+        // Clean up legacy token from localStorage (now stored in HttpOnly cookie)
+        localStorage.removeItem('cfpninja_token');
+
+        // Validate session by calling /auth/me (cookie auto-sent)
+        try {
+            const user = await API.getMe();
+            this.setUser(user);
+        } catch (error) {
+            // Session invalid or not logged in — silently clear cached user
+            localStorage.removeItem(this.USER_KEY);
         }
     }
 };
@@ -294,25 +289,9 @@ export function requireAuth(viewFn) {
     };
 }
 
-// Handle OAuth callback from popup
+// Handle OAuth callback — no longer needed for browser (cookie set server-side).
+// Kept as a no-op in case old bookmarks hit /?token=...
 function handleOAuthCallback() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-
-    if (token && window.opener) {
-        // Send token to parent window
-        window.opener.postMessage({ type: 'oauth-success', token }, window.location.origin);
-        window.close();
-        return true;
-    }
-
-    // Handle callback in same window (fallback)
-    if (token) {
-        Auth.setToken(token);
-        window.location.href = '/dashboard';
-        return true;
-    }
-
     return false;
 }
 

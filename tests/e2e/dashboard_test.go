@@ -64,6 +64,11 @@ func TestDashboard_ShowsMyProposals(t *testing.T) {
 	navigate(page, "/dashboard")
 	time.Sleep(1 * time.Second)
 
+	// The dashboard defaults to the Events tab when the user has open events,
+	// so switch to the Proposals tab first.
+	click(page, "#proposals-tab")
+	time.Sleep(500 * time.Millisecond)
+
 	// Should show the user's proposals
 	assertContains(t, page, "#main-content", proposal.Title)
 }
