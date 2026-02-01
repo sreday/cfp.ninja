@@ -1,8 +1,11 @@
 package api
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -92,32 +95,53 @@ func generateCSPNonce() (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-// encodeOAuthState encodes CLI parameters into the OAuth state.
-// The state format is either:
-//   - Just the random state (for browser flows): "abc123..."
-//   - State with CLI info (for CLI flows): "abc123...|cli|8080"
+// signOAuthState produces an HMAC-SHA256 signature for the given state payload.
+func signOAuthState(payload, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(payload))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// encodeOAuthState encodes CLI parameters into the OAuth state with an HMAC
+// signature to prevent tampering. The state format is:
+//   - Browser flow: "randomState.hmac"
+//   - CLI flow:     "randomState|cli|port.hmac"
 //
-// This encoding allows the callback handler to detect CLI OAuth flows
-// and redirect the token to the local CLI server instead of the browser.
-func encodeOAuthState(cliMode bool, redirectPort string) (string, error) {
+// The HMAC is computed over the payload (everything before the last ".") using
+// the JWT secret, so the callback can verify integrity.
+func encodeOAuthState(cliMode bool, redirectPort string, jwtSecret string) (string, error) {
 	state, err := generateRandomState()
 	if err != nil {
 		return "", err
 	}
+	payload := state
 	if cliMode && redirectPort != "" {
-		// Encode CLI info: state|cli|port
-		return fmt.Sprintf("%s|cli|%s", state, redirectPort), nil
+		payload = fmt.Sprintf("%s|cli|%s", state, redirectPort)
 	}
-	return state, nil
+	sig := signOAuthState(payload, jwtSecret)
+	return payload + "." + sig, nil
 }
 
-// decodeOAuthState decodes the OAuth state to extract CLI parameters
-func decodeOAuthState(state string) (isCLI bool, redirectPort string) {
-	parts := strings.Split(state, "|")
-	if len(parts) == 3 && parts[1] == "cli" {
-		return true, parts[2]
+// decodeOAuthState verifies the HMAC signature and decodes the OAuth state to
+// extract CLI parameters. Returns ok=false if the signature is invalid.
+func decodeOAuthState(state string, jwtSecret string) (isCLI bool, redirectPort string, ok bool) {
+	idx := strings.LastIndex(state, ".")
+	if idx < 0 || idx == len(state)-1 {
+		return false, "", false
 	}
-	return false, ""
+	payload := state[:idx]
+	sig := state[idx+1:]
+
+	expected := signOAuthState(payload, jwtSecret)
+	if !hmac.Equal([]byte(sig), []byte(expected)) {
+		return false, "", false
+	}
+
+	parts := strings.Split(payload, "|")
+	if len(parts) == 3 && parts[1] == "cli" {
+		return true, parts[2], true
+	}
+	return false, "", true
 }
 
 const oauthStateCookieName = "oauth_state"
@@ -178,19 +202,21 @@ func setOAuthStateCookie(w http.ResponseWriter, state string, insecure bool) {
 // validateOAuthStateCookie validates the OAuth state from the callback matches the cookie.
 // Returns an error message if invalid, or empty string if valid.
 // Clears the cookie after validation.
-func validateOAuthStateCookie(w http.ResponseWriter, r *http.Request, callbackState string) string {
+func validateOAuthStateCookie(w http.ResponseWriter, r *http.Request, callbackState string, insecure bool) string {
 	cookie, err := r.Cookie(oauthStateCookieName)
 	if err != nil || cookie.Value == "" {
 		return "Missing OAuth state cookie - please retry login"
 	}
 
-	// Clear the cookie
+	// Clear the cookie (match flags used when setting)
 	http.SetCookie(w, &http.Cookie{
 		Name:     oauthStateCookieName,
 		Value:    "",
 		Path:     "/api/v0/auth/",
 		MaxAge:   -1,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   !insecure,
 	})
 
 	if cookie.Value != callbackState {
@@ -208,8 +234,8 @@ func GoogleAuthHandler(cfg *config.Config) http.HandlerFunc {
 		cliMode := r.URL.Query().Get("cli") == "true"
 		redirectPort := r.URL.Query().Get("redirect_port")
 
-		// Generate state with CLI info encoded
-		state, err := encodeOAuthState(cliMode, redirectPort)
+		// Generate state with CLI info encoded and HMAC-signed
+		state, err := encodeOAuthState(cliMode, redirectPort, cfg.JWTSecret)
 		if err != nil {
 			cfg.Logger.Error("failed to generate OAuth state", "error", err)
 			encodeError(w, "Internal server error", http.StatusInternalServerError)
@@ -231,7 +257,7 @@ func GoogleCallbackHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Validate OAuth state to prevent CSRF
 		state := r.URL.Query().Get("state")
-		if errMsg := validateOAuthStateCookie(w, r, state); errMsg != "" {
+		if errMsg := validateOAuthStateCookie(w, r, state, cfg.Insecure); errMsg != "" {
 			cfg.Logger.Warn("OAuth state validation failed", "error", errMsg)
 			encodeError(w, errMsg, http.StatusBadRequest)
 			return
@@ -298,7 +324,11 @@ func GoogleCallbackHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Check if this is a CLI OAuth flow (state already validated above)
-		isCLI, redirectPort := decodeOAuthState(state)
+		isCLI, redirectPort, stateOK := decodeOAuthState(state, cfg.JWTSecret)
+		if !stateOK {
+			encodeError(w, "OAuth state signature invalid", http.StatusBadRequest)
+			return
+		}
 
 		if isCLI && redirectPort != "" {
 			// Validate redirect port is numeric and in valid range
@@ -358,8 +388,8 @@ func GitHubAuthHandler(cfg *config.Config) http.HandlerFunc {
 		cliMode := r.URL.Query().Get("cli") == "true"
 		redirectPort := r.URL.Query().Get("redirect_port")
 
-		// Generate state with CLI info encoded
-		state, err := encodeOAuthState(cliMode, redirectPort)
+		// Generate state with CLI info encoded and HMAC-signed
+		state, err := encodeOAuthState(cliMode, redirectPort, cfg.JWTSecret)
 		if err != nil {
 			cfg.Logger.Error("failed to generate OAuth state", "error", err)
 			encodeError(w, "Internal server error", http.StatusInternalServerError)
@@ -381,7 +411,7 @@ func GitHubCallbackHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Validate OAuth state to prevent CSRF
 		state := r.URL.Query().Get("state")
-		if errMsg := validateOAuthStateCookie(w, r, state); errMsg != "" {
+		if errMsg := validateOAuthStateCookie(w, r, state, cfg.Insecure); errMsg != "" {
 			cfg.Logger.Warn("OAuth state validation failed", "error", errMsg)
 			encodeError(w, errMsg, http.StatusBadRequest)
 			return
@@ -431,10 +461,14 @@ func GitHubCallbackHandler(cfg *config.Config) http.HandlerFunc {
 		if email == "" {
 			email, err = fetchGitHubPrimaryEmail(client)
 			if err != nil {
-				cfg.Logger.Error("failed to fetch email", "error", err)
-				encodeError(w, "Failed to get email from GitHub", http.StatusInternalServerError)
+				cfg.Logger.Error("failed to fetch verified email", "error", err)
+				encodeError(w, "No verified email found on your GitHub account", http.StatusBadRequest)
 				return
 			}
+		}
+		if email == "" {
+			encodeError(w, "No verified email found on your GitHub account", http.StatusBadRequest)
+			return
 		}
 
 		// Use login as name if name is not set
@@ -461,7 +495,11 @@ func GitHubCallbackHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Check if this is a CLI OAuth flow (state already validated above)
-		isCLI, redirectPort := decodeOAuthState(state)
+		isCLI, redirectPort, stateOK := decodeOAuthState(state, cfg.JWTSecret)
+		if !stateOK {
+			encodeError(w, "OAuth state signature invalid", http.StatusBadRequest)
+			return
+		}
 
 		if isCLI && redirectPort != "" {
 			// Validate redirect port is numeric and in valid range

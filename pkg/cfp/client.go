@@ -155,6 +155,7 @@ type Event struct {
 	StartDate      time.Time      `json:"start_date"`
 	EndDate        time.Time      `json:"end_date"`
 	Website        string         `json:"website"`
+	TermsURL       string         `json:"terms_url"`
 	Tags           string         `json:"tags"`
 	CFPDescription string         `json:"cfp_description"`
 	CFPOpenAt      time.Time      `json:"cfp_open_at"`

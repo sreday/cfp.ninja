@@ -88,6 +88,8 @@ function renderProposalsView(container, event, proposals) {
             </div>
         </div>
 
+        ${proposals.length > 1 ? renderTimelineChart(proposals) : ''}
+
         <div class="card mb-4">
             <div class="card-header">
                 <div class="row align-items-center">
@@ -136,6 +138,74 @@ function renderProposalsView(container, event, proposals) {
     attachHandlers(event, proposals);
 }
 
+function renderTimelineChart(proposals) {
+    // Group proposals by day and build cumulative counts
+    const dayCounts = {};
+    proposals.forEach(p => {
+        const d = (p.CreatedAt || p.created_at || '').slice(0, 10);
+        if (d) dayCounts[d] = (dayCounts[d] || 0) + 1;
+    });
+    const sortedDays = Object.keys(dayCounts).sort();
+    if (sortedDays.length === 0) return '';
+
+    let cumulative = 0;
+    const points = sortedDays.map(d => { cumulative += dayCounts[d]; return { day: d, count: cumulative }; });
+
+    const svgW = 700, svgH = 200, padL = 45, padR = 15, padT = 15, padB = 35;
+    const chartW = svgW - padL - padR, chartH = svgH - padT - padB;
+    const maxCount = points[points.length - 1].count;
+    const xStep = points.length > 1 ? chartW / (points.length - 1) : 0;
+
+    const coords = points.map((p, i) => ({
+        x: points.length === 1 ? padL + chartW / 2 : padL + i * xStep,
+        y: padT + chartH - (maxCount > 0 ? (p.count / maxCount) * chartH : 0)
+    }));
+
+    const polyline = coords.map(c => `${c.x},${c.y}`).join(' ');
+    const areaPath = `M${coords[0].x},${padT + chartH} ${coords.map(c => `L${c.x},${c.y}`).join(' ')} L${coords[coords.length - 1].x},${padT + chartH} Z`;
+
+    // Y-axis labels (0, mid, max)
+    const mid = Math.round(maxCount / 2);
+    const yLabels = [
+        { val: 0, y: padT + chartH },
+        ...(maxCount > 1 ? [{ val: mid, y: padT + chartH - (mid / maxCount) * chartH }] : []),
+        { val: maxCount, y: padT }
+    ];
+
+    // X-axis labels
+    const fmt = d => { const parts = d.split('-'); return `${parts[1]}/${parts[2]}`; };
+    const xLabels = [];
+    if (points.length === 1) {
+        xLabels.push({ label: fmt(sortedDays[0]), x: coords[0].x });
+    } else {
+        const midIdx = Math.floor(points.length / 2);
+        xLabels.push({ label: fmt(sortedDays[0]), x: coords[0].x });
+        if (midIdx > 0 && midIdx < points.length - 1) {
+            xLabels.push({ label: fmt(sortedDays[midIdx]), x: coords[midIdx].x });
+        }
+        xLabels.push({ label: fmt(sortedDays[sortedDays.length - 1]), x: coords[coords.length - 1].x });
+    }
+
+    return `
+        <div class="card mb-4">
+            <div class="card-body py-3">
+                <h6 class="mb-3">Submissions Over Time</h6>
+                <div class="timeline-chart">
+                    <svg viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="xMidYMid meet">
+                        <path d="${areaPath}" class="timeline-area"/>
+                        <polyline points="${polyline}" class="timeline-line"/>
+                        ${coords.map((c, i) => `<circle cx="${c.x}" cy="${c.y}" r="${points.length === 1 ? 5 : 3}" class="timeline-dot"><title>${escapeHtml(sortedDays[i])}: ${points[i].count}</title></circle>`).join('')}
+                        ${yLabels.map(l => `<text x="${padL - 8}" y="${l.y + 4}" class="timeline-label-y">${l.val}</text>`).join('')}
+                        ${xLabels.map(l => `<text x="${l.x}" y="${padT + chartH + 22}" class="timeline-label-x">${l.label}</text>`).join('')}
+                        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${padT + chartH}" class="timeline-axis"/>
+                        <line x1="${padL}" y1="${padT + chartH}" x2="${padL + chartW}" y2="${padT + chartH}" class="timeline-axis"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function renderProposalsList(proposals) {
     return `
         <div class="list-group list-group-flush">
@@ -155,8 +225,8 @@ function renderProposalItem(proposal) {
         <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}">
             <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
-                    <h6 class="mb-1">${escapeHtml(proposal.title)}</h6>
-                    <p class="text-muted small mb-2">${escapeHtml(truncate(proposal.abstract, 150))}</p>
+                    <h6 class="mb-1 proposal-title" role="button" data-id="${proposalId}">${escapeHtml(proposal.title)}</h6>
+                    <p class="text-muted small mb-2">${escapeHtml(truncate((proposal.abstract || '').split('\n')[0], 150))}</p>
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <span class="badge ${statusInfo.class}">${escapeHtml(statusInfo.label)}</span>
                         ${status === 'accepted' ? (proposal.attendance_confirmed
@@ -166,14 +236,23 @@ function renderProposalItem(proposal) {
                         <span class="badge bg-light text-dark">${escapeHtml(proposal.format)}</span>
                         <span class="badge bg-light text-dark">${escapeHtml(String(proposal.duration))} min</span>
                         ${levelInfo ? `<span class="badge bg-light text-dark">${escapeHtml(levelInfo.label)}</span>` : ''}
-                        ${!anonymousMode && speakers.length > 0 ? `
-                            <span class="text-muted small">by ${escapeHtml(speakers.map(s => s.name).join(', '))}</span>
-                        ` : ''}
+                        ${proposal.created_at || proposal.CreatedAt ? `<span class="text-muted small">${escapeHtml(formatDate(proposal.created_at || proposal.CreatedAt))}</span>` : ''}
                     </div>
+                    ${!anonymousMode && speakers.length > 0 ? `
+                        <div class="text-muted small mt-1">by ${speakers.map(s => {
+                            let display = s.linkedin
+                                ? `<a href="${sanitizeUrl(s.linkedin)}" target="_blank" rel="noopener">${escapeHtml(s.name)}</a>`
+                                : escapeHtml(s.name);
+                            if (s.job_title && s.company) display += `, ${escapeHtml(s.job_title)} at ${escapeHtml(s.company)}`;
+                            else if (s.job_title) display += `, ${escapeHtml(s.job_title)}`;
+                            else if (s.company) display += ` at ${escapeHtml(s.company)}`;
+                            return display;
+                        }).join('; ')}</div>
+                    ` : ''}
                 </div>
                 <div class="d-flex flex-column align-items-end gap-2">
                     ${renderRating(proposal.rating)}
-                    <button class="btn btn-sm btn-outline-primary view-proposal" data-id="${proposalId}">View</button>
+                    <button class="btn btn-sm btn-primary view-proposal" data-id="${proposalId}">View</button>
                 </div>
             </div>
         </div>
@@ -375,7 +454,7 @@ function attachHandlers(event, allProposals) {
 
     // View proposal
     proposalsList?.addEventListener('click', async (e) => {
-        const viewBtn = e.target.closest('.view-proposal');
+        const viewBtn = e.target.closest('.view-proposal') || e.target.closest('.proposal-title');
         if (!viewBtn) return;
 
         const proposalId = viewBtn.dataset.id;

@@ -229,7 +229,7 @@ footer p {
 .event-card .event-dates {
     font-family: var(--font-sans);
     font-size: 0.8125rem;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 .event-title {
@@ -1231,4 +1231,71 @@ a:hover {
 .logo-hero {
     max-width: 175px;
     width: 100%;
+}
+
+/* Timeline chart */
+.timeline-chart {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.timeline-chart svg {
+    width: 100%;
+    height: auto;
+    min-height: 120px;
+}
+
+.timeline-line {
+    fill: none;
+    stroke: var(--accent-color);
+    stroke-width: 2;
+    stroke-linejoin: round;
+}
+
+.timeline-area {
+    fill: var(--accent-color);
+    opacity: 0.1;
+}
+
+.timeline-dot {
+    fill: var(--accent-color);
+}
+
+.timeline-dot:hover {
+    r: 5;
+}
+
+.timeline-label-y,
+.timeline-label-x {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    fill: var(--text-muted);
+}
+
+.timeline-label-y {
+    text-anchor: end;
+}
+
+.timeline-label-x {
+    text-anchor: middle;
+}
+
+.timeline-axis {
+    stroke: var(--border);
+    stroke-width: 1;
+}
+
+/* Proposal review badges - dark mode contrast fix */
+[data-theme="dark"] .badge.bg-light.text-dark {
+    color: var(--text) !important;
+}
+
+/* Clickable proposal title */
+.proposal-title {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.proposal-title:hover {
+    color: var(--accent-color);
 }

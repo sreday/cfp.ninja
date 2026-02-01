@@ -147,6 +147,9 @@ func (f *Formatter) PrintEvent(event *Event) error {
 		if event.Website != "" {
 			fmt.Fprintf(f.Writer, "Website:     %s\n", event.Website)
 		}
+		if event.TermsURL != "" {
+			fmt.Fprintf(f.Writer, "Terms:       %s\n", event.TermsURL)
+		}
 		if event.Tags != "" {
 			fmt.Fprintf(f.Writer, "Tags:        %s\n", event.Tags)
 		}

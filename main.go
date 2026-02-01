@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"strings"
 	"syscall"
 	"time"
@@ -28,18 +29,30 @@ func main() {
 	}
 	fileServer := http.FileServer(http.FS(staticFS))
 
-	// Create a handler that serves static files with SPA routing
+	// Create a handler that serves static files with SPA routing and cache headers
 	staticHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Try to serve the file
-		path := strings.TrimPrefix(r.URL.Path, "/")
-		if path == "" {
-			path = "index.html"
+		p := strings.TrimPrefix(r.URL.Path, "/")
+		if p == "" {
+			p = "index.html"
 		}
 
-		// Check if file exists
-		if _, err := fs.Stat(staticFS, path); err != nil {
-			// File not found, serve index.html for SPA routing
+		// Check if file exists; if not, serve index.html for SPA routing
+		isSPAFallback := false
+		if _, err := fs.Stat(staticFS, p); err != nil {
 			r.URL.Path = "/"
+			isSPAFallback = true
+		}
+
+		// Set Cache-Control based on file type
+		ext := strings.ToLower(path.Ext(p))
+		switch {
+		case isSPAFallback || ext == ".html":
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		case ext == ".js" || ext == ".css":
+			w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+		case ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".svg" || ext == ".ico" || ext == ".woff" || ext == ".woff2" || ext == ".ttf":
+			w.Header().Set("Cache-Control", "public, max-age=3600")
 		}
 
 		fileServer.ServeHTTP(w, r)

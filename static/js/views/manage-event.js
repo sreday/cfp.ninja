@@ -135,6 +135,12 @@ function renderManageEventForm(container, event, countries = []) {
                             </div>
 
                             <div class="mb-3">
+                                <label for="terms_url" class="form-label">Terms &amp; Conditions URL (Optional)</label>
+                                <input type="url" class="form-control" id="terms_url" name="terms_url" value="${escapeHtml(event.terms_url || '')}" placeholder="https://example.com/terms.pdf">
+                                <div class="form-text">Link to your event's terms and conditions document.</div>
+                            </div>
+
+                            <div class="mb-3">
                                 <label for="contact_email" class="form-label">Contact Email (Optional)</label>
                                 <input type="email" class="form-control" id="contact_email" name="contact_email" value="${escapeHtml(event.contact_email || '')}" placeholder="organizer@example.com">
                                 <div class="form-text">Public contact email shown on the event page.</div>
@@ -168,7 +174,7 @@ function renderManageEventForm(container, event, countries = []) {
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="honorarium_provided" name="honorarium_provided" ${event.honorarium_provided ? 'checked' : ''}>
                                         <label class="form-check-label" for="honorarium_provided">
-                                            Honorarium Provided
+                                            Honorarium
                                         </label>
                                     </div>
                                 </div>
@@ -541,6 +547,7 @@ function attachFormHandlers(event, initialQuestionCount) {
             location: formData.get('location') || '',
             country: formData.get('country') || '',
             website: formData.get('website') || '',
+            terms_url: formData.get('terms_url') || '',
             is_online: !!formData.get('is_online'),
             contact_email: formData.get('contact_email') || '',
             travel_covered: !!formData.get('travel_covered'),

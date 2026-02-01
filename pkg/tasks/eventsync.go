@@ -167,11 +167,12 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	newEvent := models.Event{
 		Name:       ref.Name,
 		Slug:       slug,
-		Location:   extractCity(ref.Location),
+		Location:   extractLocationWithoutCountry(ref.Location),
 		Country:    extractCountry(ref.Location),
 		StartDate:  startDate,
 		EndDate:    startDate.AddDate(0, 0, days-1),
 		Website:    website,
+		TermsURL:   termsURLForSource(baseURL),
 		CFPStatus:  cfpStatus,
 		CFPOpenAt:  cfpOpenAt,
 		CFPCloseAt: cfpCloseAt,
@@ -256,6 +257,7 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			CFPStatus:   models.CFPStatusOpen,
 			CFPOpenAt:   cfpOpenAt,
 			CFPCloseAt:  cfpCloseAt,
+			TermsURL:    "https://www.conf42.com/terms-and-conditions.pdf",
 		}
 
 		if len(organiserIDs) > 0 {
@@ -330,6 +332,27 @@ func conf42Tags(name string) string {
 	}
 
 	return "conf42"
+}
+
+// termsURLForSource returns the terms & conditions URL for a known event source.
+func termsURLForSource(sourceURL string) string {
+	u, err := url.Parse(sourceURL)
+	if err != nil {
+		return ""
+	}
+	host := strings.ToLower(u.Hostname())
+	switch {
+	case strings.Contains(host, "sreday.com"):
+		return "https://sreday.com/assets/tnc.pdf"
+	case strings.Contains(host, "llmday.com"):
+		return "https://llmday.com/assets/tnc.pdf"
+	case strings.Contains(host, "devopsnotdead.com"):
+		return "https://devopsnotdead.com/assets/tnc.pdf"
+	case strings.Contains(host, "conf42.com"):
+		return "https://www.conf42.com/terms-and-conditions.pdf"
+	default:
+		return ""
+	}
 }
 
 // getSitePrefix extracts the site name from a URL hostname (e.g., "https://sreday.com" -> "sreday").
@@ -439,6 +462,18 @@ func normalizeCountry(raw string) string {
 		return norm
 	}
 	return cleaned
+}
+
+// extractLocationWithoutCountry strips only the last comma-segment (country) but keeps the rest.
+// "Harness, New York, US" -> "Harness, New York"
+// "London, UK" -> "London"
+// "Online" -> "Online"
+func extractLocationWithoutCountry(location string) string {
+	parts := strings.Split(location, ",")
+	if len(parts) >= 2 {
+		return strings.TrimSpace(strings.Join(parts[:len(parts)-1], ","))
+	}
+	return strings.TrimSpace(location)
 }
 
 func extractCity(location string) string {

@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+const testJWTSecret = "test-secret-for-oauth-state-signing"
+
 func TestGenerateRandomState(t *testing.T) {
 	// Test that it generates non-empty strings
 	state1, err := generateRandomState()
@@ -43,31 +45,43 @@ func TestGenerateRandomState_Length(t *testing.T) {
 }
 
 func TestEncodeOAuthState_BrowserMode(t *testing.T) {
-	// When cliMode is false, should just return the random state
-	state, err := encodeOAuthState(false, "")
+	state, err := encodeOAuthState(false, "", testJWTSecret)
 	if err != nil {
 		t.Fatalf("encodeOAuthState failed: %v", err)
 	}
 
-	if strings.Contains(state, "|") {
-		t.Error("browser mode state should not contain pipe delimiter")
+	// Should contain exactly one dot (payload.signature)
+	parts := strings.SplitN(state, ".", 2)
+	if len(parts) != 2 {
+		t.Errorf("expected payload.signature format, got: %s", state)
+	}
+	// Payload should not contain pipe delimiter
+	if strings.Contains(parts[0], "|") {
+		t.Error("browser mode payload should not contain pipe delimiter")
 	}
 }
 
 func TestEncodeOAuthState_CLIMode(t *testing.T) {
-	state, err := encodeOAuthState(true, "8080")
+	state, err := encodeOAuthState(true, "8080", testJWTSecret)
 	if err != nil {
 		t.Fatalf("encodeOAuthState failed: %v", err)
 	}
 
-	if !strings.Contains(state, "|cli|8080") {
-		t.Errorf("CLI mode state should contain '|cli|8080', got: %s", state)
+	// Split off signature
+	dotIdx := strings.LastIndex(state, ".")
+	if dotIdx < 0 {
+		t.Fatalf("expected payload.signature format, got: %s", state)
+	}
+	payload := state[:dotIdx]
+
+	if !strings.Contains(payload, "|cli|8080") {
+		t.Errorf("CLI mode payload should contain '|cli|8080', got: %s", payload)
 	}
 
 	// Verify format: random|cli|port
-	parts := strings.Split(state, "|")
+	parts := strings.Split(payload, "|")
 	if len(parts) != 3 {
-		t.Errorf("expected 3 parts, got %d", len(parts))
+		t.Errorf("expected 3 parts in payload, got %d", len(parts))
 	}
 	if parts[1] != "cli" {
 		t.Errorf("expected second part to be 'cli', got %s", parts[1])
@@ -79,20 +93,29 @@ func TestEncodeOAuthState_CLIMode(t *testing.T) {
 
 func TestEncodeOAuthState_CLIModeWithoutPort(t *testing.T) {
 	// CLI mode without port should behave like browser mode
-	state, err := encodeOAuthState(true, "")
+	state, err := encodeOAuthState(true, "", testJWTSecret)
 	if err != nil {
 		t.Fatalf("encodeOAuthState failed: %v", err)
 	}
 
-	if strings.Contains(state, "|") {
-		t.Error("CLI mode without port should not contain pipe delimiter")
+	dotIdx := strings.LastIndex(state, ".")
+	if dotIdx < 0 {
+		t.Fatalf("expected payload.signature format, got: %s", state)
+	}
+	payload := state[:dotIdx]
+
+	if strings.Contains(payload, "|") {
+		t.Error("CLI mode without port payload should not contain pipe delimiter")
 	}
 }
 
 func TestDecodeOAuthState_BrowserMode(t *testing.T) {
-	state, _ := encodeOAuthState(false, "")
-	isCLI, port := decodeOAuthState(state)
+	state, _ := encodeOAuthState(false, "", testJWTSecret)
+	isCLI, port, ok := decodeOAuthState(state, testJWTSecret)
 
+	if !ok {
+		t.Fatal("expected ok=true for valid signed state")
+	}
 	if isCLI {
 		t.Error("expected isCLI to be false for browser mode")
 	}
@@ -102,14 +125,41 @@ func TestDecodeOAuthState_BrowserMode(t *testing.T) {
 }
 
 func TestDecodeOAuthState_CLIMode(t *testing.T) {
-	state, _ := encodeOAuthState(true, "9999")
-	isCLI, port := decodeOAuthState(state)
+	state, _ := encodeOAuthState(true, "9999", testJWTSecret)
+	isCLI, port, ok := decodeOAuthState(state, testJWTSecret)
 
+	if !ok {
+		t.Fatal("expected ok=true for valid signed state")
+	}
 	if !isCLI {
 		t.Error("expected isCLI to be true for CLI mode")
 	}
 	if port != "9999" {
 		t.Errorf("expected port '9999', got %s", port)
+	}
+}
+
+func TestDecodeOAuthState_InvalidSignature(t *testing.T) {
+	state, _ := encodeOAuthState(true, "8080", testJWTSecret)
+
+	// Tamper with the state by using a different secret
+	_, _, ok := decodeOAuthState(state, "wrong-secret")
+	if ok {
+		t.Error("expected ok=false when verifying with wrong secret")
+	}
+}
+
+func TestDecodeOAuthState_TamperedPayload(t *testing.T) {
+	state, _ := encodeOAuthState(true, "8080", testJWTSecret)
+
+	// Replace port in payload but keep old signature
+	dotIdx := strings.LastIndex(state, ".")
+	sig := state[dotIdx:]
+	tampered := strings.Replace(state[:dotIdx], "8080", "9999", 1) + sig
+
+	_, _, ok := decodeOAuthState(tampered, testJWTSecret)
+	if ok {
+		t.Error("expected ok=false for tampered payload")
 	}
 }
 
@@ -119,15 +169,16 @@ func TestDecodeOAuthState_InvalidFormat(t *testing.T) {
 		state string
 	}{
 		{"empty", ""},
-		{"no delimiters", "abcdef123456"},
-		{"one delimiter", "abc|def"},
-		{"wrong marker", "abc|browser|8080"},
-		{"four parts", "abc|cli|8080|extra"},
+		{"no dot", "abcdef123456"},
+		{"dot at end", "abcdef."},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			isCLI, port := decodeOAuthState(tc.state)
+			isCLI, port, ok := decodeOAuthState(tc.state, testJWTSecret)
+			if ok {
+				t.Error("expected ok=false for invalid format")
+			}
 			if isCLI || port != "" {
 				t.Errorf("expected isCLI=false and port='', got isCLI=%v, port=%s", isCLI, port)
 			}
@@ -148,12 +199,15 @@ func TestDecodeOAuthState_RoundTrip(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		state, err := encodeOAuthState(tc.cliMode, tc.port)
+		state, err := encodeOAuthState(tc.cliMode, tc.port, testJWTSecret)
 		if err != nil {
 			t.Fatalf("encodeOAuthState failed: %v", err)
 		}
 
-		isCLI, port := decodeOAuthState(state)
+		isCLI, port, ok := decodeOAuthState(state, testJWTSecret)
+		if !ok {
+			t.Fatalf("decodeOAuthState returned ok=false for valid state")
+		}
 
 		expectedCLI := tc.cliMode && tc.port != ""
 		expectedPort := ""

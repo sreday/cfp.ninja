@@ -265,8 +265,10 @@ function renderAcknowledgments(event) {
     if (!event.honorarium_provided) {
         checks.push({ id: 'ack_honorarium', label: 'I acknowledge that no speaker honorarium is provided' });
     }
-
-    if (checks.length === 0) return '';
+    if (event.is_online) {
+        checks.push({ id: 'ack_online', label: 'I acknowledge that this is a 100% remote, online event' });
+    }
+    checks.push({ id: 'ack_email', label: 'I acknowledge that if my talk is selected, the organizer will reach out to the email provided in my application' });
 
     return `
         <div class="card mb-4">

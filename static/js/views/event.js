@@ -72,6 +72,12 @@ function renderEventDetail(container, event) {
                         <a href="mailto:${escapeAttr(event.contact_email)}">${escapeHtml(event.contact_email)}</a>
                     </div>
                 ` : ''}
+                ${event.terms_url ? `
+                    <div class="event-meta-item">
+                        <span>📄</span>
+                        <a href="${sanitizeUrl(event.terms_url)}" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+                    </div>
+                ` : ''}
             </div>
         </div>
 

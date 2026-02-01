@@ -58,7 +58,7 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var proposals []models.Proposal
-		cfg.DB.Where("event_id = ?", eventID).Find(&proposals)
+		cfg.DB.Where("event_id = ? AND status = ?", eventID, models.ProposalStatusAccepted).Find(&proposals)
 
 		filename := fmt.Sprintf("proposals-%s-%s.csv", event.Slug, format)
 		w.Header().Set("Content-Type", "text/csv")
@@ -77,7 +77,7 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 
 func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 	// SREday format
-	header := []string{"status", "name", "track", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
+	header := []string{"status", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
 	w.Write(header)
 
 	for _, p := range proposals {
@@ -85,10 +85,13 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 
 		// Concatenate speaker names with &
 		names := make([]string, len(speakers))
+		emails := make([]string, len(speakers))
 		for i, s := range speakers {
 			names[i] = s.Name
+			emails[i] = s.Email
 		}
 		name := strings.Join(names, " & ")
+		email := strings.Join(emails, ", ")
 
 		var org, linkedin, linkedin2, bio string
 		if len(speakers) > 0 {
@@ -104,6 +107,7 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 			string(p.Status),
 			sanitizeCSVCell(name),
 			"",    // track
+			sanitizeCSVCell(email),
 			"",    // day
 			sanitizeCSVCell(org),   // organization
 			"",    // photo
@@ -122,23 +126,25 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 
 func writeOnlineCSV(w *csv.Writer, proposals []models.Proposal) {
 	// Conf42 format
-	header := []string{"Featured", "Track", "Name1", "JobTitle1", "Company1", "Name2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
+	header := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
 	w.Write(header)
 
 	for _, p := range proposals {
 		speakers := parseSpeakers(p.Speakers)
 
-		var name1, jobTitle1, company1, linkedin1 string
-		var name2, jobTitle2, company2, linkedin2 string
+		var name1, email1, jobTitle1, company1, linkedin1 string
+		var name2, email2, jobTitle2, company2, linkedin2 string
 
 		if len(speakers) > 0 {
 			name1 = speakers[0].Name
+			email1 = speakers[0].Email
 			jobTitle1 = speakers[0].JobTitle
 			company1 = speakers[0].Company
 			linkedin1 = speakers[0].LinkedIn
 		}
 		if len(speakers) > 1 {
 			name2 = speakers[1].Name
+			email2 = speakers[1].Email
 			jobTitle2 = speakers[1].JobTitle
 			company2 = speakers[1].Company
 			linkedin2 = speakers[1].LinkedIn
@@ -148,9 +154,11 @@ func writeOnlineCSV(w *csv.Writer, proposals []models.Proposal) {
 			"",        // Featured
 			"",        // Track
 			sanitizeCSVCell(name1),
+			sanitizeCSVCell(email1),
 			sanitizeCSVCell(jobTitle1),
 			sanitizeCSVCell(company1),
 			sanitizeCSVCell(name2),
+			sanitizeCSVCell(email2),
 			sanitizeCSVCell(jobTitle2),
 			sanitizeCSVCell(company2),
 			sanitizeCSVCell(p.Title),

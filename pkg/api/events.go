@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -515,6 +516,19 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 		if tags, ok := updates["tags"].(string); ok && len(tags) > MaxEventTagsLen {
 			encodeError(w, "Tags must be at most 1000 characters", http.StatusBadRequest)
 			return
+		}
+
+		// Validate terms_url if being updated
+		if termsURL, ok := updates["terms_url"].(string); ok && termsURL != "" {
+			if len(termsURL) > MaxEventWebsiteLen {
+				encodeError(w, "Terms URL must be at most 2000 characters", http.StatusBadRequest)
+				return
+			}
+			u, err := url.Parse(termsURL)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				encodeError(w, "Terms URL must be a valid HTTP or HTTPS URL", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Validate slug if being updated

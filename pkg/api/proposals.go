@@ -61,6 +61,9 @@ func validateCustomAnswers(answers map[string]interface{}, questions []models.Cu
 			if !ok {
 				return "Answer for '" + id + "' must be a string"
 			}
+			if q.Required && strings.TrimSpace(str) == "" {
+				return "Answer for '" + id + "' is required"
+			}
 			if len(str) > MaxCustomAnswerLen {
 				return "Answer for '" + id + "' must be at most 5000 characters"
 			}

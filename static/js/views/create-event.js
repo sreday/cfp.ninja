@@ -84,6 +84,12 @@ function renderCreateEventForm(container, countries = []) {
                                 <label for="website" class="form-label">Website <span class="text-danger">*</span></label>
                                 <input type="url" class="form-control" id="website" name="website" placeholder="https://" required>
                             </div>
+
+                            <div class="mb-3">
+                                <label for="terms_url" class="form-label">Terms &amp; Conditions URL (Optional)</label>
+                                <input type="url" class="form-control" id="terms_url" name="terms_url" placeholder="https://example.com/terms.pdf">
+                                <div class="form-text">Link to your event's terms and conditions document.</div>
+                            </div>
                         </div>
                     </div>
 
@@ -116,7 +122,7 @@ function renderCreateEventForm(container, countries = []) {
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" id="honorarium_provided" name="honorarium_provided">
                                         <label class="form-check-label" for="honorarium_provided">
-                                            Honorarium Provided
+                                            Honorarium
                                         </label>
                                     </div>
                                     <div class="form-text">Speakers receive a stipend or payment</div>
@@ -273,6 +279,7 @@ function attachFormHandlers() {
             location: formData.get('location') || undefined,
             country: formData.get('country') || undefined,
             website: formData.get('website') || undefined,
+            terms_url: formData.get('terms_url') || undefined,
             is_online: formData.get('is_online') ? true : undefined,
             travel_covered: formData.get('travel_covered') ? true : undefined,
             hotel_covered: formData.get('hotel_covered') ? true : undefined,
@@ -391,6 +398,7 @@ function attachFormHandlers() {
             location: formData.get('location') || '',
             country: formData.get('country') || '',
             website: formData.get('website') || '',
+            terms_url: formData.get('terms_url') || '',
             is_online: !!formData.get('is_online'),
             travel_covered: !!formData.get('travel_covered'),
             hotel_covered: !!formData.get('hotel_covered'),

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -148,8 +150,12 @@ func InitConfig() (*Config, error) {
 	}
 	if jwtSecret == "" {
 		if insecureMode {
-			logger.Warn("JWT_SECRET not set - using insecure default (insecure mode)")
-			jwtSecret = "insecure-default-secret-change-me"
+			b := make([]byte, 32)
+			if _, err := rand.Read(b); err != nil {
+				return nil, fmt.Errorf("failed to generate random JWT secret: %w", err)
+			}
+			jwtSecret = hex.EncodeToString(b)
+			logger.Warn("JWT_SECRET not set - using random ephemeral secret (insecure mode). Tokens will not survive restarts.")
 		} else {
 			return nil, fmt.Errorf("JWT_SECRET environment variable is required")
 		}

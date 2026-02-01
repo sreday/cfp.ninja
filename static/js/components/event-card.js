@@ -1,27 +1,28 @@
 // Event card component
-import { escapeHtml, escapeAttr, formatDateRange, getCfpStatus } from '../utils.js';
+import { escapeHtml, escapeAttr, truncate, formatDateRange, getCfpStatus } from '../utils.js';
 import { router } from '../router.js';
 
 export function renderEventCard(event) {
     const cfpStatus = getCfpStatus(event);
 
-    // Build location string: "Country Location" e.g. "US Denver, CO"
-    const locationParts = [];
-    if (event.country) locationParts.push(event.country);
-    if (event.location) locationParts.push(event.location);
-    const locationString = locationParts.join(' ');
+    const countryPill = event.is_online
+        ? '<span class="badge bg-secondary">Online</span>'
+        : event.country ? `<span class="badge bg-secondary">${escapeHtml(event.country)}</span>` : '';
 
     return `
         <div class="col-md-6">
             <div class="card event-card h-100" data-slug="${escapeAttr(event.slug)}">
                 <div class="card-body">
-                    <h5 class="card-title event-title">
-                        ${cfpStatus.status !== 'none' ? `<span class="cfp-dot ${cfpStatus.class}" title="${escapeHtml(cfpStatus.label)}"></span>` : ''}
-                        ${escapeHtml(event.name)}
-                    </h5>
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <h5 class="card-title event-title mb-0">
+                            ${cfpStatus.status !== 'none' ? `<span class="cfp-dot ${cfpStatus.class}" title="${escapeHtml(cfpStatus.label)}"></span>` : ''}
+                            ${escapeHtml(truncate(event.name, 30))}
+                        </h5>
+                        ${countryPill}
+                    </div>
                     <p class="event-dates mb-1">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</p>
                     ${cfpStatus.status !== 'none' ? `<p class="cfp-status-text ${cfpStatus.class} small mb-2">${escapeHtml(cfpStatus.label)}</p>` : ''}
-                    ${locationString ? `<p class="text-muted small mb-0">${escapeHtml(locationString)}</p>` : ''}
+                    ${event.location ? `<p class="text-secondary small mb-0">${escapeHtml(event.location)}</p>` : ''}
                 </div>
             </div>
         </div>
