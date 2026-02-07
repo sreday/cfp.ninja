@@ -1,6 +1,13 @@
 package tasks
 
-import "testing"
+import (
+	"log/slog"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/sreday/cfp.ninja/pkg/models"
+)
 
 func TestConf42Slug(t *testing.T) {
 	tests := []struct {
@@ -134,6 +141,43 @@ func TestMakeSlug(t *testing.T) {
 			got := makeSlug(tt.prefix, tt.eventURL)
 			if got != tt.want {
 				t.Errorf("makeSlug(%q, %q) = %q, want %q", tt.prefix, tt.eventURL, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRenderDescription(t *testing.T) {
+	event := models.Event{
+		Name:      "SREday London 2026",
+		Slug:      "sreday-london-2026",
+		Location:  "London",
+		Country:   "UK",
+		StartDate: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC),
+		EndDate:   time.Date(2026, 3, 16, 0, 0, 0, 0, time.UTC),
+		Website:   "https://sreday.com/2026-london",
+	}
+
+	tests := []struct {
+		name     string
+		template string
+		want     string
+	}{
+		{"empty template", "", ""},
+		{"plain text", "Welcome to the conference!", "Welcome to the conference!"},
+		{"event name", "Join us at {{ name }}", "Join us at SREday London 2026"},
+		{"multiple fields", "{{ name }} in {{ location }}, {{ country }}", "SREday London 2026 in London, UK"},
+		{"start date", "on {{ start_date }}", "on 15 March 2026"},
+		{"website", "[link]({{ website }})", "[link](https://sreday.com/2026-london)"},
+		{"invalid template", "{{.BadSyntax", ""},
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := renderDescription(logger, tt.template, event)
+			if got != tt.want {
+				t.Errorf("renderDescription(%q) = %q, want %q", tt.template, got, tt.want)
 			}
 		})
 	}

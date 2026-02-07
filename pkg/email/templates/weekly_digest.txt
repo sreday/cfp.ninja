@@ -1,0 +1,17 @@
+Weekly CFP Digest
+
+Hi {{.OrganizerName}},
+
+Here's your weekly summary for the past 7 days:
+{{range .Events}}
+{{.EventName}}:
+{{if .NewProposals}}- {{.NewProposals}} new proposal{{if gt .NewProposals 1}}s{{end}}
+{{end}}{{if .Accepted}}- {{.Accepted}} accepted
+{{end}}{{if .Rejected}}- {{.Rejected}} rejected
+{{end}}{{if .Confirmed}}- {{.Confirmed}} attendance confirmed
+{{end}}{{end}}{{if not .Events}}No activity this week.
+{{end}}
+View your dashboard: {{.DashboardURL}}
+
+Best regards,
+CFP.ninja

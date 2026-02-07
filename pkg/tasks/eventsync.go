@@ -1,18 +1,20 @@
 package tasks
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
-	"gorm.io/gorm"
 	"github.com/sreday/cfp.ninja/pkg/conf42"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/sreday/cfp.ninja/pkg/sreday"
+	"gorm.io/gorm"
 )
 
 var sources = []string{
@@ -41,8 +43,63 @@ func StartEventSync(ctx context.Context, db *gorm.DB, logger *slog.Logger, inter
 	}
 }
 
+// changedFields compares an existing event against proposed updates and returns
+// a comma-separated list of field names that differ. Returns empty string if nothing changed.
+func changedFields(existing models.Event, name, description string, startDate, endDate time.Time, isPaid bool) string {
+	var changed []string
+	if existing.Name != name {
+		changed = append(changed, "name")
+	}
+	if !existing.StartDate.Equal(startDate) {
+		changed = append(changed, "start_date")
+	}
+	if !existing.EndDate.Equal(endDate) {
+		changed = append(changed, "end_date")
+	}
+	if existing.Description != description {
+		changed = append(changed, "description")
+	}
+	if existing.IsPaid != isPaid {
+		changed = append(changed, "is_paid")
+	}
+	return strings.Join(changed, ",")
+}
+
+// renderDescription renders a Go text/template with event data.
+// The template can use lowercase keys: {{ name }}, {{ location }}, {{ country }},
+// {{ start_date }}, {{ end_date }}, {{ website }}, {{ slug }}.
+// Returns empty string if the template is empty or on error.
+func renderDescription(logger *slog.Logger, tmplStr string, event models.Event) string {
+	if tmplStr == "" {
+		return ""
+	}
+
+	funcs := template.FuncMap{
+		"name":       func() string { return event.Name },
+		"location":   func() string { return event.Location },
+		"country":    func() string { return event.Country },
+		"start_date": func() string { return event.StartDate.Format("2 January 2006") },
+		"end_date":   func() string { return event.EndDate.Format("2 January 2006") },
+		"website":    func() string { return event.Website },
+		"slug":       func() string { return event.Slug },
+	}
+
+	t, err := template.New("desc").Funcs(funcs).Parse(tmplStr)
+	if err != nil {
+		logger.Error("failed to parse description template", "slug", event.Slug, "error", err)
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := t.Execute(&buf, nil); err != nil {
+		logger.Error("failed to render description template", "slug", event.Slug, "error", err)
+		return ""
+	}
+	return buf.String()
+}
+
 func syncAllSources(ctx context.Context, db *gorm.DB, logger *slog.Logger, organiserIDs []uint) {
 	totalCreated := 0
+	totalUpdated := 0
 	totalSkipped := 0
 
 	for _, baseURL := range sources {
@@ -52,12 +109,13 @@ func syncAllSources(ctx context.Context, db *gorm.DB, logger *slog.Logger, organ
 		default:
 		}
 
-		created, skipped, err := syncSource(db, logger, baseURL, organiserIDs)
+		created, updated, skipped, err := syncSource(db, logger, baseURL, organiserIDs)
 		if err != nil {
 			logger.Error("failed to sync source", "url", baseURL, "error", err)
 			continue
 		}
 		totalCreated += created
+		totalUpdated += updated
 		totalSkipped += skipped
 	}
 
@@ -68,37 +126,40 @@ func syncAllSources(ctx context.Context, db *gorm.DB, logger *slog.Logger, organ
 	default:
 	}
 
-	created, skipped, err := syncConf42(db, logger, organiserIDs)
+	created, updated, skipped, err := syncConf42(db, logger, organiserIDs)
 	if err != nil {
 		logger.Error("failed to sync conf42", "error", err)
 	} else {
 		totalCreated += created
+		totalUpdated += updated
 		totalSkipped += skipped
 	}
 
-	logger.Info("event sync completed", "created", totalCreated, "skipped", totalSkipped)
+	logger.Info("event sync completed", "created", totalCreated, "updated", totalUpdated, "skipped", totalSkipped)
 }
 
-func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs []uint) (created, skipped int, err error) {
+func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs []uint) (created, updated, skipped int, err error) {
 	client := sreday.NewClient()
 	client.BaseURL = baseURL
 
 	home, err := client.FetchHomeMetadata()
 	if err != nil {
-		return 0, 0, fmt.Errorf("fetching metadata from %s: %w", baseURL, err)
+		return 0, 0, 0, fmt.Errorf("fetching metadata from %s: %w", baseURL, err)
 	}
 
 	sitePrefix := getSitePrefix(baseURL)
 
 	// Upcoming events (CFP open)
 	for _, ref := range home.Events {
-		ok, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, false, organiserIDs)
+		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, false, organiserIDs, home.DescriptionTemplate)
 		if syncErr != nil {
 			logger.Error("failed to sync event", "url", ref.URL, "error", syncErr)
 			continue
 		}
-		if ok {
+		if wasCreated {
 			created++
+		} else if wasUpdated {
+			updated++
 		} else {
 			skipped++
 		}
@@ -106,45 +167,78 @@ func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs [
 
 	// Past events (CFP closed)
 	for _, ref := range home.EventsPast {
-		ok, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, true, organiserIDs)
+		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, true, organiserIDs, home.DescriptionTemplate)
 		if syncErr != nil {
 			logger.Error("failed to sync event", "url", ref.URL, "error", syncErr)
 			continue
 		}
-		if ok {
+		if wasCreated {
 			created++
+		} else if wasUpdated {
+			updated++
 		} else {
 			skipped++
 		}
 	}
 
-	return created, skipped, nil
+	return created, updated, skipped, nil
 }
 
-// syncEvent processes a single event reference. Returns (true, nil) if created, (false, nil) if skipped.
-func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sreday.EventRef, sitePrefix, baseURL string, isPast bool, organiserIDs []uint) (bool, error) {
+// syncEvent processes a single event reference.
+// Returns (true, false, nil) if created, (false, true, nil) if updated, (false, false, nil) if skipped.
+func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sreday.EventRef, sitePrefix, baseURL string, isPast bool, organiserIDs []uint, descriptionTemplate string) (created bool, updated bool, err error) {
 	slug := slugFromCFPLink(ref.CFPLink)
 	if slug == "" {
 		slug = makeSlug(sitePrefix, ref.URL)
 	}
 
-	// Check if already exists
-	var existing models.Event
-	if db.Where("slug = ?", slug).First(&existing).Error == nil {
-		return false, nil
-	}
-
 	// Try to get actual start time from event metadata
 	startDate := parseDateFromName(ref.Name)
 	days := 1
-	meta, err := client.FetchEventMetadata(ref.URL)
-	if err == nil && meta != nil {
+	meta, fetchErr := client.FetchEventMetadata(ref.URL)
+	if fetchErr == nil && meta != nil {
 		if !meta.StartTime.IsZero() {
 			startDate = meta.StartTime
 		}
 		if meta.Days > 0 {
 			days = meta.Days
 		}
+	}
+
+	endDate := startDate.AddDate(0, 0, days-1)
+
+	// Build a temporary event for template rendering
+	eventForTemplate := models.Event{
+		Name:      ref.Name,
+		Slug:      slug,
+		Location:  extractLocationWithoutCountry(ref.Location),
+		Country:   extractCountry(ref.Location),
+		StartDate: startDate,
+		EndDate:   endDate,
+		Website:   resolveURL(baseURL, ref.URL),
+	}
+	description := renderDescription(logger, descriptionTemplate, eventForTemplate)
+
+	// Check if already exists
+	var existing models.Event
+	if db.Where("slug = ?", slug).First(&existing).Error == nil {
+		// Update existing event
+		diff := changedFields(existing, ref.Name, description, startDate, endDate, true)
+		if diff == "" {
+			return false, false, nil // nothing changed, skip
+		}
+		updates := map[string]interface{}{
+			"name":        ref.Name,
+			"start_date":  startDate,
+			"end_date":    endDate,
+			"description": description,
+			"is_paid":     true,
+		}
+		if err := db.Model(&existing).Updates(updates).Error; err != nil {
+			return false, false, fmt.Errorf("updating event %s: %w", slug, err)
+		}
+		logger.Info("updated event", "slug", slug, "name", ref.Name, "changed", diff)
+		return false, true, nil
 	}
 
 	// Compute CFP dates
@@ -162,28 +256,28 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 		cfpStatus = models.CFPStatusClosed
 	}
 
-	website := resolveURL(baseURL, ref.URL)
-
 	newEvent := models.Event{
-		Name:       ref.Name,
-		Slug:       slug,
-		Location:   extractLocationWithoutCountry(ref.Location),
-		Country:    extractCountry(ref.Location),
-		StartDate:  startDate,
-		EndDate:    startDate.AddDate(0, 0, days-1),
-		Website:    website,
-		TermsURL:   termsURLForSource(baseURL),
-		CFPStatus:  cfpStatus,
-		CFPOpenAt:  cfpOpenAt,
-		CFPCloseAt: cfpCloseAt,
+		Name:        ref.Name,
+		Slug:        slug,
+		Description: description,
+		Location:    extractLocationWithoutCountry(ref.Location),
+		Country:     extractCountry(ref.Location),
+		StartDate:   startDate,
+		EndDate:     endDate,
+		Website:     resolveURL(baseURL, ref.URL),
+		TermsURL:    termsURLForSource(baseURL),
+		CFPStatus:   cfpStatus,
+		CFPOpenAt:   cfpOpenAt,
+		CFPCloseAt:  cfpCloseAt,
+		IsPaid:      true,
 	}
 
 	if len(organiserIDs) > 0 {
-		newEvent.CreatedByID = organiserIDs[0]
+		newEvent.CreatedByID = &organiserIDs[0]
 	}
 
 	if err := db.Create(&newEvent).Error; err != nil {
-		return false, fmt.Errorf("creating event %s: %w", slug, err)
+		return false, false, fmt.Errorf("creating event %s: %w", slug, err)
 	}
 
 	if len(organiserIDs) > 0 {
@@ -195,14 +289,14 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	}
 
 	logger.Info("created event", "slug", slug, "name", ref.Name)
-	return true, nil
+	return true, false, nil
 }
 
-func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created, skipped int, err error) {
+func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created, updated, skipped int, err error) {
 	client := conf42.NewClient()
 	meta, err := client.FetchMetadata()
 	if err != nil {
-		return 0, 0, fmt.Errorf("fetching conf42 metadata: %w", err)
+		return 0, 0, 0, fmt.Errorf("fetching conf42 metadata: %w", err)
 	}
 
 	now := time.Now()
@@ -217,7 +311,6 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 
 		// Skip past or today's events
 		if !eventDate.After(today) {
-			skipped++
 			continue
 		}
 
@@ -227,10 +320,44 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			continue
 		}
 
+		year := eventDate.Year()
+		eventName := fmt.Sprintf("Conf42 %s %d", entry.Name, year)
+
+		// Render description from template, fall back to entry.Description
+		eventForTemplate := models.Event{
+			Name:      eventName,
+			Slug:      slug,
+			Location:  "Online",
+			StartDate: eventDate,
+			EndDate:   eventDate,
+			Website:   fmt.Sprintf("https://www.conf42.com/%s", entry.ShortURL),
+		}
+		description := renderDescription(logger, meta.DescriptionTemplate, eventForTemplate)
+		if description == "" {
+			description = entry.Description
+		}
+
 		// Check if already exists
 		var existing models.Event
 		if db.Where("slug = ?", slug).First(&existing).Error == nil {
-			skipped++
+			diff := changedFields(existing, eventName, description, eventDate, eventDate, true)
+			if diff == "" {
+				skipped++
+				continue // nothing changed
+			}
+			updates := map[string]interface{}{
+				"name":        eventName,
+				"start_date":  eventDate,
+				"end_date":    eventDate,
+				"description": description,
+				"is_paid":     true,
+			}
+			if err := db.Model(&existing).Updates(updates).Error; err != nil {
+				logger.Error("failed to update conf42 event", "slug", slug, "error", err)
+				continue
+			}
+			logger.Info("updated event", "slug", slug, "name", eventName, "changed", diff)
+			updated++
 			continue
 		}
 
@@ -240,13 +367,10 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			cfpCloseAt = today
 		}
 
-		year := eventDate.Year()
-		eventName := fmt.Sprintf("Conf42 %s %d", entry.Name, year)
-
 		newEvent := models.Event{
 			Name:        eventName,
 			Slug:        slug,
-			Description: entry.Description,
+			Description: description,
 			Location:    "Online",
 			Country:     "",
 			IsOnline:    true,
@@ -258,10 +382,11 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			CFPOpenAt:   cfpOpenAt,
 			CFPCloseAt:  cfpCloseAt,
 			TermsURL:    "https://www.conf42.com/terms-and-conditions.pdf",
+			IsPaid:      true,
 		}
 
 		if len(organiserIDs) > 0 {
-			newEvent.CreatedByID = organiserIDs[0]
+			newEvent.CreatedByID = &organiserIDs[0]
 		}
 
 		if err := db.Create(&newEvent).Error; err != nil {
@@ -281,7 +406,7 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 		created++
 	}
 
-	return created, skipped, nil
+	return created, updated, skipped, nil
 }
 
 var conf42SlugRegex = regexp.MustCompile(`^([a-zA-Z]+)(\d{4})$`)
@@ -302,20 +427,20 @@ func conf42Tags(name string) string {
 	lower := strings.ToLower(name)
 
 	tagMap := map[string]string{
-		"machine learning":         "conf42,ml,ai",
-		"sre":                      "conf42,sre,reliability",
-		"cloud native":             "conf42,cloud,cloud-native",
-		"golang":                   "conf42,go,golang",
-		"database & data":          "conf42,database,data",
-		"large language models":    "conf42,llm,ai",
-		"observability":            "conf42,observability,monitoring",
-		"autonomous agents":        "conf42,agents,ai",
-		"devsecops":                "conf42,devsecops,security",
-		"prompt engineering":       "conf42,prompt-engineering,ai",
-		"platform engineering":     "conf42,platform-engineering,devops",
-		"mlops":                    "conf42,mlops,ml",
-		"chaos engineering":        "conf42,chaos-engineering,sre",
-		"devops":                   "conf42,devops",
+		"machine learning":        "conf42,ml,ai",
+		"sre":                     "conf42,sre,reliability",
+		"cloud native":            "conf42,cloud,cloud-native",
+		"golang":                  "conf42,go,golang",
+		"database & data":         "conf42,database,data",
+		"large language models":   "conf42,llm,ai",
+		"observability":           "conf42,observability,monitoring",
+		"autonomous agents":       "conf42,agents,ai",
+		"devsecops":               "conf42,devsecops,security",
+		"prompt engineering":      "conf42,prompt-engineering,ai",
+		"platform engineering":    "conf42,platform-engineering,devops",
+		"mlops":                   "conf42,mlops,ml",
+		"chaos engineering":       "conf42,chaos-engineering,sre",
+		"devops":                  "conf42,devops",
 		"javascript":              "conf42,javascript,js",
 		"python":                  "conf42,python",
 		"rust":                    "conf42,rust",
@@ -411,7 +536,7 @@ var countryNormMap = map[string]string{
 	// United Kingdom
 	"uk": "UK", "united kingdom": "UK", "england": "UK", "great britain": "UK", "gb": "UK",
 	// Netherlands
-	"nl": "NL", "netherlands": "NL", "the netherlands": "NL",
+	"nl": "Netherlands", "netherlands": "Netherlands", "the netherlands": "Netherlands",
 	// Germany
 	"de": "Germany", "germany": "Germany", "deutschland": "Germany",
 	// France

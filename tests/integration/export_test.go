@@ -46,7 +46,7 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 	}
 
 	// Verify header columns
-	expectedHeader := []string{"status", "name", "track", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
+	expectedHeader := []string{"status", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
 	header := records[0]
 	if len(header) != len(expectedHeader) {
 		t.Fatalf("expected %d columns, got %d: %v", len(expectedHeader), len(header), header)
@@ -60,35 +60,35 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 	// Verify data row content
 	found := false
 	for _, row := range records[1:] {
-		if row[10] == "Go Performance Tips" { // title column (index 10)
+		if row[11] == "Go Performance Tips" { // title column (index 11)
 			found = true
 			// status (index 0)
-			if row[0] != "submitted" {
-				t.Errorf("expected status 'submitted', got %q", row[0])
+			if row[0] != "accepted" {
+				t.Errorf("expected status 'accepted', got %q", row[0])
 			}
 			// name (index 1) - should contain speaker name
 			if !strings.Contains(row[1], "Speaker User") {
 				t.Errorf("expected name to contain 'Speaker User', got %q", row[1])
 			}
-			// organization (index 4)
-			if row[4] != "Acme Inc" {
-				t.Errorf("expected organization 'Acme Inc', got %q", row[4])
+			// organization (index 5)
+			if row[5] != "Acme Inc" {
+				t.Errorf("expected organization 'Acme Inc', got %q", row[5])
 			}
-			// linkedin (index 6)
-			if row[6] != "https://linkedin.com/in/speaker" {
-				t.Errorf("expected linkedin URL, got %q", row[6])
+			// linkedin (index 7)
+			if row[7] != "https://linkedin.com/in/speaker" {
+				t.Errorf("expected linkedin URL, got %q", row[7])
 			}
-			// title (index 10)
-			if row[10] != "Go Performance Tips" {
-				t.Errorf("expected title 'Go Performance Tips', got %q", row[10])
+			// title (index 11)
+			if row[11] != "Go Performance Tips" {
+				t.Errorf("expected title 'Go Performance Tips', got %q", row[11])
 			}
-			// abstract (index 11)
-			if row[11] == "" {
+			// abstract (index 12)
+			if row[12] == "" {
 				t.Error("expected non-empty abstract")
 			}
-			// bio (index 13)
-			if row[13] != "A Go developer" {
-				t.Errorf("expected bio 'A Go developer', got %q", row[13])
+			// bio (index 14)
+			if row[14] != "A Go developer" {
+				t.Errorf("expected bio 'A Go developer', got %q", row[14])
 			}
 			break
 		}
@@ -119,7 +119,7 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 	}
 
 	// Verify header columns
-	expectedHeader := []string{"Featured", "Track", "Name1", "JobTitle1", "Company1", "Name2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
+	expectedHeader := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
 	header := records[0]
 	if len(header) != len(expectedHeader) {
 		t.Fatalf("expected %d columns, got %d: %v", len(expectedHeader), len(header), header)
@@ -133,31 +133,31 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 	// Verify data row content
 	found := false
 	for _, row := range records[1:] {
-		if row[8] == "Mastering Go Channels" { // Title column (index 8)
+		if row[10] == "Mastering Go Channels" { // Title column (index 10)
 			found = true
 			// Name1 (index 2)
 			if row[2] != "Speaker User" {
 				t.Errorf("expected Name1 'Speaker User', got %q", row[2])
 			}
-			// JobTitle1 (index 3)
-			if row[3] != "Engineer" {
-				t.Errorf("expected JobTitle1 'Engineer', got %q", row[3])
+			// JobTitle1 (index 4)
+			if row[4] != "Engineer" {
+				t.Errorf("expected JobTitle1 'Engineer', got %q", row[4])
 			}
-			// Company1 (index 4)
-			if row[4] != "Acme Inc" {
-				t.Errorf("expected Company1 'Acme Inc', got %q", row[4])
+			// Company1 (index 5)
+			if row[5] != "Acme Inc" {
+				t.Errorf("expected Company1 'Acme Inc', got %q", row[5])
 			}
-			// LinkedIn1 (index 10)
-			if row[10] != "https://linkedin.com/in/speaker" {
-				t.Errorf("expected LinkedIn1, got %q", row[10])
+			// LinkedIn1 (index 12)
+			if row[12] != "https://linkedin.com/in/speaker" {
+				t.Errorf("expected LinkedIn1, got %q", row[12])
 			}
-			// Duration (index 18)
-			if row[18] != "30" {
-				t.Errorf("expected Duration '30', got %q", row[18])
+			// Duration (index 20)
+			if row[20] != "30" {
+				t.Errorf("expected Duration '30', got %q", row[20])
 			}
-			// Keywords (index 17) — maps to tags
-			if row[17] != "concurrency,channels" {
-				t.Errorf("expected Keywords 'concurrency,channels', got %q", row[17])
+			// Keywords (index 19) — maps to tags
+			if row[19] != "concurrency,channels" {
+				t.Errorf("expected Keywords 'concurrency,channels', got %q", row[19])
 			}
 			break
 		}
@@ -168,7 +168,7 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 }
 
 func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
-	// Create a proposal with two speakers
+	// Create a proposal with two speakers and accept it
 	twoSpeakerProposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Two Speaker Talk InPerson",
 		Abstract: "A talk by two speakers",
@@ -180,7 +180,7 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 			{Name: "Bob Jones", Email: "bob@test.com", Bio: "Speaker two bio", Company: "BobCo", JobTitle: "VP Eng", LinkedIn: "https://linkedin.com/in/bob"},
 		},
 	})
-	_ = twoSpeakerProposal
+	updateProposalStatus(adminToken, twoSpeakerProposal.ID, "accepted")
 
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
@@ -193,25 +193,29 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 	reader := csv.NewReader(strings.NewReader(string(body)))
 	records, _ := reader.ReadAll()
 
+	if len(records) < 2 {
+		t.Fatalf("expected at least 2 rows (header + data), got %d", len(records))
+	}
+
 	found := false
 	for _, row := range records[1:] {
-		if row[10] == "Two Speaker Talk InPerson" {
+		if row[11] == "Two Speaker Talk InPerson" {
 			found = true
 			// name (index 1) - should be "Alice Smith & Bob Jones"
 			if row[1] != "Alice Smith & Bob Jones" {
 				t.Errorf("expected name 'Alice Smith & Bob Jones', got %q", row[1])
 			}
-			// organization (index 4) - first speaker's company
-			if row[4] != "AliceCo" {
-				t.Errorf("expected organization 'AliceCo', got %q", row[4])
+			// organization (index 5) - first speaker's company
+			if row[5] != "AliceCo" {
+				t.Errorf("expected organization 'AliceCo', got %q", row[5])
 			}
-			// linkedin (index 6) - first speaker
-			if row[6] != "https://linkedin.com/in/alice" {
-				t.Errorf("expected linkedin 'https://linkedin.com/in/alice', got %q", row[6])
+			// linkedin (index 7) - first speaker
+			if row[7] != "https://linkedin.com/in/alice" {
+				t.Errorf("expected linkedin 'https://linkedin.com/in/alice', got %q", row[7])
 			}
-			// linkedin2 (index 7) - second speaker
-			if row[7] != "https://linkedin.com/in/bob" {
-				t.Errorf("expected linkedin2 'https://linkedin.com/in/bob', got %q", row[7])
+			// linkedin2 (index 8) - second speaker
+			if row[8] != "https://linkedin.com/in/bob" {
+				t.Errorf("expected linkedin2 'https://linkedin.com/in/bob', got %q", row[8])
 			}
 			break
 		}
@@ -222,7 +226,7 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 }
 
 func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
-	// Create a proposal with two speakers (for online format)
+	// Create a proposal with two speakers (for online format) and accept it
 	twoSpeakerProposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
 		Title:    "Two Speaker Talk Online",
 		Abstract: "A talk by two speakers for online",
@@ -234,7 +238,7 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 			{Name: "Dave Brown", Email: "dave@test.com", Bio: "Dave bio", Company: "DaveCo", JobTitle: "Lead", LinkedIn: "https://linkedin.com/in/dave"},
 		},
 	})
-	_ = twoSpeakerProposal
+	updateProposalStatus(adminToken, twoSpeakerProposal.ID, "accepted")
 
 	resp := doAuthGet(
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=online", eventGopherCon.ID),
@@ -247,45 +251,49 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 	reader := csv.NewReader(strings.NewReader(string(body)))
 	records, _ := reader.ReadAll()
 
+	if len(records) < 2 {
+		t.Fatalf("expected at least 2 rows (header + data), got %d", len(records))
+	}
+
 	found := false
 	for _, row := range records[1:] {
-		if row[8] == "Two Speaker Talk Online" {
+		if row[10] == "Two Speaker Talk Online" {
 			found = true
 			// Name1 (index 2)
 			if row[2] != "Carol White" {
 				t.Errorf("expected Name1 'Carol White', got %q", row[2])
 			}
-			// JobTitle1 (index 3)
-			if row[3] != "Director" {
-				t.Errorf("expected JobTitle1 'Director', got %q", row[3])
+			// JobTitle1 (index 4)
+			if row[4] != "Director" {
+				t.Errorf("expected JobTitle1 'Director', got %q", row[4])
 			}
-			// Company1 (index 4)
-			if row[4] != "CarolCo" {
-				t.Errorf("expected Company1 'CarolCo', got %q", row[4])
+			// Company1 (index 5)
+			if row[5] != "CarolCo" {
+				t.Errorf("expected Company1 'CarolCo', got %q", row[5])
 			}
-			// Name2 (index 5)
-			if row[5] != "Dave Brown" {
-				t.Errorf("expected Name2 'Dave Brown', got %q", row[5])
+			// Name2 (index 6)
+			if row[6] != "Dave Brown" {
+				t.Errorf("expected Name2 'Dave Brown', got %q", row[6])
 			}
-			// JobTitle2 (index 6)
-			if row[6] != "Lead" {
-				t.Errorf("expected JobTitle2 'Lead', got %q", row[6])
+			// JobTitle2 (index 8)
+			if row[8] != "Lead" {
+				t.Errorf("expected JobTitle2 'Lead', got %q", row[8])
 			}
-			// Company2 (index 7)
-			if row[7] != "DaveCo" {
-				t.Errorf("expected Company2 'DaveCo', got %q", row[7])
+			// Company2 (index 9)
+			if row[9] != "DaveCo" {
+				t.Errorf("expected Company2 'DaveCo', got %q", row[9])
 			}
-			// LinkedIn1 (index 10)
-			if row[10] != "https://linkedin.com/in/carol" {
-				t.Errorf("expected LinkedIn1, got %q", row[10])
+			// LinkedIn1 (index 12)
+			if row[12] != "https://linkedin.com/in/carol" {
+				t.Errorf("expected LinkedIn1, got %q", row[12])
 			}
-			// LinkedIn2 (index 12)
-			if row[12] != "https://linkedin.com/in/dave" {
-				t.Errorf("expected LinkedIn2, got %q", row[12])
+			// LinkedIn2 (index 14)
+			if row[14] != "https://linkedin.com/in/dave" {
+				t.Errorf("expected LinkedIn2, got %q", row[14])
 			}
-			// Duration (index 18)
-			if row[18] != "60" {
-				t.Errorf("expected Duration '60', got %q", row[18])
+			// Duration (index 20)
+			if row[20] != "60" {
+				t.Errorf("expected Duration '60', got %q", row[20])
 			}
 			break
 		}

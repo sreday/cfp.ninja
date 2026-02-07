@@ -336,8 +336,8 @@ func TestCreateEvent(t *testing.T) {
 				if event.Name != tc.input.Name {
 					t.Errorf("expected name %q, got %q", tc.input.Name, event.Name)
 				}
-				if event.CreatedByID != userAdmin.ID {
-					t.Errorf("expected created_by_id %d, got %d", userAdmin.ID, event.CreatedByID)
+				if event.CreatedByID == nil || *event.CreatedByID != userAdmin.ID {
+					t.Errorf("expected created_by_id %d, got %v", userAdmin.ID, event.CreatedByID)
 				}
 			}
 		})

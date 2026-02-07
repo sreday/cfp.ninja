@@ -1,5 +1,5 @@
 // Manage event view
-import { API, Auth } from '../app.js';
+import { API, Auth, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import {
@@ -13,16 +13,46 @@ import {
 } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildEventYamlExport, updateCliCommand } from '../components/cli-command.js';
 
-export async function ManageEventView({ id }) {
+export async function ManageEventView({ id }, query) {
     const main = document.getElementById('main-content');
     showLoading(main);
 
     try {
         const [event, countries] = await Promise.all([
-            API.getEvent(id),
+            API.getEventForOrganizer(id),
             API.getCountries()
         ]);
         renderManageEventForm(main, event, countries);
+
+        // Handle payment query params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('payment') === 'success') {
+            // Clean up URL first
+            window.history.replaceState({}, '', window.location.pathname);
+            // Re-fetch event to verify payment status via backend before showing success
+            toast.info('Verifying payment...');
+            setTimeout(async () => {
+                try {
+                    const [freshEvent, freshCountries] = await Promise.all([
+                        API.getEventForOrganizer(id),
+                        API.getCountries()
+                    ]);
+                    renderManageEventForm(main, freshEvent, freshCountries);
+                    if (freshEvent.is_paid) {
+                        toast.success('Payment confirmed! Your event is now paid and the CFP is open.');
+                    } else {
+                        toast.warning('Payment is still processing. Please refresh in a moment.');
+                    }
+                } catch (e) {
+                    console.error('Error refreshing event:', e);
+                }
+            }, 1500);
+        } else if (params.get('payment') === 'cancelled') {
+            toast.warning('Payment was cancelled. You can complete payment later.');
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('payment_needed') === 'true') {
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     } catch (error) {
         console.error('Error loading event:', error);
         showError(main, 'Event not found or you do not have permission to manage it.');
@@ -72,6 +102,37 @@ function renderManageEventForm(container, event, countries = []) {
                 </div>
 
                 <form id="event-form">
+                    ${(() => {
+                        const config = getAppConfig();
+                        if (config.payments_enabled && config.event_listing_fee > 0) {
+                            const feeAmount = (config.event_listing_fee / 100).toFixed(2);
+                            const currency = (config.event_listing_fee_currency || 'usd').toUpperCase();
+                            if (event.is_paid) {
+                                return `
+                                    <div class="card mb-4 border-success">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <span class="badge bg-success me-2">Listing Paid</span>
+                                                <span class="text-muted">Your event listing fee has been paid.</span>
+                                            </div>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                return `
+                                    <div class="card mb-4 border-warning">
+                                        <div class="card-header bg-warning bg-opacity-10">
+                                            <h5 class="mb-0">Payment Required</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <p>A listing fee of <strong>$${feeAmount} ${currency}</strong> is required to publish your event and open the CFP.</p>
+                                            <button type="button" class="btn btn-warning" id="pay-listing-btn">$ Pay to Publish</button>
+                                        </div>
+                                    </div>`;
+                            }
+                        }
+                        return '';
+                    })()}
+
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="mb-0">Basic Information</h5>
@@ -214,6 +275,26 @@ function renderManageEventForm(container, event, countries = []) {
                                 <textarea class="form-control" id="cfp_description" name="cfp_description" rows="4">${escapeHtml(event.cfp_description || '')}</textarea>
                                 <div class="form-text">Markdown supported.</div>
                             </div>
+
+                            ${(() => {
+                                const config = getAppConfig();
+                                if (config.payments_enabled && config.submission_listing_fee > 0) {
+                                    const subFee = (config.submission_listing_fee / 100).toFixed(2);
+                                    const subCurrency = (config.submission_listing_fee_currency || 'usd').toUpperCase();
+                                    return `
+                                        <hr>
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="cfp_requires_payment" name="cfp_requires_payment" ${event.cfp_requires_payment ? 'checked' : ''}>
+                                                <label class="form-check-label" for="cfp_requires_payment">
+                                                    Require payment for submissions
+                                                </label>
+                                            </div>
+                                            <div class="form-text">Optional. Charge a $${subFee} ${subCurrency} fee per submission to help prevent bot/spam submissions. The fee amount is set server-wide and cannot be customized per event.</div>
+                                        </div>`;
+                                }
+                                return '';
+                            })()}
                         </div>
                     </div>
 
@@ -446,6 +527,21 @@ function attachFormHandlers(event, initialQuestionCount) {
         updateCliCommand('export-event-cli', buildEventYamlExport(eventData));
     };
 
+    // Payment button handler
+    const payListingBtn = document.getElementById('pay-listing-btn');
+    payListingBtn?.addEventListener('click', async () => {
+        try {
+            payListingBtn.disabled = true;
+            payListingBtn.textContent = 'Redirecting to payment...';
+            const result = await API.createEventCheckout(eventId);
+            window.location.href = result.checkout_url;
+        } catch (error) {
+            toast.error(error.message || 'Failed to create checkout session.');
+            payListingBtn.disabled = false;
+            payListingBtn.textContent = 'Pay to Publish';
+        }
+    });
+
     // Toggle location/country visibility based on online checkbox
     const isOnlineCheckbox = document.getElementById('is_online');
     const locationRow = document.getElementById('location-row');
@@ -557,7 +653,8 @@ function attachFormHandlers(event, initialQuestionCount) {
             cfp_close_at: cfpCloseAt ? new Date(cfpCloseAt).toISOString() : null,
             cfp_status: formData.get('cfp_status') || 'draft',
             cfp_description: formData.get('cfp_description') || '',
-            cfp_questions: cfpQuestions
+            cfp_questions: cfpQuestions,
+            cfp_requires_payment: !!formData.get('cfp_requires_payment')
         };
 
         try {

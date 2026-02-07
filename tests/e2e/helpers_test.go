@@ -337,7 +337,7 @@ func createTestEvent(name, slug, country string, cfpOpen bool) *models.Event {
 		CFPStatus:   cfpStatus,
 		CFPOpenAt:   now.AddDate(0, 0, -7),
 		CFPCloseAt:  now.AddDate(0, 0, 14),
-		CreatedByID: user.ID,
+		CreatedByID: &user.ID,
 	}
 
 	if err := db.Create(event).Error; err != nil {

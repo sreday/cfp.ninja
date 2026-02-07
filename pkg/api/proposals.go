@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/sreday/cfp.ninja/pkg/config"
+	"github.com/sreday/cfp.ninja/pkg/email"
 	"github.com/sreday/cfp.ninja/pkg/models"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -124,6 +126,16 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Enforce per-user per-event proposal limit
+		var proposalCount int64
+		cfg.DB.Model(&models.Proposal{}).
+			Where("event_id = ? AND created_by_id = ?", eventID, user.ID).
+			Count(&proposalCount)
+		if proposalCount >= int64(cfg.MaxProposalsPerEvent) {
+			encodeError(w, fmt.Sprintf("You have reached the maximum of %d submissions for this event", cfg.MaxProposalsPerEvent), http.StatusBadRequest)
+			return
+		}
+
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB
 		defer r.Body.Close()
 
@@ -155,7 +167,11 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Validate speakers
-		speakers, _ := proposal.GetSpeakers()
+		speakers, err := proposal.GetSpeakers()
+		if err != nil {
+			encodeError(w, "Invalid speakers data", http.StatusBadRequest)
+			return
+		}
 		if len(speakers) == 0 {
 			encodeError(w, "At least one speaker is required", http.StatusBadRequest)
 			return
@@ -213,10 +229,14 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Validate custom questions if event has them
-		if event.CFPQuestions != nil && len(event.CFPQuestions) > 0 {
+		if len(event.CFPQuestions) > 0 {
 			var questions []models.CustomQuestion
 			if err := json.Unmarshal(event.CFPQuestions, &questions); err == nil {
-				answers, _ := proposal.GetCustomAnswers()
+				answers, err := proposal.GetCustomAnswers()
+				if err != nil {
+					encodeError(w, "Invalid custom answers data", http.StatusBadRequest)
+					return
+				}
 
 				for _, q := range questions {
 					if q.Required {
@@ -335,6 +355,12 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		// Organizer can update organizer_notes
 		if isOwner && !event.IsCFPOpen() && !isOrganizer {
 			encodeError(w, "CFP is closed", http.StatusBadRequest)
+			return
+		}
+
+		// Owner can only edit proposals still in "submitted" status
+		if isOwner && !isOrganizer && proposal.Status != models.ProposalStatusSubmitted {
+			encodeError(w, "Proposal can only be edited while in pending review status", http.StatusBadRequest)
 			return
 		}
 
@@ -464,6 +490,20 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Re-marshal JSONB fields so GORM/pgx stores them correctly.
+		// Without this, the map values are raw Go types ([]interface{}, map[string]interface{})
+		// which pgx cannot properly encode for jsonb columns.
+		for _, jsonbField := range []string{"speakers", "custom_answers"} {
+			if val, ok := updates[jsonbField]; ok && val != nil {
+				jsonBytes, err := json.Marshal(val)
+				if err != nil {
+					encodeError(w, "Invalid "+jsonbField+" data", http.StatusBadRequest)
+					return
+				}
+				updates[jsonbField] = datatypes.JSON(jsonBytes)
+			}
+		}
+
 		if err := cfg.DB.Model(&proposal).Updates(updates).Error; err != nil {
 			cfg.Logger.Error("failed to update proposal", "error", err)
 			encodeError(w, "Failed to update proposal", http.StatusInternalServerError)
@@ -586,6 +626,7 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Use a transaction with row-level locking to prevent race conditions
 		// when checking max_accepted limits
+		oldStatus := proposal.Status
 		err = cfg.DB.Transaction(func(tx *gorm.DB) error {
 			if req.Status == models.ProposalStatusAccepted && event.MaxAccepted != nil {
 				var acceptedCount int64
@@ -609,6 +650,30 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 				encodeError(w, "Failed to update status", http.StatusInternalServerError)
 			}
 			return
+		}
+
+		cfg.Logger.Info("proposal status changed",
+			"proposal_id", proposal.ID,
+			"event_id", proposal.EventID,
+			"old_status", string(oldStatus),
+			"new_status", string(req.Status),
+			"actor_id", user.ID,
+		)
+
+		// Send email notification to speakers (fire-and-forget)
+		if oldStatus != req.Status && cfg.EmailSender != nil {
+			p := proposal // copy for goroutine
+			e := event
+			status := req.Status
+			SafeGo(cfg, func() {
+				ncfg := &email.NotifyConfig{
+					Sender:  cfg.EmailSender,
+					From:    cfg.EmailFrom,
+					BaseURL: cfg.BaseURL,
+					Logger:  cfg.Logger,
+				}
+				email.SendProposalStatusNotification(ncfg, &p, &e, status)
+			})
 		}
 
 		encodeResponse(w, r, proposal)
@@ -742,6 +807,23 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		cfg.DB.First(&proposal, id)
+
+		// Notify event organisers (fire-and-forget)
+		if cfg.EmailSender != nil {
+			p := proposal // copy for goroutine
+			SafeGo(cfg, func() {
+				var ev models.Event
+				cfg.DB.Preload("Organizers").First(&ev, p.EventID)
+				ncfg := &email.NotifyConfig{
+					Sender:  cfg.EmailSender,
+					From:    cfg.EmailFrom,
+					BaseURL: cfg.BaseURL,
+					Logger:  cfg.Logger,
+				}
+				email.SendAttendanceConfirmedNotification(ncfg, &p, &ev)
+			})
+		}
+
 		encodeResponse(w, r, proposal)
 	}
 }

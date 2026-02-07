@@ -1,5 +1,5 @@
 // Submit proposal view
-import { API, Auth } from '../app.js';
+import { API, Auth, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import {
@@ -16,15 +16,48 @@ export async function SubmitProposalView({ slug }) {
     showLoading(main);
 
     try {
-        const event = await API.getEventBySlug(slug);
-        renderSubmitForm(main, event);
+        const [event, dashboardData] = await Promise.all([
+            API.getEventBySlug(slug),
+            API.getMyDashboard().catch(() => null)
+        ]);
+
+        // Count how many proposals the user has submitted to this event
+        const eventId = event.ID || event.id;
+        let myProposalCount = 0;
+        if (dashboardData?.submitted) {
+            const match = dashboardData.submitted.find(e => (e.ID || e.id) === eventId);
+            if (match?.my_proposals) {
+                myProposalCount = match.my_proposals.length;
+            }
+        }
+
+        const config = getAppConfig();
+        const maxProposals = config.max_proposals_per_event || 3;
+
+        if (myProposalCount >= maxProposals) {
+            main.innerHTML = `
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="mb-4">
+                            <a href="/e/${escapeHtml(event.slug)}" class="text-decoration-none">&larr; Back to ${escapeHtml(event.name)}</a>
+                        </div>
+                        <div class="alert alert-warning">
+                            You've reached the maximum of ${maxProposals} submissions for this event.
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        renderSubmitForm(main, event, myProposalCount, maxProposals);
     } catch (error) {
         console.error('Error loading event:', error);
         showError(main, 'Event not found or failed to load.');
     }
 }
 
-function renderSubmitForm(container, event) {
+function renderSubmitForm(container, event, myProposalCount, maxProposals) {
     // Parse CFP questions from the event (JSONB field)
     let customQuestions = [];
     if (event.cfp_questions) {
@@ -56,6 +89,23 @@ function renderSubmitForm(container, event) {
 
                 <h1 class="mb-4">Submit a Proposal</h1>
                 <p class="text-muted mb-4">Submitting to <strong>${escapeHtml(event.name)}</strong></p>
+
+                ${(() => {
+                    if (event.cfp_requires_payment) {
+                        const config = getAppConfig();
+                        const fee = config.submission_listing_fee || 100;
+                        const currency = (config.submission_listing_fee_currency || 'usd').toUpperCase();
+                        const feeAmount = (fee / 100).toFixed(2);
+                        return `
+                            <div class="alert alert-info">
+                                This CFP charges a <strong>$${feeAmount} ${currency}</strong> fee per submission to prevent spam.
+                                You will be redirected to complete payment after submitting.
+                            </div>`;
+                    }
+                    return '';
+                })()}
+
+                ${maxProposals ? `<p class="text-muted small mb-3">You have submitted ${myProposalCount} of ${maxProposals} allowed proposals for this event.</p>` : ''}
 
                 <form id="proposal-form">
                     <div class="card mb-4">
@@ -157,7 +207,7 @@ function renderSubmitForm(container, event) {
     attachFormHandlers(eventId, event.slug, customQuestions);
 }
 
-function renderSpeakerForm(index, user = null) {
+export function renderSpeakerForm(index, user = null) {
     const isFirst = index === 0;
     return `
         <div class="speaker-form mb-4 ${isFirst ? '' : 'border-top pt-4'}" data-speaker-index="${index}">
@@ -177,7 +227,7 @@ function renderSpeakerForm(index, user = null) {
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
                     <input type="email" class="form-control" name="speaker_email_${index}" value="${escapeHtml(isFirst && user ? user.email : '')}" required>
-                    <div class="form-text">We'll use it confirm attendence. Prefer company email.</div>
+                    <div class="form-text">We'll use it confirm attendence & exchange files. Personal email tends to be easier.</div>
                 </div>
             </div>
 
@@ -209,7 +259,7 @@ function renderSpeakerForm(index, user = null) {
     `;
 }
 
-function renderCustomQuestion(question, index) {
+export function renderCustomQuestion(question, index) {
     const { type, text, required, options } = question;
     const name = `custom_${index}`;
     const requiredStar = required ? '<span class="text-danger">*</span>' : '';
@@ -254,7 +304,7 @@ function renderCustomQuestion(question, index) {
     }
 }
 
-function renderAcknowledgments(event) {
+export function renderAcknowledgments(event) {
     const checks = [];
     if (!event.travel_covered) {
         checks.push({ id: 'ack_travel', label: 'I acknowledge that travel expenses are NOT covered by this event' });
@@ -422,10 +472,32 @@ function attachFormHandlers(eventId, slug, customQuestions) {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
 
-            await API.createProposal(eventId, proposal);
+            const created = await API.createProposal(eventId, proposal);
+            form.reset();
 
-            toast.success('Proposal submitted successfully!');
-            router.navigate('/dashboard');
+            // If event requires payment, redirect to checkout
+            const eventData = await API.getEventBySlug(slug);
+            if (eventData.cfp_requires_payment) {
+                const proposalId = created.ID || created.id;
+                if (!proposalId) {
+                    toast.warning('Proposal submitted but could not determine proposal ID for payment. You can complete payment from your dashboard.');
+                    router.navigate('/dashboard/proposals');
+                    return;
+                }
+                try {
+                    submitBtn.textContent = 'Redirecting to payment...';
+                    const checkout = await API.createProposalCheckout(eventId, proposalId);
+                    toast.success('Proposal saved! Redirecting to payment...');
+                    window.location.href = checkout.checkout_url;
+                } catch (payErr) {
+                    // Proposal saved but payment failed - they can pay later from dashboard
+                    toast.warning('Proposal submitted but payment could not be initiated. You can complete payment from your dashboard.');
+                    router.navigate('/dashboard/proposals');
+                }
+            } else {
+                toast.success('Proposal submitted successfully!');
+                router.navigate('/dashboard/proposals');
+            }
         } catch (error) {
             console.error('Error submitting proposal:', error);
             toast.error(error.message || 'Failed to submit proposal.');

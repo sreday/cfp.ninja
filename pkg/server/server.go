@@ -8,6 +8,7 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/database"
+	"github.com/sreday/cfp.ninja/pkg/email"
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
@@ -41,6 +42,14 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		if err := models.CreatePartialUniqueIndexes(db); err != nil {
 			return nil, nil, err
 		}
+	}
+
+	// Initialise email sender
+	if cfg.ResendAPIKey != "" {
+		cfg.EmailSender = email.NewResendSender(cfg.ResendAPIKey)
+		cfg.Logger.Info("email notifications enabled (Resend)")
+	} else {
+		cfg.EmailSender = &email.NoopSender{Logger: cfg.Logger}
 	}
 
 	// Create mux and register routes
@@ -110,10 +119,20 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("/api/v0/auth/logout", api.CorsHandler(cfg, authLimiter.Middleware(api.LogoutHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/me", api.AuthCorsHandler(cfg, api.GetMeHandler(cfg)))
 	mux.HandleFunc("/api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
+	mux.HandleFunc("/api/v0/me/events/", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))
+
+	// Stripe webhook endpoint (no auth, no CORS - server-to-server from Stripe)
+	mux.HandleFunc("/api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 
 	// Event endpoints
 	mux.HandleFunc("/api/v0/events/", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
+
+		// Handle /api/v0/events/{id}/proposals/{proposalId}/checkout
+		if strings.Contains(path, "/proposals/") && strings.HasSuffix(path, "/checkout") {
+			writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateProposalCheckoutHandler(cfg)))(w, r)
+			return
+		}
 
 		// Handle /api/v0/events/{id}/proposals/export
 		if strings.HasSuffix(path, "/proposals/export") {
@@ -133,6 +152,12 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 			default:
 				http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
 			}
+			return
+		}
+
+		// Handle /api/v0/events/{id}/checkout
+		if strings.HasSuffix(path, "/checkout") {
+			writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateEventCheckoutHandler(cfg)))(w, r)
 			return
 		}
 
@@ -165,6 +190,8 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 			api.GetEventByIDHandler(cfg)(w, r)
 		case http.MethodPut:
 			writeLimiter.Middleware(api.AuthHandler(cfg, api.UpdateEventHandler(cfg)))(w, r)
+		case http.MethodDelete:
+			writeLimiter.Middleware(api.AuthHandler(cfg, api.DeleteEventHandler(cfg)))(w, r)
 		case http.MethodOptions:
 			// CORS preflight
 		default:

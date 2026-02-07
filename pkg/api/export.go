@@ -1,12 +1,15 @@
 package api
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
@@ -57,20 +60,31 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Add a timeout to prevent indefinite blocking on large exports
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Minute)
+		defer cancel()
+
 		var proposals []models.Proposal
-		cfg.DB.Where("event_id = ? AND status = ?", eventID, models.ProposalStatusAccepted).Find(&proposals)
+		if err := cfg.DB.WithContext(ctx).Where("event_id = ? AND status = ?", eventID, models.ProposalStatusAccepted).Find(&proposals).Error; err != nil {
+			cfg.Logger.Error("failed to query proposals for export", "error", err, "event_id", eventID)
+			encodeError(w, "Failed to export proposals", http.StatusInternalServerError)
+			return
+		}
 
 		filename := fmt.Sprintf("proposals-%s-%s.csv", event.Slug, format)
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
 
 		writer := csv.NewWriter(w)
-		defer writer.Flush()
 
 		if format == "in-person" {
 			writeInPersonCSV(writer, proposals)
 		} else {
 			writeOnlineCSV(writer, proposals)
+		}
+		writer.Flush()
+		if err := writer.Error(); err != nil {
+			cfg.Logger.Error("CSV write error during export", "error", err, "event_id", eventID)
 		}
 	}
 }
@@ -193,7 +207,9 @@ func sanitizeCSVCell(s string) string {
 func parseSpeakers(data []byte) []models.Speaker {
 	var speakers []models.Speaker
 	if data != nil {
-		json.Unmarshal(data, &speakers)
+		if err := json.Unmarshal(data, &speakers); err != nil {
+			slog.Warn("failed to parse speaker JSON in CSV export", "error", err)
+		}
 	}
 	return speakers
 }

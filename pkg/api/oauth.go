@@ -644,23 +644,29 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 		type ManagingEvent struct {
 			ID            uint      `json:"id"`
 			Name          string    `json:"name"`
+			Slug          string    `json:"slug"`
 			StartDate     time.Time `json:"start_date"`
 			EndDate       time.Time `json:"end_date"`
 			CFPStatus     string    `json:"cfp_status"`
 			ProposalCount int64     `json:"proposal_count"`
+			IsPaid        bool      `json:"is_paid"`
 		}
 
 		type MyProposal struct {
-			ID                    uint   `json:"id"`
-			Title                 string `json:"title"`
-			Status                string `json:"status"`
-			Rating                *int   `json:"rating,omitempty"`
-			AttendanceConfirmed   bool   `json:"attendance_confirmed"`
+			ID                    uint      `json:"id"`
+			Title                 string    `json:"title"`
+			Status                string    `json:"status"`
+			Rating                *int      `json:"rating,omitempty"`
+			AttendanceConfirmed   bool      `json:"attendance_confirmed"`
+			IsPaid                bool      `json:"is_paid"`
+			EventRequiresPayment  bool      `json:"event_requires_payment"`
+			CreatedAt             time.Time `json:"created_at"`
 		}
 
 		type SubmittedEvent struct {
 			ID          uint         `json:"id"`
 			Name        string       `json:"name"`
+			Slug        string       `json:"slug"`
 			CFPStatus   string       `json:"cfp_status"`
 			MyProposals []MyProposal `json:"my_proposals"`
 		}
@@ -672,10 +678,12 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			managing = append(managing, ManagingEvent{
 				ID:            e.ID,
 				Name:          e.Name,
+				Slug:          e.Slug,
 				StartDate:     e.StartDate,
 				EndDate:       e.EndDate,
 				CFPStatus:     string(e.CFPStatus),
 				ProposalCount: count,
+				IsPaid:        e.IsPaid,
 			})
 		}
 
@@ -692,12 +700,16 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 					Status:                string(p.Status),
 					Rating:                p.Rating,
 					AttendanceConfirmed:   p.AttendanceConfirmed,
+					IsPaid:                p.IsPaid,
+					EventRequiresPayment:  e.CFPRequiresPayment,
+					CreatedAt:             p.CreatedAt,
 				})
 			}
 
 			submitted = append(submitted, SubmittedEvent{
 				ID:          e.ID,
 				Name:        e.Name,
+				Slug:        e.Slug,
 				CFPStatus:   string(e.CFPStatus),
 				MyProposals: myProposals,
 			})

@@ -1,5 +1,5 @@
 // Events list view (HOME PAGE)
-import { API } from '../app.js';
+import { API, Auth } from '../app.js';
 import { renderEventCards } from '../components/event-card.js';
 import { renderFilters, attachFilterHandlers } from '../components/filters.js';
 import { renderPagination } from '../components/pagination.js';
@@ -10,6 +10,9 @@ const PAGE_SIZE = 12;
 
 // Store countries so we don't need to refetch on filter change
 let cachedCountries = [];
+
+// Map of eventId -> proposalCount for events the user manages
+let managingMap = null;
 
 export async function EventsView(params, query) {
     const main = document.getElementById('main-content');
@@ -25,13 +28,26 @@ export async function EventsView(params, query) {
     const page = parseInt(query.page) || 1;
 
     try {
-        // Fetch events and countries in parallel
-        const [result, countries] = await Promise.all([
+        // Fetch events, countries, and (if logged in) dashboard in parallel
+        const promises = [
             fetchEvents(filters, page),
             API.getCountries()
-        ]);
+        ];
+        if (Auth.isLoggedIn()) {
+            promises.push(API.getMyDashboard().catch(() => null));
+        }
+        const [result, countries, dashboardData] = await Promise.all(promises);
 
         cachedCountries = countries;
+
+        // Build managing map from dashboard data
+        managingMap = null;
+        if (dashboardData?.managing) {
+            managingMap = new Map();
+            for (const event of dashboardData.managing) {
+                managingMap.set(event.ID || event.id, event.proposal_count || 0);
+            }
+        }
 
         const events = result.data || result.events || result || [];
         const total = result.pagination?.total || result.total || events.length;
@@ -83,7 +99,7 @@ function renderEventsPage(container, events, filters, currentPage, totalPages, c
     `;
 
     // Render event cards
-    renderEventCards(events, 'events-list');
+    renderEventCards(events, 'events-list', managingMap);
 
     // Attach filter handlers
     attachFilterHandlers(handleFilterChange);
@@ -152,7 +168,7 @@ async function updateEventsList(filters, page) {
 
         // Clear and re-render events
         eventsList.innerHTML = '';
-        renderEventCards(events, 'events-list');
+        renderEventCards(events, 'events-list', managingMap);
 
         // Update pagination
         renderPaginationSection(page, totalPages);

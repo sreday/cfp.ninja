@@ -17,7 +17,8 @@ type Client struct {
 }
 
 type Metadata struct {
-	Events []EventEntry `yaml:"events"`
+	Events              []EventEntry `yaml:"events"`
+	DescriptionTemplate string       `yaml:"description_template"`
 }
 
 type EventEntry struct {

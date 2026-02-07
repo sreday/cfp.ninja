@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"gorm.io/datatypes"
 	"gorm.io/gorm/clause"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
@@ -114,7 +115,7 @@ func GetStatsHandler(cfg *config.Config) http.HandlerFunc {
 func sanitizeEventForPublic(event *models.Event) {
 	event.StripePaymentID = ""
 	event.IsPaid = false
-	event.CFPRequiresPayment = false
+	// Keep CFPRequiresPayment visible so speakers know payment is needed
 	event.CFPSubmissionFee = 0
 	event.CFPSubmissionFeeCurrency = ""
 }
@@ -298,7 +299,8 @@ func GetEventBySlugHandler(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// GetEventByIDHandler returns an event by ID
+// GetEventByIDHandler returns an event by ID (public endpoint).
+// Draft events are hidden and internal payment fields are stripped.
 func GetEventByIDHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
@@ -321,6 +323,44 @@ func GetEventByIDHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		sanitizeEventForPublic(&event)
+		encodeResponse(w, r, event)
+	}
+}
+
+// GetEventForOrganizerHandler returns full event details for organizers (authenticated).
+// GET /api/v0/me/events/{id}
+func GetEventForOrganizerHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Extract ID from path: /api/v0/me/events/{id}
+		path := strings.TrimPrefix(r.URL.Path, "/api/v0/me/events/")
+		id, err := strconv.ParseUint(path, 10, 32)
+		if err != nil {
+			encodeError(w, "Invalid event ID", http.StatusBadRequest)
+			return
+		}
+
+		var event models.Event
+		if err := cfg.DB.Preload("Organizers").First(&event, id).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
+
+		if !event.IsOrganizer(user.ID) {
+			encodeError(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
 		encodeResponse(w, r, event)
 	}
 }
@@ -404,7 +444,7 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Set defaults
-		event.CreatedByID = user.ID
+		event.CreatedByID = &user.ID
 		if event.CFPStatus == "" {
 			event.CFPStatus = models.CFPStatusDraft
 		}
@@ -419,6 +459,12 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 		if !validStatuses[event.CFPStatus] {
 			encodeError(w, "Invalid CFP status", http.StatusBadRequest)
+			return
+		}
+
+		// Payment gate: block creating with open status if listing fee is required
+		if event.CFPStatus == models.CFPStatusOpen && cfg.EventListingFee > 0 {
+			encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
 			return
 		}
 
@@ -483,6 +529,7 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			"travel_covered": true, "hotel_covered": true, "honorarium_provided": true,
 			"cfp_description": true, "cfp_open_at": true, "cfp_close_at": true,
 			"max_accepted": true, "cfp_questions": true,
+			"cfp_requires_payment": true, "cfp_status": true,
 		}
 		filtered := make(map[string]interface{})
 		for k, v := range updates {
@@ -491,6 +538,26 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 		updates = filtered
+
+		// When cfp_requires_payment is toggled, auto-populate or clear fee fields from server config
+		if reqPayment, ok := updates["cfp_requires_payment"]; ok {
+			enabled, _ := reqPayment.(bool)
+			if enabled {
+				updates["cfp_submission_fee"] = cfg.SubmissionListingFee
+				updates["cfp_submission_fee_currency"] = cfg.SubmissionListingFeeCurrency
+			} else {
+				updates["cfp_submission_fee"] = 0
+				updates["cfp_submission_fee_currency"] = ""
+			}
+		}
+
+		// Payment gate: block opening CFP if listing fee is required and unpaid
+		if status, ok := updates["cfp_status"].(string); ok && status == string(models.CFPStatusOpen) {
+			if cfg.EventListingFee > 0 && !event.IsPaid {
+				encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
+				return
+			}
+		}
 
 		// Validate field lengths on update
 		if name, ok := updates["name"].(string); ok && len(name) > MaxEventNameLen {
@@ -546,6 +613,16 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			updates["slug"] = slug
 		}
 
+		// Re-marshal JSONB fields so GORM/pgx stores them correctly.
+		if val, ok := updates["cfp_questions"]; ok && val != nil {
+			jsonBytes, err := json.Marshal(val)
+			if err != nil {
+				encodeError(w, "Invalid cfp_questions data", http.StatusBadRequest)
+				return
+			}
+			updates["cfp_questions"] = datatypes.JSON(jsonBytes)
+		}
+
 		if err := cfg.DB.Model(&event).Updates(updates).Error; err != nil {
 			cfg.Logger.Error("failed to update event", "error", err)
 			encodeError(w, "Failed to update event", http.StatusInternalServerError)
@@ -556,6 +633,49 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 		cfg.DB.First(&event, id)
 
 		encodeResponse(w, r, event)
+	}
+}
+
+// DeleteEventHandler deletes an event and its proposals
+func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		idStr := extractEventID(r.URL.Path)
+		id, err := strconv.ParseUint(idStr, 10, 32)
+		if err != nil {
+			encodeError(w, "Invalid event ID", http.StatusBadRequest)
+			return
+		}
+
+		var event models.Event
+		if err := cfg.DB.First(&event, id).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
+
+		// Only the creator can delete an event
+		if event.CreatedByID == nil || *event.CreatedByID != user.ID {
+			encodeError(w, "Only the event creator can delete the event", http.StatusForbidden)
+			return
+		}
+
+		if err := cfg.DB.Delete(&event).Error; err != nil {
+			cfg.Logger.Error("failed to delete event", "error", err)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
+
+		encodeResponse(w, r, map[string]string{"message": "Event deleted"})
 	}
 }
 
@@ -623,11 +743,25 @@ func UpdateCFPStatusHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Payment gate: block opening CFP if listing fee is required and unpaid
+		if req.Status == models.CFPStatusOpen && cfg.EventListingFee > 0 && !event.IsPaid {
+			encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
+			return
+		}
+
+		oldStatus := event.CFPStatus
 		event.CFPStatus = req.Status
 		if err := cfg.DB.Save(&event).Error; err != nil {
 			encodeError(w, "Failed to update status", http.StatusInternalServerError)
 			return
 		}
+
+		cfg.Logger.Info("CFP status changed",
+			"event_id", event.ID,
+			"old_status", string(oldStatus),
+			"new_status", string(req.Status),
+			"actor_id", user.ID,
+		)
 
 		encodeResponse(w, r, event)
 	}
@@ -725,7 +859,9 @@ func GetEventOrganizersHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Include creator info
 		var creator models.User
-		cfg.DB.First(&creator, event.CreatedByID)
+		if event.CreatedByID != nil {
+			cfg.DB.First(&creator, *event.CreatedByID)
+		}
 
 		type OrganizerResponse struct {
 			ID        uint   `json:"id"`
@@ -835,6 +971,13 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		// Add to organizers
 		cfg.DB.Model(&event).Association("Organizers").Append(&newOrganizer)
 
+		cfg.Logger.Info("organizer added",
+			"event_id", event.ID,
+			"added_user_id", newOrganizer.ID,
+			"added_email", newOrganizer.Email,
+			"actor_id", user.ID,
+		)
+
 		w.WriteHeader(http.StatusCreated)
 		encodeResponse(w, r, map[string]string{"message": "Organizer added"})
 	}
@@ -881,13 +1024,13 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Only creator can remove organizers
-		if event.CreatedByID != user.ID {
+		if event.CreatedByID == nil || *event.CreatedByID != user.ID {
 			encodeError(w, "Only the event creator can remove organizers", http.StatusForbidden)
 			return
 		}
 
 		// Can't remove the creator
-		if uint(userIDToRemove) == event.CreatedByID {
+		if event.CreatedByID != nil && uint(userIDToRemove) == *event.CreatedByID {
 			encodeError(w, "Cannot remove the event creator", http.StatusBadRequest)
 			return
 		}
@@ -899,6 +1042,12 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		cfg.DB.Model(&event).Association("Organizers").Delete(&organizerToRemove)
+
+		cfg.Logger.Info("organizer removed",
+			"event_id", event.ID,
+			"removed_user_id", organizerToRemove.ID,
+			"actor_id", user.ID,
+		)
 
 		encodeResponse(w, r, map[string]string{"message": "Organizer removed"})
 	}

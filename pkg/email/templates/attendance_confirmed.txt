@@ -1,0 +1,11 @@
+Speaker attendance confirmed
+
+Hi {{.OrganizerName}},
+
+{{.SpeakerName}} has confirmed their attendance for the proposal "{{.ProposalTitle}}" at {{.EventName}}.
+
+You can view the proposal details on your organiser dashboard:
+{{.DashboardURL}}
+
+Best regards,
+CFP.ninja

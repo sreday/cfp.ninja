@@ -211,6 +211,12 @@ func TestCSVFormulaInjection(t *testing.T) {
 	)
 	assertStatus(t, resp, http.StatusCreated)
 
+	var formulaProposal ProposalResponse
+	if err := parseJSON(resp, &formulaProposal); err != nil {
+		t.Fatalf("failed to parse proposal response: %v", err)
+	}
+	updateProposalStatus(adminToken, formulaProposal.ID, "accepted")
+
 	t.Run("in-person format", func(t *testing.T) {
 		resp := doAuthGet(
 			fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
@@ -226,23 +232,23 @@ func TestCSVFormulaInjection(t *testing.T) {
 			t.Fatalf("failed to parse CSV: %v", err)
 		}
 
-		// In-person columns: status(0), name(1), track(2), day(3), organization(4),
-		// photo(5), linkedin(6), linkedin2(7), twitter(8), twitter2(9), title(10),
-		// abstract(11), description(12), bio(13)
+		// In-person columns: status(0), name(1), track(2), email(3), day(4), organization(5),
+		// photo(6), linkedin(7), linkedin2(8), twitter(9), twitter2(10), title(11),
+		// abstract(12), description(13), bio(14)
 		found := false
 		for _, row := range records[1:] {
-			if strings.Contains(row[10], "1+1") {
+			if strings.Contains(row[11], "1+1") {
 				found = true
 				checks := []struct {
 					col  int
 					name string
 					want string
 				}{
-					{10, "title", "'=1+1"},
-					{11, "abstract", "'+1+1"},
+					{11, "title", "'=1+1"},
+					{12, "abstract", "'+1+1"},
 					{1, "speaker name", "'-subtract"},
-					{4, "organization", "'=EVIL"},
-					{13, "bio", "'@mention"},
+					{5, "organization", "'=EVIL"},
+					{14, "bio", "'@mention"},
 				}
 				for _, c := range checks {
 					if row[c.col] != c.want {
@@ -272,24 +278,24 @@ func TestCSVFormulaInjection(t *testing.T) {
 			t.Fatalf("failed to parse CSV: %v", err)
 		}
 
-		// Online columns: Featured(0), Track(1), Name1(2), JobTitle1(3), Company1(4),
-		// Name2(5), JobTitle2(6), Company2(7), Title(8), Abstract(9), LinkedIn1(10),
-		// Twitter1(11), LinkedIn2(12), Twitter2(13), Slides(14), Picture(15),
-		// YouTube(16), Keywords(17), Duration(18)
+		// Online columns: Featured(0), Track(1), Name1(2), Email1(3), JobTitle1(4), Company1(5),
+		// Name2(6), Email2(7), JobTitle2(8), Company2(9), Title(10), Abstract(11), LinkedIn1(12),
+		// Twitter1(13), LinkedIn2(14), Twitter2(15), Slides(16), Picture(17),
+		// YouTube(18), Keywords(19), Duration(20)
 		found := false
 		for _, row := range records[1:] {
-			if strings.Contains(row[8], "1+1") {
+			if strings.Contains(row[10], "1+1") {
 				found = true
 				checks := []struct {
 					col  int
 					name string
 					want string
 				}{
-					{8, "Title", "'=1+1"},
-					{9, "Abstract", "'+1+1"},
+					{10, "Title", "'=1+1"},
+					{11, "Abstract", "'+1+1"},
 					{2, "Name1", "'-subtract"},
-					{3, "JobTitle1", "'+title"},
-					{4, "Company1", "'=EVIL"},
+					{4, "JobTitle1", "'+title"},
+					{5, "Company1", "'=EVIL"},
 				}
 				for _, c := range checks {
 					if row[c.col] != c.want {

@@ -112,6 +112,7 @@ function renderProposalsView(container, event, proposals) {
                         </select>
                     </div>
                     <div class="col-md-2 text-end d-flex align-items-center justify-content-end gap-2">
+                        <span class="small text-muted" id="proposal-count"></span>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="anonymous-mode" ${localStorage.getItem('cfpninja_anonymous_review') === 'true' ? 'checked' : ''}>
                             <label class="form-check-label small" for="anonymous-mode">Anonymous</label>
@@ -316,11 +317,11 @@ function renderProposalModal(proposal) {
             </div>
 
             <h6>Abstract</h6>
-            <p class="mb-4">${escapeHtml(proposal.abstract).replace(/\n/g, '<br>')}</p>
+            <p class="mb-4" style="white-space:pre-wrap">${escapeHtml(proposal.abstract)}</p>
 
             ${proposal.notes ? `
                 <h6>Speaker Notes (Private)</h6>
-                <p class="mb-4 text-muted">${escapeHtml(proposal.notes).replace(/\n/g, '<br>')}</p>
+                <p class="mb-4 text-muted" style="white-space:pre-wrap">${escapeHtml(proposal.notes)}</p>
             ` : ''}
 
             <h6>Speakers</h6>
@@ -445,10 +446,16 @@ function attachHandlers(event, allProposals) {
             if (visible) visibleCount++;
         });
 
-        document.getElementById('proposal-count').textContent = `${visibleCount} proposals`;
+        const countEl = document.getElementById('proposal-count');
+        if (countEl) countEl.textContent = `${visibleCount} proposals`;
     };
 
-    searchInput?.addEventListener('input', filterProposals);
+    // Debounce search input to avoid excessive DOM reflows on every keystroke
+    let searchDebounceTimer = null;
+    searchInput?.addEventListener('input', () => {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(filterProposals, 150);
+    });
     statusFilter?.addEventListener('change', filterProposals);
     formatFilter?.addEventListener('change', filterProposals);
 
@@ -457,8 +464,8 @@ function attachHandlers(event, allProposals) {
         const viewBtn = e.target.closest('.view-proposal') || e.target.closest('.proposal-title');
         if (!viewBtn) return;
 
-        const proposalId = viewBtn.dataset.id;
-        const proposal = allProposals.find(p => (p.ID || p.id) == proposalId);
+        const proposalId = +viewBtn.dataset.id;
+        const proposal = allProposals.find(p => (p.ID || p.id) === proposalId);
         if (!proposal) return;
 
         currentProposal = proposal;
@@ -468,13 +475,11 @@ function attachHandlers(event, allProposals) {
         modal.style.display = 'block';
         modal.classList.add('show');
         document.body.classList.add('modal-open');
-        // Add backdrop
-        let backdrop = document.querySelector('.modal-backdrop');
-        if (!backdrop) {
-            backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            document.body.appendChild(backdrop);
-        }
+        // Remove any stale backdrops before creating a new one
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
     });
 
     // Close modal
@@ -537,7 +542,7 @@ function attachHandlers(event, allProposals) {
                 currentProposal.status = status;
 
                 // Update the proposal in allProposals array
-                const proposalIndex = allProposals.findIndex(p => (p.ID || p.id) == proposalId);
+                const proposalIndex = allProposals.findIndex(p => (p.ID || p.id) === proposalId);
                 if (proposalIndex !== -1) {
                     allProposals[proposalIndex].status = status;
                 }

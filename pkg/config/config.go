@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sreday/cfp.ninja/pkg/email"
 	"gorm.io/gorm"
 )
 
@@ -38,9 +39,23 @@ type Config struct {
 	// JWT
 	JWTSecret string
 
-	// Stripe (future)
-	StripeSecretKey    string
-	StripeWebhookSecret string
+	// Proposal limits
+	MaxProposalsPerEvent int
+
+	// Stripe
+	StripeSecretKey              string
+	StripeWebhookSecret          string
+	StripePublishableKey         string
+	EventListingFee              int    // cents, 0 = free
+	EventListingFeeCurrency      string // e.g. "usd"
+	SubmissionListingFee         int    // cents, default 100
+	SubmissionListingFeeCurrency string // e.g. "usd"
+
+	// Email (Resend)
+	ResendAPIKey string
+	EmailFrom    string
+	BaseURL      string
+	EmailSender  email.Sender
 
 	DB     *gorm.DB
 	Logger *slog.Logger
@@ -185,6 +200,86 @@ func InitConfig() (*Config, error) {
 		logger.Warn("AUTO_ORGANISERS_IDS not set - event sync disabled")
 	}
 
+	// Proposal limits
+	maxProposalsPerEvent := 3
+	if v := os.Getenv("MAX_PROPOSALS_PER_EVENT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxProposalsPerEvent = n
+		} else {
+			logger.Warn("MAX_PROPOSALS_PER_EVENT is set but not a valid positive integer, using default", "value", v)
+		}
+	}
+
+	// Stripe
+	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
+	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	stripePublishableKey := os.Getenv("STRIPE_PUBLISHABLE_KEY")
+
+	eventListingFee := 0
+	if v := os.Getenv("EVENT_LISTING_FEE"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			eventListingFee = n
+		} else {
+			logger.Warn("EVENT_LISTING_FEE is set but not a valid integer, using default", "value", v, "error", err)
+		}
+	}
+	eventListingFeeCurrency := os.Getenv("EVENT_LISTING_FEE_CURRENCY")
+	if eventListingFeeCurrency == "" {
+		eventListingFeeCurrency = "usd"
+	}
+
+	submissionListingFee := 100 // $1.00 default
+	if v := os.Getenv("SUBMISSION_LISTING_FEE"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			submissionListingFee = n
+		} else {
+			logger.Warn("SUBMISSION_LISTING_FEE is set but not a valid integer, using default", "value", v, "error", err)
+		}
+	}
+	submissionListingFeeCurrency := os.Getenv("SUBMISSION_LISTING_FEE_CURRENCY")
+	if submissionListingFeeCurrency == "" {
+		submissionListingFeeCurrency = "usd"
+	}
+
+	// Stripe validation
+	hasStripeKey := stripeSecretKey != ""
+	hasStripePubKey := stripePublishableKey != ""
+	if hasStripeKey != hasStripePubKey {
+		logger.Warn("STRIPE_SECRET_KEY and STRIPE_PUBLISHABLE_KEY should both be set or both unset")
+	}
+	if (eventListingFee > 0 || submissionListingFee > 0) && !hasStripeKey {
+		if !insecureMode {
+			return nil, fmt.Errorf("STRIPE_SECRET_KEY is required when listing or submission fees are configured")
+		}
+		logger.Warn("Stripe fees configured but STRIPE_SECRET_KEY not set - payments will not work")
+	}
+
+	if hasStripeKey && hasStripePubKey {
+		logger.Info("Stripe payments enabled",
+			"event_listing_fee", eventListingFee,
+			"event_listing_fee_currency", eventListingFeeCurrency,
+			"submission_listing_fee", submissionListingFee,
+			"submission_listing_fee_currency", submissionListingFeeCurrency,
+			"webhook_secret_set", stripeWebhookSecret != "",
+		)
+	} else {
+		logger.Info("Stripe payments disabled (keys not configured)")
+	}
+
+	// Email (Resend)
+	resendAPIKey := os.Getenv("RESEND_API_KEY")
+	emailFrom := os.Getenv("EMAIL_FROM")
+	if emailFrom == "" {
+		emailFrom = "CFP.ninja <notifications@updates.cfp.ninja>"
+	}
+	baseURL := os.Getenv("BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://cfp.ninja"
+	}
+	if resendAPIKey == "" {
+		logger.Warn("RESEND_API_KEY not set - email notifications disabled")
+	}
+
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		if insecureMode {
 			logger.Warn("ALLOWED_ORIGINS is set to wildcard (*) - acceptable in insecure mode")
@@ -210,8 +305,17 @@ func InitConfig() (*Config, error) {
 		GitHubClientSecret: gitHubClientSecret,
 		GitHubRedirectURL:  gitHubRedirectURL,
 		JWTSecret:          jwtSecret,
-		StripeSecretKey:    os.Getenv("STRIPE_SECRET_KEY"),
-		StripeWebhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
-		Logger:             logger,
+		MaxProposalsPerEvent:         maxProposalsPerEvent,
+		StripeSecretKey:              stripeSecretKey,
+		StripeWebhookSecret:          stripeWebhookSecret,
+		StripePublishableKey:         stripePublishableKey,
+		EventListingFee:              eventListingFee,
+		EventListingFeeCurrency:      eventListingFeeCurrency,
+		SubmissionListingFee:         submissionListingFee,
+		SubmissionListingFeeCurrency: submissionListingFeeCurrency,
+		ResendAPIKey:                 resendAPIKey,
+		EmailFrom:                    emailFrom,
+		BaseURL:                      baseURL,
+		Logger:                       logger,
 	}, nil
 }

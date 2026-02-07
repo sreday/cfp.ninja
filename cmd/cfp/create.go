@@ -147,5 +147,10 @@ func runCreate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Slug: %s\n", result.Slug)
 	fmt.Printf("  URL:  %s/e/%s\n", client.BaseURL, result.Slug)
 
+	if event.CFPStatus == "" || event.CFPStatus == "draft" {
+		fmt.Printf("\nNote: To open the CFP, complete payment at:\n")
+		fmt.Printf("  %s/dashboard/events/%d\n", client.BaseURL, result.ID)
+	}
+
 	return nil
 }

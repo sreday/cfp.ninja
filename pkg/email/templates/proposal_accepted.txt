@@ -1,0 +1,13 @@
+Your proposal has been accepted!
+
+Hi {{.SpeakerName}},
+
+Great news - your proposal "{{.ProposalTitle}}" has been accepted for {{.EventName}}.
+{{if .NeedsConfirmation}}
+Please confirm your attendance by visiting your dashboard:
+{{.DashboardURL}}
+{{end}}
+If you have any questions, reply to this email to reach the event organisers.
+
+Best regards,
+CFP.ninja

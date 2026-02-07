@@ -154,6 +154,10 @@ func seedTestData() {
 			{Name: "Speaker User", Email: "speaker@test.com", Bio: "A Go developer", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 		},
 	})
+
+	// Accept proposals so they appear in CSV exports (export filters by status=accepted)
+	updateProposalStatus(adminToken, proposalGoPerf.ID, "accepted")
+	updateProposalStatus(adminToken, proposalGoChannels.ID, "accepted")
 }
 
 // createTestEvent creates an event via the API and returns it
@@ -199,6 +203,17 @@ func createTestProposal(token string, eventID uint, input ProposalInput) *Propos
 		os.Exit(1)
 	}
 	return &proposal
+}
+
+// updateProposalStatus updates a proposal's status via the API
+func updateProposalStatus(token string, proposalID uint, status string) {
+	resp := doPut("/api/v0/proposals/"+uintToStr(proposalID)+"/status", ProposalStatusInput{Status: status}, token)
+	if resp.StatusCode != http.StatusOK {
+		body := readBody(resp)
+		slog.Error("failed to update proposal status", "proposal_id", proposalID, "status", resp.StatusCode, "body", body)
+		os.Exit(1)
+	}
+	resp.Body.Close()
 }
 
 // uintToStr converts uint to string

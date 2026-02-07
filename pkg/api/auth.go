@@ -37,6 +37,21 @@ func getJWTFromCookie(r *http.Request) string {
 	return c.Value
 }
 
+// resolveInsecureUser returns the user to use in insecure mode.
+// If InsecureUserEmail is set, the user is looked up from the database.
+// Otherwise a dummy user with a high ID is returned.
+func resolveInsecureUser(cfg *config.Config) (*models.User, error) {
+	if cfg.InsecureUserEmail != "" {
+		return models.GetUserByEmail(cfg.DB, cfg.InsecureUserEmail)
+	}
+	user := &models.User{
+		Email: "insecure@system",
+		Name:  "Insecure System User",
+	}
+	user.ID = math.MaxUint32
+	return user, nil
+}
+
 // AuthHandler wraps a handler with authentication middleware.
 //
 // Authentication flow:
@@ -59,24 +74,11 @@ func AuthHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc {
 
 		// Skip auth in insecure mode
 		if cfg.Insecure {
-			var user *models.User
-			if cfg.InsecureUserEmail != "" {
-				// Look up real user from database (for E2E tests that need real user IDs)
-				var err error
-				user, err = models.GetUserByEmail(cfg.DB, cfg.InsecureUserEmail)
-				if err != nil {
-					cfg.Logger.Error("insecure user not found", "email", cfg.InsecureUserEmail, "error", err.Error())
-					encodeError(w, "Insecure user not found", http.StatusInternalServerError)
-					return
-				}
-			} else {
-				// Fallback to dummy user (for quick testing without user-specific operations)
-				user = &models.User{
-					Email: "insecure@system",
-					Name:  "Insecure System User",
-				}
-				// Use a high ID to avoid matching real records with unset CreatedByID (zero value)
-				user.ID = math.MaxUint32
+			user, err := resolveInsecureUser(cfg)
+			if err != nil {
+				cfg.Logger.Error("insecure user not found", "email", cfg.InsecureUserEmail, "error", err.Error())
+				encodeError(w, "Insecure user not found", http.StatusInternalServerError)
+				return
 			}
 			ctx := context.WithValue(r.Context(), UserContextKey, user)
 			next(w, r.WithContext(ctx))
@@ -126,6 +128,18 @@ func AuthCorsHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc
 // OptionalAuthHandler tries to authenticate but doesn't fail if no auth provided
 func OptionalAuthHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// In insecure mode, resolve user the same way as AuthHandler
+		if cfg.Insecure {
+			user, err := resolveInsecureUser(cfg)
+			if err != nil {
+				next(w, r)
+				return
+			}
+			ctx := context.WithValue(r.Context(), UserContextKey, user)
+			next(w, r.WithContext(ctx))
+			return
+		}
+
 		// Extract token from Authorization header or session cookie
 		var token string
 		authHeader := r.Header.Get("Authorization")

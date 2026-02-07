@@ -1,5 +1,5 @@
 // Create event view
-import { API } from '../app.js';
+import { API, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import { escapeHtml, slugify, showLoading, COUNTRIES } from '../utils.js';
@@ -148,18 +148,6 @@ function renderCreateEventForm(container, countries = []) {
                             </div>
 
                             <div class="mb-3">
-                                <label for="cfp_status" class="form-label">CFP Status</label>
-                                <select class="form-select" id="cfp_status" name="cfp_status">
-                                    <option value="draft">Draft - Not visible to submitters</option>
-                                    <option value="open">Open - Accepting submissions</option>
-                                    <option value="closed">Closed - No longer accepting</option>
-                                    <option value="reviewing">Reviewing - Under review</option>
-                                    <option value="complete">Complete - Decisions made</option>
-                                </select>
-                                <div class="form-text">Set to "Open" when you're ready to accept proposals.</div>
-                            </div>
-
-                            <div class="mb-3">
                                 <label for="cfp_description" class="form-label">CFP Description / Guidelines</label>
                                 <textarea class="form-control" id="cfp_description" name="cfp_description" rows="4" placeholder="Describe what types of talks you're looking for, topic guidelines, etc."></textarea>
                                 <div class="form-text">Markdown supported.</div>
@@ -177,6 +165,19 @@ function renderCreateEventForm(container, countries = []) {
                             <div id="questions-container"></div>
                         </div>
                     </div>
+
+                    ${(() => {
+                        const config = getAppConfig();
+                        if (config.payments_enabled && config.event_listing_fee > 0) {
+                            const feeAmount = (config.event_listing_fee / 100).toFixed(2);
+                            const currency = (config.event_listing_fee_currency || 'usd').toUpperCase();
+                            return `
+                                <div class="alert alert-info mb-4">
+                                    <strong>How it works:</strong> Your event will be created as a draft. To open your CFP and make it publicly visible, a one-time listing fee of <strong>$${feeAmount} ${currency}</strong> is required. You'll be taken to the payment page after creating your event.
+                                </div>`;
+                        }
+                        return '';
+                    })()}
 
                     <div class="d-flex gap-3 mb-4">
                         <button type="submit" class="btn btn-primary">Create Event</button>
@@ -286,7 +287,7 @@ function attachFormHandlers() {
             honorarium_provided: formData.get('honorarium_provided') ? true : undefined,
             cfp_open_at: cfpOpenAt ? new Date(cfpOpenAt).toISOString() : undefined,
             cfp_close_at: cfpCloseAt ? new Date(cfpCloseAt).toISOString() : undefined,
-            cfp_status: formData.get('cfp_status') || undefined,
+            cfp_status: 'draft',
             cfp_description: formData.get('cfp_description') || undefined,
             cfp_questions: cfpQuestions.length > 0 ? cfpQuestions : undefined
         };
@@ -405,7 +406,7 @@ function attachFormHandlers() {
             honorarium_provided: !!formData.get('honorarium_provided'),
             cfp_open_at: cfpOpenAt ? new Date(cfpOpenAt).toISOString() : null,
             cfp_close_at: cfpCloseAt ? new Date(cfpCloseAt).toISOString() : null,
-            cfp_status: formData.get('cfp_status') || 'draft',
+            cfp_status: 'draft',
             cfp_description: formData.get('cfp_description') || '',
             cfp_questions: cfpQuestions
         };
@@ -415,9 +416,22 @@ function attachFormHandlers() {
             submitBtn.textContent = 'Creating...';
 
             const created = await API.createEvent(event);
+            const config = getAppConfig();
 
-            toast.success('Event created successfully!');
-            router.navigate(`/dashboard/events/${created.ID || created.id}`);
+            if (config.payments_enabled && config.event_listing_fee > 0) {
+                toast.success('Event created! Redirecting to payment...');
+                try {
+                    const result = await API.createEventCheckout(created.ID || created.id);
+                    window.location.href = result.checkout_url;
+                    return;
+                } catch (err) {
+                    toast.error('Could not start payment. You can pay from the dashboard.');
+                    router.navigate('/dashboard/events');
+                }
+            } else {
+                toast.success('Event created successfully!');
+                router.navigate(`/dashboard/events/${created.ID || created.id}`);
+            }
         } catch (error) {
             console.error('Error creating event:', error);
             toast.error(error.message || 'Failed to create event.');

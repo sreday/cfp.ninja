@@ -6,7 +6,9 @@ require (
 	github.com/go-rod/rod v0.116.2
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c
+	github.com/resend/resend-go/v2 v2.28.0
 	github.com/spf13/cobra v1.10.2
+	github.com/stripe/stripe-go/v82 v82.5.1
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v2 v2.4.0

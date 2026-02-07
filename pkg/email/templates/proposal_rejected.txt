@@ -1,0 +1,14 @@
+Update on your proposal
+
+Hi {{.SpeakerName}},
+
+Thank you for submitting "{{.ProposalTitle}}" to {{.EventName}}.
+
+Unfortunately, we were unable to include your proposal in this edition. We received many strong submissions and the selection was difficult.
+
+We hope you'll consider submitting to future events.
+
+If you have any questions, reply to this email to reach the event organisers.
+
+Best regards,
+CFP.ninja

@@ -5,6 +5,8 @@ import (
 	"time"
 )
 
+func uintPtr(v uint) *uint { return &v }
+
 func TestEvent_IsCFPOpen(t *testing.T) {
 	now := time.Now()
 
@@ -90,7 +92,7 @@ func TestEvent_IsCFPOpen(t *testing.T) {
 
 func TestEvent_IsOrganizer(t *testing.T) {
 	event := Event{
-		CreatedByID: 100,
+		CreatedByID: uintPtr(100),
 		Organizers: []User{
 			{},
 			{},
@@ -143,7 +145,7 @@ func TestEvent_IsOrganizer(t *testing.T) {
 
 func TestEvent_IsOrganizer_EmptyOrganizers(t *testing.T) {
 	event := Event{
-		CreatedByID: 100,
+		CreatedByID: uintPtr(100),
 		Organizers:  []User{},
 	}
 
@@ -160,7 +162,7 @@ func TestEvent_IsOrganizer_EmptyOrganizers(t *testing.T) {
 
 func TestEvent_IsOrganizer_NilOrganizers(t *testing.T) {
 	event := Event{
-		CreatedByID: 100,
+		CreatedByID: uintPtr(100),
 		Organizers:  nil,
 	}
 

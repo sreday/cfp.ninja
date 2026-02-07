@@ -18,8 +18,9 @@ type Client struct {
 }
 
 type HomeMetadata struct {
-	Events     []EventRef `yaml:"events"`
-	EventsPast []EventRef `yaml:"events_past"`
+	Events              []EventRef `yaml:"events"`
+	EventsPast          []EventRef `yaml:"events_past"`
+	DescriptionTemplate string     `yaml:"description_template"`
 }
 
 type EventRef struct {

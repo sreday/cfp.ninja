@@ -89,6 +89,10 @@ type Proposal struct {
 	// Example: {"travel_needs": "Yes", "dietary": "Vegetarian"}
 	CustomAnswers datatypes.JSON `gorm:"type:jsonb" json:"custom_answers,omitempty"`
 
+	// Payment (for submission fees)
+	IsPaid          bool   `gorm:"default:false" json:"is_paid"`
+	StripePaymentID string `json:"stripe_payment_id,omitempty"`
+
 	CreatedByID *uint `gorm:"index;constraint:OnDelete:SET NULL" json:"created_by_id,omitempty"` // User who submitted
 }
 

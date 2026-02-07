@@ -6,6 +6,9 @@ export function initTheme() {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     const theme = saved || (prefersDark ? 'dark' : 'light');
     applyTheme(theme);
+    if (!saved) {
+        localStorage.setItem(STORAGE_KEY, theme);
+    }
 }
 
 export function toggleTheme() {

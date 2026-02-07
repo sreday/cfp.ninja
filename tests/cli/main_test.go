@@ -229,7 +229,7 @@ func createTestEvent(name, slug string, userID uint) *models.Event {
 		CFPStatus:   models.CFPStatusOpen,
 		CFPOpenAt:   now.AddDate(0, 0, -7),  // Opened a week ago
 		CFPCloseAt:  now.AddDate(0, 0, 14),  // Closes in two weeks
-		CreatedByID: userID,
+		CreatedByID: &userID,
 	}
 	if err := testDB.Create(event).Error; err != nil {
 		slog.Error("failed to create test event", "error", err)

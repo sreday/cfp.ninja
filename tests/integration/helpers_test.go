@@ -68,19 +68,22 @@ func parseJSON(resp *http.Response, v interface{}) error {
 	return json.NewDecoder(resp.Body).Decode(v)
 }
 
-// readBody reads the response body as a string
+// readBody reads the response body as a string and closes it.
 func readBody(resp *http.Response) string {
 	defer resp.Body.Close()
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	return string(bodyBytes)
 }
 
-// assertStatus checks if the response status matches expected
+// assertStatus checks if the response status matches expected.
+// On failure it reads and closes the body, then calls t.Fatalf.
+// On success the body is left open for the caller (e.g. parseJSON).
 func assertStatus(t *testing.T, resp *http.Response, expected int) {
 	t.Helper()
 	if resp.StatusCode != expected {
-		body := readBody(resp)
-		t.Errorf("expected status %d, got %d. Body: %s", expected, resp.StatusCode, body)
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		t.Fatalf("expected status %d, got %d. Body: %s", expected, resp.StatusCode, string(body))
 	}
 }
 
@@ -101,22 +104,27 @@ func assertJSONError(t *testing.T, resp *http.Response, expectedError string) {
 
 // EventResponse represents an event in API responses
 type EventResponse struct {
-	ID           uint   `json:"id"`
-	Name         string `json:"name"`
-	Slug         string `json:"slug"`
-	Description  string `json:"description"`
-	Location     string `json:"location"`
-	Country      string `json:"country"`
-	StartDate    string `json:"start_date"`
-	EndDate      string `json:"end_date"`
-	Website      string `json:"website"`
-	Tags         string `json:"tags"`
-	IsOnline     bool   `json:"is_online"`
-	ContactEmail string `json:"contact_email"`
-	CFPStatus    string `json:"cfp_status"`
-	CFPOpenAt    string `json:"cfp_open_at"`
-	CFPCloseAt   string `json:"cfp_close_at"`
-	CreatedByID  uint   `json:"created_by_id"`
+	ID                       uint   `json:"id"`
+	Name                     string `json:"name"`
+	Slug                     string `json:"slug"`
+	Description              string `json:"description"`
+	Location                 string `json:"location"`
+	Country                  string `json:"country"`
+	StartDate                string `json:"start_date"`
+	EndDate                  string `json:"end_date"`
+	Website                  string `json:"website"`
+	Tags                     string `json:"tags"`
+	IsOnline                 bool   `json:"is_online"`
+	ContactEmail             string `json:"contact_email"`
+	CFPStatus                string `json:"cfp_status"`
+	CFPOpenAt                string `json:"cfp_open_at"`
+	CFPCloseAt               string `json:"cfp_close_at"`
+	CreatedByID              *uint  `json:"created_by_id"`
+	IsPaid                   bool   `json:"is_paid"`
+	StripePaymentID          string `json:"stripe_payment_id,omitempty"`
+	CFPRequiresPayment       bool   `json:"cfp_requires_payment"`
+	CFPSubmissionFee         int    `json:"cfp_submission_fee,omitempty"`
+	CFPSubmissionFeeCurrency string `json:"cfp_submission_fee_currency,omitempty"`
 }
 
 // EventListResponse represents a paginated list of events
@@ -148,6 +156,19 @@ type ProposalResponse struct {
 	AttendanceConfirmed   bool   `json:"attendance_confirmed"`
 	AttendanceConfirmedAt string `json:"attendance_confirmed_at,omitempty"`
 	CreatedByID           *uint  `json:"created_by_id,omitempty"`
+	IsPaid                bool   `json:"is_paid"`
+	StripePaymentID       string `json:"stripe_payment_id,omitempty"`
+}
+
+// ConfigResponse represents the /api/v0/config endpoint response
+type ConfigResponse struct {
+	AuthProviders                []string `json:"auth_providers"`
+	StripePublishableKey         string   `json:"stripe_publishable_key,omitempty"`
+	EventListingFee              int      `json:"event_listing_fee,omitempty"`
+	EventListingFeeCurrency      string   `json:"event_listing_fee_currency,omitempty"`
+	SubmissionListingFee         int      `json:"submission_listing_fee,omitempty"`
+	SubmissionListingFeeCurrency string   `json:"submission_listing_fee_currency,omitempty"`
+	PaymentsEnabled              bool     `json:"payments_enabled"`
 }
 
 // ProposalListResponse is just an alias since the API returns an array directly

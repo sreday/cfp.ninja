@@ -13,7 +13,6 @@ const (
 	CFPStatusDraft     CFPStatus = "draft"
 	CFPStatusOpen      CFPStatus = "open"
 	CFPStatusClosed    CFPStatus = "closed"
-	CFPStatusExpired   CFPStatus = "expired"
 	CFPStatusReviewing CFPStatus = "reviewing"
 	CFPStatusComplete  CFPStatus = "complete"
 )
@@ -82,28 +81,15 @@ type Event struct {
 	CFPSubmissionFee         int    `json:"cfp_submission_fee,omitempty"`          // Fee in cents (e.g., 2500 = $25.00)
 	CFPSubmissionFeeCurrency string `gorm:"default:'usd'" json:"cfp_submission_fee_currency,omitempty"`
 
-	CreatedByID uint `gorm:"index;constraint:OnDelete:SET NULL" json:"created_by_id"`
+	CreatedByID *uint `gorm:"index;constraint:OnDelete:SET NULL" json:"created_by_id"` // Pointer to allow NULL when creator is deleted
 
 	// Co-organizers (many-to-many)
 	Organizers []User `gorm:"many2many:event_organizers;" json:"organizers,omitempty"`
 }
 
-// AfterFind sets CFPStatus to "expired" when the stored status is "open" but the
-// CFP closing date or event start date has already passed.
-func (e *Event) AfterFind(tx *gorm.DB) error {
-	if e.CFPStatus == CFPStatusOpen {
-		now := time.Now()
-		if (!e.CFPCloseAt.IsZero() && now.After(e.CFPCloseAt)) ||
-			(!e.StartDate.IsZero() && now.After(e.StartDate)) {
-			e.CFPStatus = CFPStatusExpired
-		}
-	}
-	return nil
-}
-
 // IsOrganizer checks if a user is an organizer of the event (creator or co-organizer)
 func (e *Event) IsOrganizer(userID uint) bool {
-	if e.CreatedByID == userID {
+	if e.CreatedByID != nil && *e.CreatedByID == userID {
 		return true
 	}
 	for _, org := range e.Organizers {

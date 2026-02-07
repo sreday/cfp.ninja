@@ -603,12 +603,6 @@ textarea.form-control {
     background: var(--border-light);
 }
 
-/* Draft event cards */
-.event-draft {
-    opacity: 0.6;
-    background: var(--border-light);
-}
-
 /* Proposal cards */
 .proposal-card {
     border-left: 3px solid var(--border);

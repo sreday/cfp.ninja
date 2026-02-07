@@ -53,7 +53,7 @@ func getAllowedOrigin(origin string, allowedOrigins []string) string {
 		}
 	}
 	// If not in list and we have specific origins, return empty (browser blocks)
-	if len(allowedOrigins) > 0 && allowedOrigins[0] != "*" {
+	if len(allowedOrigins) > 0 {
 		return ""
 	}
 	return "*"

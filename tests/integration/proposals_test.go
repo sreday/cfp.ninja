@@ -277,6 +277,108 @@ func TestUpdateProposal(t *testing.T) {
 	}
 }
 
+func TestUpdateProposalStatusRestriction(t *testing.T) {
+	updateInput := ProposalInput{
+		Title:    "Edited Title",
+		Abstract: "Edited abstract",
+		Format:   "talk",
+		Duration: 30,
+		Speakers: []Speaker{
+			{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	}
+
+	// Test: owner can update a submitted proposal (already covered above, but explicit)
+	t.Run("owner can update submitted proposal", func(t *testing.T) {
+		p := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+			Title:    "Status Restriction Submitted",
+			Abstract: "Test abstract",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		})
+		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		assertStatus(t, resp, http.StatusOK)
+	})
+
+	// Test: owner cannot update an accepted proposal
+	t.Run("owner cannot update accepted proposal", func(t *testing.T) {
+		p := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+			Title:    "Status Restriction Accepted",
+			Abstract: "Test abstract",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		})
+		// Organizer accepts the proposal
+		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "accepted"}, adminToken)
+		assertStatus(t, resp, http.StatusOK)
+
+		// Owner tries to update — should be blocked
+		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		assertStatus(t, resp, http.StatusBadRequest)
+	})
+
+	// Test: owner cannot update a rejected proposal
+	t.Run("owner cannot update rejected proposal", func(t *testing.T) {
+		p := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+			Title:    "Status Restriction Rejected",
+			Abstract: "Test abstract",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		})
+		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "rejected"}, adminToken)
+		assertStatus(t, resp, http.StatusOK)
+
+		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		assertStatus(t, resp, http.StatusBadRequest)
+	})
+
+	// Test: owner cannot update a tentative proposal
+	t.Run("owner cannot update tentative proposal", func(t *testing.T) {
+		p := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+			Title:    "Status Restriction Tentative",
+			Abstract: "Test abstract",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		})
+		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "tentative"}, adminToken)
+		assertStatus(t, resp, http.StatusOK)
+
+		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		assertStatus(t, resp, http.StatusBadRequest)
+	})
+
+	// Test: organizer can still update regardless of status
+	t.Run("organizer can update accepted proposal", func(t *testing.T) {
+		p := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+			Title:    "Status Restriction Organizer Test",
+			Abstract: "Test abstract",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		})
+		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "accepted"}, adminToken)
+		assertStatus(t, resp, http.StatusOK)
+
+		// Organizer updates — should succeed
+		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, adminToken)
+		assertStatus(t, resp, http.StatusOK)
+	})
+}
+
 func TestDeleteProposal(t *testing.T) {
 	// Create proposals to delete
 	proposalToDeleteByOwner := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{

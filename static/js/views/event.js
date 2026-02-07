@@ -1,5 +1,5 @@
 // Event detail view
-import { API, Auth } from '../app.js';
+import { API, Auth, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import {
     escapeHtml,
@@ -191,6 +191,16 @@ function renderCfpInfo(event, cfpStatus, isLoggedIn, cfpStart, cfpEnd) {
             </div>
 
             ${isOpen ? `
+                ${(() => {
+                    if (event.cfp_requires_payment) {
+                        const config = getAppConfig();
+                        const fee = config.submission_listing_fee || 100;
+                        const currency = (config.submission_listing_fee_currency || 'usd').toUpperCase();
+                        const feeAmount = (fee / 100).toFixed(2);
+                        return `<p class="small text-muted mb-2">Submission fee: $${feeAmount} ${currency}</p>`;
+                    }
+                    return '';
+                })()}
                 <button class="btn btn-primary w-100" id="submit-proposal-btn">
                     ${isLoggedIn ? 'Submit a Proposal' : 'Login to Submit'}
                 </button>
@@ -202,6 +212,7 @@ function renderCfpInfo(event, cfpStatus, isLoggedIn, cfpStart, cfpEnd) {
                 <button class="btn btn-secondary w-100" disabled>
                     CFP Closed
                 </button>
+                ${event.contact_email ? `<a href="mailto:${escapeAttr(event.contact_email)}" class="d-block text-center mt-2 small text-muted text-decoration-none">Reach out to the organisers</a>` : ''}
             `}
         </div>
     `;
@@ -209,24 +220,18 @@ function renderCfpInfo(event, cfpStatus, isLoggedIn, cfpStart, cfpEnd) {
 
 function formatDescription(text) {
     if (!text) return '';
-    // Use marked.js for Markdown rendering if available
-    if (typeof marked !== 'undefined') {
+    // Use marked.js for Markdown rendering if available, but ONLY if DOMPurify is also loaded
+    if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
         marked.setOptions({
             breaks: true,
             gfm: true
         });
         const html = marked.parse(text);
-        if (typeof DOMPurify !== 'undefined') {
-            return DOMPurify.sanitize(html);
-        }
-        // DOMPurify unavailable - fall back to safe text rendering
-        return text.split('\n\n').map(p =>
-            `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
-        ).join('');
+        return DOMPurify.sanitize(html);
     }
-    // Fallback: simple paragraph splitting
+    // Fallback: safe plain-text rendering (no markdown parsing without DOMPurify)
     return text.split('\n\n').map(p =>
-        `<p>${escapeHtml(p).replace(/\n/g, '<br>')}</p>`
+        `<p style="white-space:pre-wrap">${escapeHtml(p)}</p>`
     ).join('');
 }
 

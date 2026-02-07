@@ -14,6 +14,7 @@ import { CreateEventView } from './views/create-event.js';
 import { ManageEventView } from './views/manage-event.js';
 import { ProposalsView } from './views/proposals.js';
 import { CliView } from './views/cli.js';
+import { EditProposalView } from './views/edit-proposal.js';
 
 // App configuration (populated on init)
 let appConfig = { auth_providers: ['github', 'google'] }; // defaults until fetched
@@ -83,6 +84,10 @@ export const API = {
         return this.request('GET', `/events/${id}`);
     },
 
+    getEventForOrganizer(id) {
+        return this.request('GET', `/me/events/${id}`);
+    },
+
     getEventBySlug(slug) {
         return this.request('GET', `/e/${slug}`);
     },
@@ -139,11 +144,6 @@ export const API = {
         return this.request('GET', `/events/${eventId}/proposals${query ? '?' + query : ''}`);
     },
 
-    // Stats
-    getStats() {
-        return this.request('GET', '/stats');
-    },
-
     // Countries
     getCountries() {
         return this.request('GET', '/countries');
@@ -160,6 +160,15 @@ export const API = {
 
     removeEventOrganizer(eventId, userId) {
         return this.request('DELETE', `/events/${eventId}/organizers/${userId}`);
+    },
+
+    // Payments
+    createEventCheckout(eventId) {
+        return this.request('POST', `/events/${eventId}/checkout`);
+    },
+
+    createProposalCheckout(eventId, proposalId) {
+        return this.request('POST', `/events/${eventId}/proposals/${proposalId}/checkout`);
     }
 };
 
@@ -188,8 +197,6 @@ export const Auth = {
             await fetch('/api/v0/auth/logout', { method: 'POST' });
         } catch (_) { /* ignore */ }
         localStorage.removeItem(this.USER_KEY);
-        // Clean up legacy token if present
-        localStorage.removeItem('cfpninja_token');
         renderNav();
         router.navigate('/');
         toast.info('You have been logged out.');
@@ -259,6 +266,13 @@ export const Auth = {
                 cleanup();
             }
         }, 500);
+
+        // Safety timeout: clean up after 10 minutes if popup is still open
+        setTimeout(() => {
+            if (checkClosed) {
+                cleanup();
+            }
+        }, 10 * 60 * 1000);
     },
 
     // Initialize auth state
@@ -289,12 +303,6 @@ export function requireAuth(viewFn) {
     };
 }
 
-// Handle OAuth callback — no longer needed for browser (cookie set server-side).
-// Kept as a no-op in case old bookmarks hit /?token=...
-function handleOAuthCallback() {
-    return false;
-}
-
 // Not found view
 function NotFoundView(path) {
     const main = document.getElementById('main-content');
@@ -311,11 +319,6 @@ function NotFoundView(path) {
 async function init() {
     // Initialize theme early to prevent flash of wrong theme
     initTheme();
-
-    // Check for OAuth callback
-    if (handleOAuthCallback()) {
-        return;
-    }
 
     // Fetch app config (available auth providers, etc.)
     try {
@@ -336,7 +339,10 @@ async function init() {
         .add('/cli', CliView)
         .add('/e/:slug', EventDetailView)
         .add('/e/:slug/submit', requireAuth(SubmitProposalView))
+        .add('/proposals/:id/edit', requireAuth(EditProposalView))
         .add('/dashboard', requireAuth(DashboardView))
+        .add('/dashboard/proposals', requireAuth(DashboardView))
+        .add('/dashboard/events', requireAuth(DashboardView))
         .add('/dashboard/events/new', requireAuth(CreateEventView))
         .add('/dashboard/events/:id', requireAuth(ManageEventView))
         .add('/dashboard/events/:id/proposals', requireAuth(ProposalsView))

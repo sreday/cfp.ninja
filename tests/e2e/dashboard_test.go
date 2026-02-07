@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -102,7 +103,7 @@ func TestDashboard_ManageEventLink(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// Should have a link to manage the event
-	if hasElement(page, "a[href*='/dashboard/events/"+string(rune('0'+event.ID))+"']") {
+	if hasElement(page, "a[href*='/dashboard/events/"+fmt.Sprintf("%d", event.ID)+"']") {
 		// Event management link exists
 	}
 }

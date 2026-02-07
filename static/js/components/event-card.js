@@ -2,7 +2,7 @@
 import { escapeHtml, escapeAttr, truncate, formatDateRange, getCfpStatus } from '../utils.js';
 import { router } from '../router.js';
 
-export function renderEventCard(event) {
+export function renderEventCard(event, managingMap) {
     const cfpStatus = getCfpStatus(event);
 
     const countryPill = event.is_online
@@ -21,7 +21,16 @@ export function renderEventCard(event) {
                         ${countryPill}
                     </div>
                     <p class="event-dates mb-1">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</p>
-                    ${cfpStatus.status !== 'none' ? `<p class="cfp-status-text ${cfpStatus.class} small mb-2">${escapeHtml(cfpStatus.label)}</p>` : ''}
+                    ${cfpStatus.status !== 'none' ? `
+                        <p class="cfp-status-text ${cfpStatus.class} small mb-2">
+                            ${escapeHtml(cfpStatus.label)}
+                            ${managingMap?.has(event.ID || event.id) ? ` <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success ms-2 manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>` : ''}
+                        </p>
+                    ` : managingMap?.has(event.ID || event.id) ? `
+                        <p class="small mb-2">
+                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>
+                        </p>
+                    ` : ''}
                     ${event.location ? `<p class="text-secondary small mb-0">${escapeHtml(event.location)}</p>` : ''}
                 </div>
             </div>
@@ -29,7 +38,7 @@ export function renderEventCard(event) {
     `;
 }
 
-export function renderEventCards(events, containerId = 'events-list') {
+export function renderEventCards(events, containerId = 'events-list', managingMap) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
@@ -45,7 +54,7 @@ export function renderEventCards(events, containerId = 'events-list') {
         return;
     }
 
-    container.innerHTML = events.map(event => renderEventCard(event)).join('');
+    container.innerHTML = events.map(event => renderEventCard(event, managingMap)).join('');
 
     // Add click handlers
     container.querySelectorAll('.event-card').forEach(card => {
@@ -55,5 +64,10 @@ export function renderEventCards(events, containerId = 'events-list') {
                 router.navigate(`/e/${slug}`);
             }
         });
+    });
+
+    // Prevent manage button clicks from triggering card navigation
+    container.querySelectorAll('.manage-submissions-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => e.stopPropagation());
     });
 }

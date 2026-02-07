@@ -74,6 +74,11 @@ func main() {
 		cfg.Logger.Info("event sync disabled (AUTO_ORGANISERS_IDS not set)")
 	}
 
+	// Start weekly digest emails (only if Resend is configured)
+	if cfg.ResendAPIKey != "" {
+		go tasks.StartWeeklyDigest(syncCtx, cfg.DB, cfg.Logger, cfg.EmailSender, cfg.EmailFrom, cfg.BaseURL)
+	}
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           handler,

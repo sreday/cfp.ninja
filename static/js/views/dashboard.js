@@ -1,5 +1,5 @@
 // Dashboard view
-import { API, Auth } from '../app.js';
+import { API, Auth, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import {
@@ -8,6 +8,7 @@ import {
     showLoading,
     pluralize,
     truncate,
+    formatDate,
     formatDateRange,
     PROPOSAL_STATUSES,
     TALK_FORMATS,
@@ -27,6 +28,16 @@ export async function DashboardView() {
         const submitted = dashboardData.submitted || [];
 
         renderDashboard(main, managing, submitted);
+
+        // Handle payment query params
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('payment') === 'success') {
+            toast.success('Payment completed successfully!');
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('payment') === 'cancelled') {
+            toast.warning('Payment was cancelled. You can complete payment later.');
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     } catch (error) {
         console.error('Error loading dashboard:', error);
         main.innerHTML = `
@@ -48,7 +59,8 @@ function renderDashboard(container, managing, submitted) {
                 allProposals.push({
                     ...p,
                     event_name: event.name,
-                    event_id: event.ID || event.id
+                    event_id: event.ID || event.id,
+                    event_slug: event.slug || event.Slug
                 });
             });
         }
@@ -61,7 +73,10 @@ function renderDashboard(container, managing, submitted) {
     const exampleSlug = eventWithSlug?.slug || eventWithSlug?.Slug || '<event-slug>';
 
     const hasOpenEvents = managing.some(e => e.cfp_status === 'open');
-    const defaultTab = hasOpenEvents ? 'events' : 'proposals';
+    const path = window.location.pathname;
+    const defaultTab = path === '/dashboard/proposals' ? 'proposals' :
+                       path === '/dashboard/events' ? 'events' :
+                       (hasOpenEvents ? 'events' : 'proposals');
 
     container.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -144,6 +159,7 @@ function renderDashboard(container, managing, submitted) {
             const listContainer = document.getElementById('events-list-container');
             if (filtered.length > 0) {
                 listContainer.innerHTML = renderEventsList(filtered);
+                attachEventPayHandlers(listContainer);
             } else {
                 listContainer.innerHTML = '<p class="text-muted text-center py-3">No events match your filters.</p>';
             }
@@ -200,9 +216,36 @@ function renderDashboard(container, managing, submitted) {
     // Attach proposal action handlers (for non-filtered case)
     attachProposalHandlers(container);
 
+    attachEventPayHandlers(container);
+
     // Attach CLI command handlers
     attachCliCommandHandlers('create-cli');
     attachCliCommandHandlers('submit-cli');
+
+    // Sync URL when switching tabs. Use pushState directly instead of
+    // router.navigate() to avoid triggering handleRoute() and re-rendering.
+    document.getElementById('dashboard-tabs')?.addEventListener('shown.bs.tab', (event) => {
+        const path = event.target.id === 'proposals-tab' ? '/dashboard/proposals' : '/dashboard/events';
+        history.pushState(null, '', path);
+    });
+}
+
+function attachEventPayHandlers(container) {
+    container.querySelectorAll('.pay-event-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const eventId = btn.dataset.eventId;
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Redirecting...';
+                const result = await API.createEventCheckout(eventId);
+                window.location.href = result.checkout_url;
+            } catch (error) {
+                toast.error(error.message || 'Failed to create checkout session.');
+                btn.disabled = false;
+                btn.textContent = '$ Pay to Publish';
+            }
+        });
+    });
 }
 
 function attachProposalHandlers(container) {
@@ -211,6 +254,24 @@ function attachProposalHandlers(container) {
         btn.addEventListener('click', async () => {
             const proposalId = btn.dataset.proposalId;
             await showProposalDetail(proposalId);
+        });
+    });
+
+    // Pay proposal buttons
+    container.querySelectorAll('.pay-proposal-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const proposalId = btn.dataset.proposalId;
+            const eventId = btn.dataset.eventId;
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Redirecting...';
+                const result = await API.createProposalCheckout(eventId, proposalId);
+                window.location.href = result.checkout_url;
+            } catch (error) {
+                toast.error(error.message || 'Failed to create checkout session.');
+                btn.disabled = false;
+                btn.textContent = 'Complete Payment';
+            }
         });
     });
 
@@ -254,13 +315,11 @@ function openModal(modalId) {
         modal.classList.add('show');
         document.body.classList.add('modal-open');
 
-        // Add backdrop
-        let backdrop = document.querySelector('.modal-backdrop');
-        if (!backdrop) {
-            backdrop = document.createElement('div');
-            backdrop.className = 'modal-backdrop fade show';
-            document.body.appendChild(backdrop);
-        }
+        // Remove any stale backdrops before creating a new one
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
     }
 }
 
@@ -279,6 +338,10 @@ function closeModal(modalId) {
     }
 }
 
+// Track active modal close handlers to prevent listener accumulation
+let _proposalDetailCloseHandler = null;
+let _deleteModalCloseHandler = null;
+
 async function showProposalDetail(proposalId) {
     const modal = document.getElementById('proposalDetailModal');
     const content = document.getElementById('proposalDetailContent');
@@ -294,14 +357,16 @@ async function showProposalDetail(proposalId) {
 
     openModal('proposalDetailModal');
 
-    // Attach close handler (use { once: true } to prevent accumulation)
-    const closeHandler = (e) => {
+    // Remove previous handler before attaching a new one
+    if (_proposalDetailCloseHandler) {
+        modal.removeEventListener('click', _proposalDetailCloseHandler);
+    }
+    _proposalDetailCloseHandler = (e) => {
         if (e.target === modal || e.target.closest('[data-bs-dismiss="modal"]')) {
             closeModal('proposalDetailModal');
-            modal.removeEventListener('click', closeHandler);
         }
     };
-    modal.addEventListener('click', closeHandler);
+    modal.addEventListener('click', _proposalDetailCloseHandler);
 
     try {
         const proposal = await API.getProposal(proposalId);
@@ -382,14 +447,16 @@ function showDeleteConfirmation(proposalId, proposalTitle) {
 
     openModal('deleteProposalModal');
 
-    // Attach close handler with cleanup
-    const closeHandler = (e) => {
+    // Remove previous handler before attaching a new one
+    if (_deleteModalCloseHandler) {
+        modal.removeEventListener('click', _deleteModalCloseHandler);
+    }
+    _deleteModalCloseHandler = (e) => {
         if (e.target === modal || e.target.closest('[data-bs-dismiss="modal"]')) {
             closeModal('deleteProposalModal');
-            modal.removeEventListener('click', closeHandler);
         }
     };
-    modal.addEventListener('click', closeHandler);
+    modal.addEventListener('click', _deleteModalCloseHandler);
 
     const confirmBtn = document.getElementById('confirmDeleteProposal');
 
@@ -406,7 +473,7 @@ function showDeleteConfirmation(proposalId, proposalTitle) {
             closeModal('deleteProposalModal');
             toast.success('Proposal deleted successfully.');
             // Reload the dashboard
-            router.navigate('/dashboard');
+            router.navigate('/dashboard/proposals');
         } catch (error) {
             console.error('Error deleting proposal:', error);
             toast.error(error.message || 'Failed to delete proposal.');
@@ -417,29 +484,31 @@ function showDeleteConfirmation(proposalId, proposalTitle) {
 }
 
 function renderEventsList(events) {
+    const config = getAppConfig();
+    const showPaymentBadge = config.payments_enabled && config.event_listing_fee > 0;
+
     return `
         <div class="list-group">
             ${events.map(event => {
                 const proposalCount = event.proposal_count || 0;
                 const cfpStatus = event.cfp_status || '';
+                const needsPayment = showPaymentBadge && !event.is_paid;
 
                 return `
-                    <div class="list-group-item list-group-item-action${cfpStatus === 'draft' ? ' event-draft' : ''}">
-                        <div class="d-flex justify-content-between align-items-start">
+                    <div class="list-group-item list-group-item-action">
+                        <div>
                             <div class="flex-grow-1">
-                                <h6 class="mb-1 event-title"><a href="/dashboard/events/${event.ID || event.id}/proposals" class="text-decoration-none">${escapeHtml(event.name)}</a></h6>
+                                <h6 class="mb-1 event-title"><a href="/dashboard/events/${event.ID || event.id}/proposals" class="text-decoration-none">${escapeHtml(event.name)}</a> <span class="badge bg-secondary ms-2">${pluralize(proposalCount, 'proposal')}</span></h6>
                                 <span class="text-muted small">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
                                 ${cfpStatus ? `
                                     <span class="cfp-status small ms-2">${escapeHtml(cfpStatus)}</span>
                                 ` : ''}
                             </div>
-                            <div class="text-end">
-                                <span class="badge bg-secondary">${pluralize(proposalCount, 'proposal')}</span>
-                            </div>
                         </div>
                         <div class="mt-2">
+                            ${needsPayment ? `<button class="btn btn-sm btn-warning me-1 pay-event-btn" data-event-id="${event.ID || event.id}">$ Pay to Publish</button>` : ''}
                             <a href="/dashboard/events/${event.ID || event.id}" class="btn btn-sm btn-warning me-1">Edit</a>
-                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success">Review Proposals</a>
+                            ${cfpStatus !== 'draft' ? `<a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success">Review Proposals</a>` : ''}
                         </div>
                     </div>
                 `;
@@ -454,18 +523,27 @@ function renderProposalsList(proposals) {
             ${proposals.map(proposal => {
                 const statusInfo = PROPOSAL_STATUSES.find(s => s.value === proposal.status) || PROPOSAL_STATUSES[0];
                 const proposalId = proposal.ID || proposal.id;
+                const needsPayment = proposal.event_requires_payment && !proposal.is_paid;
 
                 return `
                     <div class="list-group-item proposal-card status-${proposal.status}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <h6 class="mb-1">${escapeHtml(proposal.title)}</h6>
-                                <small class="text-muted">${escapeHtml(proposal.event_name || 'Unknown Event')}</small>
+                                <small class="text-muted">${proposal.event_slug
+                                    ? `<a href="/e/${encodeURIComponent(proposal.event_slug)}" class="text-muted text-decoration-none">${escapeHtml(proposal.event_name || 'Unknown Event')}</a>`
+                                    : escapeHtml(proposal.event_name || 'Unknown Event')}</small>
+                                ${proposal.created_at || proposal.CreatedAt ? `<small class="text-muted ms-2">${formatDate(proposal.created_at || proposal.CreatedAt)}</small>` : ''}
+                                ${needsPayment ? '<span class="badge bg-warning text-dark ms-2">Payment Pending</span>' : ''}
                             </div>
                             <span class="badge ${statusInfo.class}">${escapeHtml(statusInfo.label)}</span>
                         </div>
                         <div class="mt-2">
                             <button class="btn btn-sm btn-outline-primary me-1 view-proposal-btn" data-proposal-id="${proposalId}">View</button>
+                            ${proposal.status === 'submitted'
+                                ? `<a href="/proposals/${proposalId}/edit" class="btn btn-sm btn-outline-secondary me-1">Edit</a>`
+                                : `<button class="btn btn-sm btn-outline-secondary me-1" disabled title="Proposals can only be edited while in pending review">Edit</button>`}
+                            ${needsPayment ? `<button class="btn btn-sm btn-warning me-1 pay-proposal-btn" data-proposal-id="${proposalId}" data-event-id="${proposal.event_id}">Complete Payment</button>` : ''}
                             ${!(proposal.status === 'accepted' && proposal.attendance_confirmed) ? `<button class="btn btn-sm btn-outline-danger me-1 delete-proposal-btn" data-proposal-id="${proposalId}" data-proposal-title="${escapeHtml(proposal.title)}">Delete</button>` : ''}
                             ${proposal.status === 'accepted' && !proposal.attendance_confirmed ? `<button class="btn btn-sm btn-success confirm-attendance-btn" data-proposal-id="${proposalId}">Confirm Attendance</button>` : ''}
                             ${proposal.status === 'accepted' && proposal.attendance_confirmed ? `<span class="badge bg-success ms-1">&#10003; Attendance Confirmed</span>` : ''}

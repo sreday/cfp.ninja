@@ -1,0 +1,15 @@
+Update on your proposal
+
+Hi {{.SpeakerName}},
+
+Your proposal "{{.ProposalTitle}}" for {{.EventName}} has been marked as tentative.
+
+This means the organisers are still considering your submission. You'll receive another notification once a final decision is made.
+
+You can check the status on your dashboard:
+{{.DashboardURL}}
+
+If you have any questions, reply to this email to reach the event organisers.
+
+Best regards,
+CFP.ninja
