@@ -10,6 +10,11 @@ Open source Call for Proposals platform. Simple, self-hosted alternative to Sess
 - Co-organizer support
 - Public event discovery with search/filters
 - Custom questions for CFP submissions
+- Speaker attendance confirmation
+- Email notifications for speakers and organisers (via Resend)
+- Weekly digest emails for organisers
+- Export proposals to CSV
+- Stripe payment integration for event/submission fees
 - Dark mode with system preference detection
 - **CLI tool** for submitting proposals from the terminal
 
@@ -150,7 +155,7 @@ The sync interval flag accepts any Go duration string (e.g. `10s`, `30m`, `2h`).
 ## Quick Start
 
 ### Prerequisites
-- Go 1.21+
+- Go 1.24+
 - PostgreSQL (or Docker)
 - GitHub OAuth credentials (recommended) or Google OAuth credentials
 
@@ -338,6 +343,10 @@ heroku config:set GOOGLE_REDIRECT_URL=https://your-app.herokuapp.com/api/v0/auth
 # Event sync (optional - set user IDs to enable automatic event sync)
 heroku config:set AUTO_ORGANISERS_IDS=1,2
 
+# Email notifications (optional - sign up at resend.com and verify your domain)
+heroku config:set RESEND_API_KEY=re_...
+heroku config:set BASE_URL=https://your-app.herokuapp.com
+
 git push heroku main
 ```
 
@@ -376,6 +385,7 @@ All API endpoints are prefixed with `/api/v0/`.
 - `DELETE /api/v0/proposals/{id}` - Delete proposal
 - `PUT /api/v0/proposals/{id}/status` - Update status (organizer only)
 - `PUT /api/v0/proposals/{id}/rating` - Rate proposal (organizer only)
+- `PUT /api/v0/proposals/{id}/confirm` - Confirm attendance (proposal owner)
 
 ## License
 

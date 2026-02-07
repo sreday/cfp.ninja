@@ -96,18 +96,23 @@ function renderDashboard(container, managing, submitted) {
         </ul>
         <div class="tab-content mt-3">
             <div class="tab-pane fade${defaultTab === 'events' ? ' show active' : ''}" id="tab-events" role="tabpanel">
-                ${managing.length > 0 ? `
+                ${managing.length > 0 ? (() => {
+                    const closedStatuses = ['closed', 'reviewing', 'complete', 'expired'];
+                    const draftCount = managing.filter(e => (e.cfp_status || '') === 'draft').length;
+                    const openCount = managing.filter(e => (e.cfp_status || '') === 'open').length;
+                    const closedCount = managing.filter(e => closedStatuses.includes(e.cfp_status || '')).length;
+                    return `
                     <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
                         <div class="btn-group btn-group-sm" id="cfp-filter-group">
-                            <button type="button" class="btn btn-outline-secondary" data-filter="draft">Draft</button>
-                            <button type="button" class="btn btn-outline-secondary active" data-filter="open">Open</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="closed">Closed</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="all">All</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="draft">Draft (${draftCount})</button>
+                            <button type="button" class="btn btn-outline-secondary active" data-filter="open">Open (${openCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="closed">Closed (${closedCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="all">All (${managing.length})</button>
                         </div>
                         <input type="search" class="form-control form-control-sm max-w-search" id="event-search" placeholder="Search...">
                     </div>
-                    <div id="events-list-container"></div>
-                ` : renderEmptyEvents()}
+                    <div id="events-list-container"></div>`;
+                })() : renderEmptyEvents()}
                 <div class="mt-3">
                     ${renderCliCommand(buildCreateCommand(), {
                         id: 'create-cli',
@@ -117,19 +122,24 @@ function renderDashboard(container, managing, submitted) {
                 </div>
             </div>
             <div class="tab-pane fade${defaultTab === 'proposals' ? ' show active' : ''}" id="tab-proposals" role="tabpanel">
-                ${allProposals.length > 0 ? `
+                ${allProposals.length > 0 ? (() => {
+                    const pendingCount = allProposals.filter(p => p.status === 'submitted').length;
+                    const acceptedCount = allProposals.filter(p => p.status === 'accepted').length;
+                    const rejectedCount = allProposals.filter(p => p.status === 'rejected').length;
+                    const tentativeCount = allProposals.filter(p => p.status === 'tentative').length;
+                    return `
                     <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
                         <div class="btn-group btn-group-sm" id="proposal-filter-group">
-                            <button type="button" class="btn btn-outline-secondary active" data-filter="all">All</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="submitted">Pending</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="accepted">Accepted</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="rejected">Rejected</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="tentative">Tentative</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="submitted">Pending (${pendingCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="accepted">Accepted (${acceptedCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="rejected">Rejected (${rejectedCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="tentative">Tentative (${tentativeCount})</button>
+                            <button type="button" class="btn btn-outline-secondary active" data-filter="all">All (${allProposals.length})</button>
                         </div>
                         <input type="search" class="form-control form-control-sm max-w-search" id="proposal-search" placeholder="Search...">
                     </div>
-                    <div id="proposals-list-container"></div>
-                ` : renderEmptyProposals()}
+                    <div id="proposals-list-container"></div>`;
+                })() : renderEmptyProposals()}
                 <div class="mt-3">
                     ${renderCliCommand(buildSubmitCommand(exampleSlug), {
                         id: 'submit-cli',

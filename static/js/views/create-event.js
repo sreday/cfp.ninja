@@ -20,6 +20,19 @@ function renderCreateEventForm(container, countries = []) {
 
                 <h1 class="mb-4">Create Event</h1>
 
+                ${(() => {
+                    const config = getAppConfig();
+                    if (config.payments_enabled && config.event_listing_fee > 0) {
+                        const feeAmount = (config.event_listing_fee / 100).toFixed(2);
+                        const currency = (config.event_listing_fee_currency || 'usd').toUpperCase();
+                        return `
+                            <div class="alert alert-info mb-4">
+                                <strong>How it works:</strong> Your event will be created as a draft. To open your CFP and make it publicly visible, a one-time listing fee of <strong>$${feeAmount} ${currency}</strong> is required. You'll be taken to the payment page after creating your event.
+                            </div>`;
+                    }
+                    return '';
+                })()}
+
                 <form id="event-form">
                     <div class="card mb-4">
                         <div class="card-header">
@@ -165,19 +178,6 @@ function renderCreateEventForm(container, countries = []) {
                             <div id="questions-container"></div>
                         </div>
                     </div>
-
-                    ${(() => {
-                        const config = getAppConfig();
-                        if (config.payments_enabled && config.event_listing_fee > 0) {
-                            const feeAmount = (config.event_listing_fee / 100).toFixed(2);
-                            const currency = (config.event_listing_fee_currency || 'usd').toUpperCase();
-                            return `
-                                <div class="alert alert-info mb-4">
-                                    <strong>How it works:</strong> Your event will be created as a draft. To open your CFP and make it publicly visible, a one-time listing fee of <strong>$${feeAmount} ${currency}</strong> is required. You'll be taken to the payment page after creating your event.
-                                </div>`;
-                        }
-                        return '';
-                    })()}
 
                     <div class="d-flex gap-3 mb-4">
                         <button type="submit" class="btn btn-primary">Create Event</button>
