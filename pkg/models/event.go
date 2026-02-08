@@ -56,6 +56,7 @@ type Event struct {
 	StartDate   time.Time `gorm:"index" json:"start_date"`
 	EndDate     time.Time `json:"end_date"`
 	Website     string    `json:"website"`
+	LogoURL     string    `json:"logo_url"`
 	TermsURL    string    `json:"terms_url"` // Link to terms and conditions
 	Tags        string    `gorm:"index" json:"tags"` // Comma-separated (e.g., "sre,devops,cloud")
 	IsOnline     bool   `gorm:"default:false" json:"is_online"`

@@ -32,6 +32,7 @@ export function renderEventCard(event, managingMap) {
                         </p>
                     ` : ''}
                     ${event.location ? `<p class="text-secondary small mb-0">${escapeHtml(event.location)}</p>` : ''}
+                    ${event.logo_url ? `<img src="${escapeAttr(event.logo_url)}" alt="" class="event-logo-sm">` : ''}
                 </div>
             </div>
         </div>

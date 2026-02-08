@@ -110,6 +110,12 @@ function renderEventDetail(container, event) {
                         title: 'submit via cli'
                     })}
                 </div>
+
+                ${event.logo_url ? `
+                    <div class="text-center mt-3">
+                        <img src="${escapeAttr(event.logo_url)}" alt="Event logo" class="event-logo-detail">
+                    </div>
+                ` : ''}
             </div>
         </div>
     `;

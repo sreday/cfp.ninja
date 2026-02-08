@@ -209,6 +209,10 @@ footer p {
 }
 
 /* Event cards */
+.event-card .card-body {
+    position: relative;
+}
+
 .event-card {
     cursor: pointer;
     transition: all 0.2s ease;
@@ -236,6 +240,23 @@ footer p {
     font-family: var(--font-sans);
     font-weight: 600;
     letter-spacing: -0.01em;
+}
+
+/* Event logos */
+.event-logo-sm {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    max-height: 50px;
+    max-width: 50px;
+    object-fit: contain;
+    opacity: 0.85;
+}
+
+.event-logo-detail {
+    max-height: 100px;
+    max-width: 100px;
+    object-fit: contain;
 }
 
 /* CFP Status */

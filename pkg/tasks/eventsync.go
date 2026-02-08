@@ -43,9 +43,30 @@ func StartEventSync(ctx context.Context, db *gorm.DB, logger *slog.Logger, inter
 	}
 }
 
+// logoForSource returns the sticker image path for a known event source URL.
+func logoForSource(sourceURL string) string {
+	u, err := url.Parse(sourceURL)
+	if err != nil {
+		return ""
+	}
+	host := strings.ToLower(u.Hostname())
+	switch {
+	case strings.Contains(host, "sreday.com"):
+		return "/img/stickers/sreday.png"
+	case strings.Contains(host, "llmday.com"):
+		return "/img/stickers/llmday.png"
+	case strings.Contains(host, "devopsnotdead.com"):
+		return "/img/stickers/devopsnotdead.png"
+	case strings.Contains(host, "conf42.com"):
+		return "/img/stickers/conf42.png"
+	default:
+		return ""
+	}
+}
+
 // changedFields compares an existing event against proposed updates and returns
 // a comma-separated list of field names that differ. Returns empty string if nothing changed.
-func changedFields(existing models.Event, name, description string, startDate, endDate time.Time, isPaid bool) string {
+func changedFields(existing models.Event, name, description, logoURL string, startDate, endDate time.Time, isPaid bool) string {
 	var changed []string
 	if existing.Name != name {
 		changed = append(changed, "name")
@@ -61,6 +82,9 @@ func changedFields(existing models.Event, name, description string, startDate, e
 	}
 	if existing.IsPaid != isPaid {
 		changed = append(changed, "is_paid")
+	}
+	if existing.LogoURL != logoURL {
+		changed = append(changed, "logo_url")
 	}
 	return strings.Join(changed, ",")
 }
@@ -219,11 +243,13 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	}
 	description := renderDescription(logger, descriptionTemplate, eventForTemplate)
 
+	logoURL := logoForSource(baseURL)
+
 	// Check if already exists
 	var existing models.Event
 	if db.Where("slug = ?", slug).First(&existing).Error == nil {
 		// Update existing event
-		diff := changedFields(existing, ref.Name, description, startDate, endDate, true)
+		diff := changedFields(existing, ref.Name, description, logoURL, startDate, endDate, true)
 		if diff == "" {
 			return false, false, nil // nothing changed, skip
 		}
@@ -232,6 +258,7 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 			"start_date":  startDate,
 			"end_date":    endDate,
 			"description": description,
+			"logo_url":    logoURL,
 			"is_paid":     true,
 		}
 		if err := db.Model(&existing).Updates(updates).Error; err != nil {
@@ -265,6 +292,7 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 		StartDate:   startDate,
 		EndDate:     endDate,
 		Website:     resolveURL(baseURL, ref.URL),
+		LogoURL:     logoURL,
 		TermsURL:    termsURLForSource(baseURL),
 		CFPStatus:   cfpStatus,
 		CFPOpenAt:   cfpOpenAt,
@@ -337,10 +365,12 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			description = entry.Description
 		}
 
+		conf42Logo := "/img/stickers/conf42.png"
+
 		// Check if already exists
 		var existing models.Event
 		if db.Where("slug = ?", slug).First(&existing).Error == nil {
-			diff := changedFields(existing, eventName, description, eventDate, eventDate, true)
+			diff := changedFields(existing, eventName, description, conf42Logo, eventDate, eventDate, true)
 			if diff == "" {
 				skipped++
 				continue // nothing changed
@@ -350,6 +380,7 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 				"start_date":  eventDate,
 				"end_date":    eventDate,
 				"description": description,
+				"logo_url":    conf42Logo,
 				"is_paid":     true,
 			}
 			if err := db.Model(&existing).Updates(updates).Error; err != nil {
@@ -377,6 +408,7 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			StartDate:   eventDate,
 			EndDate:     eventDate,
 			Website:     fmt.Sprintf("https://www.conf42.com/%s", entry.ShortURL),
+			LogoURL:     conf42Logo,
 			Tags:        conf42Tags(entry.Name),
 			CFPStatus:   models.CFPStatusOpen,
 			CFPOpenAt:   cfpOpenAt,
