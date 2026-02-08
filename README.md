@@ -325,6 +325,23 @@ open tests/e2e/test-screenshots/TestEventsPage_LoadsSuccessfully.png
 
 When running headed (`make test-e2e-headed`), the browser opens in a 1500x1500 window for consistent visual testing.
 
+## Email Notifications
+
+CFP.ninja sends transactional emails via [Resend](https://resend.com). When `RESEND_API_KEY` is not set, emails are logged only.
+
+| Email | Trigger | To | Cc | Subject |
+|-------|---------|----|----|---------|
+| Proposal Accepted | Organiser accepts a proposal | Primary speaker | Co-speakers | "Your proposal has been accepted!" |
+| Proposal Rejected | Organiser rejects a proposal | Primary speaker | Co-speakers | "Update on your proposal" |
+| Proposal Tentative | Organiser marks proposal tentative | Primary speaker | Co-speakers | "Update on your proposal" |
+| Attendance Confirmed | Speaker confirms attendance | Contact email (or 1st organiser) | — (or remaining organisers) | "Speaker confirmed: {title}" |
+| Emergency Cancel | Confirmed speaker cancels | Contact email (or 1st organiser) | — (or remaining organisers) | "Emergency cancellation: {title}" |
+| Weekly Digest | Every Monday 09:00 UTC | Each organiser | — | "Your weekly CFP digest" |
+
+- **Reply-To**: Proposal status emails set reply-to to the event's contact email so speakers can reply directly to organisers.
+- **Smart routing**: Attendance confirmed and emergency cancel emails are sent to the event's `ContactEmail` if set (no Cc). Otherwise they go to the first organiser with remaining organisers in Cc.
+- **Weekly digest**: Aggregates the past 7 days of activity (new/accepted/rejected proposals, confirmed attendance) per organiser. Only sent to organisers with activity that week.
+
 ## Environment Variables
 
 ### Core
