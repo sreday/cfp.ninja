@@ -8,7 +8,7 @@ export async function CliView() {
     main.innerHTML = `
         <div class="cli-page">
             <div class="mb-4 text-center">
-                <img src="/img/cfpninja_full.png" alt="CFP.ninja" class="mb-3" style="max-height: 80px;">
+                <img src="/img/cfpninja-logo.png" alt="CFP.ninja" class="mb-3" style="max-height: 80px;">
                 <h1>cfp</h1>
                 <p class="text-muted">Browse events, submit proposals, and manage your CFPs from the terminal.</p>
             </div>
