@@ -555,8 +555,7 @@ function attachFormHandlers(eventId, event, customQuestions) {
                     router.navigate('/dashboard/proposals');
                 }
             } else {
-                toast.success('Proposal submitted successfully!');
-                router.navigate('/dashboard/proposals');
+                router.navigate(`/e/${encodeURIComponent(event.slug)}/submitted`);
             }
         } catch (error) {
             console.error('Error submitting proposal:', error);

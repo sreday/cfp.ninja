@@ -15,6 +15,7 @@ import { ManageEventView } from './views/manage-event.js';
 import { ProposalsView } from './views/proposals.js';
 import { CliView } from './views/cli.js';
 import { EditProposalView } from './views/edit-proposal.js';
+import { SubmissionSuccessView } from './views/submission-success.js';
 
 // App configuration (populated on init)
 let appConfig = { auth_providers: ['github', 'google'] }; // defaults until fetched
@@ -355,6 +356,7 @@ async function init() {
         .add('/cli', CliView)
         .add('/e/:slug', EventDetailView)
         .add('/e/:slug/submit', requireAuth(SubmitProposalView))
+        .add('/e/:slug/submitted', requireAuth(SubmissionSuccessView))
         .add('/proposals/:id/edit', requireAuth(EditProposalView))
         .add('/dashboard', requireAuth(DashboardView))
         .add('/dashboard/proposals', requireAuth(DashboardView))
