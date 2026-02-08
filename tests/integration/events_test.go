@@ -754,3 +754,159 @@ func splitTags(tags string) []string {
 	}
 	return result
 }
+
+func TestCreateEvent_ConcurrentDuplicateSlug(t *testing.T) {
+	now := time.Now()
+	slug := "concurrent-slug-" + fmt.Sprintf("%d", now.UnixNano())
+
+	const goroutines = 10
+	results := make(chan int, goroutines)
+
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			resp := doPost("/api/v0/events", EventInput{
+				Name:      "Concurrent Event",
+				Slug:      slug,
+				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
+				EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
+			}, adminToken)
+			results <- resp.StatusCode
+			resp.Body.Close()
+		}()
+	}
+
+	created := 0
+	conflicts := 0
+	for i := 0; i < goroutines; i++ {
+		code := <-results
+		switch code {
+		case http.StatusCreated:
+			created++
+		case http.StatusConflict:
+			conflicts++
+		case http.StatusInternalServerError:
+			// DB unique constraint violation surfaced as 500 is also acceptable
+			conflicts++
+		default:
+			t.Errorf("unexpected status code: %d", code)
+		}
+	}
+
+	if created != 1 {
+		t.Errorf("expected exactly 1 created, got %d (conflicts: %d)", created, conflicts)
+	}
+	if conflicts != goroutines-1 {
+		t.Errorf("expected %d conflicts, got %d", goroutines-1, conflicts)
+	}
+}
+
+func TestCreateEvent_DateValidation(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name         string
+		input        EventInput
+		expectedCode int
+	}{
+		{
+			name: "end date before start date rejected",
+			input: EventInput{
+				Name:      "Bad Dates Event",
+				Slug:      "bad-dates-" + fmt.Sprintf("%d", now.UnixNano()),
+				StartDate: now.AddDate(0, 2, 0).Format(time.RFC3339),
+				EndDate:   now.AddDate(0, 1, 0).Format(time.RFC3339), // before start
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "cfp close before cfp open rejected",
+			input: EventInput{
+				Name:       "Bad CFP Dates",
+				Slug:       "bad-cfp-dates-" + fmt.Sprintf("%d", now.UnixNano()),
+				StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+				EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+				CFPOpenAt:  now.AddDate(0, 0, 7).Format(time.RFC3339),
+				CFPCloseAt: now.AddDate(0, 0, 1).Format(time.RFC3339), // before open
+			},
+			expectedCode: http.StatusBadRequest,
+		},
+		{
+			name: "valid dates accepted",
+			input: EventInput{
+				Name:       "Good Dates Event",
+				Slug:       "good-dates-" + fmt.Sprintf("%d", now.UnixNano()),
+				StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+				EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+				CFPOpenAt:  now.AddDate(0, 0, 1).Format(time.RFC3339),
+				CFPCloseAt: now.AddDate(0, 0, 14).Format(time.RFC3339),
+			},
+			expectedCode: http.StatusCreated,
+		},
+		{
+			name: "same start and end date accepted",
+			input: EventInput{
+				Name:      "One Day Event",
+				Slug:      "one-day-" + fmt.Sprintf("%d", now.UnixNano()),
+				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
+				EndDate:   now.AddDate(0, 1, 0).Format(time.RFC3339),
+			},
+			expectedCode: http.StatusCreated,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := doPost("/api/v0/events", tc.input, adminToken)
+			assertStatus(t, resp, tc.expectedCode)
+			resp.Body.Close()
+		})
+	}
+}
+
+func TestUpdateEvent_DateValidation(t *testing.T) {
+	now := time.Now()
+	event := createTestEvent(adminToken, EventInput{
+		Name:      "Date Update Test",
+		Slug:      "date-update-test-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
+	})
+
+	t.Run("update end date before start date rejected", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/events/%d", event.ID),
+			map[string]interface{}{
+				"end_date": now.AddDate(0, 0, 1).Format(time.RFC3339), // before existing start
+			},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusBadRequest)
+		resp.Body.Close()
+	})
+
+	t.Run("update cfp close before cfp open rejected", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/events/%d", event.ID),
+			map[string]interface{}{
+				"cfp_open_at":  now.AddDate(0, 0, 14).Format(time.RFC3339),
+				"cfp_close_at": now.AddDate(0, 0, 7).Format(time.RFC3339),
+			},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusBadRequest)
+		resp.Body.Close()
+	})
+
+	t.Run("valid date update succeeds", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/events/%d", event.ID),
+			map[string]interface{}{
+				"start_date": now.AddDate(0, 2, 0).Format(time.RFC3339),
+				"end_date":   now.AddDate(0, 2, 5).Format(time.RFC3339),
+			},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+		resp.Body.Close()
+	})
+}

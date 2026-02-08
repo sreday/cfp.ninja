@@ -9,7 +9,8 @@ import {
     showLoading,
     showError,
     formatDateForInput,
-    formatDateTimeForInput
+    formatDateTimeForInput,
+    validateCheckoutUrl
 } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildEventYamlExport, updateCliCommand } from '../components/cli-command.js';
 
@@ -45,6 +46,7 @@ export async function ManageEventView({ id }, query) {
                     }
                 } catch (e) {
                     console.error('Error refreshing event:', e);
+                    toast.error('Could not verify payment status. Please refresh the page.');
                 }
             }, 1500);
         } else if (params.get('payment') === 'cancelled') {
@@ -534,7 +536,11 @@ function attachFormHandlers(event, initialQuestionCount) {
             payListingBtn.disabled = true;
             payListingBtn.textContent = 'Redirecting to payment...';
             const result = await API.createEventCheckout(eventId);
-            window.location.href = result.checkout_url;
+            const validUrl = validateCheckoutUrl(result.checkout_url);
+            if (!validUrl) {
+                throw new Error('Invalid checkout URL received.');
+            }
+            window.location.href = validUrl;
         } catch (error) {
             toast.error(error.message || 'Failed to create checkout session.');
             payListingBtn.disabled = false;

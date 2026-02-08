@@ -9,7 +9,7 @@ import {
     TALK_FORMATS,
     EXPERIENCE_LEVELS
 } from '../utils.js';
-import { renderSpeakerForm, renderCustomQuestion } from './submit.js';
+import { renderSpeakerForm, renderCustomQuestion, attachLinkedInBlurCheck } from './submit.js';
 
 export async function EditProposalView({ id }) {
     const main = document.getElementById('main-content');
@@ -161,6 +161,9 @@ function renderEditForm(container, proposal, event) {
             </div>
         </div>
     `;
+
+    // Attach LinkedIn profile blur check
+    attachLinkedInBlurCheck(document.getElementById('speakers-container'));
 
     // Pre-populate speaker fields
     speakers.forEach((speaker, i) => {

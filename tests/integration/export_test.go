@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestExportProposals_InPersonFormat(t *testing.T) {
@@ -45,6 +46,13 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 		t.Fatalf("expected at least 3 rows (header + 2 data), got %d", len(records))
 	}
 
+	// Verify ALL data rows have status=accepted (column 0)
+	for i, row := range records[1:] {
+		if row[0] != "accepted" {
+			t.Errorf("row %d: expected status 'accepted', got %q (title: %s)", i+1, row[0], row[11])
+		}
+	}
+
 	// Verify header columns
 	expectedHeader := []string{"status", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
 	header := records[0]
@@ -62,10 +70,6 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 	for _, row := range records[1:] {
 		if row[11] == "Go Performance Tips" { // title column (index 11)
 			found = true
-			// status (index 0)
-			if row[0] != "accepted" {
-				t.Errorf("expected status 'accepted', got %q", row[0])
-			}
 			// name (index 1) - should contain speaker name
 			if !strings.Contains(row[1], "Speaker User") {
 				t.Errorf("expected name to contain 'Speaker User', got %q", row[1])
@@ -77,10 +81,6 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 			// linkedin (index 7)
 			if row[7] != "https://linkedin.com/in/speaker" {
 				t.Errorf("expected linkedin URL, got %q", row[7])
-			}
-			// title (index 11)
-			if row[11] != "Go Performance Tips" {
-				t.Errorf("expected title 'Go Performance Tips', got %q", row[11])
 			}
 			// abstract (index 12)
 			if row[12] == "" {
@@ -300,6 +300,82 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 	}
 	if !found {
 		t.Error("proposal 'Two Speaker Talk Online' not found in CSV output")
+	}
+}
+
+func TestExportProposals_ExcludesNonAccepted(t *testing.T) {
+	// Create a proposal in "submitted" status — should NOT appear in export
+	now := time.Now()
+	event := createTestEvent(adminToken, EventInput{
+		Name:       "Export Filter Test",
+		Slug:       "export-filter-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+		CFPOpenAt:  now.AddDate(0, 0, -1).Format(time.RFC3339),
+		CFPCloseAt: now.AddDate(0, 0, 7).Format(time.RFC3339),
+	})
+	updateCFPStatus(adminToken, event.ID, "open")
+
+	// Create one accepted and one submitted proposal
+	accepted := createTestProposal(speakerToken, event.ID, ProposalInput{
+		Title:    "Accepted Export Talk",
+		Abstract: "This should appear.",
+		Format:   "talk",
+		Speakers: []Speaker{
+			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	})
+	updateProposalStatus(adminToken, accepted.ID, "accepted")
+
+	createTestProposal(speakerToken, event.ID, ProposalInput{
+		Title:    "Submitted Export Talk",
+		Abstract: "This should NOT appear.",
+		Format:   "talk",
+		Speakers: []Speaker{
+			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	})
+	// Leave as "submitted" — do not accept
+
+	// Also create a rejected proposal
+	rejected := createTestProposal(speakerToken, event.ID, ProposalInput{
+		Title:    "Rejected Export Talk",
+		Abstract: "This should NOT appear either.",
+		Format:   "talk",
+		Speakers: []Speaker{
+			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	})
+	updateProposalStatus(adminToken, rejected.ID, "rejected")
+
+	resp := doAuthGet(
+		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", event.ID),
+		adminToken,
+	)
+	assertStatus(t, resp, http.StatusOK)
+
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	reader := csv.NewReader(strings.NewReader(string(body)))
+	records, err := reader.ReadAll()
+	if err != nil {
+		t.Fatalf("failed to parse CSV: %v", err)
+	}
+
+	// Should have exactly 1 header + 1 data row (only the accepted proposal)
+	if len(records) != 2 {
+		titles := []string{}
+		for _, row := range records[1:] {
+			titles = append(titles, row[11])
+		}
+		t.Fatalf("expected exactly 2 rows (header + 1 accepted), got %d. Titles: %v", len(records), titles)
+	}
+
+	if records[1][11] != "Accepted Export Talk" {
+		t.Errorf("expected title 'Accepted Export Talk', got %q", records[1][11])
+	}
+	if records[1][0] != "accepted" {
+		t.Errorf("expected status 'accepted', got %q", records[1][0])
 	}
 }
 

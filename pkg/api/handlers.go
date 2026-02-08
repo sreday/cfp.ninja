@@ -27,12 +27,16 @@ func encodeError(w http.ResponseWriter, message string, statusCode int) {
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
-// SafeGo launches a goroutine with panic recovery
+// SafeGo launches a goroutine with panic recovery.
+// If cfg.OnBackgroundDone is set, it is called after fn completes (used by tests).
 func SafeGo(cfg *config.Config, fn func()) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
 				cfg.Logger.Error("recovered from panic in goroutine", "panic", r)
+			}
+			if cfg.OnBackgroundDone != nil {
+				cfg.OnBackgroundDone()
 			}
 		}()
 		fn()

@@ -44,16 +44,25 @@ export const API = {
             headers['Authorization'] = `Bearer ${token}`;
         }
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
         const options = {
             method,
             headers,
+            signal: controller.signal,
         };
 
         if (data && method !== 'GET') {
             options.body = JSON.stringify(data);
         }
 
-        const response = await fetch(`${this.baseUrl}${endpoint}`, options);
+        let response;
+        try {
+            response = await fetch(`${this.baseUrl}${endpoint}`, options);
+        } finally {
+            clearTimeout(timeoutId);
+        }
 
         // Handle no content responses
         if (response.status === 204) {
@@ -169,6 +178,13 @@ export const API = {
 
     createProposalCheckout(eventId, proposalId) {
         return this.request('POST', `/events/${eventId}/proposals/${proposalId}/checkout`);
+    },
+
+    // LinkedIn profile check
+    async checkLinkedIn(url) {
+        const res = await fetch(`${this.baseUrl}/check-linkedin?url=${encodeURIComponent(url)}`);
+        if (!res.ok) return { exists: true }; // benefit of the doubt on errors
+        return res.json();
     }
 };
 

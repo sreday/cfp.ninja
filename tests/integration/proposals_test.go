@@ -573,3 +573,75 @@ func TestUpdateProposalRating(t *testing.T) {
 		})
 	}
 }
+
+// TestProposalStatusTransitions verifies all status transitions are allowed.
+// The current design has no state machine restrictions — any valid status can
+// transition to any other valid status. These tests document that behavior.
+func TestProposalStatusTransitions(t *testing.T) {
+	statuses := []string{"submitted", "accepted", "rejected", "tentative"}
+
+	for _, from := range statuses {
+		for _, to := range statuses {
+			if from == to {
+				continue
+			}
+			t.Run(from+"_to_"+to, func(t *testing.T) {
+				// Create a fresh proposal for each transition
+				proposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+					Title:    fmt.Sprintf("Transition %s to %s", from, to),
+					Abstract: "Testing status transitions.",
+					Format:   "talk",
+					Speakers: []Speaker{
+						{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+					},
+				})
+
+				// Set initial status (proposal starts as "submitted")
+				if from != "submitted" {
+					updateProposalStatus(adminToken, proposal.ID, from)
+				}
+
+				// Attempt transition
+				resp := doPut(
+					fmt.Sprintf("/api/v0/proposals/%d/status", proposal.ID),
+					ProposalStatusInput{Status: to},
+					adminToken,
+				)
+				assertStatus(t, resp, http.StatusOK)
+
+				// Verify the status was actually updated
+				var result ProposalResponse
+				if err := parseJSON(resp, &result); err != nil {
+					t.Fatalf("failed to parse response: %v", err)
+				}
+				if result.Status != to {
+					t.Errorf("expected status %q, got %q", to, result.Status)
+				}
+			})
+		}
+	}
+}
+
+func TestProposalStatusTransitions_InvalidStatus(t *testing.T) {
+	proposal := createTestProposal(speakerToken, eventGopherCon.ID, ProposalInput{
+		Title:    "Invalid Status Test",
+		Abstract: "Testing invalid status values.",
+		Format:   "talk",
+		Speakers: []Speaker{
+			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	})
+
+	invalidStatuses := []string{"", "pending", "approved", "declined", "ACCEPTED", "Rejected"}
+	for _, status := range invalidStatuses {
+		t.Run("status_"+status, func(t *testing.T) {
+			resp := doPut(
+				fmt.Sprintf("/api/v0/proposals/%d/status", proposal.ID),
+				ProposalStatusInput{Status: status},
+				adminToken,
+			)
+			assertStatus(t, resp, http.StatusBadRequest)
+			resp.Body.Close()
+		})
+	}
+}

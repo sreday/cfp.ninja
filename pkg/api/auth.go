@@ -102,6 +102,7 @@ func AuthHandler(cfg *config.Config, next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if token == "" {
+			cfg.Logger.Warn("authentication attempt with no token", "path", r.URL.Path, "remote_addr", r.RemoteAddr)
 			encodeError(w, "Missing authentication", http.StatusUnauthorized)
 			return
 		}

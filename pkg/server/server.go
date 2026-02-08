@@ -121,6 +121,9 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("/api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
 	mux.HandleFunc("/api/v0/me/events/", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))
 
+	// LinkedIn profile check (auth required, rate limited)
+	mux.HandleFunc("/api/v0/check-linkedin", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.CheckLinkedInHandler(cfg))))
+
 	// Stripe webhook endpoint (no auth, no CORS - server-to-server from Stripe)
 	mux.HandleFunc("/api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 

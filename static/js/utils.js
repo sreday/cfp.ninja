@@ -28,6 +28,22 @@ export function sanitizeUrl(url) {
     return '';
 }
 
+/**
+ * Validates a checkout URL is from a trusted payment domain before redirecting.
+ * Returns the URL if valid, or null if suspicious.
+ */
+export function validateCheckoutUrl(url) {
+    if (!url) return null;
+    try {
+        const parsed = new URL(url);
+        const trustedHosts = ['checkout.stripe.com'];
+        if (parsed.protocol === 'https:' && trustedHosts.some(h => parsed.hostname === h || parsed.hostname.endsWith('.' + h))) {
+            return url;
+        }
+    } catch (e) { /* invalid URL */ }
+    return null;
+}
+
 export function formatDate(dateString, options = {}) {
     if (!dateString) return '';
     const date = new Date(dateString);

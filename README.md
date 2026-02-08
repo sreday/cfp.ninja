@@ -321,6 +321,79 @@ open tests/e2e/test-screenshots/TestEventsPage_LoadsSuccessfully.png
 
 When running headed (`make test-e2e-headed`), the browser opens in a 1500x1500 window for consistent visual testing.
 
+## Environment Variables
+
+### Core
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT` | `8080` | Server port |
+| `DATABASE_URL` | — | PostgreSQL connection string (required) |
+| `DATABASE_AUTO_MIGRATE` | — | Enable auto-migration when set to any value |
+| `JWT_SECRET` | random | Secret for signing JWT tokens (auto-generated if unset) |
+| `ALLOWED_ORIGINS` | `*` | Comma-separated CORS origins. **Must be set in production** (wildcard rejected unless `INSECURE=true`) |
+
+### Authentication
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GITHUB_CLIENT_ID` | — | GitHub OAuth client ID |
+| `GITHUB_CLIENT_SECRET` | — | GitHub OAuth client secret |
+| `GITHUB_REDIRECT_URL` | — | GitHub OAuth callback URL |
+| `GOOGLE_CLIENT_ID` | — | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | — | Google OAuth client secret |
+| `GOOGLE_REDIRECT_URL` | — | Google OAuth callback URL |
+| `INSECURE` | `false` | Bypass auth for testing (`true`, `1`, or `yes` to enable) |
+| `INSECURE_USER_EMAIL` | — | Email of user to impersonate in insecure mode |
+
+### Limits
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MAX_PROPOSALS_PER_EVENT` | `3` | Maximum proposals a speaker can submit per event |
+| `MAX_ORGANIZERS_PER_EVENT` | `5` | Maximum co-organizers per event |
+
+### Email (Resend)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RESEND_API_KEY` | — | Resend API key. When unset, emails are logged only |
+| `EMAIL_FROM` | derived | Sender address for notifications. If unset, derived from `EMAIL_SUBDOMAIN` and `BASE_URL` |
+| `EMAIL_SUBDOMAIN` | `updates` | Subdomain prepended to `BASE_URL` host for the default sender (e.g. `updates.cfp.ninja`) |
+| `BASE_URL` | `https://cfp.ninja` | Public URL used in email links and for deriving the default `EMAIL_FROM` |
+
+When `EMAIL_FROM` is not set, the default is computed as:
+```
+CFP.ninja <notifications@{EMAIL_SUBDOMAIN}.{BASE_URL host}>
+```
+For example, with `BASE_URL=https://cfp.example.com` and `EMAIL_SUBDOMAIN=updates` (default), the sender becomes `notifications@updates.cfp.example.com`.
+
+### Stripe Payments
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `STRIPE_SECRET_KEY` | — | Stripe secret key (payments disabled if unset) |
+| `STRIPE_PUBLISHABLE_KEY` | — | Stripe publishable key |
+| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret |
+| `EVENT_LISTING_FEE` | `0` | Fee in cents for listing an event (0 = free) |
+| `EVENT_LISTING_FEE_CURRENCY` | `usd` | Currency for event listing fee |
+| `SUBMISSION_LISTING_FEE` | `100` | Fee in cents for submitting a proposal |
+| `SUBMISSION_LISTING_FEE_CURRENCY` | `usd` | Currency for submission fee |
+
+### Event Sync
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SYNC_INTERVAL` | `1h` | Event sync interval as Go duration (e.g. `30m`, `2h`) |
+| `AUTO_ORGANISERS_IDS` | — | Comma-separated user IDs. **Sync is disabled if unset** |
+
+### Validation
+
+The API enforces the following rules on event dates:
+- `end_date` must be on or after `start_date`
+- `cfp_close_at` must be on or after `cfp_open_at`
+- `website` and `terms_url` must be valid HTTP/HTTPS URLs when provided
+
 ### Deploy to Heroku
 ```bash
 heroku create your-app-name

@@ -280,7 +280,8 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 				eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 				if err != nil {
 					cfg.Logger.Error("invalid event_id in webhook metadata", "event_id", eventIDStr)
-					break
+					encodeError(w, "Invalid event_id in metadata", http.StatusBadRequest)
+					return
 				}
 				// Idempotent update: only update if not already paid
 				// Wrap payment mark + CFP auto-open in a transaction so both succeed or neither does
@@ -314,7 +315,8 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 				proposalID, err := strconv.ParseUint(proposalIDStr, 10, 32)
 				if err != nil {
 					cfg.Logger.Error("invalid proposal_id in webhook metadata", "proposal_id", proposalIDStr)
-					break
+					encodeError(w, "Invalid proposal_id in metadata", http.StatusBadRequest)
+					return
 				}
 				// Idempotent update: only update if not already paid
 				result := cfg.DB.Model(&models.Proposal{}).

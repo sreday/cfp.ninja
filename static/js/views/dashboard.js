@@ -10,6 +10,7 @@ import {
     truncate,
     formatDate,
     formatDateRange,
+    validateCheckoutUrl,
     PROPOSAL_STATUSES,
     TALK_FORMATS,
     EXPERIENCE_LEVELS
@@ -248,7 +249,11 @@ function attachEventPayHandlers(container) {
                 btn.disabled = true;
                 btn.textContent = 'Redirecting...';
                 const result = await API.createEventCheckout(eventId);
-                window.location.href = result.checkout_url;
+                const validUrl = validateCheckoutUrl(result.checkout_url);
+                if (!validUrl) {
+                    throw new Error('Invalid checkout URL received.');
+                }
+                window.location.href = validUrl;
             } catch (error) {
                 toast.error(error.message || 'Failed to create checkout session.');
                 btn.disabled = false;
@@ -276,7 +281,11 @@ function attachProposalHandlers(container) {
                 btn.disabled = true;
                 btn.textContent = 'Redirecting...';
                 const result = await API.createProposalCheckout(eventId, proposalId);
-                window.location.href = result.checkout_url;
+                const validUrl = validateCheckoutUrl(result.checkout_url);
+                if (!validUrl) {
+                    throw new Error('Invalid checkout URL received.');
+                }
+                window.location.href = validUrl;
             } catch (error) {
                 toast.error(error.message || 'Failed to create checkout session.');
                 btn.disabled = false;
@@ -387,7 +396,11 @@ async function showProposalDetail(proposalId) {
         // Parse speakers
         let speakers = [];
         if (proposal.speakers) {
-            speakers = typeof proposal.speakers === 'string' ? JSON.parse(proposal.speakers) : proposal.speakers;
+            try {
+                speakers = typeof proposal.speakers === 'string' ? JSON.parse(proposal.speakers) : proposal.speakers;
+            } catch (e) {
+                console.error('Error parsing speakers data:', e);
+            }
         }
 
         content.innerHTML = `

@@ -2,7 +2,7 @@
 import { API, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
-import { escapeHtml, slugify, showLoading, COUNTRIES } from '../utils.js';
+import { escapeHtml, slugify, showLoading, validateCheckoutUrl, COUNTRIES } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildCreateYamlCommand, updateCliCommand } from '../components/cli-command.js';
 
 export async function CreateEventView() {
@@ -422,7 +422,13 @@ function attachFormHandlers() {
                 toast.success('Event created! Redirecting to payment...');
                 try {
                     const result = await API.createEventCheckout(created.ID || created.id);
-                    window.location.href = result.checkout_url;
+                    const validUrl = validateCheckoutUrl(result.checkout_url);
+                    if (!validUrl) {
+                        toast.error('Invalid checkout URL received. You can pay from the dashboard.');
+                        router.navigate('/dashboard/events');
+                        return;
+                    }
+                    window.location.href = validUrl;
                     return;
                 } catch (err) {
                     toast.error('Could not start payment. You can pay from the dashboard.');

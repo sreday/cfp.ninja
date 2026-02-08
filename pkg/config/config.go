@@ -41,6 +41,7 @@ type Config struct {
 
 	// Proposal limits
 	MaxProposalsPerEvent int
+	MaxOrganizersPerEvent int
 
 	// Stripe
 	StripeSecretKey              string
@@ -56,6 +57,10 @@ type Config struct {
 	EmailFrom    string
 	BaseURL      string
 	EmailSender  email.Sender
+
+	// OnBackgroundDone is called when a SafeGo goroutine finishes.
+	// Nil in production; tests can set this to observe background work.
+	OnBackgroundDone func()
 
 	DB     *gorm.DB
 	Logger *slog.Logger
@@ -210,6 +215,15 @@ func InitConfig() (*Config, error) {
 		}
 	}
 
+	maxOrganizersPerEvent := 5
+	if v := os.Getenv("MAX_ORGANIZERS_PER_EVENT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			maxOrganizersPerEvent = n
+		} else {
+			logger.Warn("MAX_ORGANIZERS_PER_EVENT is set but not a valid positive integer, using default", "value", v)
+		}
+	}
+
 	// Stripe
 	stripeSecretKey := os.Getenv("STRIPE_SECRET_KEY")
 	stripeWebhookSecret := os.Getenv("STRIPE_WEBHOOK_SECRET")
@@ -268,13 +282,25 @@ func InitConfig() (*Config, error) {
 
 	// Email (Resend)
 	resendAPIKey := os.Getenv("RESEND_API_KEY")
-	emailFrom := os.Getenv("EMAIL_FROM")
-	if emailFrom == "" {
-		emailFrom = "CFP.ninja <notifications@updates.cfp.ninja>"
-	}
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
 		baseURL = "https://cfp.ninja"
+	}
+	emailSubdomain := os.Getenv("EMAIL_SUBDOMAIN")
+	if emailSubdomain == "" {
+		emailSubdomain = "updates"
+	}
+	emailFrom := os.Getenv("EMAIL_FROM")
+	if emailFrom == "" {
+		// Derive default from BASE_URL host for self-hosted deployments
+		host := extractHost(baseURL)
+		if emailSubdomain != "" {
+			host = emailSubdomain + "." + host
+		}
+		emailFrom = fmt.Sprintf("CFP.ninja <notifications@%s>", host)
+		if resendAPIKey != "" {
+			logger.Warn("EMAIL_FROM not set - using derived default; set EMAIL_FROM for proper SPF/DKIM alignment", "default", emailFrom)
+		}
 	}
 	if resendAPIKey == "" {
 		logger.Warn("RESEND_API_KEY not set - email notifications disabled")
@@ -306,6 +332,7 @@ func InitConfig() (*Config, error) {
 		GitHubRedirectURL:  gitHubRedirectURL,
 		JWTSecret:          jwtSecret,
 		MaxProposalsPerEvent:         maxProposalsPerEvent,
+		MaxOrganizersPerEvent:        maxOrganizersPerEvent,
 		StripeSecretKey:              stripeSecretKey,
 		StripeWebhookSecret:          stripeWebhookSecret,
 		StripePublishableKey:         stripePublishableKey,
@@ -318,4 +345,24 @@ func InitConfig() (*Config, error) {
 		BaseURL:                      baseURL,
 		Logger:                       logger,
 	}, nil
+}
+
+// extractHost returns the hostname from a URL, falling back to the raw string.
+func extractHost(rawURL string) string {
+	// Simple approach: strip scheme and path
+	host := rawURL
+	if i := strings.Index(host, "://"); i >= 0 {
+		host = host[i+3:]
+	}
+	if i := strings.Index(host, "/"); i >= 0 {
+		host = host[:i]
+	}
+	// Strip port if present
+	if i := strings.LastIndex(host, ":"); i >= 0 {
+		host = host[:i]
+	}
+	if host == "" {
+		return "localhost"
+	}
+	return host
 }

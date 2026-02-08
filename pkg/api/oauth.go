@@ -671,10 +671,30 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			MyProposals []MyProposal `json:"my_proposals"`
 		}
 
+		// Batch-fetch proposal counts for all managed events in a single query
+		proposalCounts := make(map[uint]int64)
+		if len(managingEvents) > 0 {
+			managingIDs := make([]uint, len(managingEvents))
+			for i, e := range managingEvents {
+				managingIDs[i] = e.ID
+			}
+			type countRow struct {
+				EventID uint
+				Count   int64
+			}
+			var counts []countRow
+			cfg.DB.Model(&models.Proposal{}).
+				Select("event_id, count(*) as count").
+				Where("event_id IN ?", managingIDs).
+				Group("event_id").
+				Find(&counts)
+			for _, c := range counts {
+				proposalCounts[c.EventID] = c.Count
+			}
+		}
+
 		managing := make([]ManagingEvent, 0)
 		for _, e := range managingEvents {
-			var count int64
-			cfg.DB.Model(&models.Proposal{}).Where("event_id = ?", e.ID).Count(&count)
 			managing = append(managing, ManagingEvent{
 				ID:            e.ID,
 				Name:          e.Name,
@@ -682,7 +702,7 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 				StartDate:     e.StartDate,
 				EndDate:       e.EndDate,
 				CFPStatus:     string(e.CFPStatus),
-				ProposalCount: count,
+				ProposalCount: proposalCounts[e.ID],
 				IsPaid:        e.IsPaid,
 			})
 		}

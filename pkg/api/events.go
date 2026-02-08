@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -438,8 +439,25 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 			encodeError(w, "Website must be at most 2000 characters", http.StatusBadRequest)
 			return
 		}
+		if event.Website != "" {
+			u, err := url.Parse(event.Website)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				encodeError(w, "Website must be a valid HTTP or HTTPS URL", http.StatusBadRequest)
+				return
+			}
+		}
 		if len(event.Tags) > MaxEventTagsLen {
 			encodeError(w, "Tags must be at most 1000 characters", http.StatusBadRequest)
+			return
+		}
+
+		// Validate date ordering
+		if !event.StartDate.IsZero() && !event.EndDate.IsZero() && event.EndDate.Before(event.StartDate) {
+			encodeError(w, "End date must be after start date", http.StatusBadRequest)
+			return
+		}
+		if !event.CFPOpenAt.IsZero() && !event.CFPCloseAt.IsZero() && event.CFPCloseAt.Before(event.CFPOpenAt) {
+			encodeError(w, "CFP close date must be after CFP open date", http.StatusBadRequest)
 			return
 		}
 
@@ -580,6 +598,13 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			encodeError(w, "Website must be at most 2000 characters", http.StatusBadRequest)
 			return
 		}
+		if website, ok := updates["website"].(string); ok && website != "" {
+			u, err := url.Parse(website)
+			if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				encodeError(w, "Website must be a valid HTTP or HTTPS URL", http.StatusBadRequest)
+				return
+			}
+		}
 		if tags, ok := updates["tags"].(string); ok && len(tags) > MaxEventTagsLen {
 			encodeError(w, "Tags must be at most 1000 characters", http.StatusBadRequest)
 			return
@@ -611,6 +636,42 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 				return
 			}
 			updates["slug"] = slug
+		}
+
+		// Validate date ordering on update
+		{
+			startDate := event.StartDate
+			endDate := event.EndDate
+			cfpOpen := event.CFPOpenAt
+			cfpClose := event.CFPCloseAt
+			if v, ok := updates["start_date"].(string); ok && v != "" {
+				if t, err := time.Parse(time.RFC3339, v); err == nil {
+					startDate = t
+				}
+			}
+			if v, ok := updates["end_date"].(string); ok && v != "" {
+				if t, err := time.Parse(time.RFC3339, v); err == nil {
+					endDate = t
+				}
+			}
+			if v, ok := updates["cfp_open_at"].(string); ok && v != "" {
+				if t, err := time.Parse(time.RFC3339, v); err == nil {
+					cfpOpen = t
+				}
+			}
+			if v, ok := updates["cfp_close_at"].(string); ok && v != "" {
+				if t, err := time.Parse(time.RFC3339, v); err == nil {
+					cfpClose = t
+				}
+			}
+			if !startDate.IsZero() && !endDate.IsZero() && endDate.Before(startDate) {
+				encodeError(w, "End date must be after start date", http.StatusBadRequest)
+				return
+			}
+			if !cfpOpen.IsZero() && !cfpClose.IsZero() && cfpClose.Before(cfpOpen) {
+				encodeError(w, "CFP close date must be after CFP open date", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Re-marshal JSONB fields so GORM/pgx stores them correctly.
@@ -719,6 +780,7 @@ func UpdateCFPStatusHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		defer r.Body.Close()
 
 		var req struct {
 			Status models.CFPStatus `json:"status"`
@@ -963,8 +1025,8 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Limit number of organizers
-		if len(event.Organizers) >= 5 {
-			encodeError(w, "Maximum 5 organizers allowed", http.StatusBadRequest)
+		if len(event.Organizers) >= cfg.MaxOrganizersPerEvent {
+			encodeError(w, fmt.Sprintf("Maximum %d organizers allowed", cfg.MaxOrganizersPerEvent), http.StatusBadRequest)
 			return
 		}
 

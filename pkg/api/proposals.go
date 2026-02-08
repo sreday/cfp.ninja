@@ -601,6 +601,7 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		defer r.Body.Close()
 
 		var req struct {
 			Status models.ProposalStatus `json:"status"`
@@ -632,7 +633,7 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 				var acceptedCount int64
 				tx.Model(&models.Proposal{}).
 					Where("event_id = ? AND status = ?", event.ID, models.ProposalStatusAccepted).
-					Clauses(clause.Locking{Strength: "SHARE"}).
+					Clauses(clause.Locking{Strength: "UPDATE"}).
 					Count(&acceptedCount)
 
 				if acceptedCount >= int64(*event.MaxAccepted) {
@@ -723,6 +724,7 @@ func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		defer r.Body.Close()
 
 		var req struct {
 			Rating int `json:"rating"`
@@ -758,6 +760,7 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		defer r.Body.Close()
 
 		user := GetUserFromContext(r.Context())
 		if user == nil {
@@ -825,6 +828,65 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		encodeResponse(w, r, proposal)
+	}
+}
+
+// linkedInHTTPClient is a shared client for checking LinkedIn profile existence.
+var linkedInHTTPClient = &http.Client{
+	Timeout: 3 * time.Second,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
+}
+
+// CheckLinkedInHandler checks whether a LinkedIn profile URL appears to exist.
+// GET /api/v0/check-linkedin?url=https://linkedin.com/in/username
+// Returns {"exists": true} if the profile returns 200, {"exists": false} otherwise.
+// On any network error or timeout, returns {"exists": true} (benefit of the doubt).
+func CheckLinkedInHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		profileURL := r.URL.Query().Get("url")
+		if profileURL == "" {
+			encodeError(w, "url parameter is required", http.StatusBadRequest)
+			return
+		}
+
+		if !linkedInURLRegex.MatchString(profileURL) {
+			encodeError(w, "Invalid LinkedIn URL", http.StatusBadRequest)
+			return
+		}
+
+		req, err := http.NewRequest(http.MethodGet, profileURL, nil)
+		if err != nil {
+			encodeResponse(w, r, map[string]bool{"exists": true})
+			return
+		}
+		ua := r.Header.Get("User-Agent")
+		if ua == "" {
+			ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+		}
+		req.Header.Set("User-Agent", ua)
+
+		resp, err := linkedInHTTPClient.Do(req)
+		if err != nil {
+			// Network error / timeout → benefit of the doubt
+			encodeResponse(w, r, map[string]bool{"exists": true})
+			return
+		}
+		resp.Body.Close()
+
+		encodeResponse(w, r, map[string]bool{"exists": resp.StatusCode == http.StatusOK})
 	}
 }
 

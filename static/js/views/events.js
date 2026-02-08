@@ -14,6 +14,9 @@ let cachedCountries = [];
 // Map of eventId -> proposalCount for events the user manages
 let managingMap = null;
 
+// Counter to discard stale responses from out-of-order API calls
+let _eventsRequestId = 0;
+
 export async function EventsView(params, query) {
     const main = document.getElementById('main-content');
     showLoading(main);
@@ -151,6 +154,8 @@ async function updateEventsList(filters, page) {
     const eventsListContainer = document.getElementById('events-list-container');
     const eventsList = document.getElementById('events-list');
 
+    const requestId = ++_eventsRequestId;
+
     // Show loading state in events area only
     eventsList.innerHTML = `
         <div class="col-12 text-center py-5">
@@ -162,6 +167,10 @@ async function updateEventsList(filters, page) {
 
     try {
         const result = await fetchEvents(filters, page);
+
+        // Discard stale response if a newer request was made
+        if (requestId !== _eventsRequestId) return;
+
         const events = result.data || result.events || result || [];
         const total = result.pagination?.total || result.total || events.length;
         const totalPages = result.pagination?.total_pages || Math.ceil(total / PAGE_SIZE);
@@ -173,6 +182,7 @@ async function updateEventsList(filters, page) {
         // Update pagination
         renderPaginationSection(page, totalPages);
     } catch (error) {
+        if (requestId !== _eventsRequestId) return;
         console.error('Error loading events:', error);
         eventsList.innerHTML = `
             <div class="col-12">

@@ -6,6 +6,7 @@ import {
     escapeHtml,
     showLoading,
     showError,
+    validateCheckoutUrl,
     TALK_FORMATS,
     EXPERIENCE_LEVELS
 } from '../utils.js';
@@ -203,8 +204,61 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
     // Attach CLI command handlers
     attachCliCommandHandlers('submit-proposal-cli');
 
+    // Attach LinkedIn profile blur check
+    attachLinkedInBlurCheck(document.getElementById('speakers-container'));
+
     // Attach event handlers
-    attachFormHandlers(eventId, event.slug, customQuestions);
+    attachFormHandlers(eventId, event, customQuestions);
+}
+
+const LINKEDIN_URL_PATTERN = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
+
+function setLinkedInFeedback(input, type, message) {
+    const existing = input.parentElement.querySelector('.linkedin-feedback');
+    if (existing) existing.remove();
+
+    if (!message) return;
+
+    const el = document.createElement('div');
+    el.className = `linkedin-feedback small mt-1 ${type === 'success' ? 'text-success' : 'text-warning'}`;
+    el.textContent = message;
+    input.parentElement.appendChild(el);
+}
+
+// Attaches blur-based LinkedIn profile check to all linkedin inputs inside a container.
+// Shows a warning when URL is malformed or profile not found, green message when found.
+export function attachLinkedInBlurCheck(container) {
+    container.addEventListener('focusout', async (e) => {
+        const input = e.target;
+        if (!input.name || !input.name.startsWith('speaker_linkedin_')) return;
+
+        setLinkedInFeedback(input, null, null);
+
+        const url = input.value.trim();
+        if (!url) return;
+
+        if (!LINKEDIN_URL_PATTERN.test(url)) {
+            setLinkedInFeedback(input, 'warning', 'Invalid LinkedIn URL. Expected format: https://linkedin.com/in/username');
+            return;
+        }
+
+        try {
+            const result = await API.checkLinkedIn(url);
+            // Re-check the value hasn't changed while we were fetching
+            if (input.value.trim() !== url) return;
+            if (!result.exists) {
+                setLinkedInFeedback(input, 'warning', 'LinkedIn profile doesn\'t look correct. Please check for typos.');
+            }
+        } catch (_) {
+            // Network error — skip feedback
+        }
+    });
+
+    // Clear feedback on input
+    container.addEventListener('input', (e) => {
+        if (!e.target.name || !e.target.name.startsWith('speaker_linkedin_')) return;
+        setLinkedInFeedback(e.target, null, null);
+    });
 }
 
 export function renderSpeakerForm(index, user = null) {
@@ -341,7 +395,8 @@ export function renderAcknowledgments(event) {
     `;
 }
 
-function attachFormHandlers(eventId, slug, customQuestions) {
+function attachFormHandlers(eventId, event, customQuestions) {
+    const slug = event.slug;
     const form = document.getElementById('proposal-form');
     const speakersContainer = document.getElementById('speakers-container');
     const addSpeakerBtn = document.getElementById('add-speaker');
@@ -475,9 +530,8 @@ function attachFormHandlers(eventId, slug, customQuestions) {
             const created = await API.createProposal(eventId, proposal);
             form.reset();
 
-            // If event requires payment, redirect to checkout
-            const eventData = await API.getEventBySlug(slug);
-            if (eventData.cfp_requires_payment) {
+            // If event requires payment, redirect to checkout (use event data already loaded)
+            if (event.cfp_requires_payment) {
                 const proposalId = created.ID || created.id;
                 if (!proposalId) {
                     toast.warning('Proposal submitted but could not determine proposal ID for payment. You can complete payment from your dashboard.');
@@ -488,7 +542,13 @@ function attachFormHandlers(eventId, slug, customQuestions) {
                     submitBtn.textContent = 'Redirecting to payment...';
                     const checkout = await API.createProposalCheckout(eventId, proposalId);
                     toast.success('Proposal saved! Redirecting to payment...');
-                    window.location.href = checkout.checkout_url;
+                    const validUrl = validateCheckoutUrl(checkout.checkout_url);
+                    if (!validUrl) {
+                        toast.error('Invalid checkout URL received. Please try again from your dashboard.');
+                        router.navigate('/dashboard/proposals');
+                        return;
+                    }
+                    window.location.href = validUrl;
                 } catch (payErr) {
                     // Proposal saved but payment failed - they can pay later from dashboard
                     toast.warning('Proposal submitted but payment could not be initiated. You can complete payment from your dashboard.');
