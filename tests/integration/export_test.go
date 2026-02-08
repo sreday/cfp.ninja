@@ -177,7 +177,7 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 		Duration: 45,
 		Level:    "intermediate",
 		Speakers: []Speaker{
-			{Name: "Alice Smith", Email: "alice@test.com", Bio: "Speaker one bio", Company: "AliceCo", JobTitle: "CTO", LinkedIn: "https://linkedin.com/in/alice", Primary: true},
+			{Name: "Alice Smith", Email: "speaker@test.com", Bio: "Speaker one bio", Company: "AliceCo", JobTitle: "CTO", LinkedIn: "https://linkedin.com/in/alice", Primary: true},
 			{Name: "Bob Jones", Email: "bob@test.com", Bio: "Speaker two bio", Company: "BobCo", JobTitle: "VP Eng", LinkedIn: "https://linkedin.com/in/bob"},
 		},
 	})
@@ -235,7 +235,7 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 		Duration: 60,
 		Level:    "beginner",
 		Speakers: []Speaker{
-			{Name: "Carol White", Email: "carol@test.com", Bio: "Carol bio", Company: "CarolCo", JobTitle: "Director", LinkedIn: "https://linkedin.com/in/carol", Primary: true},
+			{Name: "Carol White", Email: "speaker@test.com", Bio: "Carol bio", Company: "CarolCo", JobTitle: "Director", LinkedIn: "https://linkedin.com/in/carol", Primary: true},
 			{Name: "Dave Brown", Email: "dave@test.com", Bio: "Dave bio", Company: "DaveCo", JobTitle: "Lead", LinkedIn: "https://linkedin.com/in/dave"},
 		},
 	})
@@ -413,6 +413,7 @@ func TestExportProposals_InvalidFormat(t *testing.T) {
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=invalid", eventGopherCon.ID),
 		adminToken,
 	)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusBadRequest)
 }
 
@@ -421,6 +422,7 @@ func TestExportProposals_MissingFormat(t *testing.T) {
 		fmt.Sprintf("/api/v0/events/%d/proposals/export", eventGopherCon.ID),
 		adminToken,
 	)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusBadRequest)
 }
 
@@ -429,6 +431,7 @@ func TestExportProposals_Unauthorized(t *testing.T) {
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
 		"",
 	)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusUnauthorized)
 }
 
@@ -437,6 +440,7 @@ func TestExportProposals_NonOrganizer(t *testing.T) {
 		fmt.Sprintf("/api/v0/events/%d/proposals/export?format=in-person", eventGopherCon.ID),
 		otherToken,
 	)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusForbidden)
 }
 
@@ -445,6 +449,7 @@ func TestExportProposals_NonExistentEvent(t *testing.T) {
 		"/api/v0/events/99999/proposals/export?format=in-person",
 		adminToken,
 	)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusNotFound)
 }
 

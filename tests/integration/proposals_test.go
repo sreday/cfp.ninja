@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func TestGetEventProposals(t *testing.T) {
@@ -80,7 +81,7 @@ func TestCreateProposal(t *testing.T) {
 				Duration: 30,
 				Level:    "beginner",
 				Speakers: []Speaker{
-					{Name: "Test Speaker", Email: "test@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/test", Primary: true},
+					{Name: "Test Speaker", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/test", Primary: true},
 				},
 			},
 			token:       speakerToken,
@@ -202,6 +203,7 @@ func TestGetProposal(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := doAuthGet(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.token)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -272,6 +274,7 @@ func TestUpdateProposal(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := doPut(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.input, tc.token)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -300,6 +303,7 @@ func TestUpdateProposalStatusRestriction(t *testing.T) {
 			},
 		})
 		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusOK)
 	})
 
@@ -317,9 +321,11 @@ func TestUpdateProposalStatusRestriction(t *testing.T) {
 		// Organizer accepts the proposal
 		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "accepted"}, adminToken)
 		assertStatus(t, resp, http.StatusOK)
+		resp.Body.Close()
 
 		// Owner tries to update — should be blocked
 		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
@@ -336,8 +342,10 @@ func TestUpdateProposalStatusRestriction(t *testing.T) {
 		})
 		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "rejected"}, adminToken)
 		assertStatus(t, resp, http.StatusOK)
+		resp.Body.Close()
 
 		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
@@ -354,8 +362,10 @@ func TestUpdateProposalStatusRestriction(t *testing.T) {
 		})
 		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "tentative"}, adminToken)
 		assertStatus(t, resp, http.StatusOK)
+		resp.Body.Close()
 
 		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
@@ -372,6 +382,7 @@ func TestUpdateProposalStatusRestriction(t *testing.T) {
 		})
 		resp := doPut(fmt.Sprintf("/api/v0/proposals/%d/status", p.ID), ProposalStatusInput{Status: "accepted"}, adminToken)
 		assertStatus(t, resp, http.StatusOK)
+		resp.Body.Close()
 
 		// Organizer updates — should succeed
 		resp = doPut(fmt.Sprintf("/api/v0/proposals/%d", p.ID), updateInput, adminToken)
@@ -428,6 +439,7 @@ func TestDeleteProposal(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := doDelete(fmt.Sprintf("/api/v0/proposals/%d", tc.proposalID), tc.token)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -495,6 +507,7 @@ func TestUpdateProposalStatus(t *testing.T) {
 				ProposalStatusInput{Status: tc.status},
 				tc.token,
 			)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -569,6 +582,7 @@ func TestUpdateProposalRating(t *testing.T) {
 				ProposalRatingInput{Rating: tc.rating},
 				tc.token,
 			)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -644,4 +658,59 @@ func TestProposalStatusTransitions_InvalidStatus(t *testing.T) {
 			resp.Body.Close()
 		})
 	}
+}
+
+// TestCreateProposal_MaxPerEventLimit verifies that the per-user per-event
+// proposal limit (MAX_PROPOSALS_PER_EVENT, default 3) is enforced.
+func TestCreateProposal_MaxPerEventLimit(t *testing.T) {
+	now := time.Now()
+
+	// Create a fresh event with open CFP so existing proposals don't interfere
+	event := createTestEvent(adminToken, EventInput{
+		Name:       "Max Proposals Test",
+		Slug:       "max-proposals-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+		CFPOpenAt:  now.AddDate(0, 0, -1).Format(time.RFC3339),
+		CFPCloseAt: now.AddDate(0, 0, 7).Format(time.RFC3339),
+	})
+	updateCFPStatus(adminToken, event.ID, "open")
+
+	makeProposal := func(i int) ProposalInput {
+		return ProposalInput{
+			Title:    fmt.Sprintf("Proposal %d", i),
+			Abstract: "Testing max proposals limit.",
+			Format:   "talk",
+			Duration: 30,
+			Speakers: []Speaker{
+				{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+			},
+		}
+	}
+
+	// Submit proposals up to the limit — all should succeed.
+	// Skip if limit is very large (e.g. Makefile sets MAX_PROPOSALS_PER_EVENT=100)
+	// to avoid creating hundreds of proposals in a single test.
+	maxProposals := testConfig.MaxProposalsPerEvent
+	if maxProposals > 10 {
+		t.Skipf("MAX_PROPOSALS_PER_EVENT=%d is too large for this test; skipping", maxProposals)
+	}
+	for i := 1; i <= maxProposals; i++ {
+		resp := doPost(
+			fmt.Sprintf("/api/v0/events/%d/proposals", event.ID),
+			makeProposal(i),
+			speakerToken,
+		)
+		defer resp.Body.Close()
+		assertStatus(t, resp, http.StatusCreated)
+	}
+
+	// One more should be rejected
+	resp := doPost(
+		fmt.Sprintf("/api/v0/events/%d/proposals", event.ID),
+		makeProposal(maxProposals+1),
+		speakerToken,
+	)
+	defer resp.Body.Close()
+	assertStatus(t, resp, http.StatusBadRequest)
 }

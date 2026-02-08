@@ -185,16 +185,16 @@ func assertContains(t *testing.T, page *rod.Page, selector, expected string) {
 	}
 }
 
-// assertVisible checks if an element is visible (skips test if element not found)
+// assertVisible checks if an element is visible (fails test if element not found)
 func assertVisible(t *testing.T, page *rod.Page, selector string) {
 	t.Helper()
 	if !hasElement(page, selector) {
-		t.Skipf("element %q not found, skipping test", selector)
+		t.Errorf("element %q not found on page", selector)
 		return
 	}
 	el := waitForElement(page, selector)
 	if el == nil {
-		t.Skipf("element %q not found, skipping test", selector)
+		t.Errorf("element %q not found on page", selector)
 		return
 	}
 	if !el.MustVisible() {
@@ -211,11 +211,11 @@ func assertNotVisible(t *testing.T, page *rod.Page, selector string) {
 	}
 }
 
-// assertElementExists checks if an element exists on the page (skips test if not found)
+// assertElementExists checks if an element exists on the page (fails test if not found)
 func assertElementExists(t *testing.T, page *rod.Page, selector string) {
 	t.Helper()
 	if !hasElement(page, selector) {
-		t.Skipf("element %q not found, skipping test", selector)
+		t.Errorf("element %q not found on page", selector)
 	}
 }
 

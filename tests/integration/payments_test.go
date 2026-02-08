@@ -35,6 +35,7 @@ func TestPaymentGateCFPStatus(t *testing.T) {
 	// Try to open CFP without payment - should get 402
 	resp := doPut(fmt.Sprintf("/api/v0/events/%d/cfp-status", event.ID), CFPStatusInput{Status: "open"}, adminToken)
 	assertStatus(t, resp, http.StatusPaymentRequired)
+	resp.Body.Close()
 
 	// Simulate payment by directly updating the database
 	testConfig.DB.Model(&models.Event{}).Where("id = ?", event.ID).Updates(map[string]interface{}{
@@ -67,6 +68,7 @@ func TestPaymentGateCreateEventOpen(t *testing.T) {
 		"end_date":   futureDate(31),
 		"cfp_status": "open",
 	}, adminToken)
+	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusPaymentRequired)
 }
 
@@ -83,11 +85,13 @@ func TestEventCheckoutEndpoint(t *testing.T) {
 
 	t.Run("requires auth", func(t *testing.T) {
 		resp := doRequest(http.MethodPost, fmt.Sprintf("/api/v0/events/%d/checkout", event.ID), nil, "")
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("non-organizer forbidden", func(t *testing.T) {
 		resp := doPost(fmt.Sprintf("/api/v0/events/%d/checkout", event.ID), nil, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusForbidden)
 	})
 
@@ -99,6 +103,7 @@ func TestEventCheckoutEndpoint(t *testing.T) {
 		})
 
 		resp := doPost(fmt.Sprintf("/api/v0/events/%d/checkout", event.ID), nil, adminToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 
 		// Revert
@@ -113,6 +118,7 @@ func TestEventCheckoutEndpoint(t *testing.T) {
 			t.Skip("EVENT_LISTING_FEE is configured - test requires fee=0")
 		}
 		resp := doPost(fmt.Sprintf("/api/v0/events/%d/checkout", event.ID), nil, adminToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 }
@@ -157,12 +163,14 @@ func TestProposalCheckoutEndpoint(t *testing.T) {
 	t.Run("requires auth", func(t *testing.T) {
 		resp := doRequest(http.MethodPost,
 			fmt.Sprintf("/api/v0/events/%d/proposals/%d/checkout", event.ID, proposal.ID), nil, "")
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusUnauthorized)
 	})
 
 	t.Run("non-owner forbidden", func(t *testing.T) {
 		resp := doPost(
 			fmt.Sprintf("/api/v0/events/%d/proposals/%d/checkout", event.ID, proposal.ID), nil, otherToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusForbidden)
 	})
 
@@ -174,6 +182,7 @@ func TestProposalCheckoutEndpoint(t *testing.T) {
 
 		resp := doPost(
 			fmt.Sprintf("/api/v0/events/%d/proposals/%d/checkout", event.ID, proposal.ID), nil, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 
 		// Revert
@@ -191,6 +200,7 @@ func TestProposalCheckoutEndpoint(t *testing.T) {
 
 		resp := doPost(
 			fmt.Sprintf("/api/v0/events/%d/proposals/%d/checkout", event.ID, proposal.ID), nil, speakerToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 
 		// Re-enable
@@ -325,11 +335,13 @@ func TestConfigEndpointPaymentFields(t *testing.T) {
 func TestWebhookEndpoint(t *testing.T) {
 	t.Run("rejects request without signature", func(t *testing.T) {
 		resp := doRequest(http.MethodPost, "/api/v0/webhooks/stripe", map[string]string{"test": "data"}, "")
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
 	t.Run("rejects GET method", func(t *testing.T) {
 		resp := doGet("/api/v0/webhooks/stripe")
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusMethodNotAllowed)
 	})
 }

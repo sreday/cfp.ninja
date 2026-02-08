@@ -159,7 +159,7 @@ func TestXSSPayloadsInProposalFields(t *testing.T) {
 			Speakers: []Speaker{
 				{
 					Name:     payload,
-					Email:    "xss-proposal@test.com",
+					Email:    "speaker@test.com",
 					Bio:      payload,
 					Company:  payload,
 					JobTitle: payload,
@@ -198,7 +198,7 @@ func TestCSVFormulaInjection(t *testing.T) {
 			Speakers: []Speaker{
 				{
 					Name:     "-subtract",
-					Email:    "csv-formula@test.com",
+					Email:    "speaker@test.com",
 					Bio:      "@mention",
 					Company:  "=EVIL",
 					JobTitle: "+title",
@@ -325,6 +325,7 @@ func TestOversizedRequestBodyRejected(t *testing.T) {
 			StartDate:   now.AddDate(0, 1, 0).Format(time.RFC3339),
 			EndDate:     now.AddDate(0, 1, 1).Format(time.RFC3339),
 		}, adminToken)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 
@@ -347,6 +348,7 @@ func TestOversizedRequestBodyRejected(t *testing.T) {
 			},
 			speakerToken,
 		)
+		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)
 	})
 }

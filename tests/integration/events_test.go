@@ -403,6 +403,7 @@ func TestUpdateEvent(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			resp := doPut(fmt.Sprintf("/api/v0/events/%d", tc.eventID), tc.input, tc.token)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -459,6 +460,7 @@ func TestUpdateCFPStatus(t *testing.T) {
 				CFPStatusInput{Status: tc.status},
 				tc.token,
 			)
+			defer resp.Body.Close()
 			assertStatus(t, resp, tc.expectedCode)
 		})
 	}
@@ -905,5 +907,153 @@ func TestUpdateEvent_DateValidation(t *testing.T) {
 		)
 		assertStatus(t, resp, http.StatusOK)
 		resp.Body.Close()
+	})
+}
+
+// TestAddOrganizer_MaxLimit verifies that the MAX_ORGANIZERS_PER_EVENT limit is enforced.
+func TestAddOrganizer_MaxLimit(t *testing.T) {
+	now := time.Now()
+	event := createTestEvent(adminToken, EventInput{
+		Name:      "Max Organizers Test",
+		Slug:      "max-org-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
+	})
+
+	// Creator (admin) is already an organizer. The limit is total organizers
+	// (co-organizers in the association + creator). Default limit is 5.
+	// Add co-organizers using existing test users first.
+	existingEmails := []string{"speaker@test.com", "other@test.com"}
+	for _, email := range existingEmails {
+		resp := doPost(
+			fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
+			OrganizerInput{Email: email},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusCreated)
+		resp.Body.Close()
+	}
+
+	// Create additional test users to fill up to the limit.
+	// Creator (1) + co-organizers added so far (2) = 3 total.
+	// We need to add (maxOrganizers - 3) more, then verify the next one fails.
+	maxOrganizers := testConfig.MaxOrganizersPerEvent
+	remaining := maxOrganizers - 3 // 3 = creator + speaker + other
+
+	for i := 0; i < remaining; i++ {
+		email := fmt.Sprintf("org-limit-%d-%d@test.com", i, now.UnixNano())
+		_, _ = createTestUserWithJWT(email, fmt.Sprintf("Org Limit User %d", i))
+		resp := doPost(
+			fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
+			OrganizerInput{Email: email},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusCreated)
+		resp.Body.Close()
+	}
+
+	// Now at the limit — one more should fail
+	overflowEmail := fmt.Sprintf("org-overflow-%d@test.com", now.UnixNano())
+	_, _ = createTestUserWithJWT(overflowEmail, "Overflow User")
+	resp := doPost(
+		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
+		OrganizerInput{Email: overflowEmail},
+		adminToken,
+	)
+	defer resp.Body.Close()
+	assertStatus(t, resp, http.StatusBadRequest)
+}
+
+// TestDraftEventHiddenFromPublic verifies that draft events are not visible
+// in the public events listing or accessible via slug lookup.
+func TestDraftEventHiddenFromPublic(t *testing.T) {
+	// eventDraftEvent was created in fixtures with draft status
+
+	// 1. Draft event should NOT appear in public listing
+	resp := doGet("/api/v0/events")
+	assertStatus(t, resp, http.StatusOK)
+
+	var result EventListResponse
+	if err := parseJSON(resp, &result); err != nil {
+		t.Fatalf("failed to parse response: %v", err)
+	}
+
+	for _, e := range result.Data {
+		if e.Slug == eventDraftEvent.Slug {
+			t.Errorf("draft event %q should not appear in public listing", eventDraftEvent.Slug)
+		}
+	}
+
+	// 2. Draft event should return 404 via slug lookup
+	resp = doGet("/api/v0/e/" + eventDraftEvent.Slug)
+	defer resp.Body.Close()
+	assertStatus(t, resp, http.StatusNotFound)
+}
+
+// TestListEvents_PaginationEdgeCases tests pagination boundary conditions.
+func TestListEvents_PaginationEdgeCases(t *testing.T) {
+	t.Run("page=0 defaults to page 1", func(t *testing.T) {
+		resp := doGet("/api/v0/events?page=0")
+		assertStatus(t, resp, http.StatusOK)
+
+		var result EventListResponse
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result.Pagination.Page != 1 {
+			t.Errorf("expected page 1 for page=0, got %d", result.Pagination.Page)
+		}
+	})
+
+	t.Run("per_page=0 uses default", func(t *testing.T) {
+		resp := doGet("/api/v0/events?per_page=0")
+		assertStatus(t, resp, http.StatusOK)
+
+		var result EventListResponse
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result.Pagination.PerPage != 20 {
+			t.Errorf("expected default per_page 20 for per_page=0, got %d", result.Pagination.PerPage)
+		}
+	})
+
+	t.Run("per_page=999 is capped at 100", func(t *testing.T) {
+		resp := doGet("/api/v0/events?per_page=999")
+		assertStatus(t, resp, http.StatusOK)
+
+		var result EventListResponse
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result.Pagination.PerPage != 100 {
+			t.Errorf("expected per_page capped at 100 for per_page=999, got %d", result.Pagination.PerPage)
+		}
+	})
+
+	t.Run("negative page defaults to page 1", func(t *testing.T) {
+		resp := doGet("/api/v0/events?page=-5")
+		assertStatus(t, resp, http.StatusOK)
+
+		var result EventListResponse
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result.Pagination.Page != 1 {
+			t.Errorf("expected page 1 for page=-5, got %d", result.Pagination.Page)
+		}
+	})
+
+	t.Run("negative per_page uses default", func(t *testing.T) {
+		resp := doGet("/api/v0/events?per_page=-1")
+		assertStatus(t, resp, http.StatusOK)
+
+		var result EventListResponse
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result.Pagination.PerPage != 20 {
+			t.Errorf("expected default per_page 20 for per_page=-1, got %d", result.Pagination.PerPage)
+		}
 	})
 }

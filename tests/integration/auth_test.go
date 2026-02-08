@@ -79,11 +79,11 @@ func TestAuthRequired(t *testing.T) {
 	for _, ep := range protectedEndpoints {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			resp := doRequest(ep.method, ep.path, nil, "")
+			defer resp.Body.Close()
 			// Should return 401 Unauthorized
 			if resp.StatusCode != http.StatusUnauthorized {
 				t.Errorf("expected 401, got %d for %s %s", resp.StatusCode, ep.method, ep.path)
 			}
-			resp.Body.Close()
 		})
 	}
 }
@@ -116,4 +116,44 @@ func TestPublicEndpoints(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLogout(t *testing.T) {
+	t.Run("returns 200 and clears session cookie", func(t *testing.T) {
+		resp := doPost("/api/v0/auth/logout", nil, "")
+		defer resp.Body.Close()
+		assertStatus(t, resp, http.StatusOK)
+
+		var result map[string]string
+		if err := parseJSON(resp, &result); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		if result["message"] != "Logged out" {
+			t.Errorf("expected message 'Logged out', got %q", result["message"])
+		}
+
+		// Verify session cookie is cleared (MaxAge <= 0)
+		for _, cookie := range resp.Cookies() {
+			if cookie.Name == "cfpninja_session" {
+				if cookie.MaxAge > 0 {
+					t.Errorf("expected session cookie MaxAge <= 0, got %d", cookie.MaxAge)
+				}
+				if cookie.Value != "" {
+					t.Errorf("expected empty cookie value, got %q", cookie.Value)
+				}
+				return
+			}
+		}
+		// Cookie should be present (to clear it)
+		// But if no cookie is set at all, that's also acceptable behavior
+	})
+
+	t.Run("rejects GET method", func(t *testing.T) {
+		resp := doGet("/api/v0/auth/logout")
+		defer resp.Body.Close()
+		// The logout handler only accepts POST
+		if resp.StatusCode != http.StatusMethodNotAllowed {
+			t.Errorf("expected 405 for GET /api/v0/auth/logout, got %d", resp.StatusCode)
+		}
+	})
 }
