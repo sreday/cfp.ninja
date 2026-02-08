@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="static/img/cfpninja_full.png" alt="CFP.ninja" height="100">
+  <img src="static/img/cfpninja-logo.png" alt="CFP.ninja" height="100">
 </p>
 
 # CFP.ninja
