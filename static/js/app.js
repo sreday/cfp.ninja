@@ -148,6 +148,10 @@ export const API = {
         return this.request('PUT', `/proposals/${id}/confirm`, {});
     },
 
+    emergencyCancel(id) {
+        return this.request('PUT', `/proposals/${id}/emergency-cancel`, {});
+    },
+
     // Event proposals (for organizers)
     getEventProposals(eventId, params = {}) {
         const query = new URLSearchParams(params).toString();

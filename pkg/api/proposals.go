@@ -831,6 +831,97 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
+// EmergencyCancelHandler allows the proposal owner to emergency-cancel a confirmed proposal
+func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
+		defer r.Body.Close()
+
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		// Extract ID from path: /api/v0/proposals/{id}/emergency-cancel
+		path := strings.TrimPrefix(r.URL.Path, "/api/v0/proposals/")
+		parts := strings.Split(path, "/")
+		if len(parts) < 1 {
+			encodeError(w, "Invalid path", http.StatusBadRequest)
+			return
+		}
+
+		id, err := strconv.ParseUint(parts[0], 10, 32)
+		if err != nil {
+			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
+			return
+		}
+
+		var proposal models.Proposal
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			encodeError(w, "Proposal not found", http.StatusNotFound)
+			return
+		}
+
+		// Only the proposal owner can emergency-cancel
+		if proposal.CreatedByID == nil || *proposal.CreatedByID != user.ID {
+			encodeError(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Only accepted proposals can be emergency-cancelled
+		if proposal.Status != models.ProposalStatusAccepted {
+			encodeError(w, "Only accepted proposals can be emergency-cancelled", http.StatusBadRequest)
+			return
+		}
+
+		// Attendance must be confirmed
+		if !proposal.AttendanceConfirmed {
+			encodeError(w, "Only confirmed proposals can be emergency-cancelled", http.StatusBadRequest)
+			return
+		}
+
+		if err := cfg.DB.Model(&proposal).Updates(map[string]interface{}{
+			"status":               models.ProposalStatusRejected,
+			"attendance_confirmed": false,
+		}).Error; err != nil {
+			encodeError(w, "Failed to cancel proposal", http.StatusInternalServerError)
+			return
+		}
+
+		cfg.DB.First(&proposal, id)
+
+		cfg.Logger.Info("proposal emergency cancelled",
+			"proposal_id", proposal.ID,
+			"event_id", proposal.EventID,
+			"actor_id", user.ID,
+		)
+
+		// Notify event organisers (fire-and-forget)
+		if cfg.EmailSender != nil {
+			p := proposal // copy for goroutine
+			SafeGo(cfg, func() {
+				var ev models.Event
+				cfg.DB.Preload("Organizers").First(&ev, p.EventID)
+				ncfg := &email.NotifyConfig{
+					Sender:  cfg.EmailSender,
+					From:    cfg.EmailFrom,
+					BaseURL: cfg.BaseURL,
+					Logger:  cfg.Logger,
+				}
+				email.SendEmergencyCancelNotification(ncfg, &p, &ev)
+			})
+		}
+
+		encodeResponse(w, r, proposal)
+	}
+}
+
 // linkedInHTTPClient is a shared client for checking LinkedIn profile existence.
 var linkedInHTTPClient = &http.Client{
 	Timeout: 3 * time.Second,

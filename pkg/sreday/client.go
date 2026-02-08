@@ -21,6 +21,7 @@ type HomeMetadata struct {
 	Events              []EventRef `yaml:"events"`
 	EventsPast          []EventRef `yaml:"events_past"`
 	DescriptionTemplate string     `yaml:"description_template"`
+	Mailto              string     `yaml:"mailto"`
 }
 
 type EventRef struct {

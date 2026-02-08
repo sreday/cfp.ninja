@@ -66,7 +66,7 @@ func logoForSource(sourceURL string) string {
 
 // changedFields compares an existing event against proposed updates and returns
 // a comma-separated list of field names that differ. Returns empty string if nothing changed.
-func changedFields(existing models.Event, name, description, logoURL string, startDate, endDate time.Time, isPaid bool) string {
+func changedFields(existing models.Event, name, description, logoURL, contactEmail string, startDate, endDate time.Time, isPaid bool) string {
 	var changed []string
 	if existing.Name != name {
 		changed = append(changed, "name")
@@ -85,6 +85,9 @@ func changedFields(existing models.Event, name, description, logoURL string, sta
 	}
 	if existing.LogoURL != logoURL {
 		changed = append(changed, "logo_url")
+	}
+	if existing.ContactEmail != contactEmail {
+		changed = append(changed, "contact_email")
 	}
 	return strings.Join(changed, ",")
 }
@@ -173,9 +176,12 @@ func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs [
 
 	sitePrefix := getSitePrefix(baseURL)
 
+	// Extract contact email from mailto field (e.g. "mailto:hello@sreday.com" -> "hello@sreday.com")
+	contactEmail := strings.TrimPrefix(home.Mailto, "mailto:")
+
 	// Upcoming events (CFP open)
 	for _, ref := range home.Events {
-		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, false, organiserIDs, home.DescriptionTemplate)
+		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, false, organiserIDs, home.DescriptionTemplate, contactEmail)
 		if syncErr != nil {
 			logger.Error("failed to sync event", "url", ref.URL, "error", syncErr)
 			continue
@@ -191,7 +197,7 @@ func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs [
 
 	// Past events (CFP closed)
 	for _, ref := range home.EventsPast {
-		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, true, organiserIDs, home.DescriptionTemplate)
+		wasCreated, wasUpdated, syncErr := syncEvent(db, logger, client, ref, sitePrefix, baseURL, true, organiserIDs, home.DescriptionTemplate, contactEmail)
 		if syncErr != nil {
 			logger.Error("failed to sync event", "url", ref.URL, "error", syncErr)
 			continue
@@ -210,7 +216,7 @@ func syncSource(db *gorm.DB, logger *slog.Logger, baseURL string, organiserIDs [
 
 // syncEvent processes a single event reference.
 // Returns (true, false, nil) if created, (false, true, nil) if updated, (false, false, nil) if skipped.
-func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sreday.EventRef, sitePrefix, baseURL string, isPast bool, organiserIDs []uint, descriptionTemplate string) (created bool, updated bool, err error) {
+func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sreday.EventRef, sitePrefix, baseURL string, isPast bool, organiserIDs []uint, descriptionTemplate, contactEmail string) (created bool, updated bool, err error) {
 	slug := slugFromCFPLink(ref.CFPLink)
 	if slug == "" {
 		slug = makeSlug(sitePrefix, ref.URL)
@@ -249,17 +255,18 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	var existing models.Event
 	if db.Where("slug = ?", slug).First(&existing).Error == nil {
 		// Update existing event
-		diff := changedFields(existing, ref.Name, description, logoURL, startDate, endDate, true)
+		diff := changedFields(existing, ref.Name, description, logoURL, contactEmail, startDate, endDate, true)
 		if diff == "" {
 			return false, false, nil // nothing changed, skip
 		}
 		updates := map[string]interface{}{
-			"name":        ref.Name,
-			"start_date":  startDate,
-			"end_date":    endDate,
-			"description": description,
-			"logo_url":    logoURL,
-			"is_paid":     true,
+			"name":          ref.Name,
+			"start_date":    startDate,
+			"end_date":      endDate,
+			"description":   description,
+			"logo_url":      logoURL,
+			"contact_email": contactEmail,
+			"is_paid":       true,
 		}
 		if err := db.Model(&existing).Updates(updates).Error; err != nil {
 			return false, false, fmt.Errorf("updating event %s: %w", slug, err)
@@ -284,20 +291,21 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	}
 
 	newEvent := models.Event{
-		Name:        ref.Name,
-		Slug:        slug,
-		Description: description,
-		Location:    extractLocationWithoutCountry(ref.Location),
-		Country:     extractCountry(ref.Location),
-		StartDate:   startDate,
-		EndDate:     endDate,
-		Website:     resolveURL(baseURL, ref.URL),
-		LogoURL:     logoURL,
-		TermsURL:    termsURLForSource(baseURL),
-		CFPStatus:   cfpStatus,
-		CFPOpenAt:   cfpOpenAt,
-		CFPCloseAt:  cfpCloseAt,
-		IsPaid:      true,
+		Name:         ref.Name,
+		Slug:         slug,
+		Description:  description,
+		Location:     extractLocationWithoutCountry(ref.Location),
+		Country:      extractCountry(ref.Location),
+		StartDate:    startDate,
+		EndDate:      endDate,
+		Website:      resolveURL(baseURL, ref.URL),
+		LogoURL:      logoURL,
+		TermsURL:     termsURLForSource(baseURL),
+		ContactEmail: contactEmail,
+		CFPStatus:    cfpStatus,
+		CFPOpenAt:    cfpOpenAt,
+		CFPCloseAt:   cfpCloseAt,
+		IsPaid:       true,
 	}
 
 	if len(organiserIDs) > 0 {
@@ -326,6 +334,8 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("fetching conf42 metadata: %w", err)
 	}
+
+	const conf42ContactEmail = "hello@conf42.com"
 
 	now := time.Now()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
@@ -370,18 +380,19 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 		// Check if already exists
 		var existing models.Event
 		if db.Where("slug = ?", slug).First(&existing).Error == nil {
-			diff := changedFields(existing, eventName, description, conf42Logo, eventDate, eventDate, true)
+			diff := changedFields(existing, eventName, description, conf42Logo, conf42ContactEmail, eventDate, eventDate, true)
 			if diff == "" {
 				skipped++
 				continue // nothing changed
 			}
 			updates := map[string]interface{}{
-				"name":        eventName,
-				"start_date":  eventDate,
-				"end_date":    eventDate,
-				"description": description,
-				"logo_url":    conf42Logo,
-				"is_paid":     true,
+				"name":          eventName,
+				"start_date":    eventDate,
+				"end_date":      eventDate,
+				"description":   description,
+				"logo_url":      conf42Logo,
+				"contact_email": conf42ContactEmail,
+				"is_paid":       true,
 			}
 			if err := db.Model(&existing).Updates(updates).Error; err != nil {
 				logger.Error("failed to update conf42 event", "slug", slug, "error", err)
@@ -399,22 +410,23 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 		}
 
 		newEvent := models.Event{
-			Name:        eventName,
-			Slug:        slug,
-			Description: description,
-			Location:    "Online",
-			Country:     "",
-			IsOnline:    true,
-			StartDate:   eventDate,
-			EndDate:     eventDate,
-			Website:     fmt.Sprintf("https://www.conf42.com/%s", entry.ShortURL),
-			LogoURL:     conf42Logo,
-			Tags:        conf42Tags(entry.Name),
-			CFPStatus:   models.CFPStatusOpen,
-			CFPOpenAt:   cfpOpenAt,
-			CFPCloseAt:  cfpCloseAt,
-			TermsURL:    "https://www.conf42.com/terms-and-conditions.pdf",
-			IsPaid:      true,
+			Name:         eventName,
+			Slug:         slug,
+			Description:  description,
+			Location:     "Online",
+			Country:      "",
+			IsOnline:     true,
+			StartDate:    eventDate,
+			EndDate:      eventDate,
+			Website:      fmt.Sprintf("https://www.conf42.com/%s", entry.ShortURL),
+			LogoURL:      conf42Logo,
+			ContactEmail: conf42ContactEmail,
+			Tags:         conf42Tags(entry.Name),
+			CFPStatus:    models.CFPStatusOpen,
+			CFPOpenAt:    cfpOpenAt,
+			CFPCloseAt:   cfpCloseAt,
+			TermsURL:     "https://www.conf42.com/terms-and-conditions.pdf",
+			IsPaid:       true,
 		}
 
 		if len(organiserIDs) > 0 {

@@ -303,6 +303,15 @@ function attachProposalHandlers(container) {
         });
     });
 
+    // Emergency cancel buttons
+    container.querySelectorAll('.emergency-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const proposalId = btn.dataset.proposalId;
+            const proposalTitle = btn.dataset.proposalTitle;
+            showEmergencyCancelConfirmation(proposalId, proposalTitle);
+        });
+    });
+
     // Confirm attendance buttons
     container.querySelectorAll('.confirm-attendance-btn').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -360,6 +369,7 @@ function closeModal(modalId) {
 // Track active modal close handlers to prevent listener accumulation
 let _proposalDetailCloseHandler = null;
 let _deleteModalCloseHandler = null;
+let _emergencyCancelModalCloseHandler = null;
 
 async function showProposalDetail(proposalId) {
     const modal = document.getElementById('proposalDetailModal');
@@ -506,6 +516,48 @@ function showDeleteConfirmation(proposalId, proposalTitle) {
     });
 }
 
+function showEmergencyCancelConfirmation(proposalId, proposalTitle) {
+    const modal = document.getElementById('emergencyCancelModal');
+    document.getElementById('emergencyCancelProposalTitle').textContent = proposalTitle;
+
+    openModal('emergencyCancelModal');
+
+    // Remove previous handler before attaching a new one
+    if (_emergencyCancelModalCloseHandler) {
+        modal.removeEventListener('click', _emergencyCancelModalCloseHandler);
+    }
+    _emergencyCancelModalCloseHandler = (e) => {
+        if (e.target === modal || e.target.closest('[data-bs-dismiss="modal"]')) {
+            closeModal('emergencyCancelModal');
+        }
+    };
+    modal.addEventListener('click', _emergencyCancelModalCloseHandler);
+
+    const confirmBtn = document.getElementById('confirmEmergencyCancel');
+
+    // Remove existing listeners by cloning
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    newConfirmBtn.addEventListener('click', async () => {
+        newConfirmBtn.disabled = true;
+        newConfirmBtn.textContent = 'Cancelling...';
+
+        try {
+            await API.emergencyCancel(proposalId);
+            closeModal('emergencyCancelModal');
+            toast.success('Proposal emergency-cancelled successfully.');
+            // Reload the dashboard
+            router.navigate('/dashboard/proposals');
+        } catch (error) {
+            console.error('Error emergency-cancelling proposal:', error);
+            toast.error(error.message || 'Failed to emergency-cancel proposal.');
+            newConfirmBtn.disabled = false;
+            newConfirmBtn.textContent = 'Emergency Cancel';
+        }
+    });
+}
+
 function renderEventsList(events) {
     const config = getAppConfig();
     const showPaymentBadge = config.payments_enabled && config.event_listing_fee > 0;
@@ -569,7 +621,12 @@ function renderProposalsList(proposals) {
                             ${needsPayment ? `<button class="btn btn-sm btn-warning me-1 pay-proposal-btn" data-proposal-id="${proposalId}" data-event-id="${proposal.event_id}">Complete Payment</button>` : ''}
                             ${!(proposal.status === 'accepted' && proposal.attendance_confirmed) ? `<button class="btn btn-sm btn-outline-danger me-1 delete-proposal-btn" data-proposal-id="${proposalId}" data-proposal-title="${escapeHtml(proposal.title)}">Delete</button>` : ''}
                             ${proposal.status === 'accepted' && !proposal.attendance_confirmed ? `<button class="btn btn-sm btn-success confirm-attendance-btn" data-proposal-id="${proposalId}">Confirm Attendance</button>` : ''}
-                            ${proposal.status === 'accepted' && proposal.attendance_confirmed ? `<span class="badge bg-success ms-1">&#10003; Attendance Confirmed</span>` : ''}
+                            ${proposal.status === 'accepted' && proposal.attendance_confirmed ? `
+                                <span class="badge bg-success ms-1">&#10003; Attendance Confirmed</span>
+                                <button class="btn btn-sm btn-danger ms-1 emergency-cancel-btn"
+                                    data-proposal-id="${proposalId}"
+                                    data-proposal-title="${escapeHtml(proposal.title)}">Emergency Cancel</button>
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -610,6 +667,26 @@ function renderProposalsList(proposals) {
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-danger" id="confirmDeleteProposal">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Cancel Confirmation Modal -->
+        <div class="modal fade" id="emergencyCancelModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger">Emergency Cancel</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to emergency-cancel "<strong id="emergencyCancelProposalTitle"></strong>"?</p>
+                        <p class="text-danger">Your talk will be permanently withdrawn from the conference, and you will no longer be able to present. Are you sure?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep My Talk</button>
+                        <button type="button" class="btn btn-danger" id="confirmEmergencyCancel">Emergency Cancel</button>
                     </div>
                 </div>
             </div>

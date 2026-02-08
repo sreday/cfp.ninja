@@ -1,0 +1,13 @@
+Emergency cancellation
+
+Hi {{.OrganizerName}},
+
+{{.SpeakerName}} has emergency-cancelled their confirmed talk "{{.ProposalTitle}}" at {{.EventName}}.
+
+The proposal status has been changed to rejected and the attendance confirmation has been revoked.
+
+You can view the details on your organiser dashboard:
+{{.DashboardURL}}
+
+Best regards,
+CFP.ninja

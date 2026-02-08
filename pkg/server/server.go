@@ -223,6 +223,12 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 			return
 		}
 
+		// Handle /api/v0/proposals/{id}/emergency-cancel
+		if strings.HasSuffix(path, "/emergency-cancel") {
+			writeLimiter.Middleware(api.EmergencyCancelHandler(cfg))(w, r)
+			return
+		}
+
 		// Handle /api/v0/proposals/{id}/confirm
 		if strings.HasSuffix(path, "/confirm") {
 			writeLimiter.Middleware(api.ConfirmAttendanceHandler(cfg))(w, r)
