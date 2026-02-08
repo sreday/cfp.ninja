@@ -187,15 +187,54 @@ func TestSendAttendanceConfirmedNotification(t *testing.T) {
 	}
 
 	msgs := mock.Messages()
-	if len(msgs) != 2 {
-		t.Fatalf("expected 2 messages (one per organizer), got %d", len(msgs))
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
 	}
 
-	if msgs[0].To[0] != "org1@example.com" {
-		t.Errorf("first message To = %v", msgs[0].To)
+	msg := msgs[0]
+	if msg.To[0] != "org1@example.com" {
+		t.Errorf("To = %v, want org1@example.com", msg.To)
 	}
-	if msgs[1].To[0] != "org2@example.com" {
-		t.Errorf("second message To = %v", msgs[1].To)
+	if len(msg.Cc) != 1 || msg.Cc[0] != "org2@example.com" {
+		t.Errorf("Cc = %v, want [org2@example.com]", msg.Cc)
+	}
+}
+
+func TestSendAttendanceConfirmedNotification_ContactEmail(t *testing.T) {
+	mock := &mockSender{}
+	ncfg := newTestNotifyConfig(mock)
+
+	proposal := &models.Proposal{
+		Title: "My Talk",
+		Speakers: makeSpeakersJSON([]models.Speaker{
+			{Name: "Speaker One", Email: "s@example.com", Primary: true},
+		}),
+	}
+
+	event := &models.Event{
+		Name:         "SREday",
+		ContactEmail: "contact@sreday.com",
+		Organizers: []models.User{
+			{Email: "org1@example.com", Name: "Org One"},
+		},
+	}
+
+	err := SendAttendanceConfirmedNotification(ncfg, proposal, event)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := mock.Messages()
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+
+	msg := msgs[0]
+	if msg.To[0] != "contact@sreday.com" {
+		t.Errorf("To = %v, want contact@sreday.com", msg.To)
+	}
+	if len(msg.Cc) != 0 {
+		t.Errorf("Cc = %v, want empty (no Cc when contact email is set)", msg.Cc)
 	}
 }
 
@@ -212,6 +251,82 @@ func TestSendAttendanceConfirmedNotification_NoOrganizers(t *testing.T) {
 	}
 	if len(mock.Messages()) != 0 {
 		t.Error("no emails should be sent when there are no organizers")
+	}
+}
+
+func TestSendEmergencyCancelNotification_ContactEmail(t *testing.T) {
+	mock := &mockSender{}
+	ncfg := newTestNotifyConfig(mock)
+
+	proposal := &models.Proposal{
+		Title: "My Talk",
+		Speakers: makeSpeakersJSON([]models.Speaker{
+			{Name: "Speaker One", Email: "s@example.com", Primary: true},
+		}),
+	}
+
+	event := &models.Event{
+		Name:         "SREday",
+		ContactEmail: "contact@sreday.com",
+		Organizers: []models.User{
+			{Email: "org1@example.com", Name: "Org One"},
+		},
+	}
+
+	err := SendEmergencyCancelNotification(ncfg, proposal, event)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := mock.Messages()
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+
+	msg := msgs[0]
+	if msg.To[0] != "contact@sreday.com" {
+		t.Errorf("To = %v, want contact@sreday.com", msg.To)
+	}
+	if len(msg.Cc) != 0 {
+		t.Errorf("Cc = %v, want empty (no Cc when contact email is set)", msg.Cc)
+	}
+}
+
+func TestSendEmergencyCancelNotification_NoContactEmail(t *testing.T) {
+	mock := &mockSender{}
+	ncfg := newTestNotifyConfig(mock)
+
+	proposal := &models.Proposal{
+		Title: "My Talk",
+		Speakers: makeSpeakersJSON([]models.Speaker{
+			{Name: "Speaker One", Email: "s@example.com", Primary: true},
+		}),
+	}
+
+	event := &models.Event{
+		Name: "SREday",
+		Organizers: []models.User{
+			{Email: "org1@example.com", Name: "Org One"},
+			{Email: "org2@example.com", Name: "Org Two"},
+		},
+	}
+
+	err := SendEmergencyCancelNotification(ncfg, proposal, event)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	msgs := mock.Messages()
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(msgs))
+	}
+
+	msg := msgs[0]
+	if msg.To[0] != "org1@example.com" {
+		t.Errorf("To = %v, want org1@example.com", msg.To)
+	}
+	if len(msg.Cc) != 1 || msg.Cc[0] != "org2@example.com" {
+		t.Errorf("Cc = %v, want [org2@example.com]", msg.Cc)
 	}
 }
 
