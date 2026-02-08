@@ -72,6 +72,40 @@ func TestRequestID_UniquePerRequest(t *testing.T) {
 	}
 }
 
+func TestRequestID_RejectsInvalidClientID(t *testing.T) {
+	cases := []struct {
+		name string
+		id   string
+	}{
+		{"too long", string(make([]byte, 200))},
+		{"newline", "abc\ndef"},
+		{"spaces", "abc def"},
+		{"special chars", "abc<script>alert(1)</script>"},
+		{"unicode", "abc\u00e9def"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			inner := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+			})
+			handler := RequestID(inner)
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.Header.Set("X-Request-ID", tc.id)
+			rr := httptest.NewRecorder()
+			handler.ServeHTTP(rr, req)
+
+			got := rr.Header().Get("X-Request-ID")
+			if got == tc.id {
+				t.Errorf("expected invalid ID %q to be replaced, but it was preserved", tc.id)
+			}
+			if len(got) != 32 {
+				t.Errorf("expected generated 32-char hex ID, got %d chars: %q", len(got), got)
+			}
+		})
+	}
+}
+
 func TestGetRequestID_EmptyContext(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	id := GetRequestID(req.Context())

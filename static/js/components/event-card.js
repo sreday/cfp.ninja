@@ -24,11 +24,11 @@ export function renderEventCard(event, managingMap) {
                     ${cfpStatus.status !== 'none' ? `
                         <p class="cfp-status-text ${cfpStatus.class} small mb-2">
                             ${escapeHtml(cfpStatus.label)}
-                            ${managingMap?.has(event.ID || event.id) ? ` <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success ms-2 manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>` : ''}
+                            ${managingMap?.has(event.ID || event.id) ? ` <a href="/dashboard/events/${event.ID || event.id}/proposals" class="ms-2 manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>` : ''}
                         </p>
                     ` : managingMap?.has(event.ID || event.id) ? `
                         <p class="small mb-2">
-                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="btn btn-sm btn-success manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>
+                            <a href="/dashboard/events/${event.ID || event.id}/proposals" class="manage-submissions-btn">Manage Submissions (${managingMap.get(event.ID || event.id)})</a>
                         </p>
                     ` : ''}
                     ${event.location ? `<p class="text-secondary small mb-0">${escapeHtml(event.location)}</p>` : ''}

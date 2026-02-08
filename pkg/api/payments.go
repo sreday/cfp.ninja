@@ -66,19 +66,6 @@ func CreateEventCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Create Stripe Checkout Session
-		stripe.Key = cfg.StripeSecretKey
-
-		// Determine base URL from request
-		scheme := "https"
-		if r.TLS == nil {
-			scheme = "http"
-		}
-		if fwdProto := r.Header.Get("X-Forwarded-Proto"); fwdProto != "" {
-			scheme = fwdProto
-		}
-		baseURL := fmt.Sprintf("%s://%s", scheme, r.Host)
-
 		params := &stripe.CheckoutSessionParams{
 			Mode: stripe.String(string(stripe.CheckoutSessionModePayment)),
 			LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -93,8 +80,8 @@ func CreateEventCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 					Quantity: stripe.Int64(1),
 				},
 			},
-			SuccessURL: stripe.String(fmt.Sprintf("%s/dashboard/events?payment=success", baseURL)),
-			CancelURL:  stripe.String(fmt.Sprintf("%s/dashboard/events?payment=cancelled", baseURL)),
+			SuccessURL: stripe.String(fmt.Sprintf("%s/dashboard/events?payment=success", cfg.BaseURL)),
+			CancelURL:  stripe.String(fmt.Sprintf("%s/dashboard/events?payment=cancelled", cfg.BaseURL)),
 		}
 		params.AddMetadata("type", "event_listing")
 		params.AddMetadata("event_id", fmt.Sprintf("%d", event.ID))
@@ -180,18 +167,6 @@ func CreateProposalCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Create Stripe Checkout Session
-		stripe.Key = cfg.StripeSecretKey
-
-		scheme := "https"
-		if r.TLS == nil {
-			scheme = "http"
-		}
-		if fwdProto := r.Header.Get("X-Forwarded-Proto"); fwdProto != "" {
-			scheme = fwdProto
-		}
-		baseURL := fmt.Sprintf("%s://%s", scheme, r.Host)
-
 		feeCurrency := cfg.SubmissionListingFeeCurrency
 		if event.CFPSubmissionFeeCurrency != "" {
 			feeCurrency = event.CFPSubmissionFeeCurrency
@@ -215,8 +190,8 @@ func CreateProposalCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 					Quantity: stripe.Int64(1),
 				},
 			},
-			SuccessURL: stripe.String(fmt.Sprintf("%s/dashboard/proposals?payment=success", baseURL)),
-			CancelURL:  stripe.String(fmt.Sprintf("%s/dashboard/proposals?payment=cancelled", baseURL)),
+			SuccessURL: stripe.String(fmt.Sprintf("%s/dashboard/proposals?payment=success", cfg.BaseURL)),
+			CancelURL:  stripe.String(fmt.Sprintf("%s/dashboard/proposals?payment=cancelled", cfg.BaseURL)),
 		}
 		params.AddMetadata("type", "proposal_submission")
 		params.AddMetadata("proposal_id", fmt.Sprintf("%d", proposal.ID))
@@ -265,13 +240,15 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Always return 200 to Stripe after signature verification, even if
+		// processing fails. Returning non-2xx causes Stripe to retry indefinitely
+		// for permanent errors, and may cause it to disable the webhook endpoint.
 		switch event.Type {
 		case "checkout.session.completed":
 			var sess stripe.CheckoutSession
 			if err := json.Unmarshal(event.Data.Raw, &sess); err != nil {
 				cfg.Logger.Error("failed to parse checkout session", "error", err)
-				encodeError(w, "Failed to parse event data", http.StatusBadRequest)
-				return
+				break
 			}
 
 			paymentType := sess.Metadata["type"]
@@ -282,8 +259,7 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 				eventID, err := strconv.ParseUint(eventIDStr, 10, 32)
 				if err != nil {
 					cfg.Logger.Error("invalid event_id in webhook metadata", "event_id", eventIDStr)
-					encodeError(w, "Invalid event_id in metadata", http.StatusBadRequest)
-					return
+					break
 				}
 				// Idempotent update: only update if not already paid
 				// Wrap payment mark + CFP auto-open in a transaction so both succeed or neither does
@@ -317,8 +293,7 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 				proposalID, err := strconv.ParseUint(proposalIDStr, 10, 32)
 				if err != nil {
 					cfg.Logger.Error("invalid proposal_id in webhook metadata", "proposal_id", proposalIDStr)
-					encodeError(w, "Invalid proposal_id in metadata", http.StatusBadRequest)
-					return
+					break
 				}
 				// Idempotent update: only update if not already paid
 				result := cfg.DB.Model(&models.Proposal{}).

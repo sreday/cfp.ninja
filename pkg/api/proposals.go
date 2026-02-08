@@ -50,7 +50,7 @@ func validateCustomAnswers(answers map[string]interface{}, questions []models.Cu
 	for id, val := range answers {
 		q, known := questionMap[id]
 		if !known {
-			continue // ignore answers to unknown questions
+			return "Unknown question: '" + id + "'"
 		}
 
 		switch q.Type {
@@ -228,6 +228,20 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Require at least one speaker email matches the authenticated user
+		// to prevent abuse of email notifications via fake speaker addresses
+		speakerEmailMatch := false
+		for _, speaker := range speakers {
+			if strings.EqualFold(speaker.Email, user.Email) {
+				speakerEmailMatch = true
+				break
+			}
+		}
+		if !speakerEmailMatch {
+			encodeError(w, "At least one speaker email must match your account email", http.StatusBadRequest)
+			return
+		}
+
 		// Validate custom questions if event has them
 		if len(event.CFPQuestions) > 0 {
 			var questions []models.CustomQuestion
@@ -299,7 +313,10 @@ func GetProposalHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Check authorization: owner or event organizer
 		var event models.Event
-		cfg.DB.Preload("Organizers").First(&event, proposal.EventID)
+		if err := cfg.DB.Preload("Organizers").First(&event, proposal.EventID).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
 
 		isOwner := proposal.CreatedByID != nil && *proposal.CreatedByID == user.ID
 		isOrganizer := event.IsOrganizer(user.ID)
@@ -346,7 +363,10 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var event models.Event
-		cfg.DB.Preload("Organizers").First(&event, proposal.EventID)
+		if err := cfg.DB.Preload("Organizers").First(&event, proposal.EventID).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
 
 		isOwner := proposal.CreatedByID != nil && *proposal.CreatedByID == user.ID
 		isOrganizer := event.IsOrganizer(user.ID)
@@ -593,7 +613,10 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var event models.Event
-		cfg.DB.Preload("Organizers").First(&event, proposal.EventID)
+		if err := cfg.DB.Preload("Organizers").First(&event, proposal.EventID).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
 
 		if !event.IsOrganizer(user.ID) {
 			encodeError(w, "Forbidden", http.StatusForbidden)
@@ -716,7 +739,10 @@ func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var event models.Event
-		cfg.DB.Preload("Organizers").First(&event, proposal.EventID)
+		if err := cfg.DB.Preload("Organizers").First(&event, proposal.EventID).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
 
 		if !event.IsOrganizer(user.ID) {
 			encodeError(w, "Forbidden", http.StatusForbidden)
@@ -816,7 +842,10 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 			p := proposal // copy for goroutine
 			SafeGo(cfg, func() {
 				var ev models.Event
-				cfg.DB.Preload("Organizers").First(&ev, p.EventID)
+				if err := cfg.DB.Preload("Organizers").First(&ev, p.EventID).Error; err != nil {
+					cfg.Logger.Error("failed to load event for attendance notification", "proposal_id", p.ID, "event_id", p.EventID, "error", err)
+					return
+				}
 				ncfg := &email.NotifyConfig{
 					Sender:  cfg.EmailSender,
 					From:    cfg.EmailFrom,
@@ -907,7 +936,10 @@ func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 			p := proposal // copy for goroutine
 			SafeGo(cfg, func() {
 				var ev models.Event
-				cfg.DB.Preload("Organizers").First(&ev, p.EventID)
+				if err := cfg.DB.Preload("Organizers").First(&ev, p.EventID).Error; err != nil {
+					cfg.Logger.Error("failed to load event for emergency cancel notification", "proposal_id", p.ID, "event_id", p.EventID, "error", err)
+					return
+				}
 				ncfg := &email.NotifyConfig{
 					Sender:  cfg.EmailSender,
 					From:    cfg.EmailFrom,
@@ -963,11 +995,7 @@ func CheckLinkedInHandler(cfg *config.Config) http.HandlerFunc {
 			encodeResponse(w, r, map[string]bool{"exists": true})
 			return
 		}
-		ua := r.Header.Get("User-Agent")
-		if ua == "" {
-			ua = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-		}
-		req.Header.Set("User-Agent", ua)
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
 
 		resp, err := linkedInHTTPClient.Do(req)
 		if err != nil {

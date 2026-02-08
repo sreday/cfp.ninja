@@ -14,6 +14,7 @@ import { CreateEventView } from './views/create-event.js';
 import { ManageEventView } from './views/manage-event.js';
 import { ProposalsView } from './views/proposals.js';
 import { CliView } from './views/cli.js';
+import { PricingView } from './views/pricing.js';
 import { EditProposalView } from './views/edit-proposal.js';
 import { SubmissionSuccessView } from './views/submission-success.js';
 
@@ -358,6 +359,7 @@ async function init() {
     router
         .add('/', EventsView)
         .add('/cli', CliView)
+        .add('/pricing', PricingView)
         .add('/e/:slug', EventDetailView)
         .add('/e/:slug/submit', requireAuth(SubmitProposalView))
         .add('/e/:slug/submitted', requireAuth(SubmissionSuccessView))

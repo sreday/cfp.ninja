@@ -1,4 +1,4 @@
-.PHONY: build run test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
+.PHONY: build run run-migrate test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
 
 # Common test environment variables
 TEST_DB_ENV = \
@@ -23,6 +23,10 @@ build:
 # Run the server
 run:
 	go run main.go
+
+# Run the server
+run-migrate:
+	go run main.go -auto-migrate
 
 # Run unit tests (excludes integration/e2e/cli tests that need database)
 test:

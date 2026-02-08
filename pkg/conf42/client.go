@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const DefaultMetadataURL = "https://raw.githubusercontent.com/conf42/src/refs/heads/main/metadata.yml"
+const DefaultMetadataURL = "https://raw.githubusercontent.com/conf42/src/main/metadata.yml"
 
 type Client struct {
 	MetadataURL string

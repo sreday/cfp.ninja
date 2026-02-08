@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/datatypes"
 	"gorm.io/gorm/clause"
 	"github.com/sreday/cfp.ninja/pkg/config"
@@ -487,6 +489,11 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		if err := cfg.DB.Create(&event).Error; err != nil {
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				encodeError(w, "Slug already exists", http.StatusConflict)
+				return
+			}
 			cfg.Logger.Error("failed to create event", "error", err)
 			encodeError(w, "Failed to create event", http.StatusInternalServerError)
 			return
@@ -569,9 +576,22 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
-		// Payment gate: block opening CFP if listing fee is required and unpaid
-		if status, ok := updates["cfp_status"].(string); ok && status == string(models.CFPStatusOpen) {
-			if cfg.EventListingFee > 0 && !event.IsPaid {
+		// Validate cfp_status enum if being updated
+		if status, ok := updates["cfp_status"].(string); ok {
+			validStatuses := map[models.CFPStatus]bool{
+				models.CFPStatusDraft:     true,
+				models.CFPStatusOpen:      true,
+				models.CFPStatusClosed:    true,
+				models.CFPStatusReviewing: true,
+				models.CFPStatusComplete:  true,
+			}
+			if !validStatuses[models.CFPStatus(status)] {
+				encodeError(w, "Invalid CFP status", http.StatusBadRequest)
+				return
+			}
+
+			// Payment gate: block opening CFP if listing fee is required and unpaid
+			if status == string(models.CFPStatusOpen) && cfg.EventListingFee > 0 && !event.IsPaid {
 				encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
 				return
 			}
@@ -935,12 +955,6 @@ func GetEventOrganizersHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Include creator info
-		var creator models.User
-		if event.CreatedByID != nil {
-			cfg.DB.First(&creator, *event.CreatedByID)
-		}
-
 		type OrganizerResponse struct {
 			ID        uint   `json:"id"`
 			Email     string `json:"email"`
@@ -948,17 +962,25 @@ func GetEventOrganizersHandler(cfg *config.Config) http.HandlerFunc {
 			IsCreator bool   `json:"is_creator"`
 		}
 
-		organizers := []OrganizerResponse{
-			{
-				ID:        creator.ID,
-				Email:     creator.Email,
-				Name:      creator.Name,
-				IsCreator: true,
-			},
+		var organizers []OrganizerResponse
+		var creatorID uint
+
+		// Include creator info if available
+		if event.CreatedByID != nil {
+			var creator models.User
+			if err := cfg.DB.First(&creator, *event.CreatedByID).Error; err == nil {
+				creatorID = creator.ID
+				organizers = append(organizers, OrganizerResponse{
+					ID:        creator.ID,
+					Email:     creator.Email,
+					Name:      creator.Name,
+					IsCreator: true,
+				})
+			}
 		}
 
 		for _, org := range event.Organizers {
-			if org.ID != creator.ID {
+			if org.ID != creatorID {
 				organizers = append(organizers, OrganizerResponse{
 					ID:        org.ID,
 					Email:     org.Email,
@@ -1040,8 +1062,12 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Limit number of organizers
-		if len(event.Organizers) >= cfg.MaxOrganizersPerEvent {
+		// Limit number of organizers (co-organizers + creator)
+		totalOrganizers := len(event.Organizers)
+		if event.CreatedByID != nil {
+			totalOrganizers++
+		}
+		if totalOrganizers >= cfg.MaxOrganizersPerEvent {
 			encodeError(w, fmt.Sprintf("Maximum %d organizers allowed", cfg.MaxOrganizersPerEvent), http.StatusBadRequest)
 			return
 		}

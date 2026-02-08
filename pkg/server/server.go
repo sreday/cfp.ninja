@@ -10,6 +10,7 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/database"
 	"github.com/sreday/cfp.ninja/pkg/email"
 	"github.com/sreday/cfp.ninja/pkg/models"
+	"github.com/stripe/stripe-go/v82"
 )
 
 // SetupServer initializes config, database, and routes, returning the config and handler.
@@ -42,6 +43,11 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		if err := models.CreatePartialUniqueIndexes(db); err != nil {
 			return nil, nil, err
 		}
+	}
+
+	// Set Stripe API key once at startup (not per-request) to avoid data races
+	if cfg.StripeSecretKey != "" {
+		stripe.Key = cfg.StripeSecretKey
 	}
 
 	// Initialise email sender

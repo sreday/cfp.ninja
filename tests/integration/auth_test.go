@@ -105,11 +105,15 @@ func TestPublicEndpoints(t *testing.T) {
 	for _, ep := range publicEndpoints {
 		t.Run(ep.method+" "+ep.path, func(t *testing.T) {
 			resp := doRequest(ep.method, ep.path, nil, "")
+			defer resp.Body.Close()
 			// Should NOT return 401 Unauthorized
 			if resp.StatusCode == http.StatusUnauthorized {
 				t.Errorf("expected public access for %s %s, got 401", ep.method, ep.path)
 			}
-			resp.Body.Close()
+			// Should NOT return a server error
+			if resp.StatusCode >= 500 {
+				t.Errorf("expected no server error for %s %s, got %d", ep.method, ep.path, resp.StatusCode)
+			}
 		})
 	}
 }

@@ -25,6 +25,8 @@ export function renderNav() {
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
+                        <li class="nav-item"><a class="nav-link" href="/pricing">Pricing</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/cli">CLI</a></li>
                     </ul>
                     <ul class="navbar-nav">
                         ${renderThemeToggle()}

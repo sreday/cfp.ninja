@@ -142,7 +142,10 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		return nil
 	}
 
-	speakers, _ := proposal.GetSpeakers()
+	speakers, err := proposal.GetSpeakers()
+	if err != nil {
+		ncfg.Logger.Error("failed to parse speakers for attendance notification", "proposal_id", proposal.ID, "error", err)
+	}
 	speakerName := "A speaker"
 	if len(speakers) > 0 {
 		for _, s := range speakers {
@@ -156,6 +159,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		}
 	}
 
+	var lastErr error
 	for _, org := range event.Organizers {
 		data := attendanceConfirmedData{
 			OrganizerName: org.Name,
@@ -168,6 +172,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		html, text, err := Render("attendance_confirmed", data)
 		if err != nil {
 			ncfg.Logger.Error("failed to render attendance email", "error", err)
+			lastErr = err
 			continue
 		}
 
@@ -185,6 +190,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 				"organizer", org.Email,
 				"error", err,
 			)
+			lastErr = err
 			continue
 		}
 
@@ -194,14 +200,17 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		)
 	}
 
-	return nil
+	return lastErr
 }
 
 // SendEmergencyCancelNotification sends a single email when a speaker emergency-cancels.
 // If the event has a contact email, it is sent there (with speakers in Cc).
 // Otherwise it is sent to the first organizer (remaining organisers in Cc, no speakers).
 func SendEmergencyCancelNotification(ncfg *NotifyConfig, proposal *models.Proposal, event *models.Event) error {
-	speakers, _ := proposal.GetSpeakers()
+	speakers, err := proposal.GetSpeakers()
+	if err != nil {
+		ncfg.Logger.Error("failed to parse speakers for emergency cancel notification", "proposal_id", proposal.ID, "error", err)
+	}
 	var speakerName string
 	var speakerEmails []string
 	if len(speakers) > 0 {

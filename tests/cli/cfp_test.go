@@ -2,7 +2,6 @@ package cli
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -162,15 +161,11 @@ cfp_close_at: "2025-11-15T00:00:00Z"
 }
 
 func TestCfp_Config(t *testing.T) {
-	// Test that config command works
-	stdout, stderr, exitCode := runCLI(cfpCmd, "config")
+	_, stderr, exitCode := runCLI(cfpCmd, "config")
 
-	// Config command should always succeed (shows current config)
-	if exitCode != 0 && stderr != "" {
-		t.Errorf("cfp config failed: %s", stderr)
+	if exitCode != 0 {
+		t.Errorf("cfp config failed: exit=%d stderr=%s", exitCode, stderr)
 	}
-
-	_ = stdout
 }
 
 func TestCfp_Whoami_NotLoggedIn(t *testing.T) {
@@ -223,8 +218,8 @@ func TestCfp_OutputFormat_YAML(t *testing.T) {
 		t.Errorf("cfp events -o yaml failed: exit=%d stderr=%s", exitCode, stderr)
 	}
 
-	// YAML output should be present
-	_ = stdout
+	// YAML output should contain the event name
+	assertOutput(t, stdout, "YAML Format Event")
 }
 
 func TestCfp_Completion_Bash(t *testing.T) {
@@ -256,14 +251,3 @@ func TestCfp_UnknownCommand(t *testing.T) {
 	assertExitCode(t, exitCode, 1)
 }
 
-func TestCfp_ConfigDir(t *testing.T) {
-	// Verify config is stored in expected location
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		t.Skip("cannot get home directory")
-	}
-
-	configDir := filepath.Join(homeDir, ".config", "cfp")
-	// The directory may or may not exist depending on whether login was used
-	_ = configDir
-}

@@ -27,11 +27,18 @@ func encodeError(w http.ResponseWriter, message string, statusCode int) {
 	json.NewEncoder(w).Encode(map[string]string{"error": message})
 }
 
+// safeGoSem limits the number of concurrent SafeGo goroutines to avoid
+// unbounded growth under high traffic (e.g. bulk status updates).
+var safeGoSem = make(chan struct{}, 50)
+
 // SafeGo launches a goroutine with panic recovery.
+// At most 50 goroutines run concurrently; callers beyond that block until a slot opens.
 // If cfg.OnBackgroundDone is set, it is called after fn completes (used by tests).
 func SafeGo(cfg *config.Config, fn func()) {
+	safeGoSem <- struct{}{} // acquire slot
 	go func() {
 		defer func() {
+			<-safeGoSem // release slot
 			if r := recover(); r != nil {
 				cfg.Logger.Error("recovered from panic in goroutine", "panic", r)
 			}

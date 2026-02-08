@@ -318,9 +318,13 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 
 	if len(organiserIDs) > 0 {
 		var users []models.User
-		db.Where("id IN ?", organiserIDs).Find(&users)
+		if err := db.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
+			logger.Warn("failed to find organiser users", "slug", slug, "error", err)
+		}
 		if len(users) > 0 {
-			db.Model(&newEvent).Association("Organizers").Append(&users)
+			if err := db.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
+				logger.Warn("failed to assign organisers", "slug", slug, "error", err)
+			}
 		}
 	}
 
@@ -440,9 +444,13 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 
 		if len(organiserIDs) > 0 {
 			var users []models.User
-			db.Where("id IN ?", organiserIDs).Find(&users)
+			if err := db.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
+				logger.Warn("failed to find organiser users", "slug", slug, "error", err)
+			}
 			if len(users) > 0 {
-				db.Model(&newEvent).Association("Organizers").Append(&users)
+				if err := db.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
+					logger.Warn("failed to assign organisers", "slug", slug, "error", err)
+				}
 			}
 		}
 

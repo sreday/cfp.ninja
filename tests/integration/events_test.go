@@ -784,9 +784,6 @@ func TestCreateEvent_ConcurrentDuplicateSlug(t *testing.T) {
 			created++
 		case http.StatusConflict:
 			conflicts++
-		case http.StatusInternalServerError:
-			// DB unique constraint violation surfaced as 500 is also acceptable
-			conflicts++
 		default:
 			t.Errorf("unexpected status code: %d", code)
 		}

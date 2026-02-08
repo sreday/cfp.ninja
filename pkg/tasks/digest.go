@@ -65,9 +65,12 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 
 	// Find all organisers who have at least one event
 	var organisers []models.User
-	db.Distinct().
+	if err := db.Distinct().
 		Joins("JOIN event_organizers ON event_organizers.user_id = users.id").
-		Find(&organisers)
+		Find(&organisers).Error; err != nil {
+		logger.Error("failed to query organisers for digest", "error", err)
+		return
+	}
 
 	if len(organisers) == 0 {
 		return
@@ -80,12 +83,15 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 		Name    string
 	}
 	var orgEvents []orgEvent
-	db.Raw(`
+	if err := db.Raw(`
 		SELECT eo.user_id, e.id AS event_id, e.name
 		FROM event_organizers eo
 		JOIN events e ON e.id = eo.event_id
 		WHERE e.deleted_at IS NULL
-	`).Scan(&orgEvents)
+	`).Scan(&orgEvents).Error; err != nil {
+		logger.Error("failed to query organiser events for digest", "error", err)
+		return
+	}
 
 	if len(orgEvents) == 0 {
 		return
@@ -108,39 +114,51 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 	}
 
 	var newCounts []countRow
-	db.Raw(`
+	if err := db.Raw(`
 		SELECT event_id, COUNT(*) AS cnt
 		FROM proposals
 		WHERE event_id IN ? AND deleted_at IS NULL AND created_at >= ?
 		GROUP BY event_id
-	`, eventIDs, since).Scan(&newCounts)
+	`, eventIDs, since).Scan(&newCounts).Error; err != nil {
+		logger.Error("failed to query new proposal counts", "error", err)
+		return
+	}
 
 	// Batch query: accepted proposals updated in last 7 days
 	var acceptedCounts []countRow
-	db.Raw(`
+	if err := db.Raw(`
 		SELECT event_id, COUNT(*) AS cnt
 		FROM proposals
 		WHERE event_id IN ? AND deleted_at IS NULL AND status = ? AND updated_at >= ?
 		GROUP BY event_id
-	`, eventIDs, models.ProposalStatusAccepted, since).Scan(&acceptedCounts)
+	`, eventIDs, models.ProposalStatusAccepted, since).Scan(&acceptedCounts).Error; err != nil {
+		logger.Error("failed to query accepted proposal counts", "error", err)
+		return
+	}
 
 	// Batch query: rejected proposals updated in last 7 days
 	var rejectedCounts []countRow
-	db.Raw(`
+	if err := db.Raw(`
 		SELECT event_id, COUNT(*) AS cnt
 		FROM proposals
 		WHERE event_id IN ? AND deleted_at IS NULL AND status = ? AND updated_at >= ?
 		GROUP BY event_id
-	`, eventIDs, models.ProposalStatusRejected, since).Scan(&rejectedCounts)
+	`, eventIDs, models.ProposalStatusRejected, since).Scan(&rejectedCounts).Error; err != nil {
+		logger.Error("failed to query rejected proposal counts", "error", err)
+		return
+	}
 
 	// Batch query: confirmed attendance in last 7 days
 	var confirmedCounts []countRow
-	db.Raw(`
+	if err := db.Raw(`
 		SELECT event_id, COUNT(*) AS cnt
 		FROM proposals
 		WHERE event_id IN ? AND deleted_at IS NULL AND attendance_confirmed = true AND attendance_confirmed_at >= ?
 		GROUP BY event_id
-	`, eventIDs, since).Scan(&confirmedCounts)
+	`, eventIDs, since).Scan(&confirmedCounts).Error; err != nil {
+		logger.Error("failed to query confirmed attendance counts", "error", err)
+		return
+	}
 
 	// Build lookup maps
 	countsByEvent := make(map[uint]*eventCounts)

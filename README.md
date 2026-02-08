@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="static/img/cfpninja_full.png" alt="CFP.ninja" height="100">
+</p>
+
 # CFP.ninja
 
 Open source Call for Proposals platform. Simple, self-hosted alternative to Sessionize and Papercall.

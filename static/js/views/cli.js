@@ -7,7 +7,8 @@ export async function CliView() {
 
     main.innerHTML = `
         <div class="cli-page">
-            <div class="mb-4">
+            <div class="mb-4 text-center">
+                <img src="/img/cfpninja_full.png" alt="CFP.ninja" class="mb-3" style="max-height: 80px;">
                 <h1>cfp</h1>
                 <p class="text-muted">Browse events, submit proposals, and manage your CFPs from the terminal.</p>
             </div>
@@ -112,7 +113,7 @@ cfp submit --help</code></pre>
                 </div>
 
                 <div class="col-lg-4">
-                    <div class="card">
+                    <div class="card mb-4">
                         <div class="card-body">
                             <h2 class="h5 mb-3">Why use the CLI?</h2>
                             <ul class="mb-0">
@@ -122,6 +123,14 @@ cfp submit --help</code></pre>
                                 <li class="mb-2">Pipe output to other tools</li>
                                 <li>Works offline for drafting</li>
                             </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-body">
+                            <h2 class="h5 mb-3">Download Binary</h2>
+                            <p>Don't have Go installed? Grab a prebuilt binary from GitHub:</p>
+                            <a href="https://github.com/sreday/cfp.ninja/releases" target="_blank" class="btn btn-outline-primary w-100">GitHub Releases</a>
                         </div>
                     </div>
                 </div>
