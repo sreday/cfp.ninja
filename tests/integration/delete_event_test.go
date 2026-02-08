@@ -47,8 +47,8 @@ func TestDeleteEvent_NonCreatorForbidden(t *testing.T) {
 	assertStatus(t, resp, http.StatusForbidden)
 	resp.Body.Close()
 
-	// Verify event still exists
-	resp = doGet(fmt.Sprintf("/api/v0/events/%d", event.ID))
+	// Verify event still exists (use authenticated request since draft events are hidden from public)
+	resp = doAuthGet(fmt.Sprintf("/api/v0/me/events/%d", event.ID), adminToken)
 	assertStatus(t, resp, http.StatusOK)
 	resp.Body.Close()
 }

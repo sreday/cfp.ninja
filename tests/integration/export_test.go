@@ -46,15 +46,8 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 		t.Fatalf("expected at least 3 rows (header + 2 data), got %d", len(records))
 	}
 
-	// Verify ALL data rows have status=accepted (column 0)
-	for i, row := range records[1:] {
-		if row[0] != "accepted" {
-			t.Errorf("row %d: expected status 'accepted', got %q (title: %s)", i+1, row[0], row[11])
-		}
-	}
-
 	// Verify header columns
-	expectedHeader := []string{"status", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
+	expectedHeader := []string{"status", "confirmed", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
 	header := records[0]
 	if len(header) != len(expectedHeader) {
 		t.Fatalf("expected %d columns, got %d: %v", len(expectedHeader), len(header), header)
@@ -68,27 +61,27 @@ func TestExportProposals_InPersonFormat(t *testing.T) {
 	// Verify data row content
 	found := false
 	for _, row := range records[1:] {
-		if row[11] == "Go Performance Tips" { // title column (index 11)
+		if row[12] == "Go Performance Tips" { // title column (index 12)
 			found = true
-			// name (index 1) - should contain speaker name
-			if !strings.Contains(row[1], "Speaker User") {
-				t.Errorf("expected name to contain 'Speaker User', got %q", row[1])
+			// name (index 2) - should contain speaker name
+			if !strings.Contains(row[2], "Speaker User") {
+				t.Errorf("expected name to contain 'Speaker User', got %q", row[2])
 			}
-			// organization (index 5)
-			if row[5] != "Acme Inc" {
-				t.Errorf("expected organization 'Acme Inc', got %q", row[5])
+			// organization (index 6)
+			if row[6] != "Acme Inc" {
+				t.Errorf("expected organization 'Acme Inc', got %q", row[6])
 			}
-			// linkedin (index 7)
-			if row[7] != "https://linkedin.com/in/speaker" {
-				t.Errorf("expected linkedin URL, got %q", row[7])
+			// linkedin (index 8)
+			if row[8] != "https://linkedin.com/in/speaker" {
+				t.Errorf("expected linkedin URL, got %q", row[8])
 			}
-			// abstract (index 12)
-			if row[12] == "" {
+			// abstract (index 13)
+			if row[13] == "" {
 				t.Error("expected non-empty abstract")
 			}
-			// bio (index 14)
-			if row[14] != "A Go developer" {
-				t.Errorf("expected bio 'A Go developer', got %q", row[14])
+			// bio (index 15)
+			if row[15] != "A Go developer" {
+				t.Errorf("expected bio 'A Go developer', got %q", row[15])
 			}
 			break
 		}
@@ -119,7 +112,7 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 	}
 
 	// Verify header columns
-	expectedHeader := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
+	expectedHeader := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration", "Status", "Confirmed"}
 	header := records[0]
 	if len(header) != len(expectedHeader) {
 		t.Fatalf("expected %d columns, got %d: %v", len(expectedHeader), len(header), header)
@@ -158,6 +151,14 @@ func TestExportProposals_OnlineFormat(t *testing.T) {
 			// Keywords (index 19) — maps to tags
 			if row[19] != "concurrency,channels" {
 				t.Errorf("expected Keywords 'concurrency,channels', got %q", row[19])
+			}
+			// Status (index 21)
+			if row[21] != "accepted" {
+				t.Errorf("expected Status 'accepted', got %q", row[21])
+			}
+			// Confirmed (index 22)
+			if row[22] != "no" {
+				t.Errorf("expected Confirmed 'no', got %q", row[22])
 			}
 			break
 		}
@@ -199,23 +200,23 @@ func TestExportProposals_TwoSpeakers_InPerson(t *testing.T) {
 
 	found := false
 	for _, row := range records[1:] {
-		if row[11] == "Two Speaker Talk InPerson" {
+		if row[12] == "Two Speaker Talk InPerson" {
 			found = true
-			// name (index 1) - should be "Alice Smith & Bob Jones"
-			if row[1] != "Alice Smith & Bob Jones" {
-				t.Errorf("expected name 'Alice Smith & Bob Jones', got %q", row[1])
+			// name (index 2) - should be "Alice Smith & Bob Jones"
+			if row[2] != "Alice Smith & Bob Jones" {
+				t.Errorf("expected name 'Alice Smith & Bob Jones', got %q", row[2])
 			}
-			// organization (index 5) - first speaker's company
-			if row[5] != "AliceCo" {
-				t.Errorf("expected organization 'AliceCo', got %q", row[5])
+			// organization (index 6) - first speaker's company
+			if row[6] != "AliceCo" {
+				t.Errorf("expected organization 'AliceCo', got %q", row[6])
 			}
-			// linkedin (index 7) - first speaker
-			if row[7] != "https://linkedin.com/in/alice" {
-				t.Errorf("expected linkedin 'https://linkedin.com/in/alice', got %q", row[7])
+			// linkedin (index 8) - first speaker
+			if row[8] != "https://linkedin.com/in/alice" {
+				t.Errorf("expected linkedin 'https://linkedin.com/in/alice', got %q", row[8])
 			}
-			// linkedin2 (index 8) - second speaker
-			if row[8] != "https://linkedin.com/in/bob" {
-				t.Errorf("expected linkedin2 'https://linkedin.com/in/bob', got %q", row[8])
+			// linkedin2 (index 9) - second speaker
+			if row[9] != "https://linkedin.com/in/bob" {
+				t.Errorf("expected linkedin2 'https://linkedin.com/in/bob', got %q", row[9])
 			}
 			break
 		}
@@ -295,6 +296,14 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 			if row[20] != "60" {
 				t.Errorf("expected Duration '60', got %q", row[20])
 			}
+			// Status (index 21)
+			if row[21] != "accepted" {
+				t.Errorf("expected Status 'accepted', got %q", row[21])
+			}
+			// Confirmed (index 22)
+			if row[22] != "no" {
+				t.Errorf("expected Confirmed 'no', got %q", row[22])
+			}
 			break
 		}
 	}
@@ -303,8 +312,7 @@ func TestExportProposals_TwoSpeakers_Online(t *testing.T) {
 	}
 }
 
-func TestExportProposals_ExcludesNonAccepted(t *testing.T) {
-	// Create a proposal in "submitted" status — should NOT appear in export
+func TestExportProposals_IncludesAllStatuses(t *testing.T) {
 	now := time.Now()
 	event := createTestEvent(adminToken, EventInput{
 		Name:       "Export Filter Test",
@@ -316,7 +324,7 @@ func TestExportProposals_ExcludesNonAccepted(t *testing.T) {
 	})
 	updateCFPStatus(adminToken, event.ID, "open")
 
-	// Create one accepted and one submitted proposal
+	// Create one accepted, one submitted, and one rejected proposal
 	accepted := createTestProposal(speakerToken, event.ID, ProposalInput{
 		Title:    "Accepted Export Talk",
 		Abstract: "This should appear.",
@@ -329,18 +337,17 @@ func TestExportProposals_ExcludesNonAccepted(t *testing.T) {
 
 	createTestProposal(speakerToken, event.ID, ProposalInput{
 		Title:    "Submitted Export Talk",
-		Abstract: "This should NOT appear.",
+		Abstract: "This should also appear.",
 		Format:   "talk",
 		Speakers: []Speaker{
 			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 		},
 	})
-	// Leave as "submitted" — do not accept
+	// Leave as "submitted"
 
-	// Also create a rejected proposal
 	rejected := createTestProposal(speakerToken, event.ID, ProposalInput{
 		Title:    "Rejected Export Talk",
-		Abstract: "This should NOT appear either.",
+		Abstract: "This should also appear.",
 		Format:   "talk",
 		Speakers: []Speaker{
 			{Name: "Speaker", Email: "speaker@test.com", Company: "Acme", JobTitle: "Dev", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
@@ -362,20 +369,42 @@ func TestExportProposals_ExcludesNonAccepted(t *testing.T) {
 		t.Fatalf("failed to parse CSV: %v", err)
 	}
 
-	// Should have exactly 1 header + 1 data row (only the accepted proposal)
-	if len(records) != 2 {
+	// Should have header + 3 data rows (all statuses included)
+	if len(records) != 4 {
 		titles := []string{}
 		for _, row := range records[1:] {
-			titles = append(titles, row[11])
+			titles = append(titles, row[12])
 		}
-		t.Fatalf("expected exactly 2 rows (header + 1 accepted), got %d. Titles: %v", len(records), titles)
+		t.Fatalf("expected exactly 4 rows (header + 3 proposals), got %d. Titles: %v", len(records), titles)
 	}
 
-	if records[1][11] != "Accepted Export Talk" {
-		t.Errorf("expected title 'Accepted Export Talk', got %q", records[1][11])
+	// Collect exported proposals by title
+	statusByTitle := map[string]string{}
+	confirmedByTitle := map[string]string{}
+	for _, row := range records[1:] {
+		statusByTitle[row[12]] = row[0]       // title at index 12, status at index 0
+		confirmedByTitle[row[12]] = row[1]     // confirmed at index 1
 	}
-	if records[1][0] != "accepted" {
-		t.Errorf("expected status 'accepted', got %q", records[1][0])
+
+	// Verify all three proposals are present with correct statuses
+	expectedStatuses := map[string]string{
+		"Accepted Export Talk":  "accepted",
+		"Submitted Export Talk": "submitted",
+		"Rejected Export Talk":  "rejected",
+	}
+	for title, expectedStatus := range expectedStatuses {
+		got, ok := statusByTitle[title]
+		if !ok {
+			t.Errorf("proposal %q not found in export", title)
+			continue
+		}
+		if got != expectedStatus {
+			t.Errorf("proposal %q: expected status %q, got %q", title, expectedStatus, got)
+		}
+		// All proposals should have confirmed=no (none were confirmed)
+		if confirmedByTitle[title] != "no" {
+			t.Errorf("proposal %q: expected confirmed 'no', got %q", title, confirmedByTitle[title])
+		}
 	}
 }
 

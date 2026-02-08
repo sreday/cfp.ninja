@@ -241,6 +241,8 @@ func CreateProposalCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 // No JWT auth - verified via Stripe signature.
 func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		defer r.Body.Close()
+
 		if r.Method != http.MethodPost {
 			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return

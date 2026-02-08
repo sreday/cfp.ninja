@@ -68,10 +68,12 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		})
 	}
 
-	// Wrap with security headers and request logging
+	// Wrap with security headers, request ID, and request logging.
+	// Order (outermost first): RequestID → RequestLogging → SecurityHeaders → mux
 	var handler http.Handler = mux
 	handler = api.SecurityHeaders(handler)
 	handler = api.RequestLogging(cfg.Logger, handler)
+	handler = api.RequestID(handler)
 
 	return cfg, handler, nil
 }
@@ -90,6 +92,9 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 		writeLimiter = api.NewRateLimiter(10, 20, cfg.TrustedProxies)   // 10 req/s, burst 20 (create/update)
 		readLimiter = api.NewRateLimiter(30, 60, cfg.TrustedProxies)    // 30 req/s, burst 60 (public reads)
 	}
+
+	// Health check (no auth, no CORS, no rate limiting)
+	mux.HandleFunc("/api/v0/health", api.HealthHandler(cfg))
 
 	// Public endpoints (no auth, with CORS, rate limited)
 	mux.HandleFunc("/api/v0/config", api.CorsHandler(cfg, api.ConfigHandler(cfg)))

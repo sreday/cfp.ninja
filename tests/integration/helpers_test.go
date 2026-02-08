@@ -169,6 +169,9 @@ type ConfigResponse struct {
 	SubmissionListingFee         int      `json:"submission_listing_fee,omitempty"`
 	SubmissionListingFeeCurrency string   `json:"submission_listing_fee_currency,omitempty"`
 	PaymentsEnabled              bool     `json:"payments_enabled"`
+	MaxProposalsPerEvent         int      `json:"max_proposals_per_event"`
+	MaxOrganizersPerEvent        int      `json:"max_organizers_per_event"`
+	NotificationEmail            string   `json:"notification_email,omitempty"`
 }
 
 // ProposalListResponse is just an alias since the API returns an array directly

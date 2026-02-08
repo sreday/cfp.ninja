@@ -383,8 +383,14 @@ function renderProposalModal(proposal) {
 }
 
 function downloadCSV(eventId, format) {
-    fetch(`/api/v0/events/${eventId}/proposals/export?format=${format}`)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    fetch(`/api/v0/events/${eventId}/proposals/export?format=${format}`, {
+        signal: controller.signal
+    })
     .then(resp => {
+        clearTimeout(timeoutId);
         if (!resp.ok) throw new Error('Export failed');
         return resp.blob();
     })
@@ -396,7 +402,10 @@ function downloadCSV(eventId, format) {
         a.click();
         URL.revokeObjectURL(url);
     })
-    .catch(() => toast.error('Failed to export CSV.'));
+    .catch(() => {
+        clearTimeout(timeoutId);
+        toast.error('Failed to export CSV.');
+    });
 }
 
 function attachHandlers(event, allProposals) {

@@ -65,7 +65,7 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 		defer cancel()
 
 		var proposals []models.Proposal
-		if err := cfg.DB.WithContext(ctx).Where("event_id = ? AND status = ?", eventID, models.ProposalStatusAccepted).Find(&proposals).Error; err != nil {
+		if err := cfg.DB.WithContext(ctx).Where("event_id = ?", eventID).Find(&proposals).Error; err != nil {
 			cfg.Logger.Error("failed to query proposals for export", "error", err, "event_id", eventID)
 			encodeError(w, "Failed to export proposals", http.StatusInternalServerError)
 			return
@@ -91,7 +91,7 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 
 func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 	// SREday format
-	header := []string{"status", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
+	header := []string{"status", "confirmed", "name", "track", "email", "day", "organization", "photo", "linkedin", "linkedin2", "twitter", "twitter2", "title", "abstract", "description", "bio"}
 	w.Write(header)
 
 	for _, p := range proposals {
@@ -119,6 +119,7 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 
 		row := []string{
 			string(p.Status),
+			boolToYesNo(p.AttendanceConfirmed),
 			sanitizeCSVCell(name),
 			"",    // track
 			sanitizeCSVCell(email),
@@ -140,7 +141,7 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 
 func writeOnlineCSV(w *csv.Writer, proposals []models.Proposal) {
 	// Conf42 format
-	header := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration"}
+	header := []string{"Featured", "Track", "Name1", "Email1", "JobTitle1", "Company1", "Name2", "Email2", "JobTitle2", "Company2", "Title", "Abstract", "LinkedIn1", "Twitter1", "LinkedIn2", "Twitter2", "Slides", "Picture", "YouTube", "Keywords", "Duration", "Status", "Confirmed"}
 	w.Write(header)
 
 	for _, p := range proposals {
@@ -186,9 +187,18 @@ func writeOnlineCSV(w *csv.Writer, proposals []models.Proposal) {
 			"", // YouTube
 			sanitizeCSVCell(p.Tags),
 			strconv.Itoa(p.Duration),
+			string(p.Status),
+			boolToYesNo(p.AttendanceConfirmed),
 		}
 		w.Write(row)
 	}
+}
+
+func boolToYesNo(b bool) string {
+	if b {
+		return "yes"
+	}
+	return "no"
 }
 
 // sanitizeCSVCell prevents CSV formula injection by escaping cells that start

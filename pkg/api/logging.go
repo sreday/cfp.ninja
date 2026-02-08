@@ -35,6 +35,10 @@ func RequestLogging(logger *slog.Logger, next http.Handler) http.Handler {
 			slog.String("remote_addr", r.RemoteAddr),
 		}
 
+		if reqID := GetRequestID(r.Context()); reqID != "" {
+			attrs = append(attrs, slog.String("request_id", reqID))
+		}
+
 		user := GetUserFromContext(r.Context())
 		if user != nil {
 			attrs = append(attrs, slog.Uint64("user_id", uint64(user.ID)))

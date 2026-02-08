@@ -17,6 +17,7 @@ type AppConfig struct {
 	SubmissionListingFeeCurrency string   `json:"submission_listing_fee_currency,omitempty"`
 	PaymentsEnabled              bool     `json:"payments_enabled"`
 	MaxProposalsPerEvent         int      `json:"max_proposals_per_event"`
+	MaxOrganizersPerEvent        int      `json:"max_organizers_per_event"`
 	NotificationEmail            string   `json:"notification_email,omitempty"`
 }
 
@@ -39,9 +40,10 @@ func ConfigHandler(cfg *config.Config) http.HandlerFunc {
 		paymentsEnabled := cfg.StripeSecretKey != "" && cfg.StripePublishableKey != ""
 
 		resp := AppConfig{
-			AuthProviders:        providers,
-			PaymentsEnabled:      paymentsEnabled,
-			MaxProposalsPerEvent: cfg.MaxProposalsPerEvent,
+			AuthProviders:         providers,
+			PaymentsEnabled:       paymentsEnabled,
+			MaxProposalsPerEvent:  cfg.MaxProposalsPerEvent,
+			MaxOrganizersPerEvent: cfg.MaxOrganizersPerEvent,
 		}
 		if paymentsEnabled {
 			resp.StripePublishableKey = cfg.StripePublishableKey

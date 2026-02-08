@@ -411,14 +411,16 @@ async function loadOrganisers(eventId) {
         }
         html += '</ul>';
 
-        if (organisers.length < 5) {
+        const config = getAppConfig();
+        const maxOrganisers = config.max_organizers_per_event || 5;
+        if (organisers.length < maxOrganisers) {
             html += `
                 <div class="input-group mt-3" id="add-organiser-group">
                     <input type="email" class="form-control" id="organiser-email" placeholder="Email address" autocomplete="off">
                     <button type="button" class="btn btn-outline-primary" id="add-organiser-btn">Add</button>
                 </div>`;
         } else {
-            html += '<p class="text-muted mt-3 mb-0">Maximum of 5 organisers reached.</p>';
+            html += `<p class="text-muted mt-3 mb-0">Maximum of ${maxOrganisers} organisers reached.</p>`;
         }
 
         container.innerHTML = html;

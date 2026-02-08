@@ -730,11 +730,27 @@ func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		if err := cfg.DB.Delete(&event).Error; err != nil {
+		// Delete associated proposals and organizer links, then the event
+		tx := cfg.DB.Begin()
+		if err := tx.Where("event_id = ?", event.ID).Delete(&models.Proposal{}).Error; err != nil {
+			tx.Rollback()
+			cfg.Logger.Error("failed to delete event proposals", "error", err)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
+		if err := tx.Model(&event).Association("Organizers").Clear(); err != nil {
+			tx.Rollback()
+			cfg.Logger.Error("failed to clear event organizers", "error", err)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
+		if err := tx.Delete(&event).Error; err != nil {
+			tx.Rollback()
 			cfg.Logger.Error("failed to delete event", "error", err)
 			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
 			return
 		}
+		tx.Commit()
 
 		encodeResponse(w, r, map[string]string{"message": "Event deleted"})
 	}

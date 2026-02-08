@@ -232,23 +232,23 @@ func TestCSVFormulaInjection(t *testing.T) {
 			t.Fatalf("failed to parse CSV: %v", err)
 		}
 
-		// In-person columns: status(0), name(1), track(2), email(3), day(4), organization(5),
-		// photo(6), linkedin(7), linkedin2(8), twitter(9), twitter2(10), title(11),
-		// abstract(12), description(13), bio(14)
+		// In-person columns: status(0), confirmed(1), name(2), track(3), email(4), day(5),
+		// organization(6), photo(7), linkedin(8), linkedin2(9), twitter(10), twitter2(11),
+		// title(12), abstract(13), description(14), bio(15)
 		found := false
 		for _, row := range records[1:] {
-			if strings.Contains(row[11], "1+1") {
+			if strings.Contains(row[12], "1+1") {
 				found = true
 				checks := []struct {
 					col  int
 					name string
 					want string
 				}{
-					{11, "title", "'=1+1"},
-					{12, "abstract", "'+1+1"},
-					{1, "speaker name", "'-subtract"},
-					{5, "organization", "'=EVIL"},
-					{14, "bio", "'@mention"},
+					{12, "title", "'=1+1"},
+					{13, "abstract", "'+1+1"},
+					{2, "speaker name", "'-subtract"},
+					{6, "organization", "'=EVIL"},
+					{15, "bio", "'@mention"},
 				}
 				for _, c := range checks {
 					if row[c.col] != c.want {

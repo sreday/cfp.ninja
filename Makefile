@@ -8,7 +8,9 @@ TEST_DB_ENV = \
 TEST_INTEGRATION_ENV = \
 	$(TEST_DB_ENV) \
 	JWT_SECRET=test-secret-that-is-at-least-32-chars! \
-	ALLOWED_ORIGINS=http://localhost
+	ALLOWED_ORIGINS=http://localhost \
+	SUBMISSION_LISTING_FEE=0 \
+	MAX_PROPOSALS_PER_EVENT=100
 
 TEST_INSECURE_ENV = \
 	$(TEST_DB_ENV) \
