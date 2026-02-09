@@ -9,7 +9,9 @@ import {
     formatDate,
     getCfpStatus,
     showLoading,
-    showError
+    showError,
+    generateICSContent,
+    generateGoogleCalendarURL
 } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildSubmitCommand } from '../components/cli-command.js';
 
@@ -60,6 +62,17 @@ function renderEventDetail(container, event) {
                         <span>${escapeHtml(event.location)}${event.country ? `, ${escapeHtml(event.country)}` : ''}</span>
                     </div>
                 ` : ''}
+                ${event.start_date ? `
+                    <div class="event-meta-item dropdown">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Add to Calendar</button>
+                        <ul class="dropdown-menu">
+                            <li><button type="button" class="dropdown-item" id="download-ics-btn">Download .ics</button></li>
+                            <li><a class="dropdown-item" href="${escapeAttr(generateGoogleCalendarURL(event))}" target="_blank" rel="noopener" id="google-cal-link">Google Calendar</a></li>
+                        </ul>
+                    </div>
+                ` : ''}
+            </div>
+            <div class="event-meta">
                 ${event.website ? `
                     <div class="event-meta-item">
                         <span>🔗</span>
@@ -129,6 +142,24 @@ function renderEventDetail(container, event) {
             } else {
                 router.navigate(`/e/${event.slug}/submit`);
             }
+        });
+    }
+
+    // Attach ICS download handler
+    const icsBtn = container.querySelector('#download-ics-btn');
+    if (icsBtn) {
+        icsBtn.addEventListener('click', () => {
+            const icsContent = generateICSContent(event);
+            if (!icsContent) return;
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${event.slug || 'event'}.ics`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         });
     }
 

@@ -257,6 +257,133 @@ export const PROPOSAL_STATUSES = [
     { value: 'tentative', label: 'Tentative', class: 'bg-secondary' }
 ];
 
+// Calendar helpers
+
+export function formatDateForICS(dateString) {
+    if (!dateString) return '';
+    const d = new Date(dateString);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}${m}${day}`;
+}
+
+function foldICSLine(line) {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(line);
+    if (bytes.length <= 75) return line;
+    const parts = [];
+    let start = 0;
+    // First line: up to 75 octets
+    let end = 75;
+    // Make sure we don't split a multi-byte character
+    while (end < bytes.length && (bytes[end] & 0xC0) === 0x80) end--;
+    parts.push(new TextDecoder().decode(bytes.slice(start, end)));
+    start = end;
+    // Continuation lines: up to 74 octets (1 space + 74 = 75 total)
+    while (start < bytes.length) {
+        end = Math.min(start + 74, bytes.length);
+        while (end < bytes.length && (bytes[end] & 0xC0) === 0x80) end--;
+        parts.push(' ' + new TextDecoder().decode(bytes.slice(start, end)));
+        start = end;
+    }
+    return parts.join('\r\n');
+}
+
+function escapeICSText(str) {
+    if (!str) return '';
+    return str
+        .replace(/\\/g, '\\\\')
+        .replace(/;/g, '\\;')
+        .replace(/,/g, '\\,')
+        .replace(/\r\n|\r|\n/g, '\\n');
+}
+
+export function generateICSContent(event) {
+    const startDate = formatDateForICS(event.start_date);
+    if (!startDate) return '';
+
+    // End date: day after end_date (or day after start_date) for all-day event exclusivity
+    const endSource = event.end_date || event.start_date;
+    const endD = new Date(endSource);
+    endD.setDate(endD.getDate() + 1);
+    const endDate = formatDateForICS(endD.toISOString());
+
+    const location = event.location
+        ? (event.country ? `${event.location}, ${event.country}` : event.location)
+        : 'Online';
+
+    let description = event.description || '';
+    if (description.length > 1000) {
+        description = description.substring(0, 997) + '...';
+    }
+    const url = event.website || `https://cfp.ninja/e/${event.slug}`;
+    if (description) {
+        description += '\\n\\n' + url;
+    } else {
+        description = url;
+    }
+
+    const uid = `${event.ID || event.id}@cfp.ninja`;
+    const now = new Date();
+    const stamp = now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+
+    const lines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//CFP.ninja//EN',
+        'BEGIN:VEVENT',
+        `UID:${uid}`,
+        `DTSTAMP:${stamp}`,
+        `DTSTART;VALUE=DATE:${startDate}`,
+        `DTEND;VALUE=DATE:${endDate}`,
+        `SUMMARY:${escapeICSText(event.name)}`,
+        `LOCATION:${escapeICSText(location)}`,
+        `DESCRIPTION:${escapeICSText(description)}`,
+        `URL:${url}`,
+        'END:VEVENT',
+        'END:VCALENDAR'
+    ];
+
+    return lines.map(foldICSLine).join('\r\n');
+}
+
+export function generateGoogleCalendarURL(event) {
+    const startDate = formatDateForICS(event.start_date);
+    if (!startDate) return '';
+
+    const endSource = event.end_date || event.start_date;
+    const endD = new Date(endSource);
+    endD.setDate(endD.getDate() + 1);
+    const endDate = formatDateForICS(endD.toISOString());
+
+    const location = event.location
+        ? (event.country ? `${event.location}, ${event.country}` : event.location)
+        : 'Online';
+
+    let details = event.description || '';
+    if (details.length > 500) {
+        details = details.substring(0, 497) + '...';
+    }
+    const url = event.website || `https://cfp.ninja/e/${event.slug}`;
+    if (details) {
+        details += '\n\n' + url;
+    } else {
+        details = url;
+    }
+
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: event.name || '',
+        dates: `${startDate}/${endDate}`,
+        location: location,
+        details: details,
+        sprop: url
+    });
+
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
 // Full list of countries (ISO 3166-1)
 export const COUNTRIES = [
     "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda",
