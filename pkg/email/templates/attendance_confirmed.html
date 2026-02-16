@@ -5,6 +5,15 @@
 <h2 style="color:#198754">Speaker attendance confirmed</h2>
 <p>Hi {{.OrganizerName}},</p>
 <p><strong>{{.SpeakerName}}</strong> has confirmed their attendance for the proposal <strong>{{.ProposalTitle}}</strong> at <strong>{{.EventName}}</strong>.</p>
+<table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Name</td><td style="padding:4px 8px">{{.SpeakerName}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Email</td><td style="padding:4px 8px">{{.SpeakerEmail}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Organization</td><td style="padding:4px 8px">{{.SpeakerCompany}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">LinkedIn</td><td style="padding:4px 8px">{{if .SpeakerLinkedIn}}<a href="{{.SpeakerLinkedIn}}">{{.SpeakerLinkedIn}}</a>{{end}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Talk Title</td><td style="padding:4px 8px">{{.ProposalTitle}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Talk Abstract</td><td style="padding:4px 8px">{{.ProposalAbstract}}</td></tr>
+<tr><td style="padding:4px 8px;font-weight:bold;white-space:nowrap;vertical-align:top">Bio</td><td style="padding:4px 8px">{{.SpeakerBio}}</td></tr>
+</table>
 <p>You can view the proposal details on your organiser dashboard:</p>
 <p><a href="{{.DashboardURL}}" style="display:inline-block;padding:10px 20px;background:#0d6efd;color:#fff;text-decoration:none;border-radius:4px">View Submissions</a></p>
 <p>Best regards,<br>CFP.ninja</p>

@@ -4,6 +4,14 @@ Hi {{.OrganizerName}},
 
 {{.SpeakerName}} has confirmed their attendance for the proposal "{{.ProposalTitle}}" at {{.EventName}}.
 
+Name: {{.SpeakerName}}
+Email: {{.SpeakerEmail}}
+Organization: {{.SpeakerCompany}}
+LinkedIn: {{.SpeakerLinkedIn}}
+Talk Title: {{.ProposalTitle}}
+Talk Abstract: {{.ProposalAbstract}}
+Bio: {{.SpeakerBio}}
+
 You can view the proposal details on your organiser dashboard:
 {{.DashboardURL}}
 

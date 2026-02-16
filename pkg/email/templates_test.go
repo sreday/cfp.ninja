@@ -101,17 +101,27 @@ func TestRenderProposalTentative(t *testing.T) {
 
 func TestRenderAttendanceConfirmed(t *testing.T) {
 	data := struct {
-		OrganizerName string
-		SpeakerName   string
-		ProposalTitle string
-		EventName     string
-		DashboardURL  string
+		OrganizerName    string
+		SpeakerName      string
+		SpeakerEmail     string
+		SpeakerCompany   string
+		SpeakerLinkedIn  string
+		SpeakerBio       string
+		ProposalTitle    string
+		ProposalAbstract string
+		EventName        string
+		DashboardURL     string
 	}{
-		OrganizerName: "Bob Organizer",
-		SpeakerName:   "Jane Speaker",
-		ProposalTitle: "Talk About Things",
-		EventName:     "My Conference",
-		DashboardURL:  "https://cfp.ninja/dashboard/events/1",
+		OrganizerName:    "Bob Organizer",
+		SpeakerName:      "Jane Speaker",
+		SpeakerEmail:     "jane@example.com",
+		SpeakerCompany:   "Acme Corp",
+		SpeakerLinkedIn:  "https://linkedin.com/in/janespeaker",
+		SpeakerBio:       "A great speaker",
+		ProposalTitle:    "Talk About Things",
+		ProposalAbstract: "This talk covers important topics.",
+		EventName:        "My Conference",
+		DashboardURL:     "https://cfp.ninja/dashboard/events/1",
 	}
 
 	html, text, err := Render("attendance_confirmed", data)
@@ -125,8 +135,17 @@ func TestRenderAttendanceConfirmed(t *testing.T) {
 	if !strings.Contains(html, "Jane Speaker") {
 		t.Error("HTML missing speaker name")
 	}
+	if !strings.Contains(html, "jane@example.com") {
+		t.Error("HTML missing speaker email")
+	}
+	if !strings.Contains(html, "Acme Corp") {
+		t.Error("HTML missing speaker company")
+	}
 	if !strings.Contains(text, "Talk About Things") {
 		t.Error("text missing proposal title")
+	}
+	if !strings.Contains(text, "This talk covers important topics.") {
+		t.Error("text missing proposal abstract")
 	}
 }
 

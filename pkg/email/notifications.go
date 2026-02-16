@@ -27,11 +27,16 @@ type proposalStatusData struct {
 
 // attendanceConfirmedData is the template data for attendance confirmation emails.
 type attendanceConfirmedData struct {
-	OrganizerName string
-	SpeakerName   string
-	ProposalTitle string
-	EventName     string
-	DashboardURL  string
+	OrganizerName    string
+	SpeakerName      string
+	SpeakerEmail     string
+	SpeakerCompany   string
+	SpeakerLinkedIn  string
+	SpeakerBio       string
+	ProposalTitle    string
+	ProposalAbstract string
+	EventName        string
+	DashboardURL     string
 }
 
 // EventActivity holds weekly digest counts for a single event.
@@ -145,16 +150,20 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		ncfg.Logger.Error("failed to parse speakers for attendance notification", "proposal_id", proposal.ID, "error", err)
 	}
 	speakerName := "A speaker"
+	var speakerEmail, speakerCompany, speakerLinkedIn, speakerBio string
 	if len(speakers) > 0 {
+		primary := speakers[0]
 		for _, s := range speakers {
 			if s.Primary {
-				speakerName = s.Name
+				primary = s
 				break
 			}
 		}
-		if speakerName == "A speaker" {
-			speakerName = speakers[0].Name
-		}
+		speakerName = primary.Name
+		speakerEmail = primary.Email
+		speakerCompany = primary.Company
+		speakerLinkedIn = primary.LinkedIn
+		speakerBio = primary.Bio
 	}
 
 	var to []string
@@ -176,11 +185,16 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 	}
 
 	data := attendanceConfirmedData{
-		OrganizerName: recipientName,
-		SpeakerName:   speakerName,
-		ProposalTitle: proposal.Title,
-		EventName:     event.Name,
-		DashboardURL:  fmt.Sprintf("%s/dashboard/events/%d", ncfg.BaseURL, event.ID),
+		OrganizerName:    recipientName,
+		SpeakerName:      speakerName,
+		SpeakerEmail:     speakerEmail,
+		SpeakerCompany:   speakerCompany,
+		SpeakerLinkedIn:  speakerLinkedIn,
+		SpeakerBio:       speakerBio,
+		ProposalTitle:    proposal.Title,
+		ProposalAbstract: proposal.Abstract,
+		EventName:        event.Name,
+		DashboardURL:     fmt.Sprintf("%s/dashboard/events/%d", ncfg.BaseURL, event.ID),
 	}
 
 	html, text, err := Render("attendance_confirmed", data)

@@ -277,11 +277,11 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	// Compute CFP dates
 	now := time.Now()
 	cfpOpenAt := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	cfpCloseAt := startDate.AddDate(0, 0, -14)
+	cfpCloseAt := time.Date(startDate.Year(), startDate.Month(), startDate.Day()-14, 23, 59, 0, 0, time.UTC)
 
 	// For upcoming events close to start, ensure cfpCloseAt is not in the past
 	if !isPast && cfpCloseAt.Before(now) {
-		cfpCloseAt = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+		cfpCloseAt = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, time.UTC)
 	}
 
 	cfpStatus := models.CFPStatusOpen
@@ -417,9 +417,9 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 		}
 
 		cfpOpenAt := today
-		cfpCloseAt := eventDate.AddDate(0, 0, -14)
+		cfpCloseAt := time.Date(eventDate.Year(), eventDate.Month(), eventDate.Day()-14, 23, 59, 0, 0, time.UTC)
 		if cfpCloseAt.Before(now) {
-			cfpCloseAt = today
+			cfpCloseAt = time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 0, 0, time.UTC)
 		}
 
 		newEvent := models.Event{

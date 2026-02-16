@@ -150,9 +150,9 @@ func GetProposalStatsHandler(cfg *config.Config) http.HandlerFunc {
 		var rows []dayStat
 		cutoff := time.Now().AddDate(0, 0, -days)
 		if err := cfg.DB.Model(&models.Proposal{}).
-			Select("DATE(created_at) as date, COUNT(*) as count").
+			Select("TO_CHAR(created_at, 'YYYY-MM-DD') as date, COUNT(*) as count").
 			Where("created_at >= ?", cutoff).
-			Group("DATE(created_at)").
+			Group("TO_CHAR(created_at, 'YYYY-MM-DD')").
 			Order("date").
 			Scan(&rows).Error; err != nil {
 			cfg.Logger.Error("failed to query proposal stats", "error", err)
