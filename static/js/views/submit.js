@@ -518,7 +518,7 @@ function attachFormHandlers(eventId, event, customQuestions) {
             format: formData.get('format'),
             duration: parseInt(formData.get('duration')),
             level: formData.get('level'),
-            notes: formData.get('notes') || '',
+            speaker_notes: formData.get('notes') || '',
             speakers,
             custom_answers: customAnswers
         };

@@ -75,8 +75,7 @@ func InitConfig() (*Config, error) {
 
 	// Determine insecure mode early so we can use it for validation
 	// Only accept explicitly truthy values to avoid INSECURE=false enabling insecure mode
-	insecureEnv := strings.ToLower(os.Getenv("INSECURE"))
-	insecureMode := *insecure || insecureEnv == "true" || insecureEnv == "1" || insecureEnv == "yes"
+	insecureMode := *insecure || isTruthy(os.Getenv("INSECURE"))
 
 	// Port: flag > env > default
 	portVal := *port
@@ -268,6 +267,13 @@ func InitConfig() (*Config, error) {
 		logger.Warn("Stripe fees configured but STRIPE_SECRET_KEY not set - payments will not work")
 	}
 
+	if hasStripeKey && stripeWebhookSecret == "" {
+		if !insecureMode {
+			return nil, fmt.Errorf("STRIPE_WEBHOOK_SECRET is required when Stripe payments are enabled")
+		}
+		logger.Warn("STRIPE_WEBHOOK_SECRET not set - webhook signature verification will be skipped (insecure mode)")
+	}
+
 	if hasStripeKey && hasStripePubKey {
 		logger.Info("Stripe payments enabled",
 			"event_listing_fee", eventListingFee,
@@ -317,7 +323,7 @@ func InitConfig() (*Config, error) {
 	return &Config{
 		Port:              portVal,
 		DatabaseURL:       dsn,
-		AutoMigrate:       *autoMigrate || os.Getenv("DATABASE_AUTO_MIGRATE") != "",
+		AutoMigrate:       *autoMigrate || isTruthy(os.Getenv("DATABASE_AUTO_MIGRATE")),
 		Insecure:          insecureMode,
 		InsecureUserEmail: os.Getenv("INSECURE_USER_EMAIL"),
 		AllowedOrigins:    allowedOrigins,
@@ -345,6 +351,15 @@ func InitConfig() (*Config, error) {
 		BaseURL:                      baseURL,
 		Logger:                       logger,
 	}, nil
+}
+
+// isTruthy returns true for common truthy environment variable values.
+func isTruthy(s string) bool {
+	switch strings.ToLower(s) {
+	case "true", "1", "yes":
+		return true
+	}
+	return false
 }
 
 // extractHost returns the hostname from a URL, falling back to the raw string.

@@ -333,7 +333,19 @@ func TestConfigEndpointPaymentFields(t *testing.T) {
 
 // TestWebhookEndpoint tests the Stripe webhook endpoint.
 func TestWebhookEndpoint(t *testing.T) {
+	t.Run("rejects when webhook secret not configured", func(t *testing.T) {
+		if testConfig.StripeWebhookSecret != "" {
+			t.Skip("webhook secret is configured")
+		}
+		resp := doRequest(http.MethodPost, "/api/v0/webhooks/stripe", map[string]string{"test": "data"}, "")
+		defer resp.Body.Close()
+		assertStatus(t, resp, http.StatusServiceUnavailable)
+	})
+
 	t.Run("rejects request without signature", func(t *testing.T) {
+		if testConfig.StripeWebhookSecret == "" {
+			t.Skip("webhook secret not configured")
+		}
 		resp := doRequest(http.MethodPost, "/api/v0/webhooks/stripe", map[string]string{"test": "data"}, "")
 		defer resp.Body.Close()
 		assertStatus(t, resp, http.StatusBadRequest)

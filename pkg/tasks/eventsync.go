@@ -254,8 +254,8 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	// Check if already exists
 	var existing models.Event
 	if db.Where("slug = ?", slug).First(&existing).Error == nil {
-		// Update existing event
-		diff := changedFields(existing, ref.Name, description, logoURL, contactEmail, startDate, endDate, true)
+		// Update existing event — preserve existing is_paid value
+		diff := changedFields(existing, ref.Name, description, logoURL, contactEmail, startDate, endDate, existing.IsPaid)
 		if diff == "" {
 			return false, false, nil // nothing changed, skip
 		}
@@ -266,7 +266,6 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 			"description":   description,
 			"logo_url":      logoURL,
 			"contact_email": contactEmail,
-			"is_paid":       true,
 		}
 		if err := db.Model(&existing).Updates(updates).Error; err != nil {
 			return false, false, fmt.Errorf("updating event %s: %w", slug, err)
@@ -312,20 +311,30 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 		newEvent.CreatedByID = &organiserIDs[0]
 	}
 
-	if err := db.Create(&newEvent).Error; err != nil {
+	tx := db.Begin()
+	if tx.Error != nil {
+		return false, false, fmt.Errorf("begin transaction for %s: %w", slug, tx.Error)
+	}
+	defer tx.Rollback()
+
+	if err := tx.Create(&newEvent).Error; err != nil {
 		return false, false, fmt.Errorf("creating event %s: %w", slug, err)
 	}
 
 	if len(organiserIDs) > 0 {
 		var users []models.User
-		if err := db.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
-			logger.Warn("failed to find organiser users", "slug", slug, "error", err)
+		if err := tx.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
+			return false, false, fmt.Errorf("finding organiser users for %s: %w", slug, err)
 		}
 		if len(users) > 0 {
-			if err := db.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
-				logger.Warn("failed to assign organisers", "slug", slug, "error", err)
+			if err := tx.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
+				return false, false, fmt.Errorf("assigning organisers to %s: %w", slug, err)
 			}
 		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return false, false, fmt.Errorf("committing event %s: %w", slug, err)
 	}
 
 	logger.Info("created event", "slug", slug, "name", ref.Name)

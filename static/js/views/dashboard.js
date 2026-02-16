@@ -347,7 +347,7 @@ function openModal(modalId) {
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         const backdrop = document.createElement('div');
         backdrop.className = 'modal-backdrop fade show';
-        document.body.appendChild(backdrop);
+        document.getElementById('app').appendChild(backdrop);
     }
 }
 

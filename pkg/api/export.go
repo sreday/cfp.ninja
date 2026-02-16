@@ -18,26 +18,13 @@ import (
 // ExportProposalsHandler exports proposals for an event as CSV
 func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract event ID from path: /api/v0/events/{id}/proposals/export
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		eventID, err := strconv.ParseUint(parts[0], 10, 32)
+		eventID, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return

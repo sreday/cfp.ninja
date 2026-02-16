@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -114,6 +115,9 @@ func CreateOrUpdateUserFromGoogle(db *gorm.DB, googleID, email, name, pictureURL
 	// Only match by Google ID — never by email (prevents account takeover)
 	err := db.Where("google_id = ?", googleID).First(&user).Error
 	if err == nil {
+		if !user.IsActive {
+			return nil, fmt.Errorf("account is deactivated")
+		}
 		// Update existing user
 		user.Email = email
 		user.Name = name
@@ -148,6 +152,9 @@ func CreateOrUpdateUserFromGitHub(db *gorm.DB, gitHubID, email, name, pictureURL
 	// Only match by GitHub ID — never by email (prevents account takeover)
 	err := db.Where("git_hub_id = ?", gitHubID).First(&user).Error
 	if err == nil {
+		if !user.IsActive {
+			return nil, fmt.Errorf("account is deactivated")
+		}
 		// Update existing user
 		user.Email = email
 		user.Name = name

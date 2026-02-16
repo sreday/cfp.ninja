@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,6 +14,40 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
+
+// userCache provides a short-TTL cache for authenticated user lookups
+// to avoid hitting the database on every request.
+var userCache = struct {
+	sync.RWMutex
+	entries map[uint]cachedUser
+}{entries: make(map[uint]cachedUser)}
+
+const userCacheTTL = 30 * time.Second
+
+type cachedUser struct {
+	user      models.User
+	expiresAt time.Time
+}
+
+func getCachedUser(id uint) (*models.User, bool) {
+	userCache.RLock()
+	defer userCache.RUnlock()
+	entry, ok := userCache.entries[id]
+	if !ok || time.Now().After(entry.expiresAt) {
+		return nil, false
+	}
+	u := entry.user // copy
+	return &u, true
+}
+
+func setCachedUser(user *models.User) {
+	userCache.Lock()
+	defer userCache.Unlock()
+	userCache.entries[user.ID] = cachedUser{
+		user:      *user,
+		expiresAt: time.Now().Add(userCacheTTL),
+	}
+}
 
 // Context key for authenticated user
 type contextKey string
@@ -199,6 +234,14 @@ func validateJWT(cfg *config.Config, tokenString string) (*models.User, error) {
 	}
 	userID := uint(userIDFloat)
 
+	// Check short-TTL cache first to avoid DB query on every request
+	if cached, ok := getCachedUser(userID); ok {
+		if !cached.IsActive {
+			return nil, jwt.ErrSignatureInvalid
+		}
+		return cached, nil
+	}
+
 	// Look up user - distinguish between "not found" and database errors
 	var user models.User
 	if err := cfg.DB.First(&user, userID).Error; err != nil {
@@ -214,6 +257,7 @@ func validateJWT(cfg *config.Config, tokenString string) (*models.User, error) {
 		return nil, jwt.ErrSignatureInvalid
 	}
 
+	setCachedUser(&user)
 	return &user, nil
 }
 

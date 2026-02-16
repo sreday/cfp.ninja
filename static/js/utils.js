@@ -1,10 +1,11 @@
 // Utility functions
 
+const htmlEscapeMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const htmlEscapeRe = /[&<>"']/g;
+
 export function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    if (str == null || str === '') return '';
+    return String(str).replace(htmlEscapeRe, c => htmlEscapeMap[c]);
 }
 
 export function escapeAttr(str) {
@@ -153,7 +154,8 @@ export function getCfpStatus(event) {
     const end = new Date(cfpEnd);
 
     // Only show as open if status is 'open' AND within date range
-    if (cfpStatus === 'open' && now >= start && now <= end) {
+    // Use strict < for end to match backend's now.Before(cfpCloseAt)
+    if (cfpStatus === 'open' && now >= start && now < end) {
         return { status: 'open', label: `CFP Open - ${timeUntil(cfpEnd)}`, class: 'cfp-open' };
     }
 

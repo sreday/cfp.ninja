@@ -55,8 +55,12 @@ func validateCustomAnswers(answers map[string]interface{}, questions []models.Cu
 
 		switch q.Type {
 		case "checkbox":
-			if _, ok := val.(bool); !ok {
+			b, ok := val.(bool)
+			if !ok {
 				return "Answer for '" + id + "' must be a boolean"
+			}
+			if q.Required && !b {
+				return "Answer for '" + id + "' must be checked"
 			}
 		default: // text, select, multiselect, and any future string types
 			str, ok := val.(string)
@@ -89,26 +93,13 @@ var linkedInURLRegex = regexp.MustCompile(`^https?://(www\.)?linkedin\.com/in/[a
 // CreateProposalHandler creates a new proposal for an event
 func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract event ID from path: /api/v0/events/{id}/proposals
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		eventID, err := strconv.ParseUint(parts[0], 10, 32)
+		eventID, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -279,6 +270,7 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		encodeResponse(w, r, proposal)
 	}
@@ -287,18 +279,13 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 // GetProposalHandler returns a proposal by ID
 func GetProposalHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		idStr := extractProposalID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
@@ -338,18 +325,13 @@ func GetProposalHandler(cfg *config.Config) http.HandlerFunc {
 // UpdateProposalHandler updates an existing proposal
 func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		idStr := extractProposalID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
@@ -478,6 +460,20 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 						}
 					}
 				}
+				// Non-organizer owners must keep at least one speaker email matching their account
+				if !isOrganizer {
+					speakerEmailMatch := false
+					for _, speaker := range speakers {
+						if strings.EqualFold(speaker.Email, user.Email) {
+							speakerEmailMatch = true
+							break
+						}
+					}
+					if !speakerEmailMatch {
+						encodeError(w, "At least one speaker email must match your account email", http.StatusBadRequest)
+						return
+					}
+				}
 			}
 		}
 
@@ -530,7 +526,11 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		cfg.DB.First(&proposal, id)
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			cfg.Logger.Error("failed to reload proposal after update", "error", err)
+			encodeError(w, "Failed to reload proposal", http.StatusInternalServerError)
+			return
+		}
 		encodeResponse(w, r, proposal)
 	}
 }
@@ -538,18 +538,13 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 // DeleteProposalHandler deletes a proposal
 func DeleteProposalHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		idStr := extractProposalID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
@@ -581,26 +576,13 @@ func DeleteProposalHandler(cfg *config.Config) http.HandlerFunc {
 // UpdateProposalStatusHandler updates the status of a proposal
 func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract ID from path: /api/v0/proposals/{id}/status
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/proposals/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
 			return
@@ -707,26 +689,13 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 // UpdateProposalRatingHandler updates the rating of a proposal
 func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract ID from path: /api/v0/proposals/{id}/rating
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/proposals/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
 			return
@@ -780,11 +749,6 @@ func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 // ConfirmAttendanceHandler allows the proposal owner to confirm attendance after acceptance
 func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		defer r.Body.Close()
 
@@ -794,15 +758,7 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Extract ID from path: /api/v0/proposals/{id}/confirm
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/proposals/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
 			return
@@ -826,6 +782,12 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Already confirmed — return current state (idempotent)
+		if proposal.AttendanceConfirmed {
+			encodeResponse(w, r, proposal)
+			return
+		}
+
 		now := time.Now()
 		if err := cfg.DB.Model(&proposal).Updates(map[string]interface{}{
 			"attendance_confirmed":    true,
@@ -835,7 +797,9 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		cfg.DB.First(&proposal, id)
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			cfg.Logger.Error("failed to reload proposal after confirmation", "error", err)
+		}
 
 		// Notify event organisers (fire-and-forget)
 		if cfg.EmailSender != nil {
@@ -863,11 +827,6 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 // EmergencyCancelHandler allows the proposal owner to emergency-cancel a confirmed proposal
 func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		defer r.Body.Close()
 
@@ -877,15 +836,7 @@ func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Extract ID from path: /api/v0/proposals/{id}/emergency-cancel
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/proposals/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
 			return
@@ -923,7 +874,9 @@ func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		cfg.DB.First(&proposal, id)
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			cfg.Logger.Error("failed to reload proposal after emergency cancel", "error", err)
+		}
 
 		cfg.Logger.Info("proposal emergency cancelled",
 			"proposal_id", proposal.ID,
@@ -1007,14 +960,4 @@ func CheckLinkedInHandler(cfg *config.Config) http.HandlerFunc {
 
 		encodeResponse(w, r, map[string]bool{"exists": resp.StatusCode == http.StatusOK})
 	}
-}
-
-// extractProposalID extracts the proposal ID from various path formats
-func extractProposalID(path string) string {
-	path = strings.TrimPrefix(path, "/api/v0/proposals/")
-	parts := strings.Split(path, "/")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
 }

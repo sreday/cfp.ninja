@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -23,6 +24,9 @@ const (
 	DefaultPageSize = 20  // Default number of events per page
 	MaxPageSize     = 100 // Maximum allowed events per page to prevent abuse
 )
+
+// Proposals listing constants
+const MaxProposalsPerPage = 5000 // Hard cap on proposals returned per request
 
 // Field length limits for events
 const (
@@ -49,11 +53,15 @@ func GetCountriesHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var countries []string
-		cfg.DB.Model(&models.Event{}).
+		if err := cfg.DB.Model(&models.Event{}).
 			Distinct("country").
 			Where("country IS NOT NULL AND country != ''").
 			Order("country ASC").
-			Pluck("country", &countries)
+			Pluck("country", &countries).Error; err != nil {
+			cfg.Logger.Error("failed to query countries", "error", err)
+			encodeError(w, "Failed to load countries", http.StatusInternalServerError)
+			return
+		}
 
 		encodeResponse(w, r, countries)
 	}
@@ -67,25 +75,36 @@ func GetStatsHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		var totalEvents int64
-		var cfpOpen int64
-		var cfpClosed int64
-
-		cfg.DB.Model(&models.Event{}).Count(&totalEvents)
-		cfg.DB.Model(&models.Event{}).Where("cfp_status = ?", models.CFPStatusOpen).Count(&cfpOpen)
-		cfg.DB.Model(&models.Event{}).Where("cfp_status IN ?", []models.CFPStatus{models.CFPStatusClosed, models.CFPStatusReviewing, models.CFPStatusComplete}).Count(&cfpClosed)
-
-		// Get unique locations
-		var uniqueLocations int64
-		cfg.DB.Model(&models.Event{}).Distinct("location").Count(&uniqueLocations)
-
-		// Get unique countries
-		var uniqueCountries int64
-		cfg.DB.Model(&models.Event{}).Distinct("country").Count(&uniqueCountries)
+		// Consolidate counts into a single query using conditional aggregation
+		type statsRow struct {
+			TotalEvents     int64
+			CfpOpen         int64
+			CfpClosed       int64
+			UniqueLocations int64
+			UniqueCountries int64
+		}
+		var stats statsRow
+		if err := cfg.DB.Model(&models.Event{}).Select(`
+			COUNT(*) AS total_events,
+			COUNT(CASE WHEN cfp_status = ? THEN 1 END) AS cfp_open,
+			COUNT(CASE WHEN cfp_status IN (?,?,?) THEN 1 END) AS cfp_closed,
+			COUNT(DISTINCT location) AS unique_locations,
+			COUNT(DISTINCT country) AS unique_countries`,
+			models.CFPStatusOpen,
+			models.CFPStatusClosed, models.CFPStatusReviewing, models.CFPStatusComplete,
+		).Scan(&stats).Error; err != nil {
+			cfg.Logger.Error("failed to query stats", "error", err)
+			encodeError(w, "Failed to load stats", http.StatusInternalServerError)
+			return
+		}
 
 		// Get unique tags
 		var allTags []string
-		cfg.DB.Model(&models.Event{}).Distinct("tags").Pluck("tags", &allTags)
+		if err := cfg.DB.Model(&models.Event{}).Distinct("tags").Pluck("tags", &allTags).Error; err != nil {
+			cfg.Logger.Error("failed to query tags", "error", err)
+			encodeError(w, "Failed to load stats", http.StatusInternalServerError)
+			return
+		}
 
 		tagSet := make(map[string]bool)
 		for _, tagString := range allTags {
@@ -103,12 +122,52 @@ func GetStatsHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		encodeResponse(w, r, map[string]interface{}{
-			"total_events":     totalEvents,
-			"cfp_open":         cfpOpen,
-			"cfp_closed":       cfpClosed,
-			"unique_locations": uniqueLocations,
-			"unique_countries": uniqueCountries,
+			"total_events":     stats.TotalEvents,
+			"cfp_open":         stats.CfpOpen,
+			"cfp_closed":       stats.CfpClosed,
+			"unique_locations": stats.UniqueLocations,
+			"unique_countries": stats.UniqueCountries,
 			"unique_tags":      uniqueTags,
+		})
+	}
+}
+
+// GetProposalStatsHandler returns daily proposal submission counts for the last N days.
+func GetProposalStatsHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		days := 7
+		if d := r.URL.Query().Get("days"); d != "" {
+			if parsed, err := strconv.Atoi(d); err == nil && parsed >= 1 && parsed <= 90 {
+				days = parsed
+			}
+		}
+
+		type dayStat struct {
+			Date  string `json:"date"`
+			Count int64  `json:"count"`
+		}
+
+		var rows []dayStat
+		cutoff := time.Now().AddDate(0, 0, -days)
+		if err := cfg.DB.Model(&models.Proposal{}).
+			Select("DATE(created_at) as date, COUNT(*) as count").
+			Where("created_at >= ?", cutoff).
+			Group("DATE(created_at)").
+			Order("date").
+			Scan(&rows).Error; err != nil {
+			cfg.Logger.Error("failed to query proposal stats", "error", err)
+			encodeError(w, "Failed to load proposal stats", http.StatusInternalServerError)
+			return
+		}
+
+		var total int64
+		for _, r := range rows {
+			total += r.Count
+		}
+
+		encodeResponse(w, r, map[string]interface{}{
+			"stats": rows,
+			"total": total,
 		})
 	}
 }
@@ -202,7 +261,11 @@ func ListEventsHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Count total before pagination
 		var total int64
-		query.Count(&total)
+		if err := query.Count(&total).Error; err != nil {
+			cfg.Logger.Error("failed to count events", "error", err)
+			encodeError(w, "Failed to load events", http.StatusInternalServerError)
+			return
+		}
 
 		// Sorting
 		sortField := r.URL.Query().Get("sort")
@@ -254,7 +317,11 @@ func ListEventsHandler(cfg *config.Config) http.HandlerFunc {
 		offset := (page - 1) * perPage
 
 		var events []models.Event
-		query.Offset(offset).Limit(perPage).Find(&events)
+		if err := query.Offset(offset).Limit(perPage).Find(&events).Error; err != nil {
+			cfg.Logger.Error("failed to query events", "error", err)
+			encodeError(w, "Failed to load events", http.StatusInternalServerError)
+			return
+		}
 
 		for i := range events {
 			sanitizeEventForPublic(&events[i])
@@ -277,14 +344,7 @@ func ListEventsHandler(cfg *config.Config) http.HandlerFunc {
 // GetEventBySlugHandler returns an event by its slug
 func GetEventBySlugHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Extract slug from path: /api/v0/e/{slug}
-		slug := strings.TrimPrefix(r.URL.Path, "/api/v0/e/")
-		slug = strings.TrimSuffix(slug, "/")
+		slug := r.PathValue("slug")
 
 		if slug == "" {
 			encodeError(w, "Missing slug", http.StatusBadRequest)
@@ -306,13 +366,7 @@ func GetEventBySlugHandler(cfg *config.Config) http.HandlerFunc {
 // Draft events are hidden and internal payment fields are stripped.
 func GetEventByIDHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		// Extract ID from path
-		idStr := extractEventID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
@@ -334,20 +388,13 @@ func GetEventByIDHandler(cfg *config.Config) http.HandlerFunc {
 // GET /api/v0/me/events/{id}
 func GetEventForOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract ID from path: /api/v0/me/events/{id}
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/me/events/")
-		id, err := strconv.ParseUint(path, 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -499,6 +546,7 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		encodeResponse(w, r, event)
 	}
@@ -507,18 +555,13 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 // UpdateEventHandler updates an existing event
 func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		idStr := extractEventID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
@@ -643,6 +686,14 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 			}
 		}
 
+		// Validate contact_email if being updated
+		if contactEmail, ok := updates["contact_email"].(string); ok && contactEmail != "" {
+			if _, err := mail.ParseAddress(contactEmail); err != nil {
+				encodeError(w, "Contact email must be a valid email address", http.StatusBadRequest)
+				return
+			}
+		}
+
 		// Validate slug if being updated
 		if slug, ok := updates["slug"].(string); ok {
 			slug = strings.ToLower(slug)
@@ -711,7 +762,11 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Reload event
-		cfg.DB.First(&event, id)
+		if err := cfg.DB.First(&event, id).Error; err != nil {
+			cfg.Logger.Error("failed to reload event after update", "error", err)
+			encodeError(w, "Failed to reload event", http.StatusInternalServerError)
+			return
+		}
 
 		encodeResponse(w, r, event)
 	}
@@ -720,18 +775,13 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 // DeleteEventHandler deletes an event and its proposals
 func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		idStr := extractEventID(r.URL.Path)
+		idStr := r.PathValue("id")
 		id, err := strconv.ParseUint(idStr, 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
@@ -770,7 +820,11 @@ func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
 			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
 			return
 		}
-		tx.Commit()
+		if err := tx.Commit().Error; err != nil {
+			cfg.Logger.Error("failed to commit event deletion", "error", err, "event_id", id)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
 
 		encodeResponse(w, r, map[string]string{"message": "Event deleted"})
 	}
@@ -779,26 +833,13 @@ func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
 // UpdateCFPStatusHandler updates just the CFP status
 func UpdateCFPStatusHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPut {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract ID from path: /api/v0/events/{id}/cfp-status
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -868,26 +909,13 @@ func UpdateCFPStatusHandler(cfg *config.Config) http.HandlerFunc {
 // GetEventProposalsHandler returns proposals for an event
 func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract ID from path
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -900,13 +928,22 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		var proposals []models.Proposal
+		query := cfg.DB.Where("event_id = ?", id).Order("created_at DESC").Limit(MaxProposalsPerPage)
 
 		if event.IsOrganizer(user.ID) {
 			// Organizers see all proposals
-			cfg.DB.Where("event_id = ?", id).Find(&proposals)
+			if err := query.Find(&proposals).Error; err != nil {
+				cfg.Logger.Error("failed to query proposals", "error", err, "event_id", id)
+				encodeError(w, "Failed to load proposals", http.StatusInternalServerError)
+				return
+			}
 		} else {
 			// Others see only their own proposals
-			cfg.DB.Where("event_id = ? AND created_by_id = ?", id, user.ID).Find(&proposals)
+			if err := query.Where("created_by_id = ?", user.ID).Find(&proposals).Error; err != nil {
+				cfg.Logger.Error("failed to query user proposals", "error", err, "event_id", id)
+				encodeError(w, "Failed to load proposals", http.StatusInternalServerError)
+				return
+			}
 			// Hide organizer notes from non-organizers
 			for i := range proposals {
 				proposals[i].OrganizerNotes = ""
@@ -920,25 +957,13 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 // GetEventOrganizersHandler returns organizers for an event
 func GetEventOrganizersHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -997,25 +1022,13 @@ func GetEventOrganizersHandler(cfg *config.Config) http.HandlerFunc {
 // AddOrganizerHandler adds an organizer to an event
 func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 1 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		id, err := strconv.ParseUint(parts[0], 10, 32)
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -1062,9 +1075,25 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Limit number of organizers (co-organizers + creator)
-		totalOrganizers := len(event.Organizers)
-		if event.CreatedByID != nil {
+		// Use a transaction with row lock to prevent TOCTOU race on organizer count
+		tx := cfg.DB.Begin()
+		if tx.Error != nil {
+			cfg.Logger.Error("failed to begin transaction", "error", tx.Error)
+			encodeError(w, "Failed to add organizer", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
+		// Lock the event row and re-count organizers
+		var lockedEvent models.Event
+		if err := tx.Preload("Organizers").Clauses(clause.Locking{Strength: "UPDATE"}).First(&lockedEvent, event.ID).Error; err != nil {
+			cfg.Logger.Error("failed to lock event for organizer add", "error", err)
+			encodeError(w, "Failed to add organizer", http.StatusInternalServerError)
+			return
+		}
+
+		totalOrganizers := len(lockedEvent.Organizers)
+		if lockedEvent.CreatedByID != nil {
 			totalOrganizers++
 		}
 		if totalOrganizers >= cfg.MaxOrganizersPerEvent {
@@ -1072,8 +1101,18 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		// Add to organizers
-		cfg.DB.Model(&event).Association("Organizers").Append(&newOrganizer)
+		// Add to organizers within the transaction
+		if err := tx.Model(&lockedEvent).Association("Organizers").Append(&newOrganizer); err != nil {
+			cfg.Logger.Error("failed to add organizer", "error", err, "event_id", event.ID)
+			encodeError(w, "Failed to add organizer", http.StatusInternalServerError)
+			return
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			cfg.Logger.Error("failed to commit organizer add", "error", err)
+			encodeError(w, "Failed to add organizer", http.StatusInternalServerError)
+			return
+		}
 
 		cfg.Logger.Info("organizer added",
 			"event_id", event.ID,
@@ -1082,6 +1121,7 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 			"actor_id", user.ID,
 		)
 
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		encodeResponse(w, r, map[string]string{"message": "Organizer added"})
 	}
@@ -1090,32 +1130,19 @@ func AddOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 // RemoveOrganizerHandler removes an organizer from an event
 func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodDelete {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract IDs from path: /api/v0/events/{id}/organizers/{userId}
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 3 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		eventID, err := strconv.ParseUint(parts[0], 10, 32)
+		eventID, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
 		}
 
-		userIDToRemove, err := strconv.ParseUint(parts[2], 10, 32)
+		userIDToRemove, err := strconv.ParseUint(r.PathValue("userId"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid user ID", http.StatusBadRequest)
 			return
@@ -1145,7 +1172,11 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		cfg.DB.Model(&event).Association("Organizers").Delete(&organizerToRemove)
+		if err := cfg.DB.Model(&event).Association("Organizers").Delete(&organizerToRemove); err != nil {
+			cfg.Logger.Error("failed to remove organizer", "error", err, "event_id", event.ID)
+			encodeError(w, "Failed to remove organizer", http.StatusInternalServerError)
+			return
+		}
 
 		cfg.Logger.Info("organizer removed",
 			"event_id", event.ID,
@@ -1157,13 +1188,3 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// extractEventID extracts the event ID from various path formats
-func extractEventID(path string) string {
-	// Handle paths like /api/v0/events/123 or /api/v0/events/123/proposals
-	path = strings.TrimPrefix(path, "/api/v0/events/")
-	parts := strings.Split(path, "/")
-	if len(parts) > 0 {
-		return parts[0]
-	}
-	return ""
-}

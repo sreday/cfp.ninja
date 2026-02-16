@@ -3,7 +3,6 @@ package server
 import (
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/config"
@@ -66,7 +65,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 	if staticHandler != nil {
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 			// If it's an API route, return 404 (API routes are already registered)
-			if strings.HasPrefix(r.URL.Path, "/api/") {
+			if len(r.URL.Path) >= 5 && r.URL.Path[:5] == "/api/" {
 				http.NotFound(w, r)
 				return
 			}
@@ -74,9 +73,10 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		})
 	}
 
-	// Wrap with security headers, request ID, and request logging.
-	// Order (outermost first): RequestID → RequestLogging → SecurityHeaders → mux
+	// Wrap with security headers, request ID, compression, and request logging.
+	// Order (outermost first): RequestID → RequestLogging → SecurityHeaders → Gzip → mux
 	var handler http.Handler = mux
+	handler = api.GzipHandler(handler)
 	handler = api.SecurityHeaders(handler)
 	handler = api.RequestLogging(cfg.Logger, handler)
 	handler = api.RequestID(handler)
@@ -84,7 +84,8 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 	return cfg, handler, nil
 }
 
-// RegisterRoutes registers all API routes on the given mux
+// RegisterRoutes registers all API routes on the given mux.
+// Uses Go 1.22+ ServeMux path parameters to eliminate string-based routing.
 func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	// Rate limiters for different endpoint groups.
 	// In test mode (GO_TEST=1), use permissive limits to avoid flaky tests.
@@ -104,21 +105,14 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 
 	// Public endpoints (no auth, with CORS, rate limited)
 	mux.HandleFunc("/api/v0/config", api.CorsHandler(cfg, api.ConfigHandler(cfg)))
-	mux.HandleFunc("/api/v0/stats", api.CorsHandler(cfg, readLimiter.Middleware(api.GetStatsHandler(cfg))))
-	mux.HandleFunc("/api/v0/countries", api.CorsHandler(cfg, readLimiter.Middleware(api.GetCountriesHandler(cfg))))
-	mux.HandleFunc("/api/v0/events", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			readLimiter.Middleware(api.ListEventsHandler(cfg))(w, r)
-		case http.MethodPost:
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateEventHandler(cfg)))(w, r)
-		case http.MethodOptions:
-			// CORS preflight handled by wrapper
-		default:
-			http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-		}
-	}))
-	mux.HandleFunc("/api/v0/e/", api.CorsHandler(cfg, readLimiter.Middleware(api.GetEventBySlugHandler(cfg))))
+	mux.HandleFunc("GET /api/v0/stats", api.CorsHandler(cfg, readLimiter.Middleware(api.GetStatsHandler(cfg))))
+	mux.HandleFunc("GET /api/v0/stats/proposals", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.GetProposalStatsHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/stats/proposals", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("GET /api/v0/countries", api.CorsHandler(cfg, readLimiter.Middleware(api.GetCountriesHandler(cfg))))
+	mux.HandleFunc("GET /api/v0/events", api.CorsHandler(cfg, readLimiter.Middleware(api.ListEventsHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/events", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateEventHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("GET /api/v0/e/{slug}", api.CorsHandler(cfg, readLimiter.Middleware(api.GetEventBySlugHandler(cfg))))
 
 	// Auth endpoints - Google OAuth (rate limited)
 	mux.HandleFunc("/api/v0/auth/google", api.CorsHandler(cfg, authLimiter.Middleware(api.GoogleAuthHandler(cfg))))
@@ -129,130 +123,63 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("/api/v0/auth/github/callback", api.CorsHandler(cfg, authLimiter.Middleware(api.GitHubCallbackHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/logout", api.CorsHandler(cfg, authLimiter.Middleware(api.LogoutHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/me", api.AuthCorsHandler(cfg, api.GetMeHandler(cfg)))
-	mux.HandleFunc("/api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
-	mux.HandleFunc("/api/v0/me/events/", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))
+	mux.HandleFunc("GET /api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
+	mux.HandleFunc("OPTIONS /api/v0/me/events", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("GET /api/v0/me/events/{id}", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))
+	mux.HandleFunc("OPTIONS /api/v0/me/events/{id}", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 
 	// LinkedIn profile check (auth required, rate limited)
 	mux.HandleFunc("/api/v0/check-linkedin", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.CheckLinkedInHandler(cfg))))
 
 	// Stripe webhook endpoint (no auth, no CORS - server-to-server from Stripe)
-	mux.HandleFunc("/api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
+	mux.HandleFunc("POST /api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 
-	// Event endpoints
-	mux.HandleFunc("/api/v0/events/", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
+	// cors is a shorthand for the common CORS preflight handler
+	cors := func(w http.ResponseWriter, r *http.Request) {}
 
-		// Handle /api/v0/events/{id}/proposals/{proposalId}/checkout
-		if strings.Contains(path, "/proposals/") && strings.HasSuffix(path, "/checkout") {
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateProposalCheckoutHandler(cfg)))(w, r)
-			return
-		}
+	// Event endpoints (with path parameters)
+	mux.HandleFunc("GET /api/v0/events/{id}", api.CorsHandler(cfg, api.GetEventByIDHandler(cfg)))
+	mux.HandleFunc("PUT /api/v0/events/{id}", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.UpdateEventHandler(cfg)))))
+	mux.HandleFunc("DELETE /api/v0/events/{id}", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.DeleteEventHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}/proposals/export
-		if strings.HasSuffix(path, "/proposals/export") {
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.ExportProposalsHandler(cfg)))(w, r)
-			return
-		}
+	mux.HandleFunc("PUT /api/v0/events/{id}/cfp-status", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.UpdateCFPStatusHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/cfp-status", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}/proposals
-		if strings.HasSuffix(path, "/proposals") {
-			switch r.Method {
-			case http.MethodGet:
-				api.AuthHandler(cfg, api.GetEventProposalsHandler(cfg))(w, r)
-			case http.MethodPost:
-				writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateProposalHandler(cfg)))(w, r)
-			case http.MethodOptions:
-				// CORS preflight
-			default:
-				http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-			}
-			return
-		}
+	mux.HandleFunc("POST /api/v0/events/{id}/checkout", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateEventCheckoutHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/checkout", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}/checkout
-		if strings.HasSuffix(path, "/checkout") {
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateEventCheckoutHandler(cfg)))(w, r)
-			return
-		}
+	mux.HandleFunc("GET /api/v0/events/{id}/proposals", api.CorsHandler(cfg, api.AuthHandler(cfg, api.GetEventProposalsHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/events/{id}/proposals", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateProposalHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/proposals", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}/cfp-status
-		if strings.HasSuffix(path, "/cfp-status") {
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.UpdateCFPStatusHandler(cfg)))(w, r)
-			return
-		}
+	mux.HandleFunc("GET /api/v0/events/{id}/proposals/export", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.ExportProposalsHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/proposals/export", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}/organizers and /api/v0/events/{id}/organizers/{userId}
-		if strings.Contains(path, "/organizers") {
-			switch r.Method {
-			case http.MethodGet:
-				api.AuthHandler(cfg, api.GetEventOrganizersHandler(cfg))(w, r)
-			case http.MethodPost:
-				writeLimiter.Middleware(api.AuthHandler(cfg, api.AddOrganizerHandler(cfg)))(w, r)
-			case http.MethodDelete:
-				writeLimiter.Middleware(api.AuthHandler(cfg, api.RemoveOrganizerHandler(cfg)))(w, r)
-			case http.MethodOptions:
-				// CORS preflight
-			default:
-				http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-			}
-			return
-		}
+	mux.HandleFunc("POST /api/v0/events/{id}/proposals/{proposalId}/checkout", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.CreateProposalCheckoutHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/proposals/{proposalId}/checkout", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/events/{id}
-		switch r.Method {
-		case http.MethodGet:
-			api.GetEventByIDHandler(cfg)(w, r)
-		case http.MethodPut:
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.UpdateEventHandler(cfg)))(w, r)
-		case http.MethodDelete:
-			writeLimiter.Middleware(api.AuthHandler(cfg, api.DeleteEventHandler(cfg)))(w, r)
-		case http.MethodOptions:
-			// CORS preflight
-		default:
-			http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-		}
-	}))
+	mux.HandleFunc("GET /api/v0/events/{id}/organizers", api.CorsHandler(cfg, api.AuthHandler(cfg, api.GetEventOrganizersHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/events/{id}/organizers", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.AddOrganizerHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/organizers", api.CorsHandler(cfg, cors))
+	mux.HandleFunc("DELETE /api/v0/events/{id}/organizers/{userId}", api.CorsHandler(cfg, writeLimiter.Middleware(api.AuthHandler(cfg, api.RemoveOrganizerHandler(cfg)))))
+	mux.HandleFunc("OPTIONS /api/v0/events/{id}/organizers/{userId}", api.CorsHandler(cfg, cors))
 
-	// Proposal endpoints
-	mux.HandleFunc("/api/v0/proposals/", api.AuthCorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
+	// Proposal endpoints (with path parameters)
+	mux.HandleFunc("GET /api/v0/proposals/{id}", api.AuthCorsHandler(cfg, api.GetProposalHandler(cfg)))
+	mux.HandleFunc("PUT /api/v0/proposals/{id}", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProposalHandler(cfg))))
+	mux.HandleFunc("DELETE /api/v0/proposals/{id}", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.DeleteProposalHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/proposals/{id}/status
-		if strings.HasSuffix(path, "/status") {
-			writeLimiter.Middleware(api.UpdateProposalStatusHandler(cfg))(w, r)
-			return
-		}
+	mux.HandleFunc("PUT /api/v0/proposals/{id}/status", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProposalStatusHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/status", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/proposals/{id}/rating
-		if strings.HasSuffix(path, "/rating") {
-			writeLimiter.Middleware(api.UpdateProposalRatingHandler(cfg))(w, r)
-			return
-		}
+	mux.HandleFunc("PUT /api/v0/proposals/{id}/rating", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProposalRatingHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/rating", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/proposals/{id}/emergency-cancel
-		if strings.HasSuffix(path, "/emergency-cancel") {
-			writeLimiter.Middleware(api.EmergencyCancelHandler(cfg))(w, r)
-			return
-		}
+	mux.HandleFunc("PUT /api/v0/proposals/{id}/emergency-cancel", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.EmergencyCancelHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/emergency-cancel", api.CorsHandler(cfg, cors))
 
-		// Handle /api/v0/proposals/{id}/confirm
-		if strings.HasSuffix(path, "/confirm") {
-			writeLimiter.Middleware(api.ConfirmAttendanceHandler(cfg))(w, r)
-			return
-		}
-
-		// Handle /api/v0/proposals/{id}
-		switch r.Method {
-		case http.MethodGet:
-			api.GetProposalHandler(cfg)(w, r)
-		case http.MethodPut:
-			writeLimiter.Middleware(api.UpdateProposalHandler(cfg))(w, r)
-		case http.MethodDelete:
-			writeLimiter.Middleware(api.DeleteProposalHandler(cfg))(w, r)
-		case http.MethodOptions:
-			// CORS preflight
-		default:
-			http.Error(w, `{"error": "Method not allowed"}`, http.StatusMethodNotAllowed)
-		}
-	}))
+	mux.HandleFunc("PUT /api/v0/proposals/{id}/confirm", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.ConfirmAttendanceHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/confirm", api.CorsHandler(cfg, cors))
 }

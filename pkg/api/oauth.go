@@ -707,13 +707,28 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			})
 		}
 
+		// Batch-fetch all user proposals for submitted events in a single query
+		var allUserProposals []models.Proposal
+		if len(submittedEvents) > 0 {
+			submittedIDs := make([]uint, len(submittedEvents))
+			for i, e := range submittedEvents {
+				submittedIDs[i] = e.ID
+			}
+			if err := cfg.DB.Where("event_id IN ? AND created_by_id = ?", submittedIDs, user.ID).Find(&allUserProposals).Error; err != nil {
+				cfg.Logger.Error("failed to load proposals for submitted events", "error", err)
+			}
+		}
+
+		// Group proposals by event ID
+		proposalsByEvent := make(map[uint][]models.Proposal)
+		for _, p := range allUserProposals {
+			proposalsByEvent[p.EventID] = append(proposalsByEvent[p.EventID], p)
+		}
+
 		submitted := make([]SubmittedEvent, 0)
 		for _, e := range submittedEvents {
-			var proposals []models.Proposal
-			cfg.DB.Where("event_id = ? AND created_by_id = ?", e.ID, user.ID).Find(&proposals)
-
 			myProposals := make([]MyProposal, 0)
-			for _, p := range proposals {
+			for _, p := range proposalsByEvent[e.ID] {
 				myProposals = append(myProposals, MyProposal{
 					ID:                    p.ID,
 					Title:                 p.Title,

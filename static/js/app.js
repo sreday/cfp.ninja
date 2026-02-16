@@ -17,6 +17,7 @@ import { CliView } from './views/cli.js';
 import { PricingView } from './views/pricing.js';
 import { EditProposalView } from './views/edit-proposal.js';
 import { SubmissionSuccessView } from './views/submission-success.js';
+import { StatsView } from './views/stats.js';
 
 // App configuration (populated on init)
 let appConfig = { auth_providers: ['github', 'google'] }; // defaults until fetched
@@ -118,6 +119,10 @@ export const API = {
     // My Events & Proposals (for dashboard)
     getMyDashboard() {
         return this.request('GET', '/me/events');
+    },
+
+    getProposalStats(days = 7) {
+        return this.request('GET', `/stats/proposals?days=${days}`);
     },
 
     // Proposals
@@ -370,6 +375,7 @@ async function init() {
         .add('/dashboard/events/new', requireAuth(CreateEventView))
         .add('/dashboard/events/:id', requireAuth(ManageEventView))
         .add('/dashboard/events/:id/proposals', requireAuth(ProposalsView))
+        .add('/dashboard/stats', requireAuth(StatsView))
         .notFound(NotFoundView);
 
     // Before each route - re-render nav

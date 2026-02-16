@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
@@ -20,26 +19,13 @@ import (
 // POST /api/v0/events/{id}/checkout
 func CreateEventCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract event ID from path: /api/v0/events/{id}/checkout
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 2 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		eventID, err := strconv.ParseUint(parts[0], 10, 32)
+		eventID, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
@@ -104,32 +90,19 @@ func CreateEventCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 // POST /api/v0/events/{id}/proposals/{proposalId}/checkout
 func CreateProposalCheckoutHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
 		user := GetUserFromContext(r.Context())
 		if user == nil {
 			encodeError(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// Extract IDs from path: /api/v0/events/{id}/proposals/{proposalId}/checkout
-		path := strings.TrimPrefix(r.URL.Path, "/api/v0/events/")
-		parts := strings.Split(path, "/")
-		if len(parts) < 4 {
-			encodeError(w, "Invalid path", http.StatusBadRequest)
-			return
-		}
-
-		eventID, err := strconv.ParseUint(parts[0], 10, 32)
+		eventID, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid event ID", http.StatusBadRequest)
 			return
 		}
 
-		proposalID, err := strconv.ParseUint(parts[2], 10, 32)
+		proposalID, err := strconv.ParseUint(r.PathValue("proposalId"), 10, 32)
 		if err != nil {
 			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
 			return
@@ -218,8 +191,9 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
 
-		if r.Method != http.MethodPost {
-			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		if cfg.StripeWebhookSecret == "" {
+			cfg.Logger.Error("Stripe webhook secret not configured, rejecting webhook")
+			encodeError(w, "Webhook not configured", http.StatusServiceUnavailable)
 			return
 		}
 

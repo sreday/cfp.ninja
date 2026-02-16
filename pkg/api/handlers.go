@@ -32,16 +32,25 @@ func encodeError(w http.ResponseWriter, message string, statusCode int) {
 var safeGoSem = make(chan struct{}, 50)
 
 // SafeGo launches a goroutine with panic recovery.
-// At most 50 goroutines run concurrently; callers beyond that block until a slot opens.
+// At most 50 goroutines run concurrently; if the semaphore is full the task
+// is dropped with a warning instead of blocking the calling HTTP handler.
 // If cfg.OnBackgroundDone is set, it is called after fn completes (used by tests).
 func SafeGo(cfg *config.Config, fn func()) {
-	safeGoSem <- struct{}{} // acquire slot
+	select {
+	case safeGoSem <- struct{}{}: // acquire slot
+	default:
+		cfg.Logger.Warn("SafeGo semaphore full, dropping background task")
+		if cfg.OnBackgroundDone != nil {
+			cfg.OnBackgroundDone()
+		}
+		return
+	}
 	go func() {
 		defer func() {
-			<-safeGoSem // release slot
 			if r := recover(); r != nil {
 				cfg.Logger.Error("recovered from panic in goroutine", "panic", r)
 			}
+			<-safeGoSem // release slot
 			if cfg.OnBackgroundDone != nil {
 				cfg.OnBackgroundDone()
 			}

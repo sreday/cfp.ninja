@@ -63,10 +63,13 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 
 	since := time.Now().AddDate(0, 0, -7)
 
-	// Find all organisers who have at least one event
+	// Find all organisers who have at least one event (via join table OR as creator)
 	var organisers []models.User
 	if err := db.Distinct().
-		Joins("JOIN event_organizers ON event_organizers.user_id = users.id").
+		Where("users.id IN (?) OR users.id IN (?)",
+			db.Table("event_organizers").Select("user_id"),
+			db.Table("events").Select("created_by_id").Where("created_by_id IS NOT NULL AND deleted_at IS NULL"),
+		).
 		Find(&organisers).Error; err != nil {
 		logger.Error("failed to query organisers for digest", "error", err)
 		return
@@ -77,6 +80,7 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 	}
 
 	// Collect all event IDs across all organisers in one query
+	// Include both event_organizers join table and created_by_id ownership
 	type orgEvent struct {
 		UserID  uint
 		EventID uint
@@ -88,6 +92,10 @@ func sendAllDigests(ctx context.Context, db *gorm.DB, logger *slog.Logger, sende
 		FROM event_organizers eo
 		JOIN events e ON e.id = eo.event_id
 		WHERE e.deleted_at IS NULL
+		UNION
+		SELECT e.created_by_id AS user_id, e.id AS event_id, e.name
+		FROM events e
+		WHERE e.created_by_id IS NOT NULL AND e.deleted_at IS NULL
 	`).Scan(&orgEvents).Error; err != nil {
 		logger.Error("failed to query organiser events for digest", "error", err)
 		return

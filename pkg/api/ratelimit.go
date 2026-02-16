@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strings"
@@ -22,6 +23,7 @@ type RateLimiter struct {
 	rate           rate.Limit
 	burst          int
 	trustedProxies map[string]bool
+	cancel         context.CancelFunc
 }
 
 // NewRateLimiter creates a rate limiter that allows r requests per second with
@@ -32,14 +34,21 @@ func NewRateLimiter(r rate.Limit, burst int, trustedProxies []string) *RateLimit
 	for _, p := range trustedProxies {
 		tp[p] = true
 	}
+	ctx, cancel := context.WithCancel(context.Background())
 	rl := &RateLimiter{
 		visitors:       make(map[string]*visitor),
 		rate:           r,
 		burst:          burst,
 		trustedProxies: tp,
+		cancel:         cancel,
 	}
-	go rl.cleanupLoop()
+	go rl.cleanupLoop(ctx)
 	return rl
+}
+
+// Stop terminates the background cleanup goroutine.
+func (rl *RateLimiter) Stop() {
+	rl.cancel()
 }
 
 // maxVisitors caps the number of tracked IPs to prevent unbounded memory
@@ -70,18 +79,23 @@ func (rl *RateLimiter) getLimiter(ip string) *rate.Limiter {
 }
 
 // cleanupLoop removes visitors not seen in the last 3 minutes.
-func (rl *RateLimiter) cleanupLoop() {
+func (rl *RateLimiter) cleanupLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		rl.mu.Lock()
-		cutoff := time.Now().Add(-3 * time.Minute)
-		for ip, v := range rl.visitors {
-			if v.lastSeen.Before(cutoff) {
-				delete(rl.visitors, ip)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			rl.mu.Lock()
+			cutoff := time.Now().Add(-3 * time.Minute)
+			for ip, v := range rl.visitors {
+				if v.lastSeen.Before(cutoff) {
+					delete(rl.visitors, ip)
+				}
 			}
+			rl.mu.Unlock()
 		}
-		rl.mu.Unlock()
 	}
 }
 
