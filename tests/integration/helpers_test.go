@@ -143,21 +143,22 @@ type PaginationInfo struct {
 
 // ProposalResponse represents a proposal in API responses
 type ProposalResponse struct {
-	ID                    uint   `json:"id"`
-	EventID               uint   `json:"event_id"`
-	Title                 string `json:"title"`
-	Abstract              string `json:"abstract"`
-	Format                string `json:"format"`
-	Duration              int    `json:"duration"`
-	Level                 string `json:"level"`
-	Tags                  string `json:"tags"`
-	Status                string `json:"status"`
-	Rating                *int   `json:"rating,omitempty"`
-	AttendanceConfirmed   bool   `json:"attendance_confirmed"`
-	AttendanceConfirmedAt string `json:"attendance_confirmed_at,omitempty"`
-	CreatedByID           *uint  `json:"created_by_id,omitempty"`
-	IsPaid                bool   `json:"is_paid"`
-	StripePaymentID       string `json:"stripe_payment_id,omitempty"`
+	ID                    uint     `json:"id"`
+	EventID               uint     `json:"event_id"`
+	Title                 string   `json:"title"`
+	Abstract              string   `json:"abstract"`
+	Format                string   `json:"format"`
+	Duration              int      `json:"duration"`
+	Level                 string   `json:"level"`
+	Tags                  string   `json:"tags"`
+	Status                string   `json:"status"`
+	Rating                *float64 `json:"rating,omitempty"`
+	RatingCount           int      `json:"rating_count"`
+	AttendanceConfirmed   bool     `json:"attendance_confirmed"`
+	AttendanceConfirmedAt string   `json:"attendance_confirmed_at,omitempty"`
+	CreatedByID           *uint    `json:"created_by_id,omitempty"`
+	IsPaid                bool     `json:"is_paid"`
+	StripePaymentID       string   `json:"stripe_payment_id,omitempty"`
 }
 
 // ConfigResponse represents the /api/v0/config endpoint response

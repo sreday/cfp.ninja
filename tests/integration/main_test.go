@@ -63,6 +63,7 @@ func cleanDatabase() {
 	db.Exec("SET session_replication_role = 'replica'")
 
 	// Truncate tables in order to avoid foreign key issues
+	db.Exec("TRUNCATE TABLE proposal_ratings CASCADE")
 	db.Exec("TRUNCATE TABLE proposals CASCADE")
 	db.Exec("TRUNCATE TABLE event_organizers CASCADE")
 	db.Exec("TRUNCATE TABLE events CASCADE")

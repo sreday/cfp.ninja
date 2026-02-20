@@ -59,6 +59,15 @@ type Speaker struct {
 	Primary  bool   `json:"primary"`             // Is this the primary/submitting speaker?
 }
 
+// ProposalRating stores an individual organizer's rating for a proposal.
+// Each organizer can rate a proposal once (upsert on user_id + proposal_id).
+type ProposalRating struct {
+	gorm.Model
+	ProposalID uint `gorm:"uniqueIndex:idx_proposal_user;not null;constraint:OnDelete:CASCADE" json:"proposal_id"`
+	UserID     uint `gorm:"uniqueIndex:idx_proposal_user;not null;constraint:OnDelete:CASCADE" json:"user_id"`
+	Score      int  `gorm:"not null" json:"score"` // 0-5 stars
+}
+
 type Proposal struct {
 	gorm.Model
 	EventID  uint           `gorm:"index;not null;constraint:OnDelete:CASCADE" json:"event_id"` // Links to Event (which has the CFP)
@@ -70,8 +79,9 @@ type Proposal struct {
 	Tags     string         `json:"tags"`                // comma-separated
 	Status   ProposalStatus `gorm:"index;default:'submitted'" json:"status"`
 
-	// Rating by event organizers (0-5, null if not rated)
-	Rating *int `gorm:"index" json:"rating,omitempty"` // 0-5 stars
+	// Aggregated rating from event organizers (average of all individual ratings)
+	Rating      *float64 `gorm:"index" json:"rating,omitempty"` // Average score (0-5), null if not rated
+	RatingCount int      `gorm:"default:0" json:"rating_count"` // Number of organizers who rated
 
 	// Attendance confirmation (speaker confirms after acceptance)
 	AttendanceConfirmed   bool       `gorm:"default:false" json:"attendance_confirmed"`
@@ -117,17 +127,17 @@ func (p *Proposal) SetSpeakers(speakers []Speaker) error {
 }
 
 // GetCustomAnswers unmarshals the custom answers JSON
-func (p *Proposal) GetCustomAnswers() (map[string]interface{}, error) {
-	var answers map[string]interface{}
+func (p *Proposal) GetCustomAnswers() (map[string]any, error) {
+	var answers map[string]any
 	if p.CustomAnswers == nil {
-		return make(map[string]interface{}), nil
+		return make(map[string]any), nil
 	}
 	err := json.Unmarshal(p.CustomAnswers, &answers)
 	return answers, err
 }
 
 // SetCustomAnswers marshals custom answers to JSON
-func (p *Proposal) SetCustomAnswers(answers map[string]interface{}) error {
+func (p *Proposal) SetCustomAnswers(answers map[string]any) error {
 	data, err := json.Marshal(answers)
 	if err != nil {
 		return err

@@ -656,7 +656,8 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			ID                   uint      `json:"id"`
 			Title                string    `json:"title"`
 			Status               string    `json:"status"`
-			Rating               *int      `json:"rating,omitempty"`
+			Rating               *float64  `json:"rating,omitempty"`
+			RatingCount          int       `json:"rating_count"`
 			AttendanceConfirmed  bool      `json:"attendance_confirmed"`
 			IsPaid               bool      `json:"is_paid"`
 			EventRequiresPayment bool      `json:"event_requires_payment"`
@@ -734,6 +735,7 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 					Title:                p.Title,
 					Status:               string(p.Status),
 					Rating:               p.Rating,
+					RatingCount:          p.RatingCount,
 					AttendanceConfirmed:  p.AttendanceConfirmed,
 					IsPaid:               p.IsPaid,
 					EventRequiresPayment: e.CFPRequiresPayment,

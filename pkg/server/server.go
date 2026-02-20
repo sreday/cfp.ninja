@@ -35,6 +35,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 			&models.User{},
 			&models.Event{},
 			&models.Proposal{},
+			&models.ProposalRating{},
 		); err != nil {
 			return nil, nil, err
 		}
@@ -174,6 +175,7 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/v0/proposals/{id}/status", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProposalStatusHandler(cfg))))
 	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/status", api.CorsHandler(cfg, cors))
 
+	mux.HandleFunc("GET /api/v0/proposals/{id}/rating", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.GetProposalRatingHandler(cfg))))
 	mux.HandleFunc("PUT /api/v0/proposals/{id}/rating", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProposalRatingHandler(cfg))))
 	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/rating", api.CorsHandler(cfg, cors))
 

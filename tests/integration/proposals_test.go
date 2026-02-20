@@ -1,7 +1,9 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 	"time"
@@ -713,4 +715,206 @@ func TestCreateProposal_MaxPerEventLimit(t *testing.T) {
 	)
 	defer resp.Body.Close()
 	assertStatus(t, resp, http.StatusBadRequest)
+}
+
+// TestMultiOrganizerRating verifies that multiple organizers can rate the same
+// proposal independently and that the average and count are computed correctly.
+func TestMultiOrganizerRating(t *testing.T) {
+	now := time.Now()
+
+	// Create a dedicated event for this test
+	event := createTestEvent(adminToken, EventInput{
+		Name:       "Multi-Rating Test Event",
+		Slug:       "multi-rating-test-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+		CFPOpenAt:  now.AddDate(0, 0, -1).Format(time.RFC3339),
+		CFPCloseAt: now.AddDate(0, 0, 7).Format(time.RFC3339),
+	})
+	updateCFPStatus(adminToken, event.ID, "open")
+
+	// Add "other" user as a second organizer
+	resp := doPost(
+		fmt.Sprintf("/api/v0/events/%d/organizers", event.ID),
+		OrganizerInput{Email: "other@test.com"},
+		adminToken,
+	)
+	assertStatus(t, resp, http.StatusCreated)
+	resp.Body.Close()
+
+	// Create a proposal as speaker
+	proposal := createTestProposal(speakerToken, event.ID, ProposalInput{
+		Title:    "Multi-Rating Proposal",
+		Abstract: "Testing multi-organizer ratings",
+		Format:   "talk",
+		Speakers: []Speaker{
+			{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
+		},
+	})
+
+	// --- Organizer 1 (admin) rates 4 ---
+	t.Run("first organizer rates", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			ProposalRatingInput{Rating: 4},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var p ProposalResponse
+		if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		// After one rating of 4: average=4.0, count=1
+		if p.Rating == nil {
+			t.Fatal("expected rating to be set, got nil")
+		}
+		if *p.Rating != 4.0 {
+			t.Errorf("expected rating 4.0, got %f", *p.Rating)
+		}
+		if p.RatingCount != 1 {
+			t.Errorf("expected rating_count 1, got %d", p.RatingCount)
+		}
+	})
+
+	// --- Organizer 2 (other) rates 2 ---
+	t.Run("second organizer rates", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			ProposalRatingInput{Rating: 2},
+			otherToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var p ProposalResponse
+		if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		// After ratings of 4 and 2: average=3.0, count=2
+		if p.Rating == nil {
+			t.Fatal("expected rating to be set, got nil")
+		}
+		if *p.Rating != 3.0 {
+			t.Errorf("expected rating 3.0, got %f", *p.Rating)
+		}
+		if p.RatingCount != 2 {
+			t.Errorf("expected rating_count 2, got %d", p.RatingCount)
+		}
+	})
+
+	// --- Organizer 1 updates their rating to 5 ---
+	t.Run("first organizer updates rating", func(t *testing.T) {
+		resp := doPut(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			ProposalRatingInput{Rating: 5},
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var p ProposalResponse
+		if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		// After ratings of 5 and 2: average=3.5, count=2
+		if p.Rating == nil {
+			t.Fatal("expected rating to be set, got nil")
+		}
+		if *p.Rating != 3.5 {
+			t.Errorf("expected rating 3.5, got %f", *p.Rating)
+		}
+		if p.RatingCount != 2 {
+			t.Errorf("expected rating_count 2, got %d", p.RatingCount)
+		}
+	})
+
+	// --- GET individual rating for each organizer ---
+	t.Run("get own rating - admin", func(t *testing.T) {
+		resp := doAuthGet(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var result struct {
+			MyRating    *int     `json:"my_rating"`
+			Rating      *float64 `json:"rating"`
+			RatingCount int      `json:"rating_count"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		if result.MyRating == nil || *result.MyRating != 5 {
+			t.Errorf("expected my_rating 5, got %v", result.MyRating)
+		}
+		if result.Rating == nil || *result.Rating != 3.5 {
+			t.Errorf("expected rating 3.5, got %v", result.Rating)
+		}
+		if result.RatingCount != 2 {
+			t.Errorf("expected rating_count 2, got %d", result.RatingCount)
+		}
+	})
+
+	t.Run("get own rating - other organizer", func(t *testing.T) {
+		resp := doAuthGet(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			otherToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var result struct {
+			MyRating    *int     `json:"my_rating"`
+			Rating      *float64 `json:"rating"`
+			RatingCount int      `json:"rating_count"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		if result.MyRating == nil || *result.MyRating != 2 {
+			t.Errorf("expected my_rating 2, got %v", result.MyRating)
+		}
+	})
+
+	t.Run("get own rating - non-organizer forbidden", func(t *testing.T) {
+		resp := doAuthGet(
+			fmt.Sprintf("/api/v0/proposals/%d/rating", proposal.ID),
+			speakerToken,
+		)
+		assertStatus(t, resp, http.StatusForbidden)
+		resp.Body.Close()
+	})
+
+	// --- Verify via GET proposal that aggregate is correct ---
+	t.Run("proposal endpoint reflects aggregate rating", func(t *testing.T) {
+		resp := doAuthGet(
+			fmt.Sprintf("/api/v0/proposals/%d", proposal.ID),
+			adminToken,
+		)
+		assertStatus(t, resp, http.StatusOK)
+
+		var p ProposalResponse
+		if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+			t.Fatalf("failed to decode response: %v", err)
+		}
+		resp.Body.Close()
+
+		if p.Rating == nil {
+			t.Fatal("expected rating to be set, got nil")
+		}
+		if math.Abs(*p.Rating-3.5) > 0.01 {
+			t.Errorf("expected rating ~3.5, got %f", *p.Rating)
+		}
+		if p.RatingCount != 2 {
+			t.Errorf("expected rating_count 2, got %d", p.RatingCount)
+		}
+	})
 }
