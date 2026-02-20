@@ -25,15 +25,15 @@ const (
 
 // Field length limits for proposals
 const (
-	MaxProposalTitleLen         = 300
-	MaxProposalAbstractLen      = 10000
+	MaxProposalTitleLen          = 300
+	MaxProposalAbstractLen       = 10000
 	MaxProposalOrganizerNotesLen = 5000
-	MaxSpeakerNameLen           = 200
-	MaxSpeakerEmailLen          = 320
-	MaxSpeakerBioLen            = 2000
-	MaxSpeakerCompanyLen        = 200
-	MaxSpeakerJobTitleLen       = 200
-	MaxSpeakerLinkedInLen       = 500
+	MaxSpeakerNameLen            = 200
+	MaxSpeakerEmailLen           = 320
+	MaxSpeakerBioLen             = 2000
+	MaxSpeakerCompanyLen         = 200
+	MaxSpeakerJobTitleLen        = 200
+	MaxSpeakerLinkedInLen        = 500
 )
 
 // MaxCustomAnswerLen is the maximum length for a custom question answer value.
@@ -388,10 +388,10 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		}
 		if isOrganizer {
 			allowedFields["status"] = true
-			allowedFields["rating"] = true
 			allowedFields["organizer_notes"] = true
+			// NOTE: rating is managed via the dedicated PUT /proposals/{id}/rating endpoint
 		}
-		filtered := make(map[string]interface{})
+		filtered := make(map[string]any)
 		for k, v := range updates {
 			if allowedFields[k] {
 				filtered[k] = v
@@ -493,8 +493,8 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Validate custom answer types if being updated
 		if answersData, ok := updates["custom_answers"]; ok && answersData != nil {
-			if answersMap, ok := answersData.(map[string]interface{}); ok {
-				if event.CFPQuestions != nil && len(event.CFPQuestions) > 0 {
+			if answersMap, ok := answersData.(map[string]any); ok {
+				if len(event.CFPQuestions) > 0 {
 					var questions []models.CustomQuestion
 					if err := json.Unmarshal(event.CFPQuestions, &questions); err == nil {
 						if errMsg := validateCustomAnswers(answersMap, questions); errMsg != "" {
@@ -686,7 +686,57 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 	}
 }
 
-// UpdateProposalRatingHandler updates the rating of a proposal
+// GetProposalRatingHandler returns the current organizer's individual rating for a proposal,
+// along with the aggregate average and count.
+// GET /api/v0/proposals/{id}/rating
+func GetProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		id, err := strconv.ParseUint(r.PathValue("id"), 10, 32)
+		if err != nil {
+			encodeError(w, "Invalid proposal ID", http.StatusBadRequest)
+			return
+		}
+
+		var proposal models.Proposal
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			encodeError(w, "Proposal not found", http.StatusNotFound)
+			return
+		}
+
+		var event models.Event
+		if err := cfg.DB.Preload("Organizers").First(&event, proposal.EventID).Error; err != nil {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
+
+		if !event.IsOrganizer(user.ID) {
+			encodeError(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Look up this organizer's individual rating
+		var myRating *int
+		var individualRating models.ProposalRating
+		if err := cfg.DB.Where("proposal_id = ? AND user_id = ?", proposal.ID, user.ID).First(&individualRating).Error; err == nil {
+			myRating = &individualRating.Score
+		}
+
+		encodeResponse(w, r, map[string]interface{}{
+			"my_rating":    myRating,
+			"rating":       proposal.Rating,
+			"rating_count": proposal.RatingCount,
+		})
+	}
+}
+
+// UpdateProposalRatingHandler records or updates an organizer's individual rating
+// for a proposal and recomputes the aggregate average on the proposal.
 func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := GetUserFromContext(r.Context())
@@ -736,9 +786,59 @@ func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		proposal.Rating = &req.Rating
-		if err := cfg.DB.Save(&proposal).Error; err != nil {
+		// Upsert the individual rating and recompute the aggregate in a transaction
+		err = cfg.DB.Transaction(func(tx *gorm.DB) error {
+			// insert or update the organizer's rating
+			var existing models.ProposalRating
+			result := tx.Where("proposal_id = ? AND user_id = ?", proposal.ID, user.ID).First(&existing)
+			if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+				return result.Error
+			}
+
+			if result.Error == gorm.ErrRecordNotFound {
+				// create new rating
+				rating := models.ProposalRating{
+					ProposalID: proposal.ID,
+					UserID:     user.ID,
+					Score:      req.Rating,
+				}
+				if err := tx.Create(&rating).Error; err != nil {
+					return err
+				}
+			} else {
+				// Update existing rating
+				if err := tx.Model(&existing).Update("score", req.Rating).Error; err != nil {
+					return err
+				}
+			}
+
+			// Recompute aggregate: average and count from all individual ratings
+			var avg float64
+			var count int64
+			row := tx.Model(&models.ProposalRating{}).
+				Where("proposal_id = ?", proposal.ID).
+				Select("COALESCE(AVG(score), 0), COUNT(*)").
+				Row()
+			if err := row.Scan(&avg, &count); err != nil {
+				return err
+			}
+
+			// Update the cached aggregate on the proposal
+			return tx.Model(&proposal).Updates(map[string]interface{}{
+				"rating":       avg,
+				"rating_count": count,
+			}).Error
+		})
+		if err != nil {
+			cfg.Logger.Error("failed to update rating", "error", err)
 			encodeError(w, "Failed to update rating", http.StatusInternalServerError)
+			return
+		}
+
+		// Reload to return fresh data
+		if err := cfg.DB.First(&proposal, id).Error; err != nil {
+			cfg.Logger.Error("failed to reload proposal after rating", "error", err)
+			encodeError(w, "Failed to reload proposal", http.StatusInternalServerError)
 			return
 		}
 

@@ -73,6 +73,7 @@ func TestAuthRequired(t *testing.T) {
 		{"PUT", "/api/v0/proposals/1"},
 		{"DELETE", "/api/v0/proposals/1"},
 		{"PUT", "/api/v0/proposals/1/status"},
+		{"GET", "/api/v0/proposals/1/rating"},
 		{"PUT", "/api/v0/proposals/1/rating"},
 	}
 

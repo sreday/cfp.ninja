@@ -83,7 +83,7 @@ func waitForElement(page *rod.Page, selector string) *rod.Element {
 
 // waitForElementWithText waits for an element with specific text (returns nil if not found)
 func waitForElementWithText(page *rod.Page, selector, text string) *rod.Element {
-	el, err := page.Timeout(5 * time.Second).ElementR(selector, text)
+	el, err := page.Timeout(5*time.Second).ElementR(selector, text)
 	if err != nil {
 		return nil
 	}

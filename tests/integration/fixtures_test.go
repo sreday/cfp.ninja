@@ -63,7 +63,7 @@ func seedTestData() {
 		Tags:           "go,conference",
 		CFPDescription: "Submit your Go talks!",
 		CFPOpenAt:      now.AddDate(0, 0, -7).Format(time.RFC3339), // Opened a week ago
-		CFPCloseAt:     oneWeekLater.Format(time.RFC3339),         // Closes in a week
+		CFPCloseAt:     oneWeekLater.Format(time.RFC3339),          // Closes in a week
 	})
 	updateCFPStatus(adminToken, eventGopherCon.ID, "open")
 

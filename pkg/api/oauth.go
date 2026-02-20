@@ -15,11 +15,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sreday/cfp.ninja/pkg/config"
+	"github.com/sreday/cfp.ninja/pkg/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/github"
 	"golang.org/x/oauth2/google"
-	"github.com/sreday/cfp.ninja/pkg/config"
-	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
 // GoogleUserInfo represents the user info from Google's API
@@ -653,14 +653,15 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		type MyProposal struct {
-			ID                    uint      `json:"id"`
-			Title                 string    `json:"title"`
-			Status                string    `json:"status"`
-			Rating                *int      `json:"rating,omitempty"`
-			AttendanceConfirmed   bool      `json:"attendance_confirmed"`
-			IsPaid                bool      `json:"is_paid"`
-			EventRequiresPayment  bool      `json:"event_requires_payment"`
-			CreatedAt             time.Time `json:"created_at"`
+			ID                   uint      `json:"id"`
+			Title                string    `json:"title"`
+			Status               string    `json:"status"`
+			Rating               *float64  `json:"rating,omitempty"`
+			RatingCount          int       `json:"rating_count"`
+			AttendanceConfirmed  bool      `json:"attendance_confirmed"`
+			IsPaid               bool      `json:"is_paid"`
+			EventRequiresPayment bool      `json:"event_requires_payment"`
+			CreatedAt            time.Time `json:"created_at"`
 		}
 
 		type SubmittedEvent struct {
@@ -730,14 +731,15 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			myProposals := make([]MyProposal, 0)
 			for _, p := range proposalsByEvent[e.ID] {
 				myProposals = append(myProposals, MyProposal{
-					ID:                    p.ID,
-					Title:                 p.Title,
-					Status:                string(p.Status),
-					Rating:                p.Rating,
-					AttendanceConfirmed:   p.AttendanceConfirmed,
-					IsPaid:                p.IsPaid,
-					EventRequiresPayment:  e.CFPRequiresPayment,
-					CreatedAt:             p.CreatedAt,
+					ID:                   p.ID,
+					Title:                p.Title,
+					Status:               string(p.Status),
+					Rating:               p.Rating,
+					RatingCount:          p.RatingCount,
+					AttendanceConfirmed:  p.AttendanceConfirmed,
+					IsPaid:               p.IsPaid,
+					EventRequiresPayment: e.CFPRequiresPayment,
+					CreatedAt:            p.CreatedAt,
 				})
 			}
 

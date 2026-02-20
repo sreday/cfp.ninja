@@ -13,10 +13,10 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
-	"gorm.io/datatypes"
-	"gorm.io/gorm/clause"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
+	"gorm.io/datatypes"
+	"gorm.io/gorm/clause"
 )
 
 // Pagination constants for event listings
@@ -1187,4 +1187,3 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		encodeResponse(w, r, map[string]string{"message": "Organizer removed"})
 	}
 }
-

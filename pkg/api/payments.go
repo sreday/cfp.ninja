@@ -10,9 +10,9 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/stripe/stripe-go/v82"
-	"gorm.io/gorm"
 	"github.com/stripe/stripe-go/v82/checkout/session"
 	"github.com/stripe/stripe-go/v82/webhook"
+	"gorm.io/gorm"
 )
 
 // CreateEventCheckoutHandler creates a Stripe Checkout session for event listing payment.

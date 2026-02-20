@@ -14,18 +14,18 @@ import (
 	"testing"
 	"time"
 
-	"gorm.io/gorm"
 	"github.com/sreday/cfp.ninja/pkg/database"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/sreday/cfp.ninja/pkg/server"
+	"gorm.io/gorm"
 )
 
 var (
-	testDB       *gorm.DB
-	testServer   *httptest.Server
+	testDB        *gorm.DB
+	testServer    *httptest.Server
 	testServerURL string
-	cfpCmd      string
-	projectRoot  string
+	cfpCmd        string
+	projectRoot   string
 )
 
 const (
@@ -227,8 +227,8 @@ func createTestEvent(name, slug string, userID uint) *models.Event {
 		StartDate:   now.AddDate(0, 1, 0),
 		EndDate:     now.AddDate(0, 1, 3),
 		CFPStatus:   models.CFPStatusOpen,
-		CFPOpenAt:   now.AddDate(0, 0, -7),  // Opened a week ago
-		CFPCloseAt:  now.AddDate(0, 0, 14),  // Closes in two weeks
+		CFPOpenAt:   now.AddDate(0, 0, -7), // Opened a week ago
+		CFPCloseAt:  now.AddDate(0, 0, 14), // Closes in two weeks
 		CreatedByID: &userID,
 	}
 	if err := testDB.Create(event).Error; err != nil {
