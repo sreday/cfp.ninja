@@ -273,7 +273,7 @@ func TestCreateEvent(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        EventInput
-		token       string
+		token        string
 		expectedCode int
 		expectedErr  string
 	}{
@@ -288,7 +288,7 @@ func TestCreateEvent(t *testing.T) {
 				StartDate:   now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:     now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusCreated,
 		},
 		{
@@ -299,7 +299,7 @@ func TestCreateEvent(t *testing.T) {
 				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusConflict,
 		},
 		{
@@ -307,7 +307,7 @@ func TestCreateEvent(t *testing.T) {
 			input: EventInput{
 				Description: "Only description",
 			},
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -318,7 +318,7 @@ func TestCreateEvent(t *testing.T) {
 				StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
 				EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
 			},
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -358,7 +358,7 @@ func TestUpdateEvent(t *testing.T) {
 		name         string
 		eventID      uint
 		input        EventInput
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
@@ -371,7 +371,7 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate:   event.StartDate,
 				EndDate:     event.EndDate,
 			},
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -383,7 +383,7 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate: event.StartDate,
 				EndDate:   event.EndDate,
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
@@ -395,7 +395,7 @@ func TestUpdateEvent(t *testing.T) {
 				StartDate: event.StartDate,
 				EndDate:   event.EndDate,
 			},
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -424,31 +424,31 @@ func TestUpdateCFPStatus(t *testing.T) {
 	tests := []struct {
 		name         string
 		status       string
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
 			name:         "set to open",
 			status:       "open",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "set to closed",
 			status:       "closed",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "invalid status",
 			status:       "invalid",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot update",
 			status:       "open",
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -469,26 +469,26 @@ func TestUpdateCFPStatus(t *testing.T) {
 func TestGetMyEvents(t *testing.T) {
 	tests := []struct {
 		name                   string
-		token                 string
+		token                  string
 		expectedCode           int
 		expectManagingAtLeast  int
 		expectSubmittedAtLeast int
 	}{
 		{
 			name:                  "admin's events",
-			token:                adminToken,
+			token:                 adminToken,
 			expectedCode:          http.StatusOK,
 			expectManagingAtLeast: 5, // Created 5 events in fixtures
 		},
 		{
 			name:                   "speaker's events",
-			token:                 speakerToken,
+			token:                  speakerToken,
 			expectedCode:           http.StatusOK,
 			expectSubmittedAtLeast: 1, // Speaker submitted to GopherCon
 		},
 		{
 			name:         "unauthorized",
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}

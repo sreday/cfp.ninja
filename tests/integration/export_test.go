@@ -382,8 +382,8 @@ func TestExportProposals_IncludesAllStatuses(t *testing.T) {
 	statusByTitle := map[string]string{}
 	confirmedByTitle := map[string]string{}
 	for _, row := range records[1:] {
-		statusByTitle[row[12]] = row[0]       // title at index 12, status at index 0
-		confirmedByTitle[row[12]] = row[1]     // confirmed at index 1
+		statusByTitle[row[12]] = row[0]    // title at index 12, status at index 0
+		confirmedByTitle[row[12]] = row[1] // confirmed at index 1
 	}
 
 	// Verify all three proposals are present with correct statuses

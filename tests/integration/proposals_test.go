@@ -11,21 +11,21 @@ func TestGetEventProposals(t *testing.T) {
 	tests := []struct {
 		name          string
 		eventID       uint
-		token        string
+		token         string
 		expectedCode  int
 		expectAtLeast int
 	}{
 		{
 			name:          "organizer sees all proposals",
 			eventID:       eventGopherCon.ID,
-			token:        adminToken,
+			token:         adminToken,
 			expectedCode:  http.StatusOK,
 			expectAtLeast: 2, // Created 2 proposals in fixtures
 		},
 		{
 			name:         "speaker sees own proposals",
 			eventID:      eventGopherCon.ID,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusOK,
 			// Speaker created 2 proposals
 			expectAtLeast: 2,
@@ -33,14 +33,14 @@ func TestGetEventProposals(t *testing.T) {
 		{
 			name:         "other user sees no proposals (not organizer, no submissions)",
 			eventID:      eventGopherCon.ID,
-			token:       otherToken,
+			token:        otherToken,
 			expectedCode: http.StatusOK,
 			// Other user has no proposals and is not organizer
 		},
 		{
 			name:         "unauthorized",
 			eventID:      eventGopherCon.ID,
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -68,7 +68,7 @@ func TestCreateProposal(t *testing.T) {
 		name         string
 		eventID      uint
 		input        ProposalInput
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
@@ -84,7 +84,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/test", Primary: true},
 				},
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusCreated,
 		},
 		{
@@ -98,7 +98,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "test@test.com", Primary: true},
 				},
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -112,7 +112,7 @@ func TestCreateProposal(t *testing.T) {
 					{Name: "Test Speaker", Email: "test@test.com", Primary: true},
 				},
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -121,7 +121,7 @@ func TestCreateProposal(t *testing.T) {
 			input: ProposalInput{
 				Abstract: "Only abstract",
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
@@ -131,7 +131,7 @@ func TestCreateProposal(t *testing.T) {
 				Title:    "Unauthorized Proposal",
 				Abstract: "Should not work",
 			},
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -165,37 +165,37 @@ func TestGetProposal(t *testing.T) {
 	tests := []struct {
 		name         string
 		proposalID   uint
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
 			name:         "owner can view",
 			proposalID:   proposalGoPerf.ID,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can view",
 			proposalID:   proposalGoPerf.ID,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "other user cannot view",
 			proposalID:   proposalGoPerf.ID,
-			token:       otherToken,
+			token:        otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
 			name:         "non-existent proposal",
 			proposalID:   99999,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusNotFound,
 		},
 		{
 			name:         "unauthorized",
 			proposalID:   proposalGoPerf.ID,
-			token:       "",
+			token:        "",
 			expectedCode: http.StatusUnauthorized,
 		},
 	}
@@ -225,7 +225,7 @@ func TestUpdateProposal(t *testing.T) {
 		name         string
 		proposalID   uint
 		input        ProposalInput
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
@@ -240,7 +240,7 @@ func TestUpdateProposal(t *testing.T) {
 					{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 				},
 			},
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -255,7 +255,7 @@ func TestUpdateProposal(t *testing.T) {
 					{Name: "Speaker User", Email: "speaker@test.com", Company: "Acme Inc", JobTitle: "Engineer", LinkedIn: "https://linkedin.com/in/speaker", Primary: true},
 				},
 			},
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
@@ -266,7 +266,7 @@ func TestUpdateProposal(t *testing.T) {
 				Abstract: "Not allowed",
 				Format:   "talk",
 			},
-			token:       otherToken,
+			token:        otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -413,25 +413,25 @@ func TestDeleteProposal(t *testing.T) {
 	tests := []struct {
 		name         string
 		proposalID   uint
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
 			name:         "owner can delete",
 			proposalID:   proposalToDeleteByOwner.ID,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "other user cannot delete",
 			proposalID:   proposalToDeleteByOther.ID,
-			token:       otherToken,
+			token:        otherToken,
 			expectedCode: http.StatusForbidden,
 		},
 		{
 			name:         "non-existent proposal",
 			proposalID:   99999,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusNotFound,
 		},
 	}
@@ -460,42 +460,42 @@ func TestUpdateProposalStatus(t *testing.T) {
 		name         string
 		proposalID   uint
 		status       string
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
 			name:         "organizer can accept",
 			proposalID:   proposal.ID,
 			status:       "accepted",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can reject",
 			proposalID:   proposal.ID,
 			status:       "rejected",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can set tentative",
 			proposalID:   proposal.ID,
 			status:       "tentative",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "invalid status",
 			proposalID:   proposal.ID,
 			status:       "invalid",
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot update status",
 			proposalID:   proposal.ID,
 			status:       "accepted",
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}
@@ -528,49 +528,49 @@ func TestUpdateProposalRating(t *testing.T) {
 		name         string
 		proposalID   uint
 		rating       int
-		token       string
+		token        string
 		expectedCode int
 	}{
 		{
 			name:         "organizer can rate 5",
 			proposalID:   proposal.ID,
 			rating:       5,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can rate 0",
 			proposalID:   proposal.ID,
 			rating:       0,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "organizer can rate 3",
 			proposalID:   proposal.ID,
 			rating:       3,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusOK,
 		},
 		{
 			name:         "rating above 5 invalid",
 			proposalID:   proposal.ID,
 			rating:       6,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "negative rating invalid",
 			proposalID:   proposal.ID,
 			rating:       -1,
-			token:       adminToken,
+			token:        adminToken,
 			expectedCode: http.StatusBadRequest,
 		},
 		{
 			name:         "non-organizer cannot rate",
 			proposalID:   proposal.ID,
 			rating:       4,
-			token:       speakerToken,
+			token:        speakerToken,
 			expectedCode: http.StatusForbidden,
 		},
 	}

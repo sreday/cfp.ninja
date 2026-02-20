@@ -50,13 +50,13 @@ const (
 //	  }
 //	]
 type Speaker struct {
-	Name     string `json:"name"`               // Required: speaker's full name
-	Email    string `json:"email"`              // Required: contact email
-	Bio      string `json:"bio"`                // Speaker biography
+	Name     string `json:"name"`                // Required: speaker's full name
+	Email    string `json:"email"`               // Required: contact email
+	Bio      string `json:"bio"`                 // Speaker biography
 	JobTitle string `json:"job_title,omitempty"` // Required: current job title
-	LinkedIn string `json:"linkedin,omitempty"` // Required: full LinkedIn profile URL
-	Company  string `json:"company,omitempty"`  // Required: current employer
-	Primary  bool   `json:"primary"`            // Is this the primary/submitting speaker?
+	LinkedIn string `json:"linkedin,omitempty"`  // Required: full LinkedIn profile URL
+	Company  string `json:"company,omitempty"`   // Required: current employer
+	Primary  bool   `json:"primary"`             // Is this the primary/submitting speaker?
 }
 
 type Proposal struct {
@@ -64,10 +64,10 @@ type Proposal struct {
 	EventID  uint           `gorm:"index;not null;constraint:OnDelete:CASCADE" json:"event_id"` // Links to Event (which has the CFP)
 	Title    string         `gorm:"index" json:"title"`
 	Abstract string         `json:"abstract"`
-	Format   ProposalFormat `gorm:"index" json:"format"`   // talk, workshop, lightning
-	Duration int            `json:"duration"`              // minutes
-	Level    string         `json:"level"`                 // beginner, intermediate, advanced
-	Tags     string         `json:"tags"`                  // comma-separated
+	Format   ProposalFormat `gorm:"index" json:"format"` // talk, workshop, lightning
+	Duration int            `json:"duration"`            // minutes
+	Level    string         `json:"level"`               // beginner, intermediate, advanced
+	Tags     string         `json:"tags"`                // comma-separated
 	Status   ProposalStatus `gorm:"index;default:'submitted'" json:"status"`
 
 	// Rating by event organizers (0-5, null if not rated)

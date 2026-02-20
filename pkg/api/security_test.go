@@ -19,9 +19,9 @@ func TestSecurityHeaders(t *testing.T) {
 
 	expected := map[string]string{
 		"X-Content-Type-Options":    "nosniff",
-		"X-Frame-Options":          "DENY",
-		"Referrer-Policy":          "strict-origin-when-cross-origin",
-		"Permissions-Policy":       "camera=(), microphone=(), geolocation=()",
+		"X-Frame-Options":           "DENY",
+		"Referrer-Policy":           "strict-origin-when-cross-origin",
+		"Permissions-Policy":        "camera=(), microphone=(), geolocation=()",
 		"Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
 	}
 

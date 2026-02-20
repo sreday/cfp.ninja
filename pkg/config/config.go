@@ -40,7 +40,7 @@ type Config struct {
 	JWTSecret string
 
 	// Proposal limits
-	MaxProposalsPerEvent int
+	MaxProposalsPerEvent  int
 	MaxOrganizersPerEvent int
 
 	// Stripe
@@ -321,22 +321,22 @@ func InitConfig() (*Config, error) {
 	}
 
 	return &Config{
-		Port:              portVal,
-		DatabaseURL:       dsn,
-		AutoMigrate:       *autoMigrate || isTruthy(os.Getenv("DATABASE_AUTO_MIGRATE")),
-		Insecure:          insecureMode,
-		InsecureUserEmail: os.Getenv("INSECURE_USER_EMAIL"),
-		AllowedOrigins:    allowedOrigins,
-		TrustedProxies:    trustedProxies,
-		SyncInterval:      syncIntervalVal,
-		AutoOrganiserIDs:  autoOrganiserIDs,
-		GoogleClientID:     googleClientID,
-		GoogleClientSecret: googleClientSecret,
-		GoogleRedirectURL:  googleRedirectURL,
-		GitHubClientID:     gitHubClientID,
-		GitHubClientSecret: gitHubClientSecret,
-		GitHubRedirectURL:  gitHubRedirectURL,
-		JWTSecret:          jwtSecret,
+		Port:                         portVal,
+		DatabaseURL:                  dsn,
+		AutoMigrate:                  *autoMigrate || isTruthy(os.Getenv("DATABASE_AUTO_MIGRATE")),
+		Insecure:                     insecureMode,
+		InsecureUserEmail:            os.Getenv("INSECURE_USER_EMAIL"),
+		AllowedOrigins:               allowedOrigins,
+		TrustedProxies:               trustedProxies,
+		SyncInterval:                 syncIntervalVal,
+		AutoOrganiserIDs:             autoOrganiserIDs,
+		GoogleClientID:               googleClientID,
+		GoogleClientSecret:           googleClientSecret,
+		GoogleRedirectURL:            googleRedirectURL,
+		GitHubClientID:               gitHubClientID,
+		GitHubClientSecret:           gitHubClientSecret,
+		GitHubRedirectURL:            gitHubRedirectURL,
+		JWTSecret:                    jwtSecret,
 		MaxProposalsPerEvent:         maxProposalsPerEvent,
 		MaxOrganizersPerEvent:        maxOrganizersPerEvent,
 		StripeSecretKey:              stripeSecretKey,

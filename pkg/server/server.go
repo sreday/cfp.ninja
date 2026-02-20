@@ -95,9 +95,9 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 		writeLimiter = api.NewRateLimiter(1000, 10000, cfg.TrustedProxies)
 		readLimiter = api.NewRateLimiter(1000, 10000, cfg.TrustedProxies)
 	} else {
-		authLimiter = api.NewRateLimiter(5, 10, cfg.TrustedProxies)     // 5 req/s, burst 10 (OAuth)
-		writeLimiter = api.NewRateLimiter(10, 20, cfg.TrustedProxies)   // 10 req/s, burst 20 (create/update)
-		readLimiter = api.NewRateLimiter(30, 60, cfg.TrustedProxies)    // 30 req/s, burst 60 (public reads)
+		authLimiter = api.NewRateLimiter(5, 10, cfg.TrustedProxies)   // 5 req/s, burst 10 (OAuth)
+		writeLimiter = api.NewRateLimiter(10, 20, cfg.TrustedProxies) // 10 req/s, burst 20 (create/update)
+		readLimiter = api.NewRateLimiter(30, 60, cfg.TrustedProxies)  // 30 req/s, burst 60 (public reads)
 	}
 
 	// Health check (no auth, no CORS, no rate limiting)

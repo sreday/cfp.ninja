@@ -16,6 +16,10 @@ TEST_INSECURE_ENV = \
 	$(TEST_DB_ENV) \
 	INSECURE=true
 
+fmt:
+	go fmt ./...
+	go vet ./...
+
 # Build the server
 build:
 	go build -o cfpninja main.go

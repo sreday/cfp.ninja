@@ -146,21 +146,21 @@ func (c *Client) GetMe() (*UserInfo, error) {
 
 // Event represents a conference event
 type Event struct {
-	ID             uint           `json:"id"`
-	Name           string         `json:"name"`
-	Slug           string         `json:"slug"`
-	Description    string         `json:"description"`
-	Location       string         `json:"location"`
-	Country        string         `json:"country"`
-	StartDate      time.Time      `json:"start_date"`
-	EndDate        time.Time      `json:"end_date"`
-	Website        string         `json:"website"`
-	TermsURL       string         `json:"terms_url"`
-	Tags           string         `json:"tags"`
-	CFPDescription string         `json:"cfp_description"`
-	CFPOpenAt      time.Time      `json:"cfp_open_at"`
-	CFPCloseAt     time.Time      `json:"cfp_close_at"`
-	CFPStatus      string         `json:"cfp_status"`
+	ID             uint            `json:"id"`
+	Name           string          `json:"name"`
+	Slug           string          `json:"slug"`
+	Description    string          `json:"description"`
+	Location       string          `json:"location"`
+	Country        string          `json:"country"`
+	StartDate      time.Time       `json:"start_date"`
+	EndDate        time.Time       `json:"end_date"`
+	Website        string          `json:"website"`
+	TermsURL       string          `json:"terms_url"`
+	Tags           string          `json:"tags"`
+	CFPDescription string          `json:"cfp_description"`
+	CFPOpenAt      time.Time       `json:"cfp_open_at"`
+	CFPCloseAt     time.Time       `json:"cfp_close_at"`
+	CFPStatus      string          `json:"cfp_status"`
 	CFPQuestions   CustomQuestions `json:"cfp_questions"`
 }
 
