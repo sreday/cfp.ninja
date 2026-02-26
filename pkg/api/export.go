@@ -52,7 +52,7 @@ func ExportProposalsHandler(cfg *config.Config) http.HandlerFunc {
 		defer cancel()
 
 		var proposals []models.Proposal
-		if err := cfg.DB.WithContext(ctx).Where("event_id = ?", eventID).Find(&proposals).Error; err != nil {
+		if err := cfg.DB.WithContext(ctx).Where("event_id = ?", eventID).Limit(MaxExportRows).Find(&proposals).Error; err != nil {
 			cfg.Logger.Error("failed to query proposals for export", "error", err, "event_id", eventID)
 			encodeError(w, "Failed to export proposals", http.StatusInternalServerError)
 			return
@@ -190,11 +190,14 @@ func boolToYesNo(b bool) string {
 
 // sanitizeCSVCell prevents CSV formula injection by escaping cells that start
 // with characters that spreadsheet applications interpret as formulas.
-// Covers all known trigger characters: =, +, -, @, tab, carriage return, newline.
+// Also replaces embedded newlines to prevent formula injection via new rows.
 func sanitizeCSVCell(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", " ")
+	s = strings.ReplaceAll(s, "\r", " ")
+	s = strings.ReplaceAll(s, "\n", " ")
 	if len(s) > 0 {
 		switch s[0] {
-		case '=', '+', '-', '@', '\t', '\r', '\n':
+		case '=', '+', '-', '@', '\t':
 			return "'" + s
 		}
 	}

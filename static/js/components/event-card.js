@@ -11,7 +11,7 @@ export function renderEventCard(event, managingMap) {
 
     return `
         <div class="col-md-6">
-            <div class="card event-card h-100" data-slug="${escapeAttr(event.slug)}">
+            <div class="card event-card h-100" data-slug="${escapeAttr(event.slug)}" tabindex="0" role="link">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-1">
                         <h5 class="card-title event-title mb-0">
@@ -57,12 +57,19 @@ export function renderEventCards(events, containerId = 'events-list', managingMa
 
     container.innerHTML = events.map(event => renderEventCard(event, managingMap)).join('');
 
-    // Add click handlers
+    // Add click and keyboard handlers
     container.querySelectorAll('.event-card').forEach(card => {
-        card.addEventListener('click', () => {
+        const navigate = () => {
             const slug = card.dataset.slug;
             if (slug) {
                 router.navigate(`/e/${slug}`);
+            }
+        };
+        card.addEventListener('click', navigate);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate();
             }
         });
     });

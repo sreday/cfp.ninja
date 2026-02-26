@@ -62,6 +62,10 @@ type Config struct {
 	// Nil in production; tests can set this to observe background work.
 	OnBackgroundDone func()
 
+	// Cleanup is called during shutdown to stop background goroutines
+	// (e.g. rate limiter cleanup loops). Set by RegisterRoutes.
+	Cleanup func()
+
 	DB     *gorm.DB
 	Logger *slog.Logger
 }
@@ -124,6 +128,11 @@ func InitConfig() (*Config, error) {
 			if origin != "" {
 				allowedOrigins = append(allowedOrigins, origin)
 			}
+		}
+		// Normalize whitespace-only input to wildcard default so the
+		// production check below catches it.
+		if len(allowedOrigins) == 0 {
+			allowedOrigins = []string{"*"}
 		}
 	}
 

@@ -37,6 +37,7 @@ func GzipHandler(next http.Handler) http.Handler {
 		gz := gzipPool.Get().(*gzip.Writer)
 		defer gzipPool.Put(gz)
 		gz.Reset(w)
+		defer gz.Close()
 
 		w.Header().Set("Content-Encoding", "gzip")
 		w.Header().Del("Content-Length") // length will change
@@ -44,6 +45,5 @@ func GzipHandler(next http.Handler) http.Handler {
 
 		grw := &gzipResponseWriter{ResponseWriter: w, gw: gz}
 		next.ServeHTTP(grw, r)
-		gz.Close()
 	})
 }

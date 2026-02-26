@@ -446,21 +446,37 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			newEvent.CreatedByID = &organiserIDs[0]
 		}
 
-		if err := db.Create(&newEvent).Error; err != nil {
+		tx := db.Begin()
+		if tx.Error != nil {
+			logger.Error("failed to begin transaction", "slug", slug, "error", tx.Error)
+			continue
+		}
+
+		if err := tx.Create(&newEvent).Error; err != nil {
+			tx.Rollback()
 			logger.Error("failed to create conf42 event", "slug", slug, "error", err)
 			continue
 		}
 
 		if len(organiserIDs) > 0 {
 			var users []models.User
-			if err := db.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
-				logger.Warn("failed to find organiser users", "slug", slug, "error", err)
+			if err := tx.Where("id IN ?", organiserIDs).Find(&users).Error; err != nil {
+				tx.Rollback()
+				logger.Error("failed to find organiser users", "slug", slug, "error", err)
+				continue
 			}
 			if len(users) > 0 {
-				if err := db.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
-					logger.Warn("failed to assign organisers", "slug", slug, "error", err)
+				if err := tx.Model(&newEvent).Association("Organizers").Append(&users); err != nil {
+					tx.Rollback()
+					logger.Error("failed to assign organisers", "slug", slug, "error", err)
+					continue
 				}
 			}
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			logger.Error("failed to commit conf42 event", "slug", slug, "error", err)
+			continue
 		}
 
 		logger.Info("created event", "slug", slug, "name", eventName)

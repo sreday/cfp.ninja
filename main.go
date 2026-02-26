@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/server"
 	"github.com/sreday/cfp.ninja/pkg/tasks"
 )
@@ -68,6 +69,9 @@ func main() {
 	syncCtx, syncCancel := context.WithCancel(context.Background())
 	defer syncCancel()
 
+	// Start background cleanup for the user authentication cache
+	api.StartUserCacheCleanup(syncCtx)
+
 	if len(cfg.AutoOrganiserIDs) > 0 {
 		go tasks.StartEventSync(syncCtx, cfg.DB, cfg.Logger, cfg.SyncInterval, cfg.AutoOrganiserIDs)
 	} else {
@@ -104,6 +108,10 @@ func main() {
 	cfg.Logger.Info("shutting down server")
 
 	syncCancel()
+
+	if cfg.Cleanup != nil {
+		cfg.Cleanup()
+	}
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer shutdownCancel()

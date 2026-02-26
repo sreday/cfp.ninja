@@ -4,6 +4,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -219,7 +220,7 @@ func validateOAuthStateCookie(w http.ResponseWriter, r *http.Request, callbackSt
 		Secure:   !insecure,
 	})
 
-	if cookie.Value != callbackState {
+	if subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(callbackState)) != 1 {
 		return "OAuth state mismatch - possible CSRF attack"
 	}
 	return ""
@@ -624,20 +625,32 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Get events user created or is organizing
 		var managingEvents []models.Event
-		cfg.DB.Where("created_by_id = ?", user.ID).
+		if err := cfg.DB.Where("created_by_id = ?", user.ID).
 			Or("id IN (SELECT event_id FROM event_organizers WHERE user_id = ?)", user.ID).
-			Find(&managingEvents)
+			Find(&managingEvents).Error; err != nil {
+			cfg.Logger.Error("failed to fetch managing events", "error", err)
+			encodeError(w, "Failed to fetch events", http.StatusInternalServerError)
+			return
+		}
 
 		// Get events user has submitted proposals to
 		var submittedEventIDs []uint
-		cfg.DB.Model(&models.Proposal{}).
+		if err := cfg.DB.Model(&models.Proposal{}).
 			Where("created_by_id = ?", user.ID).
 			Distinct("event_id").
-			Pluck("event_id", &submittedEventIDs)
+			Pluck("event_id", &submittedEventIDs).Error; err != nil {
+			cfg.Logger.Error("failed to fetch submitted event IDs", "error", err)
+			encodeError(w, "Failed to fetch events", http.StatusInternalServerError)
+			return
+		}
 
 		var submittedEvents []models.Event
 		if len(submittedEventIDs) > 0 {
-			cfg.DB.Where("id IN ?", submittedEventIDs).Find(&submittedEvents)
+			if err := cfg.DB.Where("id IN ?", submittedEventIDs).Find(&submittedEvents).Error; err != nil {
+				cfg.Logger.Error("failed to fetch submitted events", "error", err)
+				encodeError(w, "Failed to fetch events", http.StatusInternalServerError)
+				return
+			}
 		}
 
 		// Build response
@@ -683,11 +696,15 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 				Count   int64
 			}
 			var counts []countRow
-			cfg.DB.Model(&models.Proposal{}).
+			if err := cfg.DB.Model(&models.Proposal{}).
 				Select("event_id, count(*) as count").
 				Where("event_id IN ?", managingIDs).
 				Group("event_id").
-				Find(&counts)
+				Find(&counts).Error; err != nil {
+				cfg.Logger.Error("failed to fetch proposal counts", "error", err)
+				encodeError(w, "Failed to fetch events", http.StatusInternalServerError)
+				return
+			}
 			for _, c := range counts {
 				proposalCounts[c.EventID] = c.Count
 			}
@@ -716,6 +733,8 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			}
 			if err := cfg.DB.Where("event_id IN ? AND created_by_id = ?", submittedIDs, user.ID).Find(&allUserProposals).Error; err != nil {
 				cfg.Logger.Error("failed to load proposals for submitted events", "error", err)
+				encodeError(w, "Internal server error", http.StatusInternalServerError)
+				return
 			}
 		}
 

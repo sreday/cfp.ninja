@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/sreday/cfp.ninja/pkg/server"
@@ -77,6 +79,10 @@ func TestMain(m *testing.M) {
 	testConfig = cfg
 	testServer = httptest.NewServer(handler)
 	baseURL = testServer.URL
+
+	cacheCtx, cacheCancel := context.WithCancel(context.Background())
+	api.StartUserCacheCleanup(cacheCtx)
+	_ = cacheCancel // cancelled implicitly on process exit
 
 	// Clean database and create test user
 	cleanDatabase()

@@ -4,9 +4,17 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
+
+// sanitizeSubject strips newlines from subject strings to prevent email header injection.
+func sanitizeSubject(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", " ")
+	return s
+}
 
 // NotifyConfig holds the settings needed to send notification emails.
 type NotifyConfig struct {
@@ -78,8 +86,11 @@ func SendProposalStatusNotification(ncfg *NotifyConfig, proposal *models.Proposa
 	}
 
 	speakers, err := proposal.GetSpeakers()
-	if err != nil || len(speakers) == 0 {
+	if err != nil {
 		return fmt.Errorf("get speakers: %w", err)
+	}
+	if len(speakers) == 0 {
+		return fmt.Errorf("no speakers found for proposal %d", proposal.ID)
 	}
 
 	// Determine primary speaker
@@ -207,7 +218,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		Cc:      cc,
 		From:    ncfg.From,
 		ReplyTo: event.ContactEmail,
-		Subject: fmt.Sprintf("Speaker confirmed: %s", proposal.Title),
+		Subject: sanitizeSubject(fmt.Sprintf("Speaker confirmed: %s", proposal.Title)),
 		HTML:    html,
 		Text:    text,
 	}
@@ -284,7 +295,7 @@ func SendEmergencyCancelNotification(ncfg *NotifyConfig, proposal *models.Propos
 		Cc:      cc,
 		From:    ncfg.From,
 		ReplyTo: event.ContactEmail,
-		Subject: fmt.Sprintf("Emergency cancellation: %s", proposal.Title),
+		Subject: sanitizeSubject(fmt.Sprintf("Emergency cancellation: %s", proposal.Title)),
 		HTML:    html,
 		Text:    text,
 	}

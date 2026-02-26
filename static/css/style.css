@@ -142,6 +142,13 @@ body::after {
     100% { transform: translate(0, 0) scale(1); }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    body::before,
+    body::after {
+        animation: none;
+    }
+}
+
 #app {
     min-height: 100vh;
     display: flex;
@@ -743,6 +750,10 @@ textarea.form-control {
 .alert-warning {
     background: var(--warning-light);
     color: #92400e;
+}
+
+[data-theme="dark"] .alert-warning {
+    color: #fbbf24;
 }
 
 /* Empty states */

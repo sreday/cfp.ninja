@@ -14,6 +14,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/datatypes"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
@@ -26,7 +27,8 @@ const (
 )
 
 // Proposals listing constants
-const MaxProposalsPerPage = 5000 // Hard cap on proposals returned per request
+const MaxProposalsPerPage = 500  // Hard cap on proposals returned per API request
+const MaxExportRows      = 5000 // Hard cap on rows in CSV export
 
 // Field length limits for events
 const (
@@ -353,7 +355,12 @@ func GetEventBySlugHandler(cfg *config.Config) http.HandlerFunc {
 
 		var event models.Event
 		if err := cfg.DB.Where("slug = ? AND cfp_status != ?", slug, models.CFPStatusDraft).First(&event).Error; err != nil {
-			encodeError(w, "Event not found", http.StatusNotFound)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				encodeError(w, "Event not found", http.StatusNotFound)
+			} else {
+				cfg.Logger.Error("failed to query event by slug", "error", err, "slug", slug)
+				encodeError(w, "Failed to load event", http.StatusInternalServerError)
+			}
 			return
 		}
 
@@ -375,7 +382,12 @@ func GetEventByIDHandler(cfg *config.Config) http.HandlerFunc {
 
 		var event models.Event
 		if err := cfg.DB.Where("cfp_status != ?", models.CFPStatusDraft).First(&event, id).Error; err != nil {
-			encodeError(w, "Event not found", http.StatusNotFound)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				encodeError(w, "Event not found", http.StatusNotFound)
+			} else {
+				cfg.Logger.Error("failed to query event by ID", "error", err, "id", id)
+				encodeError(w, "Failed to load event", http.StatusInternalServerError)
+			}
 			return
 		}
 
@@ -402,7 +414,12 @@ func GetEventForOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 
 		var event models.Event
 		if err := cfg.DB.Preload("Organizers").First(&event, id).Error; err != nil {
-			encodeError(w, "Event not found", http.StatusNotFound)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				encodeError(w, "Event not found", http.StatusNotFound)
+			} else {
+				cfg.Logger.Error("failed to query event for organizer", "error", err, "id", id)
+				encodeError(w, "Failed to load event", http.StatusInternalServerError)
+			}
 			return
 		}
 
@@ -515,6 +532,12 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		if event.CFPStatus == "" {
 			event.CFPStatus = models.CFPStatusDraft
 		}
+
+		// Zero out server-controlled fields to prevent mass assignment
+		event.IsPaid = false
+		event.StripePaymentID = ""
+		event.CFPSubmissionFee = 0
+		event.CFPSubmissionFeeCurrency = ""
 
 		// Validate cfp_status against allowed values
 		validStatuses := map[models.CFPStatus]bool{
@@ -701,6 +724,10 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 				encodeError(w, "Slug must be lowercase alphanumeric with hyphens only", http.StatusBadRequest)
 				return
 			}
+			if len(slug) > MaxEventSlugLen {
+				encodeError(w, "Slug must be at most 200 characters", http.StatusBadRequest)
+				return
+			}
 			var existing models.Event
 			if cfg.DB.Where("slug = ? AND id != ?", slug, id).First(&existing).Error == nil {
 				encodeError(w, "Slug already exists", http.StatusConflict)
@@ -800,22 +827,42 @@ func DeleteEventHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Block deletion if there are accepted or confirmed proposals
+		var acceptedCount int64
+		if err := cfg.DB.Model(&models.Proposal{}).
+			Where("event_id = ? AND status IN ?", event.ID, []string{
+				string(models.ProposalStatusAccepted),
+				string(models.ProposalStatusTentative),
+			}).Count(&acceptedCount).Error; err != nil {
+			cfg.Logger.Error("failed to check accepted proposals", "error", err)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
+		if acceptedCount > 0 {
+			encodeError(w, "Cannot delete event with accepted or tentative proposals. Reject or cancel them first.", http.StatusConflict)
+			return
+		}
+
 		// Delete associated proposals and organizer links, then the event
 		tx := cfg.DB.Begin()
+		if tx.Error != nil {
+			cfg.Logger.Error("failed to begin transaction", "error", tx.Error)
+			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
 		if err := tx.Where("event_id = ?", event.ID).Delete(&models.Proposal{}).Error; err != nil {
-			tx.Rollback()
 			cfg.Logger.Error("failed to delete event proposals", "error", err)
 			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
 			return
 		}
 		if err := tx.Model(&event).Association("Organizers").Clear(); err != nil {
-			tx.Rollback()
 			cfg.Logger.Error("failed to clear event organizers", "error", err)
 			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
 			return
 		}
 		if err := tx.Delete(&event).Error; err != nil {
-			tx.Rollback()
 			cfg.Logger.Error("failed to delete event", "error", err)
 			encodeError(w, "Failed to delete event", http.StatusInternalServerError)
 			return
@@ -889,11 +936,11 @@ func UpdateCFPStatusHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		oldStatus := event.CFPStatus
-		event.CFPStatus = req.Status
-		if err := cfg.DB.Save(&event).Error; err != nil {
+		if err := cfg.DB.Model(&event).Update("cfp_status", req.Status).Error; err != nil {
 			encodeError(w, "Failed to update status", http.StatusInternalServerError)
 			return
 		}
+		event.CFPStatus = req.Status
 
 		cfg.Logger.Info("CFP status changed",
 			"event_id", event.ID,
@@ -927,10 +974,18 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		isOrganizer := event.IsOrganizer(user.ID)
+
+		// Hide draft events from non-organizers to prevent information disclosure
+		if event.CFPStatus == models.CFPStatusDraft && !isOrganizer {
+			encodeError(w, "Event not found", http.StatusNotFound)
+			return
+		}
+
 		var proposals []models.Proposal
 		query := cfg.DB.Where("event_id = ?", id).Order("created_at DESC").Limit(MaxProposalsPerPage)
 
-		if event.IsOrganizer(user.ID) {
+		if isOrganizer {
 			// Organizers see all proposals
 			if err := query.Find(&proposals).Error; err != nil {
 				cfg.Logger.Error("failed to query proposals", "error", err, "event_id", id)

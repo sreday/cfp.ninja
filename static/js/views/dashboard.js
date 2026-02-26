@@ -150,6 +150,65 @@ function renderDashboard(container, managing, submitted) {
                 </div>
             </div>
         </div>
+
+        <!-- Proposal Detail Modal -->
+        <div class="modal fade" id="proposalDetailModal" tabindex="-1" aria-labelledby="proposalDetailModalLabel">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="proposalDetailModalLabel">Proposal Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="proposalDetailContent">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div class="modal fade" id="deleteProposalModal" tabindex="-1" aria-labelledby="deleteProposalModalLabel">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteProposalModalLabel">Delete Proposal</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to delete the proposal "<strong id="deleteProposalTitle"></strong>"?</p>
+                        <p class="text-danger">This action cannot be undone.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger" id="confirmDeleteProposal">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Cancel Confirmation Modal -->
+        <div class="modal fade" id="emergencyCancelModal" tabindex="-1" aria-labelledby="emergencyCancelModalLabel">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title text-danger" id="emergencyCancelModalLabel">Emergency Cancel</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>Are you sure you want to emergency-cancel "<strong id="emergencyCancelProposalTitle"></strong>"?</p>
+                        <p class="text-danger">Your talk will be permanently withdrawn from the conference, and you will no longer be able to present. Are you sure?</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep My Talk</button>
+                        <button type="button" class="btn btn-danger" id="confirmEmergencyCancel">Emergency Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
 
     // Attach event filter handlers
@@ -207,7 +266,7 @@ function renderDashboard(container, managing, submitted) {
             } else {
                 listContainer.innerHTML = '<p class="text-muted text-center py-3">No proposals match your filters.</p>';
             }
-            attachProposalHandlers(container);
+            attachProposalHandlers(listContainer);
         };
 
         document.querySelectorAll('#proposal-filter-group button').forEach(btn => {
@@ -223,11 +282,6 @@ function renderDashboard(container, managing, submitted) {
 
         filterAndRenderProposals();
     }
-
-    // Attach proposal action handlers (for non-filtered case)
-    attachProposalHandlers(container);
-
-    attachEventPayHandlers(container);
 
     // Attach CLI command handlers
     attachCliCommandHandlers('create-cli');
@@ -341,6 +395,8 @@ function openModal(modalId) {
     if (modal) {
         modal.style.display = 'block';
         modal.classList.add('show');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
         document.body.classList.add('modal-open');
 
         // Remove any stale backdrops before creating a new one
@@ -348,6 +404,16 @@ function openModal(modalId) {
         const backdrop = document.createElement('div');
         backdrop.className = 'modal-backdrop fade show';
         document.getElementById('app').appendChild(backdrop);
+
+        // Focus first interactive element inside the modal, or the modal itself
+        const focusTarget = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        (focusTarget || modal).focus();
+
+        // Escape key handler
+        modal._escHandler = (e) => {
+            if (e.key === 'Escape') closeModal(modalId);
+        };
+        document.addEventListener('keydown', modal._escHandler);
     }
 }
 
@@ -356,12 +422,19 @@ function closeModal(modalId) {
     if (modal) {
         modal.style.display = 'none';
         modal.classList.remove('show');
+        modal.removeAttribute('aria-modal');
         document.body.classList.remove('modal-open');
 
         // Remove backdrop
         const backdrop = document.querySelector('.modal-backdrop');
         if (backdrop) {
             backdrop.remove();
+        }
+
+        // Clean up Escape key handler
+        if (modal._escHandler) {
+            document.removeEventListener('keydown', modal._escHandler);
+            delete modal._escHandler;
         }
     }
 }
@@ -633,64 +706,6 @@ function renderProposalsList(proposals) {
             }).join('')}
         </div>
 
-        <!-- Proposal Detail Modal -->
-        <div class="modal fade" id="proposalDetailModal" tabindex="-1">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Proposal Details</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body" id="proposalDetailContent">
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Delete Confirmation Modal -->
-        <div class="modal fade" id="deleteProposalModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Delete Proposal</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to delete the proposal "<strong id="deleteProposalTitle"></strong>"?</p>
-                        <p class="text-danger">This action cannot be undone.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-danger" id="confirmDeleteProposal">Delete</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Emergency Cancel Confirmation Modal -->
-        <div class="modal fade" id="emergencyCancelModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title text-danger">Emergency Cancel</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to emergency-cancel "<strong id="emergencyCancelProposalTitle"></strong>"?</p>
-                        <p class="text-danger">Your talk will be permanently withdrawn from the conference, and you will no longer be able to present. Are you sure?</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep My Talk</button>
-                        <button type="button" class="btn btn-danger" id="confirmEmergencyCancel">Emergency Cancel</button>
-                    </div>
-                </div>
-            </div>
-        </div>
     `;
 }
 

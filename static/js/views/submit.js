@@ -211,7 +211,7 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
     attachFormHandlers(eventId, event, customQuestions);
 }
 
-const LINKEDIN_URL_PATTERN = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
+const LINKEDIN_URL_PATTERN = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
 
 function setLinkedInFeedback(input, type, message) {
     const existing = input.parentElement.querySelector('.linkedin-feedback');
@@ -281,7 +281,7 @@ export function renderSpeakerForm(index, user = null) {
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
                     <input type="email" class="form-control" name="speaker_email_${index}" value="${escapeHtml(isFirst && user ? user.email : '')}" required>
-                    <div class="form-text">We'll use it confirm attendence & exchange files. Personal email tends to be easier.</div>
+                    <div class="form-text">We'll use it to confirm attendance & exchange files. Personal email tends to be easier.</div>
                 </div>
             </div>
 

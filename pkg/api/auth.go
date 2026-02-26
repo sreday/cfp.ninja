@@ -49,6 +49,31 @@ func setCachedUser(user *models.User) {
 	}
 }
 
+// StartUserCacheCleanup launches a background goroutine that periodically
+// removes expired entries from the userCache to prevent unbounded memory growth.
+// The goroutine stops when ctx is cancelled.
+func StartUserCacheCleanup(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				now := time.Now()
+				userCache.Lock()
+				for id, entry := range userCache.entries {
+					if now.After(entry.expiresAt) {
+						delete(userCache.entries, id)
+					}
+				}
+				userCache.Unlock()
+			}
+		}
+	}()
+}
+
 // Context key for authenticated user
 type contextKey string
 

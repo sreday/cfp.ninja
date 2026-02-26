@@ -128,7 +128,7 @@ function renderProposalsView(container, event, proposals) {
         </div>
 
         <!-- Proposal detail modal -->
-        <div class="modal fade" id="proposal-modal" tabindex="-1">
+        <div class="modal fade" id="proposal-modal" tabindex="-1" aria-labelledby="proposal-modal-label">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content" id="modal-content"></div>
             </div>
@@ -305,7 +305,7 @@ function renderProposalModal(proposal) {
 
     return `
         <div class="modal-header">
-            <h5 class="modal-title">${escapeHtml(proposal.title)}</h5>
+            <h5 class="modal-title" id="proposal-modal-label">${escapeHtml(proposal.title)}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
@@ -426,8 +426,9 @@ function attachHandlers(event, allProposals) {
     document.getElementById('anonymous-mode')?.addEventListener('change', (e) => {
         anonymousMode = e.target.checked;
         localStorage.setItem('cfpninja_anonymous_review', anonymousMode);
-        // Re-render proposals list
+        // Re-render proposals list and reapply active filters
         proposalsList.innerHTML = allProposals.length > 0 ? renderProposalsList(allProposals) : renderEmptyState();
+        filterProposals();
     });
 
     let currentProposal = null;
@@ -483,12 +484,27 @@ function attachHandlers(event, allProposals) {
         // Simple modal show (without Bootstrap JS)
         modal.style.display = 'block';
         modal.classList.add('show');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
         document.body.classList.add('modal-open');
         // Remove any stale backdrops before creating a new one
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         const backdrop = document.createElement('div');
         backdrop.className = 'modal-backdrop fade show';
         document.getElementById('app').appendChild(backdrop);
+
+        // Focus first interactive element inside the modal, or the modal itself
+        const focusTarget = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        (focusTarget || modal).focus();
+
+        // Escape key handler — remove any stale handler before adding a new one
+        if (modal._escHandler) {
+            document.removeEventListener('keydown', modal._escHandler);
+        }
+        modal._escHandler = (e) => {
+            if (e.key === 'Escape') closeModal();
+        };
+        document.addEventListener('keydown', modal._escHandler);
     });
 
     // Close modal
@@ -501,11 +517,17 @@ function attachHandlers(event, allProposals) {
     function closeModal() {
         modal.style.display = 'none';
         modal.classList.remove('show');
+        modal.removeAttribute('aria-modal');
         document.body.classList.remove('modal-open');
         // Remove backdrop
         const backdrop = document.querySelector('.modal-backdrop');
         if (backdrop) {
             backdrop.remove();
+        }
+        // Clean up Escape key handler
+        if (modal._escHandler) {
+            document.removeEventListener('keydown', modal._escHandler);
+            delete modal._escHandler;
         }
     }
 

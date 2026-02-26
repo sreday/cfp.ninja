@@ -118,11 +118,14 @@ func CreateOrUpdateUserFromGoogle(db *gorm.DB, googleID, email, name, pictureURL
 		if !user.IsActive {
 			return nil, fmt.Errorf("account is deactivated")
 		}
-		// Update existing user
-		user.Email = email
-		user.Name = name
-		user.PictureURL = pictureURL
-		if err := db.Save(&user).Error; err != nil {
+		// Update only the fields that should change on login.
+		// Using targeted Updates instead of Save to avoid overwriting
+		// other fields like is_active (which would reactivate deactivated users).
+		if err := db.Model(&user).Updates(map[string]interface{}{
+			"email":       email,
+			"name":        name,
+			"picture_url": pictureURL,
+		}).Error; err != nil {
 			return nil, err
 		}
 		return &user, nil
@@ -155,11 +158,14 @@ func CreateOrUpdateUserFromGitHub(db *gorm.DB, gitHubID, email, name, pictureURL
 		if !user.IsActive {
 			return nil, fmt.Errorf("account is deactivated")
 		}
-		// Update existing user
-		user.Email = email
-		user.Name = name
-		user.PictureURL = pictureURL
-		if err := db.Save(&user).Error; err != nil {
+		// Update only the fields that should change on login.
+		// Using targeted Updates instead of Save to avoid overwriting
+		// other fields like is_active (which would reactivate deactivated users).
+		if err := db.Model(&user).Updates(map[string]interface{}{
+			"email":       email,
+			"name":        name,
+			"picture_url": pictureURL,
+		}).Error; err != nil {
 			return nil, err
 		}
 		return &user, nil

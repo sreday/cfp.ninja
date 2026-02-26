@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"github.com/sreday/cfp.ninja/pkg/api"
 	"github.com/sreday/cfp.ninja/pkg/database"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/sreday/cfp.ninja/pkg/server"
@@ -98,6 +100,10 @@ func startTestServer() {
 
 	testServer = httptest.NewServer(handler)
 	testServerURL = testServer.URL
+
+	cacheCtx, cacheCancel := context.WithCancel(context.Background())
+	api.StartUserCacheCleanup(cacheCtx)
+	_ = cacheCancel // cancelled implicitly on process exit
 }
 
 // buildCLI compiles a CLI binary and returns the path to the executable

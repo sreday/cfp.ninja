@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/mail"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,6 +18,9 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+// errMaxAcceptedReached is returned when the accepted proposal limit is hit.
+var errMaxAcceptedReached = errors.New("maximum accepted proposals reached")
 
 // Rating constants for proposal reviews
 const (
@@ -78,17 +83,18 @@ func validateCustomAnswers(answers map[string]interface{}, questions []models.Cu
 	return ""
 }
 
-// linkedInURLRegex matches valid LinkedIn profile URLs.
+// linkedInURLRegex matches valid LinkedIn profile URLs (HTTPS only).
 // Valid examples:
 //   - "https://linkedin.com/in/johndoe"
 //   - "https://www.linkedin.com/in/jane-doe-123"
-//   - "http://linkedin.com/in/user_name/"
+//   - "https://linkedin.com/in/user_name/"
 //
 // Invalid examples:
+//   - "http://linkedin.com/in/user" (HTTP not allowed)
 //   - "linkedin.com/in/user" (missing protocol)
 //   - "https://linkedin.com/company/acme" (not a profile URL)
 //   - "https://linkedin.com/in/" (missing username)
-var linkedInURLRegex = regexp.MustCompile(`^https?://(www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+/?$`)
+var linkedInURLRegex = regexp.MustCompile(`^https://(www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+/?$`)
 
 // CreateProposalHandler creates a new proposal for an event
 func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
@@ -114,16 +120,6 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 
 		if !event.IsCFPOpen() {
 			encodeError(w, "CFP is not accepting submissions", http.StatusBadRequest)
-			return
-		}
-
-		// Enforce per-user per-event proposal limit
-		var proposalCount int64
-		cfg.DB.Model(&models.Proposal{}).
-			Where("event_id = ? AND created_by_id = ?", eventID, user.ID).
-			Count(&proposalCount)
-		if proposalCount >= int64(cfg.MaxProposalsPerEvent) {
-			encodeError(w, fmt.Sprintf("You have reached the maximum of %d submissions for this event", cfg.MaxProposalsPerEvent), http.StatusBadRequest)
 			return
 		}
 
@@ -205,6 +201,10 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 				encodeError(w, "Speaker "+speakerNum+": email must be at most 320 characters", http.StatusBadRequest)
 				return
 			}
+			if _, err := mail.ParseAddress(speaker.Email); err != nil {
+				encodeError(w, "Speaker "+speakerNum+": invalid email address", http.StatusBadRequest)
+				return
+			}
 			if len(speaker.Bio) > MaxSpeakerBioLen {
 				encodeError(w, "Speaker "+speakerNum+": bio must be at most 2000 characters", http.StatusBadRequest)
 				return
@@ -236,26 +236,30 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		// Validate custom questions if event has them
 		if len(event.CFPQuestions) > 0 {
 			var questions []models.CustomQuestion
-			if err := json.Unmarshal(event.CFPQuestions, &questions); err == nil {
-				answers, err := proposal.GetCustomAnswers()
-				if err != nil {
-					encodeError(w, "Invalid custom answers data", http.StatusBadRequest)
-					return
-				}
+			if err := json.Unmarshal(event.CFPQuestions, &questions); err != nil {
+				cfg.Logger.Error("event has invalid cfp_questions JSON", "event_id", eventID, "error", err)
+				encodeError(w, "Event has invalid CFP questions configuration", http.StatusInternalServerError)
+				return
+			}
 
-				for _, q := range questions {
-					if q.Required {
-						if _, ok := answers[q.ID]; !ok {
-							encodeError(w, "Required question '"+q.ID+"' not answered", http.StatusBadRequest)
-							return
-						}
+			answers, err := proposal.GetCustomAnswers()
+			if err != nil {
+				encodeError(w, "Invalid custom answers data", http.StatusBadRequest)
+				return
+			}
+
+			for _, q := range questions {
+				if q.Required {
+					if _, ok := answers[q.ID]; !ok {
+						encodeError(w, "Required question '"+q.ID+"' not answered", http.StatusBadRequest)
+						return
 					}
 				}
+			}
 
-				if errMsg := validateCustomAnswers(answers, questions); errMsg != "" {
-					encodeError(w, errMsg, http.StatusBadRequest)
-					return
-				}
+			if errMsg := validateCustomAnswers(answers, questions); errMsg != "" {
+				encodeError(w, errMsg, http.StatusBadRequest)
+				return
 			}
 		}
 
@@ -264,8 +268,53 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 		proposal.CreatedByID = &user.ID
 		proposal.Status = models.ProposalStatusSubmitted
 
-		if err := cfg.DB.Create(&proposal).Error; err != nil {
+		// Zero out server-controlled fields to prevent mass assignment
+		proposal.IsPaid = false
+		proposal.StripePaymentID = ""
+		proposal.Rating = nil
+		proposal.AttendanceConfirmed = false
+		proposal.AttendanceConfirmedAt = nil
+		proposal.OrganizerNotes = ""
+
+		// Use a transaction with row-level locking to enforce the per-user
+		// per-event proposal limit atomically with creation.
+		tx := cfg.DB.Begin()
+		if tx.Error != nil {
+			cfg.Logger.Error("failed to begin transaction", "error", tx.Error)
+			encodeError(w, "Failed to create proposal", http.StatusInternalServerError)
+			return
+		}
+		defer tx.Rollback()
+
+		// Lock the event row to serialize concurrent proposal creations
+		var lockedEvent models.Event
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&lockedEvent, eventID).Error; err != nil {
+			cfg.Logger.Error("failed to lock event for proposal creation", "error", err)
+			encodeError(w, "Failed to create proposal", http.StatusInternalServerError)
+			return
+		}
+
+		var proposalCount int64
+		if err := tx.Model(&models.Proposal{}).
+			Where("event_id = ? AND created_by_id = ?", eventID, user.ID).
+			Count(&proposalCount).Error; err != nil {
+			cfg.Logger.Error("failed to count proposals", "error", err)
+			encodeError(w, "Failed to create proposal", http.StatusInternalServerError)
+			return
+		}
+		if proposalCount >= int64(cfg.MaxProposalsPerEvent) {
+			encodeError(w, fmt.Sprintf("You have reached the maximum of %d submissions for this event", cfg.MaxProposalsPerEvent), http.StatusBadRequest)
+			return
+		}
+
+		if err := tx.Create(&proposal).Error; err != nil {
 			cfg.Logger.Error("failed to create proposal", "error", err)
+			encodeError(w, "Failed to create proposal", http.StatusInternalServerError)
+			return
+		}
+
+		if err := tx.Commit().Error; err != nil {
+			cfg.Logger.Error("failed to commit proposal creation", "error", err)
 			encodeError(w, "Failed to create proposal", http.StatusInternalServerError)
 			return
 		}
@@ -387,8 +436,10 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			"custom_answers": true,
 		}
 		if isOrganizer {
-			allowedFields["status"] = true
-			allowedFields["rating"] = true
+			// Note: status and rating are NOT in this allowlist.
+			// Use the dedicated UpdateProposalStatusHandler and
+			// UpdateProposalRatingHandler which enforce max_accepted
+			// limits, rating range validation, and send notifications.
 			allowedFields["organizer_notes"] = true
 		}
 		filtered := make(map[string]interface{})
@@ -401,78 +452,87 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 
 		// Validate speakers if being updated
 		if speakersData, ok := updates["speakers"]; ok {
-			if speakersJSON, err := json.Marshal(speakersData); err == nil {
-				var speakers []models.Speaker
-				if err := json.Unmarshal(speakersJSON, &speakers); err == nil {
-					if len(speakers) == 0 {
-						encodeError(w, "At least one speaker is required", http.StatusBadRequest)
-						return
-					}
-					if len(speakers) > 3 {
-						encodeError(w, "Maximum 3 speakers allowed", http.StatusBadRequest)
-						return
-					}
-					for i, speaker := range speakers {
-						speakerNum := strconv.Itoa(i + 1)
-						if speaker.Name == "" {
-							encodeError(w, "Speaker "+speakerNum+": name is required", http.StatusBadRequest)
-							return
-						}
-						if speaker.Email == "" {
-							encodeError(w, "Speaker "+speakerNum+": email is required", http.StatusBadRequest)
-							return
-						}
-						if speaker.Company == "" {
-							encodeError(w, "Speaker "+speakerNum+": company is required", http.StatusBadRequest)
-							return
-						}
-						if speaker.JobTitle == "" {
-							encodeError(w, "Speaker "+speakerNum+": job_title is required", http.StatusBadRequest)
-							return
-						}
-						if speaker.LinkedIn == "" {
-							encodeError(w, "Speaker "+speakerNum+": linkedin is required", http.StatusBadRequest)
-							return
-						}
-						if !linkedInURLRegex.MatchString(speaker.LinkedIn) {
-							encodeError(w, "Speaker "+speakerNum+": invalid LinkedIn URL. Must be a full URL like https://linkedin.com/in/username", http.StatusBadRequest)
-							return
-						}
-						if len(speaker.Name) > MaxSpeakerNameLen {
-							encodeError(w, "Speaker "+speakerNum+": name must be at most 200 characters", http.StatusBadRequest)
-							return
-						}
-						if len(speaker.Email) > MaxSpeakerEmailLen {
-							encodeError(w, "Speaker "+speakerNum+": email must be at most 320 characters", http.StatusBadRequest)
-							return
-						}
-						if len(speaker.Bio) > MaxSpeakerBioLen {
-							encodeError(w, "Speaker "+speakerNum+": bio must be at most 2000 characters", http.StatusBadRequest)
-							return
-						}
-						if len(speaker.Company) > MaxSpeakerCompanyLen {
-							encodeError(w, "Speaker "+speakerNum+": company must be at most 200 characters", http.StatusBadRequest)
-							return
-						}
-						if len(speaker.JobTitle) > MaxSpeakerJobTitleLen {
-							encodeError(w, "Speaker "+speakerNum+": job_title must be at most 200 characters", http.StatusBadRequest)
-							return
-						}
+			speakersJSON, err := json.Marshal(speakersData)
+			if err != nil {
+				encodeError(w, "Invalid speakers data", http.StatusBadRequest)
+				return
+			}
+			var speakers []models.Speaker
+			if err := json.Unmarshal(speakersJSON, &speakers); err != nil {
+				encodeError(w, "Invalid speakers format", http.StatusBadRequest)
+				return
+			}
+			if len(speakers) == 0 {
+				encodeError(w, "At least one speaker is required", http.StatusBadRequest)
+				return
+			}
+			if len(speakers) > 3 {
+				encodeError(w, "Maximum 3 speakers allowed", http.StatusBadRequest)
+				return
+			}
+			for i, speaker := range speakers {
+				speakerNum := strconv.Itoa(i + 1)
+				if speaker.Name == "" {
+					encodeError(w, "Speaker "+speakerNum+": name is required", http.StatusBadRequest)
+					return
+				}
+				if speaker.Email == "" {
+					encodeError(w, "Speaker "+speakerNum+": email is required", http.StatusBadRequest)
+					return
+				}
+				if speaker.Company == "" {
+					encodeError(w, "Speaker "+speakerNum+": company is required", http.StatusBadRequest)
+					return
+				}
+				if speaker.JobTitle == "" {
+					encodeError(w, "Speaker "+speakerNum+": job_title is required", http.StatusBadRequest)
+					return
+				}
+				if speaker.LinkedIn == "" {
+					encodeError(w, "Speaker "+speakerNum+": linkedin is required", http.StatusBadRequest)
+					return
+				}
+				if !linkedInURLRegex.MatchString(speaker.LinkedIn) {
+					encodeError(w, "Speaker "+speakerNum+": invalid LinkedIn URL. Must be a full URL like https://linkedin.com/in/username", http.StatusBadRequest)
+					return
+				}
+				if len(speaker.Name) > MaxSpeakerNameLen {
+					encodeError(w, "Speaker "+speakerNum+": name must be at most 200 characters", http.StatusBadRequest)
+					return
+				}
+				if len(speaker.Email) > MaxSpeakerEmailLen {
+					encodeError(w, "Speaker "+speakerNum+": email must be at most 320 characters", http.StatusBadRequest)
+					return
+				}
+				if _, err := mail.ParseAddress(speaker.Email); err != nil {
+					encodeError(w, "Speaker "+speakerNum+": invalid email address", http.StatusBadRequest)
+					return
+				}
+				if len(speaker.Bio) > MaxSpeakerBioLen {
+					encodeError(w, "Speaker "+speakerNum+": bio must be at most 2000 characters", http.StatusBadRequest)
+					return
+				}
+				if len(speaker.Company) > MaxSpeakerCompanyLen {
+					encodeError(w, "Speaker "+speakerNum+": company must be at most 200 characters", http.StatusBadRequest)
+					return
+				}
+				if len(speaker.JobTitle) > MaxSpeakerJobTitleLen {
+					encodeError(w, "Speaker "+speakerNum+": job_title must be at most 200 characters", http.StatusBadRequest)
+					return
+				}
+			}
+			// Non-organizer owners must keep at least one speaker email matching their account
+			if !isOrganizer {
+				speakerEmailMatch := false
+				for _, speaker := range speakers {
+					if strings.EqualFold(speaker.Email, user.Email) {
+						speakerEmailMatch = true
+						break
 					}
 				}
-				// Non-organizer owners must keep at least one speaker email matching their account
-				if !isOrganizer {
-					speakerEmailMatch := false
-					for _, speaker := range speakers {
-						if strings.EqualFold(speaker.Email, user.Email) {
-							speakerEmailMatch = true
-							break
-						}
-					}
-					if !speakerEmailMatch {
-						encodeError(w, "At least one speaker email must match your account email", http.StatusBadRequest)
-						return
-					}
+				if !speakerEmailMatch {
+					encodeError(w, "At least one speaker email must match your account email", http.StatusBadRequest)
+					return
 				}
 			}
 		}
@@ -496,11 +556,14 @@ func UpdateProposalHandler(cfg *config.Config) http.HandlerFunc {
 			if answersMap, ok := answersData.(map[string]interface{}); ok {
 				if event.CFPQuestions != nil && len(event.CFPQuestions) > 0 {
 					var questions []models.CustomQuestion
-					if err := json.Unmarshal(event.CFPQuestions, &questions); err == nil {
-						if errMsg := validateCustomAnswers(answersMap, questions); errMsg != "" {
-							encodeError(w, errMsg, http.StatusBadRequest)
-							return
-						}
+					if err := json.Unmarshal(event.CFPQuestions, &questions); err != nil {
+						cfg.Logger.Error("event has invalid cfp_questions JSON", "event_id", proposal.EventID, "error", err)
+						encodeError(w, "Event has invalid CFP questions configuration", http.StatusInternalServerError)
+						return
+					}
+					if errMsg := validateCustomAnswers(answersMap, questions); errMsg != "" {
+						encodeError(w, errMsg, http.StatusBadRequest)
+						return
 					}
 				}
 			}
@@ -560,6 +623,12 @@ func DeleteProposalHandler(cfg *config.Config) http.HandlerFunc {
 		// Only the owner can delete their proposal
 		if proposal.CreatedByID == nil || *proposal.CreatedByID != user.ID {
 			encodeError(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Prevent deletion of accepted or tentative proposals
+		if proposal.Status == models.ProposalStatusAccepted || proposal.Status == models.ProposalStatusTentative {
+			encodeError(w, "Accepted or tentative proposals cannot be deleted. Use emergency cancel instead.", http.StatusConflict)
 			return
 		}
 
@@ -631,32 +700,40 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Use a transaction with row-level locking to prevent race conditions
-		// when checking max_accepted limits
+		// when checking max_accepted limits. Lock the event row to serialize
+		// concurrent acceptance decisions (FOR UPDATE cannot be used with COUNT).
 		oldStatus := proposal.Status
 		err = cfg.DB.Transaction(func(tx *gorm.DB) error {
 			if req.Status == models.ProposalStatusAccepted && event.MaxAccepted != nil {
+				// Lock the event row to serialize concurrent acceptances
+				var lockedEvent models.Event
+				if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&lockedEvent, event.ID).Error; err != nil {
+					return fmt.Errorf("lock event: %w", err)
+				}
+
 				var acceptedCount int64
-				tx.Model(&models.Proposal{}).
+				if err := tx.Model(&models.Proposal{}).
 					Where("event_id = ? AND status = ?", event.ID, models.ProposalStatusAccepted).
-					Clauses(clause.Locking{Strength: "UPDATE"}).
-					Count(&acceptedCount)
+					Count(&acceptedCount).Error; err != nil {
+					return fmt.Errorf("count accepted: %w", err)
+				}
 
 				if acceptedCount >= int64(*event.MaxAccepted) {
-					return fmt.Errorf("maximum accepted proposals reached")
+					return errMaxAcceptedReached
 				}
 			}
 
-			proposal.Status = req.Status
-			return tx.Save(&proposal).Error
+			return tx.Model(&proposal).Update("status", req.Status).Error
 		})
 		if err != nil {
-			if err.Error() == "maximum accepted proposals reached" {
+			if errors.Is(err, errMaxAcceptedReached) {
 				encodeError(w, err.Error(), http.StatusBadRequest)
 			} else {
 				encodeError(w, "Failed to update status", http.StatusInternalServerError)
 			}
 			return
 		}
+		proposal.Status = req.Status
 
 		cfg.Logger.Info("proposal status changed",
 			"proposal_id", proposal.ID,
@@ -737,7 +814,7 @@ func UpdateProposalRatingHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		proposal.Rating = &req.Rating
-		if err := cfg.DB.Save(&proposal).Error; err != nil {
+		if err := cfg.DB.Model(&proposal).Update("rating", req.Rating).Error; err != nil {
 			encodeError(w, "Failed to update rating", http.StatusInternalServerError)
 			return
 		}
@@ -799,6 +876,8 @@ func ConfirmAttendanceHandler(cfg *config.Config) http.HandlerFunc {
 
 		if err := cfg.DB.First(&proposal, id).Error; err != nil {
 			cfg.Logger.Error("failed to reload proposal after confirmation", "error", err)
+			encodeError(w, "Failed to confirm attendance", http.StatusInternalServerError)
+			return
 		}
 
 		// Notify event organisers (fire-and-forget)
@@ -876,6 +955,8 @@ func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 
 		if err := cfg.DB.First(&proposal, id).Error; err != nil {
 			cfg.Logger.Error("failed to reload proposal after emergency cancel", "error", err)
+			encodeError(w, "Failed to cancel proposal", http.StatusInternalServerError)
+			return
 		}
 
 		cfg.Logger.Info("proposal emergency cancelled",

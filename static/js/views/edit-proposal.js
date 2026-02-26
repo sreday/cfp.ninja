@@ -54,17 +54,25 @@ function renderEditForm(container, proposal, event) {
     // Parse existing speakers
     let speakers = [];
     if (proposal.speakers) {
-        speakers = typeof proposal.speakers === 'string'
-            ? JSON.parse(proposal.speakers)
-            : proposal.speakers;
+        try {
+            speakers = typeof proposal.speakers === 'string'
+                ? JSON.parse(proposal.speakers)
+                : proposal.speakers;
+        } catch (e) {
+            console.error('Error parsing speakers data:', e);
+        }
     }
 
     // Parse existing custom answers
     let customAnswers = {};
     if (proposal.custom_answers) {
-        customAnswers = typeof proposal.custom_answers === 'string'
-            ? JSON.parse(proposal.custom_answers)
-            : proposal.custom_answers;
+        try {
+            customAnswers = typeof proposal.custom_answers === 'string'
+                ? JSON.parse(proposal.custom_answers)
+                : proposal.custom_answers;
+        } catch (e) {
+            console.error('Error parsing custom_answers data:', e);
+        }
     }
 
     container.innerHTML = `

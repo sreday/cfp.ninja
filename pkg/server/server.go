@@ -182,4 +182,11 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 
 	mux.HandleFunc("PUT /api/v0/proposals/{id}/confirm", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.ConfirmAttendanceHandler(cfg))))
 	mux.HandleFunc("OPTIONS /api/v0/proposals/{id}/confirm", api.CorsHandler(cfg, cors))
+
+	// Store cleanup function for graceful shutdown
+	cfg.Cleanup = func() {
+		authLimiter.Stop()
+		writeLimiter.Stop()
+		readLimiter.Stop()
+	}
 }

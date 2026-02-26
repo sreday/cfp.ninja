@@ -91,11 +91,15 @@ function attachDropdownHandlers(container) {
             // Close all other dropdowns first
             document.querySelectorAll('.dropdown-menu.show').forEach(m => {
                 m.classList.remove('show');
+                m.closest('.dropdown')?.querySelector('.dropdown-toggle')?.setAttribute('aria-expanded', 'false');
             });
 
             // Toggle this dropdown
             if (!isOpen) {
                 menu.classList.add('show');
+                toggle.setAttribute('aria-expanded', 'true');
+            } else {
+                toggle.setAttribute('aria-expanded', 'false');
             }
         };
         toggle.addEventListener('click', toggleHandler);
@@ -107,6 +111,7 @@ function attachDropdownHandlers(container) {
         if (!e.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
                 menu.classList.remove('show');
+                menu.closest('.dropdown')?.querySelector('.dropdown-toggle')?.setAttribute('aria-expanded', 'false');
             });
         }
     };

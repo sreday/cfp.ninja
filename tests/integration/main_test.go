@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"log/slog"
 	"net/http/httptest"
 	"os"
@@ -40,6 +41,11 @@ func TestMain(m *testing.M) {
 	testConfig = cfg
 	testServer = httptest.NewServer(handler)
 
+	// Start user cache cleanup with a cancellable context
+	cacheCtx, cacheCancel := context.WithCancel(context.Background())
+
+	api.StartUserCacheCleanup(cacheCtx)
+
 	// Clean database before tests
 	cleanDatabase()
 
@@ -50,6 +56,7 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 
 	// Cleanup
+	cacheCancel()
 	testServer.Close()
 
 	os.Exit(code)

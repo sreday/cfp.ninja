@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/sreday/cfp.ninja/pkg/config"
 	"github.com/sreday/cfp.ninja/pkg/models"
@@ -248,9 +249,12 @@ func StripeWebhookHandler(cfg *config.Config) http.HandlerFunc {
 						return result.Error
 					}
 					if result.RowsAffected > 0 {
-						// Auto-open CFP for draft events after payment
+						// Auto-open CFP for draft events after payment, but only
+						// if CFP dates are configured. Without dates, IsCFPOpen()
+						// returns false and speakers can't submit despite "open" status.
 						if err := tx.Model(&models.Event{}).
-							Where("id = ? AND cfp_status = ?", eventID, models.CFPStatusDraft).
+							Where("id = ? AND cfp_status = ? AND cfp_open_at IS NOT NULL AND cfp_close_at IS NOT NULL AND cfp_open_at != ? AND cfp_close_at != ?",
+								eventID, models.CFPStatusDraft, time.Time{}, time.Time{}).
 							Update("cfp_status", models.CFPStatusOpen).Error; err != nil {
 							return err
 						}
