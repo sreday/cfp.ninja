@@ -18,6 +18,8 @@ import { PricingView } from './views/pricing.js';
 import { EditProposalView } from './views/edit-proposal.js';
 import { SubmissionSuccessView } from './views/submission-success.js';
 import { StatsView } from './views/stats.js';
+import { TermsView } from './views/terms.js';
+import { LoginView } from './views/login.js';
 
 // App configuration (populated on init)
 let appConfig = { auth_providers: ['github', 'google'] }; // defaults until fetched
@@ -263,6 +265,17 @@ export const Auth = {
                 // Fetch user info (cookie was set by the callback)
                 try {
                     const user = await API.getMe();
+
+                    // Record terms acceptance if not already recorded
+                    if (!user.terms_accepted_at) {
+                        try {
+                            await API.request('POST', '/auth/accept-terms');
+                            user.terms_accepted_at = new Date().toISOString();
+                        } catch (err) {
+                            console.error('Failed to record terms acceptance:', err);
+                        }
+                    }
+
                     this.setUser(user);
                     renderNav();
                     toast.success(`Welcome, ${user.name}!`);
@@ -311,10 +324,102 @@ export const Auth = {
         try {
             const user = await API.getMe();
             this.setUser(user);
+
+            // Existing user who hasn't accepted terms — prompt them
+            if (!user.terms_accepted_at) {
+                this._showTermsAcceptanceModal();
+            }
         } catch (error) {
             // Session invalid or not logged in — silently clear cached user
             localStorage.removeItem(this.USER_KEY);
         }
+    },
+
+    // Show modal requiring terms acceptance for existing users
+    _showTermsAcceptanceModal() {
+        // Remove any existing modal
+        document.getElementById('terms-modal-backdrop')?.remove();
+        document.getElementById('terms-acceptance-modal')?.remove();
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'terms-modal-backdrop';
+        backdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(backdrop);
+
+        const modal = document.createElement('div');
+        modal.id = 'terms-acceptance-modal';
+        modal.className = 'modal fade show';
+        modal.style.display = 'block';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'terms-modal-title');
+        modal.innerHTML = `
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="terms-modal-title">Terms &amp; Conditions</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p>We've updated our Terms &amp; Conditions. Please review and accept them to continue using CFP.ninja.</p>
+                        <p><a href="/terms" target="_blank" rel="noopener">Read the full Terms &amp; Conditions</a></p>
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="terms-modal-checkbox">
+                            <label class="form-check-label" for="terms-modal-checkbox">
+                                I accept the <a href="/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" id="terms-modal-decline">Decline &amp; Log Out</button>
+                        <button type="button" class="btn btn-primary" id="terms-modal-accept" disabled>Continue</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.body.classList.add('modal-open');
+
+        const checkbox = document.getElementById('terms-modal-checkbox');
+        const acceptBtn = document.getElementById('terms-modal-accept');
+        const declineBtn = document.getElementById('terms-modal-decline');
+
+        checkbox.addEventListener('change', () => {
+            acceptBtn.disabled = !checkbox.checked;
+        });
+
+        const closeModal = () => {
+            modal.remove();
+            backdrop.remove();
+            document.body.classList.remove('modal-open');
+        };
+
+        acceptBtn.addEventListener('click', async () => {
+            acceptBtn.disabled = true;
+            acceptBtn.textContent = 'Saving...';
+            try {
+                await API.request('POST', '/auth/accept-terms');
+                const user = this.getUser();
+                if (user) {
+                    user.terms_accepted_at = new Date().toISOString();
+                    this.setUser(user);
+                }
+                closeModal();
+                toast.success('Terms accepted. Welcome back!');
+            } catch (err) {
+                console.error('Failed to accept terms:', err);
+                toast.error('Failed to save. Please try again.');
+                acceptBtn.disabled = false;
+                acceptBtn.textContent = 'Continue';
+            }
+        });
+
+        declineBtn.addEventListener('click', () => {
+            closeModal();
+            this.logout();
+        });
+
+        // Focus the checkbox for accessibility
+        checkbox.focus();
     }
 };
 
@@ -323,7 +428,7 @@ export function requireAuth(viewFn) {
     return async (params, query) => {
         if (!Auth.isLoggedIn()) {
             toast.warning('Please log in to access this page.');
-            Auth.login();
+            router.navigate('/login');
             return;
         }
         return viewFn(params, query);
@@ -365,6 +470,8 @@ async function init() {
         .add('/', EventsView)
         .add('/cli', CliView)
         .add('/pricing', PricingView)
+        .add('/terms', TermsView)
+        .add('/login', LoginView)
         .add('/e/:slug', EventDetailView)
         .add('/e/:slug/submit', requireAuth(SubmitProposalView))
         .add('/e/:slug/submitted', requireAuth(SubmissionSuccessView))

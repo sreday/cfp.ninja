@@ -564,9 +564,13 @@ func fetchGitHubPrimaryEmail(client *http.Client) (string, error) {
 		return "", err
 	}
 
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("GitHub /user/emails returned %d: %s", resp.StatusCode, string(body))
+	}
+
 	var emails []GitHubEmail
 	if err := json.Unmarshal(body, &emails); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to parse /user/emails response: %w (body: %s)", err, string(body))
 	}
 
 	// Find the primary verified email
@@ -601,11 +605,41 @@ func GetMeHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		encodeResponse(w, r, map[string]interface{}{
-			"id":          user.ID,
-			"email":       user.Email,
-			"name":        user.Name,
-			"picture_url": user.PictureURL,
+			"id":                user.ID,
+			"email":             user.Email,
+			"name":              user.Name,
+			"picture_url":       user.PictureURL,
+			"terms_accepted_at": user.TermsAcceptedAt,
 		})
+	}
+}
+
+// AcceptTermsHandler records that the authenticated user has accepted the Terms & Conditions.
+func AcceptTermsHandler(cfg *config.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			encodeError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		user := GetUserFromContext(r.Context())
+		if user == nil {
+			encodeError(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		if err := models.AcceptTerms(cfg.DB, user.ID); err != nil {
+			cfg.Logger.Error("failed to record terms acceptance", "user_id", user.ID, "error", err)
+			encodeError(w, "Failed to record terms acceptance", http.StatusInternalServerError)
+			return
+		}
+
+		// Evict user from cache so next /auth/me reflects the change
+		userCache.Lock()
+		delete(userCache.entries, user.ID)
+		userCache.Unlock()
+
+		encodeResponse(w, r, map[string]string{"message": "Terms accepted"})
 	}
 }
 

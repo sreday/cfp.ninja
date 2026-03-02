@@ -123,6 +123,8 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("/api/v0/auth/github/callback", api.CorsHandler(cfg, authLimiter.Middleware(api.GitHubCallbackHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/logout", api.CorsHandler(cfg, authLimiter.Middleware(api.LogoutHandler(cfg))))
 	mux.HandleFunc("/api/v0/auth/me", api.AuthCorsHandler(cfg, api.GetMeHandler(cfg)))
+	mux.HandleFunc("POST /api/v0/auth/accept-terms", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.AcceptTermsHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/auth/accept-terms", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 	mux.HandleFunc("GET /api/v0/me/events", api.AuthCorsHandler(cfg, api.GetMyEventsHandler(cfg)))
 	mux.HandleFunc("OPTIONS /api/v0/me/events", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 	mux.HandleFunc("GET /api/v0/me/events/{id}", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))

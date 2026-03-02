@@ -1378,3 +1378,28 @@ a:hover {
 .proposal-title:hover {
     color: var(--accent-color);
 }
+
+/* Terms & Conditions page */
+.terms-page h2 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.terms-page h2:first-of-type {
+    margin-top: 1.5rem;
+}
+
+.terms-page p,
+.terms-page ul {
+    margin-bottom: 1rem;
+    line-height: 1.7;
+}
+
+.terms-page ul {
+    padding-left: 1.5rem;
+}
+
+.terms-page li {
+    margin-bottom: 0.5rem;
+}

@@ -3,6 +3,7 @@ package models
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -19,7 +20,8 @@ type User struct {
 	// GitHub OAuth - partial unique index created in migration (allows empty)
 	GitHubID string `gorm:"index" json:"-"`
 
-	IsActive bool `gorm:"default:true"`
+	IsActive        bool       `gorm:"default:true"`
+	TermsAcceptedAt *time.Time `gorm:"index"`
 }
 
 // CreatePartialUniqueIndexes creates partial unique indexes for fields that can be empty.
@@ -145,6 +147,13 @@ func CreateOrUpdateUserFromGoogle(db *gorm.DB, googleID, email, name, pictureURL
 		return nil, err
 	}
 	return &user, nil
+}
+
+// AcceptTerms records the timestamp when a user accepted the Terms & Conditions.
+func AcceptTerms(db *gorm.DB, userID uint) error {
+	now := time.Now()
+	return db.Model(&User{}).Where("id = ?", userID).
+		Update("terms_accepted_at", now).Error
 }
 
 // CreateOrUpdateUserFromGitHub creates or updates a user from GitHub OAuth data.

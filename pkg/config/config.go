@@ -58,6 +58,12 @@ type Config struct {
 	BaseURL      string
 	EmailSender  email.Sender
 
+	// Legal entity (for Terms & Conditions page)
+	LegalName    string
+	LegalAddress string
+	LegalEmail   string
+	LegalCompanyNo string
+
 	// OnBackgroundDone is called when a SafeGo goroutine finishes.
 	// Nil in production; tests can set this to observe background work.
 	OnBackgroundDone func()
@@ -321,6 +327,24 @@ func InitConfig() (*Config, error) {
 		logger.Warn("RESEND_API_KEY not set - email notifications disabled")
 	}
 
+	// Legal entity (for Terms & Conditions page)
+	legalName := os.Getenv("LEGAL_NAME")
+	if legalName == "" {
+		legalName = "[Your Company Name]"
+	}
+	legalAddress := os.Getenv("LEGAL_ADDRESS")
+	if legalAddress == "" {
+		legalAddress = "[Your Registered Address]"
+	}
+	legalEmail := os.Getenv("LEGAL_EMAIL")
+	if legalEmail == "" {
+		legalEmail = "[your-email@example.com]"
+	}
+	legalCompanyNo := os.Getenv("LEGAL_COMPANY_NO")
+	if legalCompanyNo == "" {
+		legalCompanyNo = "[Company Number]"
+	}
+
 	if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
 		if insecureMode {
 			logger.Warn("ALLOWED_ORIGINS is set to wildcard (*) - acceptable in insecure mode")
@@ -358,6 +382,10 @@ func InitConfig() (*Config, error) {
 		ResendAPIKey:                 resendAPIKey,
 		EmailFrom:                    emailFrom,
 		BaseURL:                      baseURL,
+		LegalName:                    legalName,
+		LegalAddress:                 legalAddress,
+		LegalEmail:                   legalEmail,
+		LegalCompanyNo:               legalCompanyNo,
 		Logger:                       logger,
 	}, nil
 }

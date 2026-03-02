@@ -19,6 +19,10 @@ type AppConfig struct {
 	MaxProposalsPerEvent         int      `json:"max_proposals_per_event"`
 	MaxOrganizersPerEvent        int      `json:"max_organizers_per_event"`
 	NotificationEmail            string   `json:"notification_email,omitempty"`
+	LegalName                    string   `json:"legal_name"`
+	LegalAddress                 string   `json:"legal_address"`
+	LegalEmail                   string   `json:"legal_email"`
+	LegalCompanyNo               string   `json:"legal_company_no"`
 }
 
 // ConfigHandler returns the public application configuration
@@ -44,6 +48,10 @@ func ConfigHandler(cfg *config.Config) http.HandlerFunc {
 			PaymentsEnabled:       paymentsEnabled,
 			MaxProposalsPerEvent:  cfg.MaxProposalsPerEvent,
 			MaxOrganizersPerEvent: cfg.MaxOrganizersPerEvent,
+			LegalName:             cfg.LegalName,
+			LegalAddress:          cfg.LegalAddress,
+			LegalEmail:            cfg.LegalEmail,
+			LegalCompanyNo:        cfg.LegalCompanyNo,
 		}
 		if paymentsEnabled {
 			resp.StripePublishableKey = cfg.StripePublishableKey
