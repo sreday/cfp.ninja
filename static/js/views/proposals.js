@@ -94,7 +94,8 @@ function renderProposalsView(container, event, proposals) {
             <div class="card-header">
                 <div class="row align-items-center">
                     <div class="col-md-3">
-                        <input type="text" class="form-control form-control-sm" id="search-speakers" placeholder="Search speakers...">
+                        <input type="text" class="form-control form-control-sm" id="search-speakers" placeholder="Search speakers..."
+                            ${localStorage.getItem('cfpninja_anonymous_review') === 'true' ? 'disabled title="Disabled in anonymous mode" style="opacity:.5;cursor:not-allowed;"' : ''}>
                     </div>
                     <div class="col-md-3">
                         <input type="text" class="form-control form-control-sm" id="search-proposals" placeholder="Search proposals...">
@@ -431,6 +432,21 @@ function attachHandlers(event, allProposals) {
     document.getElementById('anonymous-mode')?.addEventListener('change', (e) => {
         anonymousMode = e.target.checked;
         localStorage.setItem('cfpninja_anonymous_review', anonymousMode);
+        // Disable speaker search in anonymous mode to prevent identity disclosure
+        if (speakerSearchInput) {
+            if (anonymousMode) {
+                speakerSearchInput.value = '';
+                speakerSearchInput.disabled = true;
+                speakerSearchInput.style.opacity = '.5';
+                speakerSearchInput.style.cursor = 'not-allowed';
+                speakerSearchInput.title = 'Disabled in anonymous mode';
+            } else {
+                speakerSearchInput.disabled = false;
+                speakerSearchInput.style.opacity = '';
+                speakerSearchInput.style.cursor = '';
+                speakerSearchInput.title = '';
+            }
+        }
         // Re-render proposals list and reapply active filters
         proposalsList.innerHTML = allProposals.length > 0 ? renderProposalsList(allProposals) : renderEmptyState();
         filterProposals();
