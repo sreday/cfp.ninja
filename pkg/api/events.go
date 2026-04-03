@@ -982,11 +982,19 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		speaker := r.URL.Query().Get("speaker")
+
 		var proposals []models.Proposal
 		query := cfg.DB.Where("event_id = ?", id).Order("created_at DESC").Limit(MaxProposalsPerPage)
 
 		if isOrganizer {
-			// Organizers see all proposals
+			// Organizers see all proposals; apply optional speaker name filter
+			if speaker != "" {
+				query = query.Where(
+					"EXISTS (SELECT 1 FROM jsonb_array_elements(speakers::jsonb) AS s WHERE s->>'name' ILIKE ?)",
+					"%"+speaker+"%",
+				)
+			}
 			if err := query.Find(&proposals).Error; err != nil {
 				cfg.Logger.Error("failed to query proposals", "error", err, "event_id", id)
 				encodeError(w, "Failed to load proposals", http.StatusInternalServerError)
