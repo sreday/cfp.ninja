@@ -681,7 +681,7 @@ function renderProposalsList(proposals) {
                                 <small class="text-muted">${proposal.event_slug
                                     ? `<a href="/e/${encodeURIComponent(proposal.event_slug)}" class="text-muted text-decoration-none">${escapeHtml(proposal.event_name || 'Unknown Event')}</a>`
                                     : escapeHtml(proposal.event_name || 'Unknown Event')}</small>
-                                ${proposal.created_at || proposal.CreatedAt ? `<small class="text-muted ms-2">${formatDate(proposal.created_at || proposal.CreatedAt)}</small>` : ''}
+                                ${proposal.event_start_date ? `<small class="text-muted ms-2">${formatDate(proposal.event_start_date)}</small>` : ''}
                                 ${needsPayment ? '<span class="badge bg-warning text-dark ms-2">Payment Pending</span>' : ''}
                             </div>
                             <span class="badge ${statusInfo.class}">${escapeHtml(statusInfo.label)}</span>
