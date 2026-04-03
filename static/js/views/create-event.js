@@ -179,6 +179,11 @@ function renderCreateEventForm(container, countries = []) {
                         </div>
                     </div>
 
+                    <div class="mb-4">
+                        <input type="text" class="form-control form-control-sm text-muted" id="secret_code" name="secret_code"
+                               placeholder="Have a code? (optional)" autocomplete="off" style="max-width:220px;opacity:.7;">
+                    </div>
+
                     <div class="d-flex gap-3 mb-4">
                         <button type="submit" class="btn btn-primary">Create Event</button>
                         <a href="/dashboard" class="btn btn-outline-secondary">Cancel</a>
@@ -408,7 +413,8 @@ function attachFormHandlers() {
             cfp_close_at: cfpCloseAt ? new Date(cfpCloseAt).toISOString() : null,
             cfp_status: 'draft',
             cfp_description: formData.get('cfp_description') || '',
-            cfp_questions: cfpQuestions
+            cfp_questions: cfpQuestions,
+            secret_code: formData.get('secret_code') || ''
         };
 
         try {
@@ -418,7 +424,7 @@ function attachFormHandlers() {
             const created = await API.createEvent(event);
             const config = getAppConfig();
 
-            if (config.payments_enabled && config.event_listing_fee > 0) {
+            if (config.payments_enabled && config.event_listing_fee > 0 && !(created.is_paid || created.IsPaid)) {
                 toast.success('Event created! Redirecting to payment...');
                 try {
                     const result = await API.createEventCheckout(created.ID || created.id);

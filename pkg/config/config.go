@@ -52,6 +52,11 @@ type Config struct {
 	SubmissionListingFee         int    // cents, default 100
 	SubmissionListingFeeCurrency string // e.g. "usd"
 
+	// BypassPaymentCode, when non-empty, allows skipping the event listing payment
+	// if the organiser provides the matching code at event creation time.
+	// Set via BYPASS_PAYMENT_CODE environment variable — never hardcode.
+	BypassPaymentCode string
+
 	// Email (Resend)
 	ResendAPIKey string
 	EmailFrom    string
@@ -379,6 +384,7 @@ func InitConfig() (*Config, error) {
 		EventListingFeeCurrency:      eventListingFeeCurrency,
 		SubmissionListingFee:         submissionListingFee,
 		SubmissionListingFeeCurrency: submissionListingFeeCurrency,
+		BypassPaymentCode:            os.Getenv("BYPASS_PAYMENT_CODE"),
 		ResendAPIKey:                 resendAPIKey,
 		EmailFrom:                    emailFrom,
 		BaseURL:                      baseURL,

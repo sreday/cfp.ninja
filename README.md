@@ -400,6 +400,7 @@ For example, with `BASE_URL=https://cfp.example.com` and `EMAIL_SUBDOMAIN=update
 | `EVENT_LISTING_FEE_CURRENCY` | `usd` | Currency for event listing fee |
 | `SUBMISSION_LISTING_FEE` | `100` | Fee in cents for submitting a proposal |
 | `SUBMISSION_LISTING_FEE_CURRENCY` | `usd` | Currency for submission fee |
+| `BYPASS_PAYMENT_CODE` | — | Secret code that skips the event listing fee when entered at event creation. Never hardcode — set via environment variable only. Example: `BYPASS_PAYMENT_CODE=bardzomalazaba` |
 
 ### Event Sync
 

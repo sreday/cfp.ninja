@@ -449,11 +449,15 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		defer r.Body.Close()
 
-		var event models.Event
-		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		var req struct {
+			models.Event
+			SecretCode string `json:"secret_code"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			encodeError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
+		event := req.Event
 
 		// Validate slug
 		if event.Slug == "" {
@@ -539,6 +543,12 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		event.CFPSubmissionFee = 0
 		event.CFPSubmissionFeeCurrency = ""
 
+		// If a valid bypass code was provided, mark the event as paid so that
+		// it skips the listing-fee gate below. The code is never logged.
+		if cfg.BypassPaymentCode != "" && req.SecretCode == cfg.BypassPaymentCode {
+			event.IsPaid = true
+		}
+
 		// Validate cfp_status against allowed values
 		validStatuses := map[models.CFPStatus]bool{
 			models.CFPStatusDraft:     true,
@@ -553,7 +563,7 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 
 		// Payment gate: block creating with open status if listing fee is required
-		if event.CFPStatus == models.CFPStatusOpen && cfg.EventListingFee > 0 {
+		if !event.IsPaid && event.CFPStatus == models.CFPStatusOpen && cfg.EventListingFee > 0 {
 			encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
 			return
 		}
