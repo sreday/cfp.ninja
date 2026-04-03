@@ -93,16 +93,19 @@ function renderProposalsView(container, event, proposals) {
         <div class="card mb-4">
             <div class="card-header">
                 <div class="row align-items-center">
-                    <div class="col-md-4">
-                        <input type="text" class="form-control form-control-sm" id="search-proposals" placeholder="Search proposals...">
+                    <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" id="search-speakers" placeholder="Search speakers...">
                     </div>
                     <div class="col-md-3">
+                        <input type="text" class="form-control form-control-sm" id="search-proposals" placeholder="Search proposals...">
+                    </div>
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" id="filter-status">
                             <option value="">All Statuses</option>
                             ${PROPOSAL_STATUSES.map(s => `<option value="${s.value}">${s.label}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" id="filter-format">
                             <option value="">All Formats</option>
                             <option value="talk">Talk</option>
@@ -221,9 +224,10 @@ function renderProposalItem(proposal) {
     const statusInfo = PROPOSAL_STATUSES.find(s => s.value === status) || PROPOSAL_STATUSES[0];
     const levelInfo = EXPERIENCE_LEVELS.find(l => l.value === proposal.level);
     const speakers = proposal.speakers || [];
+    const speakerNames = speakers.map(s => s.name || '').join(' ').toLowerCase();
 
     return `
-        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}">
+        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}" data-speakers="${escapeHtml(speakerNames)}">
             <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
                     <h6 class="mb-1 proposal-title" role="button" data-id="${proposalId}">${escapeHtml(proposal.title)}</h6>
@@ -409,6 +413,7 @@ function downloadCSV(eventId, format) {
 }
 
 function attachHandlers(event, allProposals) {
+    const speakerSearchInput = document.getElementById('search-speakers');
     const searchInput = document.getElementById('search-proposals');
     const statusFilter = document.getElementById('filter-status');
     const formatFilter = document.getElementById('filter-format');
@@ -435,6 +440,7 @@ function attachHandlers(event, allProposals) {
 
     // Filter function
     const filterProposals = () => {
+        const speakerSearch = speakerSearchInput?.value?.toLowerCase() || '';
         const search = searchInput?.value?.toLowerCase() || '';
         const status = statusFilter?.value || '';
         const format = formatFilter?.value || '';
@@ -444,14 +450,16 @@ function attachHandlers(event, allProposals) {
 
         items.forEach(item => {
             const title = item.querySelector('h6')?.textContent?.toLowerCase() || '';
+            const itemSpeakers = item.dataset.speakers || '';
             const itemStatus = item.dataset.status;
             const itemFormat = item.dataset.format;
 
+            const matchesSpeaker = !speakerSearch || itemSpeakers.includes(speakerSearch);
             const matchesSearch = !search || title.includes(search);
             const matchesStatus = !status || itemStatus === status;
             const matchesFormat = !format || itemFormat === format;
 
-            const visible = matchesSearch && matchesStatus && matchesFormat;
+            const visible = matchesSpeaker && matchesSearch && matchesStatus && matchesFormat;
             item.style.display = visible ? '' : 'none';
             if (visible) visibleCount++;
         });
@@ -460,7 +468,12 @@ function attachHandlers(event, allProposals) {
         if (countEl) countEl.textContent = `${visibleCount} proposals`;
     };
 
-    // Debounce search input to avoid excessive DOM reflows on every keystroke
+    // Debounce search inputs to avoid excessive DOM reflows on every keystroke
+    let speakerDebounceTimer = null;
+    speakerSearchInput?.addEventListener('input', () => {
+        clearTimeout(speakerDebounceTimer);
+        speakerDebounceTimer = setTimeout(filterProposals, 150);
+    });
     let searchDebounceTimer = null;
     searchInput?.addEventListener('input', () => {
         clearTimeout(searchDebounceTimer);
