@@ -708,7 +708,6 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 			IsPaid                bool      `json:"is_paid"`
 			EventRequiresPayment  bool      `json:"event_requires_payment"`
 			CreatedAt             time.Time `json:"created_at"`
-			EventStartDate        time.Time `json:"event_start_date"`
 		}
 
 		type SubmittedEvent struct {
@@ -792,7 +791,6 @@ func GetMyEventsHandler(cfg *config.Config) http.HandlerFunc {
 					IsPaid:                p.IsPaid,
 					EventRequiresPayment:  e.CFPRequiresPayment,
 					CreatedAt:             p.CreatedAt,
-					EventStartDate:        e.StartDate,
 				})
 			}
 
