@@ -49,6 +49,7 @@ export function renderEventCards(events, containerId = 'events-list', managingMa
                 <div class="empty-state">
                     <h3>No events found</h3>
                     <p class="text-muted">Try adjusting your search or filters.</p>
+                    <img src="/img/sherlock-toadmes.png" alt="No results" class="empty-state-img mt-3">
                 </div>
             </div>
         `;
