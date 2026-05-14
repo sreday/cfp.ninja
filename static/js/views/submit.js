@@ -213,44 +213,32 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
 
 const LINKEDIN_URL_PATTERN = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
 
-function setLinkedInFeedback(input, type, message) {
+function setLinkedInFeedback(input, message) {
     const existing = input.parentElement.querySelector('.linkedin-feedback');
     if (existing) existing.remove();
 
     if (!message) return;
 
     const el = document.createElement('div');
-    el.className = `linkedin-feedback small mt-1 ${type === 'success' ? 'text-success' : 'text-warning'}`;
+    el.className = 'linkedin-feedback small mt-1 text-warning';
     el.textContent = message;
     input.parentElement.appendChild(el);
 }
 
-// Attaches blur-based LinkedIn profile check to all linkedin inputs inside a container.
-// Shows a warning when URL is malformed or profile not found, green message when found.
+// Attaches blur-based LinkedIn format check to all linkedin inputs inside a container.
+// Shows a warning when URL is malformed; says nothing on valid URLs.
 export function attachLinkedInBlurCheck(container) {
-    container.addEventListener('focusout', async (e) => {
+    container.addEventListener('focusout', (e) => {
         const input = e.target;
         if (!input.name || !input.name.startsWith('speaker_linkedin_')) return;
 
-        setLinkedInFeedback(input, null, null);
+        setLinkedInFeedback(input, null);
 
         const url = input.value.trim();
         if (!url) return;
 
         if (!LINKEDIN_URL_PATTERN.test(url)) {
-            setLinkedInFeedback(input, 'warning', 'Invalid LinkedIn URL. Expected format: https://linkedin.com/in/username');
-            return;
-        }
-
-        try {
-            const result = await API.checkLinkedIn(url);
-            // Re-check the value hasn't changed while we were fetching
-            if (input.value.trim() !== url) return;
-            if (!result.exists) {
-                setLinkedInFeedback(input, 'warning', 'LinkedIn profile doesn\'t look correct. Please check for typos.');
-            }
-        } catch (_) {
-            // Network error — skip feedback
+            setLinkedInFeedback(input, 'Invalid LinkedIn URL. Expected format: https://linkedin.com/in/username');
         }
     });
 

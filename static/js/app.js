@@ -191,13 +191,6 @@ export const API = {
 
     createProposalCheckout(eventId, proposalId) {
         return this.request('POST', `/events/${eventId}/proposals/${proposalId}/checkout`);
-    },
-
-    // LinkedIn profile check
-    async checkLinkedIn(url) {
-        const res = await fetch(`${this.baseUrl}/check-linkedin?url=${encodeURIComponent(url)}`);
-        if (!res.ok) return { exists: true }; // benefit of the doubt on errors
-        return res.json();
     }
 };
 
