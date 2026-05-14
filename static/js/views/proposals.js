@@ -4,6 +4,7 @@ import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import {
     escapeHtml,
+    escapeAttr,
     sanitizeUrl,
     formatDate,
     showLoading,
@@ -222,8 +223,16 @@ function renderProposalItem(proposal) {
     const levelInfo = EXPERIENCE_LEVELS.find(l => l.value === proposal.level);
     const speakers = proposal.speakers || [];
 
+    // Search index: title plus speaker names (only when not in anonymous review mode).
+    // Used by filterProposals so that organizers can search by speaker as well.
+    const searchParts = [proposal.title || ''];
+    if (!anonymousMode) {
+        speakers.forEach(s => { if (s.name) searchParts.push(s.name); });
+    }
+    const searchIndex = searchParts.join(' ').toLowerCase();
+
     return `
-        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}">
+        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}" data-search="${escapeAttr(searchIndex)}">
             <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
                     <h6 class="mb-1 proposal-title" role="button" data-id="${proposalId}">${escapeHtml(proposal.title)}</h6>
@@ -315,6 +324,15 @@ function renderProposalModal(proposal) {
                 <span class="badge bg-light text-dark me-2">${escapeHtml(proposal.format)}</span>
                 <span class="badge bg-light text-dark me-2">${escapeHtml(String(proposal.duration))} min</span>
                 <span class="badge bg-light text-dark">${escapeHtml(proposal.level)}</span>
+            </div>
+
+            <h6>Update Status</h6>
+            <div class="btn-group mb-4" role="group">
+                ${PROPOSAL_STATUSES.map(s => `
+                    <button type="button" class="btn btn-sm ${status === s.value ? s.class : 'btn-outline-secondary'} status-btn" data-status="${s.value}">
+                        ${escapeHtml(s.label)}
+                    </button>
+                `).join('')}
             </div>
 
             <h6>Abstract</h6>
@@ -444,11 +462,11 @@ function attachHandlers(event, allProposals) {
         let visibleCount = 0;
 
         items.forEach(item => {
-            const title = item.querySelector('h6')?.textContent?.toLowerCase() || '';
+            const searchIndex = item.dataset.search || '';
             const itemStatus = item.dataset.status;
             const itemFormat = item.dataset.format;
 
-            const matchesSearch = !search || title.includes(search);
+            const matchesSearch = !search || searchIndex.includes(search);
             const matchesStatus = !status || itemStatus === status;
             const matchesFormat = !format || itemFormat === format;
 
