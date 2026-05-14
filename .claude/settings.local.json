@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go mod tidy:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(go test:*)",
+      "Bash(go doc:*)",
+      "Bash(make test-cli:*)",
+      "Bash(make test-e2e:*)",
+      "Bash(make test-all:*)",
+      "Bash(make test-e2e-headed:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(curl:*)",
+      "WebFetch(domain:sreday.com)",
+      "WebFetch(domain:llmday.com)",
+      "WebFetch(domain:devopsnotdead.com)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
