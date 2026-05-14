@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -449,11 +450,16 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		defer r.Body.Close()
 
-		var event models.Event
-		if err := json.NewDecoder(r.Body).Decode(&event); err != nil {
+		var body struct {
+			models.Event
+			FreeCode string `json:"free_code"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			encodeError(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
+		event := body.Event
+		freeCode := body.FreeCode
 
 		// Validate slug
 		if event.Slug == "" {
@@ -552,8 +558,24 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// Free-listing bypass: a valid shared code waives the listing fee entirely.
+		// Constant-time compare to avoid leaking the code via timing.
+		if freeCode != "" {
+			if cfg.FreeListingCode == "" || subtle.ConstantTimeCompare([]byte(freeCode), []byte(cfg.FreeListingCode)) != 1 {
+				encodeError(w, "Invalid code", http.StatusBadRequest)
+				return
+			}
+			event.IsPaid = true
+			// Mirror Stripe webhook auto-open behaviour (pkg/api/payments.go:255-260):
+			// if the event is draft with CFP dates set, flip to open immediately.
+			if event.CFPStatus == models.CFPStatusDraft && !event.CFPOpenAt.IsZero() && !event.CFPCloseAt.IsZero() {
+				event.CFPStatus = models.CFPStatusOpen
+			}
+			cfg.Logger.Info("free listing code accepted", "user_id", user.ID, "slug", event.Slug)
+		}
+
 		// Payment gate: block creating with open status if listing fee is required
-		if event.CFPStatus == models.CFPStatusOpen && cfg.EventListingFee > 0 {
+		if event.CFPStatus == models.CFPStatusOpen && cfg.EventListingFee > 0 && !event.IsPaid {
 			encodeError(w, "Event listing must be paid before opening CFP", http.StatusPaymentRequired)
 			return
 		}

@@ -179,6 +179,24 @@ function renderCreateEventForm(container, countries = []) {
                         </div>
                     </div>
 
+                    ${(() => {
+                        const config = getAppConfig();
+                        if (config.payments_enabled && config.event_listing_fee > 0) {
+                            return `
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Have a code?</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <label for="free_code" class="form-label">Listing code (optional)</label>
+                                        <input type="text" class="form-control" id="free_code" name="free_code" autocomplete="off" maxlength="200">
+                                        <div class="form-text">If you have a code that waives the listing fee, enter it here. The event will be created and published immediately, no payment required.</div>
+                                    </div>
+                                </div>`;
+                        }
+                        return '';
+                    })()}
+
                     <div class="d-flex gap-3 mb-4">
                         <button type="submit" class="btn btn-primary">Create Event</button>
                         <a href="/dashboard" class="btn btn-outline-secondary">Cancel</a>
@@ -390,6 +408,7 @@ function attachFormHandlers() {
         const cfpOpenAt = formData.get('cfp_open_at');
         const cfpCloseAt = formData.get('cfp_close_at');
 
+        const freeCode = formData.get('free_code') || '';
         const event = {
             name: formData.get('name'),
             slug: formData.get('slug'),
@@ -410,6 +429,9 @@ function attachFormHandlers() {
             cfp_description: formData.get('cfp_description') || '',
             cfp_questions: cfpQuestions
         };
+        if (freeCode) {
+            event.free_code = freeCode;
+        }
 
         try {
             submitBtn.disabled = true;
@@ -417,8 +439,9 @@ function attachFormHandlers() {
 
             const created = await API.createEvent(event);
             const config = getAppConfig();
+            const isPaid = created.is_paid === true || created.IsPaid === true;
 
-            if (config.payments_enabled && config.event_listing_fee > 0) {
+            if (config.payments_enabled && config.event_listing_fee > 0 && !isPaid) {
                 toast.success('Event created! Redirecting to payment...');
                 try {
                     const result = await API.createEventCheckout(created.ID || created.id);

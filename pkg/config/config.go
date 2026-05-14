@@ -51,6 +51,7 @@ type Config struct {
 	EventListingFeeCurrency      string // e.g. "usd"
 	SubmissionListingFee         int    // cents, default 100
 	SubmissionListingFeeCurrency string // e.g. "usd"
+	FreeListingCode              string // shared bypass code for free event listings; empty = disabled
 
 	// Email (Resend)
 	ResendAPIKey string
@@ -269,6 +270,8 @@ func InitConfig() (*Config, error) {
 		submissionListingFeeCurrency = "usd"
 	}
 
+	freeListingCode := os.Getenv("FREE_LISTING_CODE")
+
 	// Stripe validation
 	hasStripeKey := stripeSecretKey != ""
 	hasStripePubKey := stripePublishableKey != ""
@@ -379,6 +382,7 @@ func InitConfig() (*Config, error) {
 		EventListingFeeCurrency:      eventListingFeeCurrency,
 		SubmissionListingFee:         submissionListingFee,
 		SubmissionListingFeeCurrency: submissionListingFeeCurrency,
+		FreeListingCode:              freeListingCode,
 		ResendAPIKey:                 resendAPIKey,
 		EmailFrom:                    emailFrom,
 		BaseURL:                      baseURL,

@@ -62,6 +62,7 @@ CFP.ninja supports two optional payment flows via Stripe:
 | `EVENT_LISTING_FEE_CURRENCY` | Currency for listing fee | `usd` |
 | `SUBMISSION_LISTING_FEE` | Per-submission fee in cents | `100` ($1.00) |
 | `SUBMISSION_LISTING_FEE_CURRENCY` | Currency for submission fee | `usd` |
+| `FREE_LISTING_CODE` | Shared bypass code; users who enter it on the create-event form skip Stripe and list for free. Unlimited uses. Rotate by changing the env var. | unset (disabled) |
 
 ## How It Works
 
@@ -70,6 +71,13 @@ CFP.ninja supports two optional payment flows via Stripe:
 - If `EVENT_LISTING_FEE > 0`, the organizer must pay before the CFP can be opened
 - Payment is handled via Stripe Checkout (redirect flow)
 - The webhook marks the event as paid after successful payment
+
+### Free-Listing Bypass Code
+- Optional: set `FREE_LISTING_CODE` to a shared secret string (e.g. for partner/comp listings)
+- A "Have a code?" field appears on the create-event form when a listing fee is configured
+- Entering the matching code at creation time marks the event paid and (if CFP dates are set) opens the CFP immediately, skipping Stripe entirely
+- An invalid code returns `400 Invalid code` — no event is created
+- Unlimited redemptions; rotate the value to invalidate previously-shared codes
 
 ### Submission Fee
 - Organizers can toggle "Require payment for submissions" on their event
