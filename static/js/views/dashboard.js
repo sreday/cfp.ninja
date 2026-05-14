@@ -9,7 +9,7 @@ import {
     pluralize,
     truncate,
     formatDate,
-    formatDateRange,
+    formatEventDateRange,
     validateCheckoutUrl,
     PROPOSAL_STATUSES,
     TALK_FORMATS,
@@ -647,7 +647,7 @@ function renderEventsList(events) {
                         <div>
                             <div class="flex-grow-1">
                                 <h6 class="mb-1 event-title"><a href="/dashboard/events/${event.ID || event.id}/proposals" class="text-decoration-none">${escapeHtml(event.name)}</a> <span class="badge bg-secondary ms-2">${pluralize(proposalCount, 'proposal')}</span></h6>
-                                <span class="text-muted small">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
+                                <span class="text-muted small">${escapeHtml(formatEventDateRange(event.start_date, event.end_date, event.is_online))}</span>
                                 ${cfpStatus ? `
                                     <span class="cfp-status small ms-2">${escapeHtml(cfpStatus)}</span>
                                 ` : ''}

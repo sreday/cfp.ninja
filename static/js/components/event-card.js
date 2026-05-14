@@ -1,5 +1,5 @@
 // Event card component
-import { escapeHtml, escapeAttr, truncate, formatDateRange, getCfpStatus } from '../utils.js';
+import { escapeHtml, escapeAttr, truncate, formatEventDateRange, getCfpStatus } from '../utils.js';
 import { router } from '../router.js';
 
 export function renderEventCard(event, managingMap) {
@@ -20,7 +20,7 @@ export function renderEventCard(event, managingMap) {
                         </h5>
                         ${countryPill}
                     </div>
-                    <p class="event-dates mb-1">${escapeHtml(formatDateRange(event.start_date, event.end_date))}</p>
+                    <p class="event-dates mb-1">${escapeHtml(formatEventDateRange(event.start_date, event.end_date, event.is_online))}</p>
                     ${cfpStatus.status !== 'none' ? `
                         <p class="cfp-status-text ${cfpStatus.class} small mb-2">
                             ${escapeHtml(cfpStatus.label)}

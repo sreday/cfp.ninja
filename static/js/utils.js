@@ -105,6 +105,41 @@ export function formatDateRange(start, end) {
     return `${startStr} - ${formatDate(end)}`;
 }
 
+// In-person event dates are entered via <input type="date"> and stored as
+// midnight UTC. Rendering them in the viewer's local timezone shifts the
+// displayed date by a day for viewers across the date line — bad if someone
+// books travel based on the wrong day. For in-person events, pin to UTC so
+// the date matches what the organizer entered. Online events keep
+// browser-local behavior since they have no fixed venue timezone.
+export function formatEventDate(dateString, isOnline) {
+    if (isOnline) return formatDate(dateString);
+    return formatDate(dateString, { timeZone: 'UTC' });
+}
+
+export function formatEventDateRange(start, end, isOnline) {
+    if (isOnline) return formatDateRange(start, end);
+    if (!start) return '';
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : null;
+
+    const startStr = formatEventDate(start, false);
+
+    if (!endDate) return startStr;
+
+    if (startDate.getUTCFullYear() === endDate.getUTCFullYear() &&
+        startDate.getUTCMonth() === endDate.getUTCMonth() &&
+        startDate.getUTCDate() === endDate.getUTCDate()) {
+        return startStr;
+    }
+
+    if (startDate.getUTCMonth() === endDate.getUTCMonth() &&
+        startDate.getUTCFullYear() === endDate.getUTCFullYear()) {
+        return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} - ${endDate.getUTCDate()}, ${endDate.getUTCFullYear()}`;
+    }
+
+    return `${startStr} - ${formatEventDate(end, false)}`;
+}
+
 export function timeUntil(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -261,12 +296,12 @@ export const PROPOSAL_STATUSES = [
 
 // Calendar helpers
 
-export function formatDateForICS(dateString) {
+export function formatDateForICS(dateString, isOnline) {
     if (!dateString) return '';
     const d = new Date(dateString);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const y = isOnline ? d.getFullYear() : d.getUTCFullYear();
+    const m = String((isOnline ? d.getMonth() : d.getUTCMonth()) + 1).padStart(2, '0');
+    const day = String(isOnline ? d.getDate() : d.getUTCDate()).padStart(2, '0');
     return `${y}${m}${day}`;
 }
 
@@ -302,14 +337,19 @@ function escapeICSText(str) {
 }
 
 export function generateICSContent(event) {
-    const startDate = formatDateForICS(event.start_date);
+    const isOnline = !!event.is_online;
+    const startDate = formatDateForICS(event.start_date, isOnline);
     if (!startDate) return '';
 
     // End date: day after end_date (or day after start_date) for all-day event exclusivity
     const endSource = event.end_date || event.start_date;
     const endD = new Date(endSource);
-    endD.setDate(endD.getDate() + 1);
-    const endDate = formatDateForICS(endD.toISOString());
+    if (isOnline) {
+        endD.setDate(endD.getDate() + 1);
+    } else {
+        endD.setUTCDate(endD.getUTCDate() + 1);
+    }
+    const endDate = formatDateForICS(endD.toISOString(), isOnline);
 
     const location = event.location
         ? (event.country ? `${event.location}, ${event.country}` : event.location)
@@ -351,13 +391,18 @@ export function generateICSContent(event) {
 }
 
 export function generateGoogleCalendarURL(event) {
-    const startDate = formatDateForICS(event.start_date);
+    const isOnline = !!event.is_online;
+    const startDate = formatDateForICS(event.start_date, isOnline);
     if (!startDate) return '';
 
     const endSource = event.end_date || event.start_date;
     const endD = new Date(endSource);
-    endD.setDate(endD.getDate() + 1);
-    const endDate = formatDateForICS(endD.toISOString());
+    if (isOnline) {
+        endD.setDate(endD.getDate() + 1);
+    } else {
+        endD.setUTCDate(endD.getUTCDate() + 1);
+    }
+    const endDate = formatDateForICS(endD.toISOString(), isOnline);
 
     const location = event.location
         ? (event.country ? `${event.location}, ${event.country}` : event.location)

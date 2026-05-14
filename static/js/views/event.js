@@ -5,7 +5,7 @@ import {
     escapeHtml,
     escapeAttr,
     sanitizeUrl,
-    formatDateRange,
+    formatEventDateRange,
     formatDate,
     getCfpStatus,
     showLoading,
@@ -54,7 +54,7 @@ function renderEventDetail(container, event) {
             <div class="event-meta">
                 <div class="event-meta-item">
                     <span>📅</span>
-                    <span>${escapeHtml(formatDateRange(event.start_date, event.end_date))}</span>
+                    <span>${escapeHtml(formatEventDateRange(event.start_date, event.end_date, event.is_online))}</span>
                 </div>
                 ${event.location ? `
                     <div class="event-meta-item">
