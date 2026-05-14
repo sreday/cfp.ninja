@@ -769,6 +769,11 @@ textarea.form-control {
     color: var(--text-secondary);
 }
 
+.empty-state-img {
+    max-width: 180px;
+    height: auto;
+}
+
 /* Loading spinner */
 .loading {
     display: flex;

@@ -231,7 +231,7 @@ function renderDashboard(container, managing, submitted) {
                 listContainer.innerHTML = renderEventsList(filtered);
                 attachEventPayHandlers(listContainer);
             } else {
-                listContainer.innerHTML = '<p class="text-muted text-center py-3">No events match your filters.</p>';
+                listContainer.innerHTML = '<div class="empty-state"><p class="text-muted">No events match your filters.</p><img src="/img/sherlock-toadmes.png" alt="No results" class="empty-state-img mt-3"></div>';
             }
         };
 
@@ -264,7 +264,7 @@ function renderDashboard(container, managing, submitted) {
             if (filtered.length > 0) {
                 listContainer.innerHTML = renderProposalsList(filtered);
             } else {
-                listContainer.innerHTML = '<p class="text-muted text-center py-3">No proposals match your filters.</p>';
+                listContainer.innerHTML = '<div class="empty-state"><p class="text-muted">No proposals match your filters.</p><img src="/img/sherlock-toadmes.png" alt="No results" class="empty-state-img mt-3"></div>';
             }
             attachProposalHandlers(listContainer);
         };

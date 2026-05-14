@@ -270,8 +270,9 @@ function renderRating(rating) {
 
 function renderEmptyState() {
     return `
-        <div class="text-center py-5">
+        <div class="empty-state">
             <p class="text-muted">No proposals yet.</p>
+            <img src="/img/sherlock-toadmes.png" alt="No results" class="empty-state-img mt-3">
         </div>
     `;
 }
