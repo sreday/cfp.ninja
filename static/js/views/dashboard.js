@@ -97,9 +97,6 @@ function renderDashboard(container, managing, submitted, me, talks) {
 
         <ul class="nav nav-tabs" id="dashboard-tabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link${defaultTab === 'events' ? ' active' : ''}" id="events-tab" data-bs-toggle="tab" data-bs-target="#tab-events" type="button" role="tab">My Events</button>
-            </li>
-            <li class="nav-item" role="presentation">
                 <button class="nav-link${defaultTab === 'proposals' ? ' active' : ''}" id="proposals-tab" data-bs-toggle="tab" data-bs-target="#tab-proposals" type="button" role="tab">My Proposals</button>
             </li>
             <li class="nav-item" role="presentation">
@@ -108,40 +105,11 @@ function renderDashboard(container, managing, submitted, me, talks) {
             <li class="nav-item" role="presentation">
                 <button class="nav-link${defaultTab === 'defaults' ? ' active' : ''}" id="defaults-tab" data-bs-toggle="tab" data-bs-target="#tab-defaults" type="button" role="tab">My Defaults</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link${defaultTab === 'events' ? ' active' : ''}" id="events-tab" data-bs-toggle="tab" data-bs-target="#tab-events" type="button" role="tab">My Events</button>
+            </li>
         </ul>
         <div class="tab-content mt-3">
-            <div class="tab-pane fade${defaultTab === 'events' ? ' show active' : ''}" id="tab-events" role="tabpanel">
-                ${managing.length > 0 ? (() => {
-                    const closedStatuses = ['closed', 'reviewing', 'complete', 'expired'];
-                    const draftCount = managing.filter(e => (e.cfp_status || '') === 'draft').length;
-                    const openCount = managing.filter(e => (e.cfp_status || '') === 'open').length;
-                    const closedCount = managing.filter(e => closedStatuses.includes(e.cfp_status || '')).length;
-                    return `
-                    <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
-                        <div class="btn-group btn-group-sm" id="cfp-filter-group">
-                            <button type="button" class="btn btn-outline-secondary" data-filter="draft">Draft (${draftCount})</button>
-                            <button type="button" class="btn btn-outline-secondary active" data-filter="open">Open (${openCount})</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="closed">Closed (${closedCount})</button>
-                            <button type="button" class="btn btn-outline-secondary" data-filter="all">All (${managing.length})</button>
-                        </div>
-                        <input type="search" class="form-control form-control-sm max-w-search" id="event-search" placeholder="Search...">
-                    </div>
-                    <div id="events-list-container"></div>`;
-                })() : renderEmptyEvents()}
-                <div class="mt-3">
-                    ${renderCliCommand(buildCreateCommand(), {
-                        id: 'create-cli',
-                        collapsible: true,
-                        title: 'create via cli'
-                    })}
-                </div>
-            </div>
-            <div class="tab-pane fade${defaultTab === 'saved-talks' ? ' show active' : ''}" id="tab-saved-talks" role="tabpanel">
-                ${renderSavedTalksTab(talks)}
-            </div>
-            <div class="tab-pane fade${defaultTab === 'defaults' ? ' show active' : ''}" id="tab-defaults" role="tabpanel">
-                ${renderDefaultsTab(me)}
-            </div>
             <div class="tab-pane fade${defaultTab === 'proposals' ? ' show active' : ''}" id="tab-proposals" role="tabpanel">
                 ${allProposals.length > 0 ? (() => {
                     const pendingCount = allProposals.filter(p => p.status === 'submitted').length;
@@ -166,6 +134,38 @@ function renderDashboard(container, managing, submitted, me, talks) {
                         id: 'submit-cli',
                         collapsible: true,
                         title: 'submit via cli'
+                    })}
+                </div>
+            </div>
+            <div class="tab-pane fade${defaultTab === 'saved-talks' ? ' show active' : ''}" id="tab-saved-talks" role="tabpanel">
+                ${renderSavedTalksTab(talks)}
+            </div>
+            <div class="tab-pane fade${defaultTab === 'defaults' ? ' show active' : ''}" id="tab-defaults" role="tabpanel">
+                ${renderDefaultsTab(me)}
+            </div>
+            <div class="tab-pane fade${defaultTab === 'events' ? ' show active' : ''}" id="tab-events" role="tabpanel">
+                ${managing.length > 0 ? (() => {
+                    const closedStatuses = ['closed', 'reviewing', 'complete', 'expired'];
+                    const draftCount = managing.filter(e => (e.cfp_status || '') === 'draft').length;
+                    const openCount = managing.filter(e => (e.cfp_status || '') === 'open').length;
+                    const closedCount = managing.filter(e => closedStatuses.includes(e.cfp_status || '')).length;
+                    return `
+                    <div class="d-flex gap-2 mb-3 align-items-center flex-wrap">
+                        <div class="btn-group btn-group-sm" id="cfp-filter-group">
+                            <button type="button" class="btn btn-outline-secondary" data-filter="draft">Draft (${draftCount})</button>
+                            <button type="button" class="btn btn-outline-secondary active" data-filter="open">Open (${openCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="closed">Closed (${closedCount})</button>
+                            <button type="button" class="btn btn-outline-secondary" data-filter="all">All (${managing.length})</button>
+                        </div>
+                        <input type="search" class="form-control form-control-sm max-w-search" id="event-search" placeholder="Search...">
+                    </div>
+                    <div id="events-list-container"></div>`;
+                })() : renderEmptyEvents()}
+                <div class="mt-3">
+                    ${renderCliCommand(buildCreateCommand(), {
+                        id: 'create-cli',
+                        collapsible: true,
+                        title: 'create via cli'
                     })}
                 </div>
             </div>
