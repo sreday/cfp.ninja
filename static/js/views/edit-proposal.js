@@ -82,8 +82,15 @@ function renderEditForm(container, proposal, event) {
                     <a href="/dashboard/proposals" class="text-decoration-none">&larr; Back to My Proposals</a>
                 </div>
 
-                <h1 class="mb-4">Edit Proposal</h1>
-                <p class="text-muted mb-4">Editing <strong>${escapeHtml(proposal.title)}</strong></p>
+                <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+                    <div>
+                        <h1 class="mb-1">Edit Proposal</h1>
+                        <p class="text-muted mb-0">Editing <strong>${escapeHtml(proposal.title)}</strong></p>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary" id="save-as-template-btn" data-proposal-id="${proposalId}" title="Add this proposal to My Saved Talks">
+                        📚 Save to My Talks
+                    </button>
+                </div>
 
                 <form id="edit-proposal-form">
                     <div class="card mb-4">
@@ -200,6 +207,24 @@ function renderEditForm(container, proposal, event) {
             el.checked = !!val;
         } else {
             el.value = val;
+        }
+    });
+
+    // Save-as-template button (header)
+    const saveAsTemplateBtn = document.getElementById('save-as-template-btn');
+    saveAsTemplateBtn?.addEventListener('click', async () => {
+        const id = saveAsTemplateBtn.dataset.proposalId;
+        const originalLabel = saveAsTemplateBtn.textContent;
+        try {
+            saveAsTemplateBtn.disabled = true;
+            saveAsTemplateBtn.textContent = 'Saving...';
+            await API.saveTalkFromProposal(id);
+            toast.success('Saved to My Talks.');
+            saveAsTemplateBtn.textContent = 'Saved ✓';
+        } catch (error) {
+            toast.error(error.message || 'Failed to save talk.');
+            saveAsTemplateBtn.disabled = false;
+            saveAsTemplateBtn.textContent = originalLabel;
         }
     });
 

@@ -22,6 +22,16 @@ type User struct {
 
 	IsActive        bool       `gorm:"default:true"`
 	TermsAcceptedAt *time.Time `gorm:"index"`
+
+	// Speaker defaults — used to prefill the primary speaker on proposal submit.
+	// All optional; editable via PUT /api/v0/me/profile.
+	Bio      string
+	JobTitle string
+	Company  string
+	// GORM would otherwise snake_case LinkedIn → "linked_in" (same way it
+	// produces git_hub_id). Pin the column name so it matches the JSON field
+	// and the existing SQL conventions on the speaker JSONB.
+	LinkedIn string `gorm:"column:linkedin"`
 }
 
 // CreatePartialUniqueIndexes creates partial unique indexes for fields that can be empty.

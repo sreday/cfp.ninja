@@ -71,6 +71,7 @@ func cleanDatabase() {
 
 	// Truncate tables in order to avoid foreign key issues
 	db.Exec("TRUNCATE TABLE proposals CASCADE")
+	db.Exec("TRUNCATE TABLE saved_talks CASCADE")
 	db.Exec("TRUNCATE TABLE event_organizers CASCADE")
 	db.Exec("TRUNCATE TABLE events CASCADE")
 	db.Exec("TRUNCATE TABLE users CASCADE")

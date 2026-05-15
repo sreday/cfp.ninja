@@ -22,13 +22,17 @@ export async function DashboardView() {
     showLoading(main);
 
     try {
-        // Fetch user's events and proposals
-        const dashboardData = await API.getMyDashboard();
+        // Fetch user's events, proposals, profile, and saved talks in parallel
+        const [dashboardData, me, talks] = await Promise.all([
+            API.getMyDashboard(),
+            API.getMe().catch(() => null),
+            API.listMyTalks().catch(() => []),
+        ]);
 
         const managing = dashboardData.managing || [];
         const submitted = dashboardData.submitted || [];
 
-        renderDashboard(main, managing, submitted);
+        renderDashboard(main, managing, submitted, me, talks);
 
         // Handle payment query params
         const params = new URLSearchParams(window.location.search);
@@ -49,8 +53,10 @@ export async function DashboardView() {
     }
 }
 
-function renderDashboard(container, managing, submitted) {
+function renderDashboard(container, managing, submitted, me, talks) {
     const user = Auth.getUser();
+    me = me || user || {};
+    talks = Array.isArray(talks) ? talks : [];
 
     // Extract all proposals from submitted events
     const allProposals = [];
@@ -77,6 +83,8 @@ function renderDashboard(container, managing, submitted) {
     const path = window.location.pathname;
     const defaultTab = path === '/dashboard/proposals' ? 'proposals' :
                        path === '/dashboard/events' ? 'events' :
+                       path === '/dashboard/defaults' ? 'defaults' :
+                       path === '/dashboard/saved-talks' ? 'saved-talks' :
                        (hasOpenEvents ? 'events' : 'proposals');
 
     container.innerHTML = `
@@ -93,6 +101,12 @@ function renderDashboard(container, managing, submitted) {
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link${defaultTab === 'proposals' ? ' active' : ''}" id="proposals-tab" data-bs-toggle="tab" data-bs-target="#tab-proposals" type="button" role="tab">My Proposals</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link${defaultTab === 'saved-talks' ? ' active' : ''}" id="saved-talks-tab" data-bs-toggle="tab" data-bs-target="#tab-saved-talks" type="button" role="tab">My Saved Talks</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link${defaultTab === 'defaults' ? ' active' : ''}" id="defaults-tab" data-bs-toggle="tab" data-bs-target="#tab-defaults" type="button" role="tab">My Defaults</button>
             </li>
         </ul>
         <div class="tab-content mt-3">
@@ -121,6 +135,12 @@ function renderDashboard(container, managing, submitted) {
                         title: 'create via cli'
                     })}
                 </div>
+            </div>
+            <div class="tab-pane fade${defaultTab === 'saved-talks' ? ' show active' : ''}" id="tab-saved-talks" role="tabpanel">
+                ${renderSavedTalksTab(talks)}
+            </div>
+            <div class="tab-pane fade${defaultTab === 'defaults' ? ' show active' : ''}" id="tab-defaults" role="tabpanel">
+                ${renderDefaultsTab(me)}
             </div>
             <div class="tab-pane fade${defaultTab === 'proposals' ? ' show active' : ''}" id="tab-proposals" role="tabpanel">
                 ${allProposals.length > 0 ? (() => {
@@ -290,9 +310,19 @@ function renderDashboard(container, managing, submitted) {
     // Sync URL when switching tabs. Use pushState directly instead of
     // router.navigate() to avoid triggering handleRoute() and re-rendering.
     document.getElementById('dashboard-tabs')?.addEventListener('shown.bs.tab', (event) => {
-        const path = event.target.id === 'proposals-tab' ? '/dashboard/proposals' : '/dashboard/events';
+        const pathMap = {
+            'events-tab':       '/dashboard/events',
+            'proposals-tab':    '/dashboard/proposals',
+            'saved-talks-tab':  '/dashboard/saved-talks',
+            'defaults-tab':     '/dashboard/defaults',
+        };
+        const path = pathMap[event.target.id] || '/dashboard';
         history.pushState(null, '', path);
     });
+
+    // Attach handlers for the two new tabs
+    attachDefaultsHandlers(me);
+    attachSavedTalksHandlers(talks);
 }
 
 function attachEventPayHandlers(container) {
@@ -354,6 +384,27 @@ function attachProposalHandlers(container) {
             const proposalId = btn.dataset.proposalId;
             const proposalTitle = btn.dataset.proposalTitle;
             showDeleteConfirmation(proposalId, proposalTitle);
+        });
+    });
+
+    // Save to My Talks (in-dashboard: jump to the saved-talks tab so the
+    // newly-saved entry is immediately visible — otherwise switching tabs
+    // showed a stale list and felt like the click did nothing).
+    container.querySelectorAll('.save-as-template-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const proposalId = btn.dataset.proposalId;
+            const originalLabel = btn.textContent;
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                await API.saveTalkFromProposal(proposalId);
+                toast.success('Saved to My Talks.');
+                router.navigate('/dashboard/saved-talks');
+            } catch (error) {
+                toast.error(error.message || 'Failed to save talk.');
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
         });
     });
 
@@ -691,6 +742,7 @@ function renderProposalsList(proposals) {
                             ${proposal.status === 'submitted'
                                 ? `<a href="/proposals/${proposalId}/edit" class="btn btn-sm btn-outline-secondary me-1">Edit</a>`
                                 : `<button class="btn btn-sm btn-outline-secondary me-1" disabled title="Proposals can only be edited while in pending review">Edit</button>`}
+                            <button class="btn btn-sm btn-outline-primary me-1 save-as-template-btn" data-proposal-id="${proposalId}" title="Add this proposal to My Saved Talks">Save to My Talks</button>
                             ${needsPayment ? `<button class="btn btn-sm btn-warning me-1 pay-proposal-btn" data-proposal-id="${proposalId}" data-event-id="${proposal.event_id}">Complete Payment</button>` : ''}
                             ${!(proposal.status === 'accepted' && proposal.attendance_confirmed) ? `<button class="btn btn-sm btn-outline-danger me-1 delete-proposal-btn" data-proposal-id="${proposalId}" data-proposal-title="${escapeHtml(proposal.title)}">Delete</button>` : ''}
                             ${proposal.status === 'accepted' && !proposal.attendance_confirmed ? `<button class="btn btn-sm btn-success confirm-attendance-btn" data-proposal-id="${proposalId}">Confirm Attendance</button>` : ''}
@@ -725,4 +777,280 @@ function renderEmptyProposals() {
             <a href="/" class="btn btn-outline-primary">Browse Events</a>
         </div>
     `;
+}
+
+// --- "My Defaults" tab ---
+
+function renderDefaultsTab(me) {
+    return `
+        <p class="text-muted">These details will pre-fill the primary speaker on every proposal you submit. Name and email come from your account; everything below is editable here.</p>
+        <form id="defaults-form" class="mt-3">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-control" value="${escapeHtml(me.name || '')}" disabled>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-control" value="${escapeHtml(me.email || '')}" disabled>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="defaults-bio">Bio</label>
+                <textarea class="form-control" id="defaults-bio" name="bio" rows="3" maxlength="2000">${escapeHtml(me.bio || '')}</textarea>
+                <div class="form-text">Brief bio. Markdown supported.</div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="defaults-job_title">Job Title</label>
+                    <input type="text" class="form-control" id="defaults-job_title" name="job_title" maxlength="200" value="${escapeHtml(me.job_title || '')}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="defaults-company">Company / Organization</label>
+                    <input type="text" class="form-control" id="defaults-company" name="company" maxlength="200" value="${escapeHtml(me.company || '')}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="defaults-linkedin">LinkedIn Profile</label>
+                <input type="url" class="form-control" id="defaults-linkedin" name="linkedin" placeholder="https://linkedin.com/in/username" maxlength="500" value="${escapeHtml(me.linkedin || '')}">
+                <div class="form-text">Optional here; required when submitting a proposal.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save defaults</button>
+        </form>
+    `;
+}
+
+function attachDefaultsHandlers(me) {
+    const form = document.getElementById('defaults-form');
+    if (!form) return;
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const data = {
+            bio: form.querySelector('#defaults-bio').value.trim(),
+            job_title: form.querySelector('#defaults-job_title').value.trim(),
+            company: form.querySelector('#defaults-company').value.trim(),
+            linkedin: form.querySelector('#defaults-linkedin').value.trim(),
+        };
+        try {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            const updated = await API.updateMyProfile(data);
+            // Refresh cached user so submit-form prefill picks up new values immediately.
+            const cached = Auth.getUser() || {};
+            Auth.setUser({ ...cached, ...updated });
+            toast.success('Defaults saved.');
+        } catch (error) {
+            toast.error(error.message || 'Failed to save defaults.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Save defaults';
+        }
+    });
+}
+
+// --- "My Saved Talks" tab ---
+
+function renderSavedTalksTab(talks) {
+    return `
+        <p class="text-muted">Save your talks once and reuse them when submitting to any conference. Use the form below to add a new talk, or save one from your past proposals via the "My Proposals" tab.</p>
+        <details class="mb-4" id="saved-talk-new-details">
+            <summary class="btn btn-outline-primary">+ New saved talk</summary>
+            <div class="card mt-3">
+                <div class="card-body">
+                    ${renderSavedTalkForm(null)}
+                </div>
+            </div>
+        </details>
+        <div id="saved-talks-list">
+            ${talks.length === 0 ? `
+                <div class="text-center py-4">
+                    <p class="text-muted">No saved talks yet. Add one above or save a previous submission.</p>
+                </div>
+            ` : talks.map(renderSavedTalkRow).join('')}
+        </div>
+    `;
+}
+
+function renderSavedTalkForm(talk) {
+    const t = talk || {};
+    const id = t.ID || t.id || '';
+    const isEdit = !!id;
+    const formats = (TALK_FORMATS || []).map(f => `<option value="${escapeHtml(f.value)}" ${t.format === f.value ? 'selected' : ''}>${escapeHtml(f.label)}</option>`).join('');
+    const levels = (EXPERIENCE_LEVELS || []).map(l => `<option value="${escapeHtml(l.value)}" ${t.level === l.value ? 'selected' : ''}>${escapeHtml(l.label)}</option>`).join('');
+    return `
+        <form class="saved-talk-form" data-talk-id="${id}">
+            <div class="mb-3">
+                <label class="form-label">Title <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" name="title" required maxlength="300" value="${escapeHtml(t.title || '')}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Abstract</label>
+                <textarea class="form-control" name="abstract" rows="4" maxlength="10000">${escapeHtml(t.abstract || '')}</textarea>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Format</label>
+                    <select class="form-select" name="format">
+                        <option value="">—</option>
+                        ${formats}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Duration (minutes)</label>
+                    <input type="number" class="form-control" name="duration" min="0" value="${t.duration || ''}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Experience Level</label>
+                    <select class="form-select" name="level">
+                        <option value="">—</option>
+                        ${levels}
+                    </select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Tags</label>
+                <input type="text" class="form-control" name="tags" maxlength="1000" placeholder="comma, separated, tags" value="${escapeHtml(t.tags || '')}">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Speaker Notes</label>
+                <textarea class="form-control" name="speaker_notes" rows="2" maxlength="5000">${escapeHtml(t.speaker_notes || '')}</textarea>
+                <div class="form-text">Private notes you'd typically pass to organizers (not shown publicly).</div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">${isEdit ? 'Save changes' : 'Save talk'}</button>
+                ${isEdit ? '<button type="button" class="btn btn-outline-secondary saved-talk-cancel">Cancel</button>' : ''}
+            </div>
+        </form>
+    `;
+}
+
+function renderSavedTalkRow(talk) {
+    const id = talk.ID || talk.id;
+    const firstLine = (talk.abstract || '').split('\n')[0];
+    return `
+        <div class="card mb-3 saved-talk-row" data-talk-id="${id}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="mb-0">${escapeHtml(talk.title || '(untitled)')}</h5>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary saved-talk-edit" data-talk-id="${id}">Edit</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger saved-talk-delete" data-talk-id="${id}">Delete</button>
+                    </div>
+                </div>
+                ${firstLine ? `<p class="text-muted small mb-2">${escapeHtml(truncate(firstLine, 200))}</p>` : ''}
+                <div class="d-flex flex-wrap gap-2 small">
+                    ${talk.format ? `<span class="badge bg-light text-dark">${escapeHtml(talk.format)}</span>` : ''}
+                    ${talk.duration ? `<span class="badge bg-light text-dark">${escapeHtml(String(talk.duration))} min</span>` : ''}
+                    ${talk.level ? `<span class="badge bg-light text-dark">${escapeHtml(talk.level)}</span>` : ''}
+                    ${talk.tags ? `<span class="text-muted">${escapeHtml(talk.tags)}</span>` : ''}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function attachSavedTalksHandlers(initialTalks) {
+    // Local mirror so we can refresh the list without a full page reload.
+    let talks = Array.isArray(initialTalks) ? [...initialTalks] : [];
+    const listContainer = document.getElementById('saved-talks-list');
+    const newDetails = document.getElementById('saved-talk-new-details');
+
+    const refreshList = () => {
+        if (!listContainer) return;
+        if (talks.length === 0) {
+            listContainer.innerHTML = `
+                <div class="text-center py-4">
+                    <p class="text-muted">No saved talks yet. Add one above or save a previous submission.</p>
+                </div>`;
+        } else {
+            listContainer.innerHTML = talks.map(renderSavedTalkRow).join('');
+        }
+    };
+
+    const collectForm = (form) => ({
+        title: form.querySelector('[name="title"]').value.trim(),
+        abstract: form.querySelector('[name="abstract"]').value.trim(),
+        format: form.querySelector('[name="format"]').value,
+        duration: parseInt(form.querySelector('[name="duration"]').value || '0', 10) || 0,
+        level: form.querySelector('[name="level"]').value,
+        tags: form.querySelector('[name="tags"]').value.trim(),
+        speaker_notes: form.querySelector('[name="speaker_notes"]').value.trim(),
+    });
+
+    // New-talk form submit
+    const newForm = newDetails?.querySelector('.saved-talk-form');
+    newForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = newForm.querySelector('button[type="submit"]');
+        try {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            const created = await API.createMyTalk(collectForm(newForm));
+            talks.unshift(created);
+            refreshList();
+            newForm.reset();
+            if (newDetails) newDetails.open = false;
+            toast.success('Talk saved.');
+        } catch (error) {
+            toast.error(error.message || 'Failed to save talk.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save talk';
+        }
+    });
+
+    // Edit / delete via event delegation on the list
+    listContainer?.addEventListener('click', async (e) => {
+        const editBtn = e.target.closest('.saved-talk-edit');
+        const deleteBtn = e.target.closest('.saved-talk-delete');
+        if (editBtn) {
+            const id = parseInt(editBtn.dataset.talkId, 10);
+            const talk = talks.find(t => (t.ID || t.id) === id);
+            const row = listContainer.querySelector(`.saved-talk-row[data-talk-id="${id}"]`);
+            if (!talk || !row) return;
+            const cardBody = row.querySelector('.card-body');
+            cardBody.innerHTML = renderSavedTalkForm(talk);
+            return;
+        }
+        if (deleteBtn) {
+            const id = parseInt(deleteBtn.dataset.talkId, 10);
+            if (!confirm('Delete this saved talk?')) return;
+            try {
+                await API.deleteMyTalk(id);
+                talks = talks.filter(t => (t.ID || t.id) !== id);
+                refreshList();
+                toast.success('Talk deleted.');
+            } catch (error) {
+                toast.error(error.message || 'Failed to delete talk.');
+            }
+        }
+    });
+
+    // Inline edit form submit / cancel
+    listContainer?.addEventListener('submit', async (e) => {
+        const form = e.target.closest('.saved-talk-form');
+        if (!form) return;
+        e.preventDefault();
+        const id = parseInt(form.dataset.talkId, 10);
+        if (!id) return;
+        const btn = form.querySelector('button[type="submit"]');
+        try {
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            const updated = await API.updateMyTalk(id, collectForm(form));
+            talks = talks.map(t => ((t.ID || t.id) === id ? updated : t));
+            refreshList();
+            toast.success('Talk updated.');
+        } catch (error) {
+            toast.error(error.message || 'Failed to update talk.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save changes';
+        }
+    });
+    listContainer?.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('saved-talk-cancel')) return;
+        refreshList();
+    });
 }

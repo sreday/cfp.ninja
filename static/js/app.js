@@ -191,6 +191,36 @@ export const API = {
 
     createProposalCheckout(eventId, proposalId) {
         return this.request('POST', `/events/${eventId}/proposals/${proposalId}/checkout`);
+    },
+
+    // Profile (speaker defaults)
+    updateMyProfile(data) {
+        return this.request('PUT', '/me/profile', data);
+    },
+
+    // Saved talks (deck)
+    listMyTalks() {
+        return this.request('GET', '/me/talks');
+    },
+
+    getMyTalk(id) {
+        return this.request('GET', `/me/talks/${id}`);
+    },
+
+    createMyTalk(data) {
+        return this.request('POST', '/me/talks', data);
+    },
+
+    updateMyTalk(id, data) {
+        return this.request('PUT', `/me/talks/${id}`, data);
+    },
+
+    deleteMyTalk(id) {
+        return this.request('DELETE', `/me/talks/${id}`);
+    },
+
+    saveTalkFromProposal(proposalId) {
+        return this.request('POST', `/me/talks/from-proposal/${proposalId}`);
     }
 };
 
@@ -472,6 +502,8 @@ async function init() {
         .add('/dashboard', requireAuth(DashboardView))
         .add('/dashboard/proposals', requireAuth(DashboardView))
         .add('/dashboard/events', requireAuth(DashboardView))
+        .add('/dashboard/defaults', requireAuth(DashboardView))
+        .add('/dashboard/saved-talks', requireAuth(DashboardView))
         .add('/dashboard/events/new', requireAuth(CreateEventView))
         .add('/dashboard/events/:id', requireAuth(ManageEventView))
         .add('/dashboard/events/:id/proposals', requireAuth(ProposalsView))

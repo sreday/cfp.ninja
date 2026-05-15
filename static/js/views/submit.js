@@ -17,10 +17,15 @@ export async function SubmitProposalView({ slug }) {
     showLoading(main);
 
     try {
-        const [event, dashboardData] = await Promise.all([
+        const [event, dashboardData, me, savedTalks] = await Promise.all([
             API.getEventBySlug(slug),
-            API.getMyDashboard().catch(() => null)
+            API.getMyDashboard().catch(() => null),
+            API.getMe().catch(() => null),
+            API.listMyTalks().catch(() => []),
         ]);
+
+        // Refresh cached user so renderSpeakerForm sees fresh defaults
+        if (me) Auth.setUser(me);
 
         // Count how many proposals the user has submitted to this event
         const eventId = event.ID || event.id;
@@ -51,14 +56,14 @@ export async function SubmitProposalView({ slug }) {
             return;
         }
 
-        renderSubmitForm(main, event, myProposalCount, maxProposals);
+        renderSubmitForm(main, event, myProposalCount, maxProposals, savedTalks || []);
     } catch (error) {
         console.error('Error loading event:', error);
         showError(main, 'Event not found or failed to load.');
     }
 }
 
-function renderSubmitForm(container, event, myProposalCount, maxProposals) {
+function renderSubmitForm(container, event, myProposalCount, maxProposals, savedTalks = []) {
     // Parse CFP questions from the event (JSONB field)
     let customQuestions = [];
     if (event.cfp_questions) {
@@ -107,6 +112,12 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
                 })()}
 
                 ${maxProposals ? `<p class="text-muted small mb-3">You have submitted ${myProposalCount} of ${maxProposals} allowed proposals for this event.</p>` : ''}
+
+                ${savedTalks.length > 0 ? `
+                    <button type="button" class="btn btn-lg btn-outline-primary w-100 mb-4" id="use-saved-talk-btn">
+                        📚 Use a saved talk
+                    </button>
+                ` : ''}
 
                 <form id="proposal-form">
                     <div class="card mb-4">
@@ -197,6 +208,8 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
                         title: 'submit via cli'
                     })}
                 </form>
+
+                ${savedTalks.length > 0 ? renderSavedTalksPicker(savedTalks) : ''}
             </div>
         </div>
     `;
@@ -207,8 +220,109 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals) {
     // Attach LinkedIn profile blur check
     attachLinkedInBlurCheck(document.getElementById('speakers-container'));
 
+    // Wire the saved-talks picker
+    if (savedTalks.length > 0) {
+        attachSavedTalksPicker(savedTalks);
+    }
+
     // Attach event handlers
     attachFormHandlers(eventId, event, customQuestions);
+}
+
+function renderSavedTalksPicker(talks) {
+    const rows = talks.map(t => {
+        const id = t.ID || t.id;
+        const search = ((t.title || '') + ' ' + (t.abstract || '')).toLowerCase();
+        const firstLine = (t.abstract || '').split('\n')[0];
+        return `
+            <div class="saved-talk-picker-row card mb-2" data-talk-id="${id}" data-search="${escapeHtml(search)}">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1">
+                            <strong>${escapeHtml(t.title || '(untitled)')}</strong>
+                            ${firstLine ? `<div class="text-muted small">${escapeHtml(firstLine.length > 160 ? firstLine.slice(0, 157) + '…' : firstLine)}</div>` : ''}
+                            <div class="small mt-1">
+                                ${t.format ? `<span class="badge bg-light text-dark me-1">${escapeHtml(t.format)}</span>` : ''}
+                                ${t.duration ? `<span class="badge bg-light text-dark me-1">${escapeHtml(String(t.duration))} min</span>` : ''}
+                                ${t.level ? `<span class="badge bg-light text-dark">${escapeHtml(t.level)}</span>` : ''}
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary use-saved-talk" data-talk-id="${id}">Use this talk</button>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+    return `
+        <div class="modal fade" id="saved-talks-modal" tabindex="-1" aria-labelledby="saved-talks-modal-label" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="saved-talks-modal-label">Use a saved talk</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="saved-talks-search" class="form-control mb-3" placeholder="Search your saved talks...">
+                        <div id="saved-talks-list">${rows}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function attachSavedTalksPicker(talks) {
+    const openBtn = document.getElementById('use-saved-talk-btn');
+    const modalEl = document.getElementById('saved-talks-modal');
+    const searchInput = document.getElementById('saved-talks-search');
+    const listContainer = document.getElementById('saved-talks-list');
+    if (!openBtn || !modalEl) return;
+
+    let bsModal = null;
+    openBtn.addEventListener('click', () => {
+        if (!bsModal && window.bootstrap?.Modal) {
+            bsModal = new window.bootstrap.Modal(modalEl);
+        }
+        if (bsModal) {
+            bsModal.show();
+        }
+    });
+
+    // Filter rows on search
+    const filterRows = () => {
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        listContainer?.querySelectorAll('.saved-talk-picker-row').forEach(row => {
+            row.style.display = !q || (row.dataset.search || '').includes(q) ? '' : 'none';
+        });
+    };
+    searchInput?.addEventListener('input', filterRows);
+
+    // Select a talk → fill the form fields, close modal
+    listContainer?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.use-saved-talk');
+        if (!btn) return;
+        const id = parseInt(btn.dataset.talkId, 10);
+        const talk = talks.find(t => (t.ID || t.id) === id);
+        if (!talk) return;
+        fillFormFromTalk(talk);
+        if (bsModal) bsModal.hide();
+        toast.success(`Loaded "${talk.title || 'saved talk'}".`);
+    });
+}
+
+function fillFormFromTalk(talk) {
+    const form = document.getElementById('proposal-form');
+    if (!form) return;
+    const setVal = (name, val) => {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (el != null && val != null && val !== '') el.value = val;
+    };
+    setVal('title', talk.title);
+    setVal('abstract', talk.abstract);
+    if (talk.format) setVal('format', talk.format);
+    if (talk.duration) setVal('duration', talk.duration);
+    if (talk.level) setVal('level', talk.level);
+    setVal('tags', talk.tags);
+    setVal('notes', talk.speaker_notes);
 }
 
 const LINKEDIN_URL_PATTERN = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
@@ -251,6 +365,9 @@ export function attachLinkedInBlurCheck(container) {
 
 export function renderSpeakerForm(index, user = null) {
     const isFirst = index === 0;
+    // Only the primary speaker (index 0) prefills from the signed-in user's
+    // saved defaults; co-speakers always start blank.
+    const prefill = (isFirst && user) ? user : {};
     return `
         <div class="speaker-form mb-4 ${isFirst ? '' : 'border-top pt-4'}" data-speaker-index="${index}">
             ${!isFirst ? `
@@ -263,38 +380,38 @@ export function renderSpeakerForm(index, user = null) {
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="speaker_name_${index}" value="${escapeHtml(isFirst && user ? user.name : '')}" required>
+                    <input type="text" class="form-control" name="speaker_name_${index}" value="${escapeHtml(prefill.name || '')}" required>
                     <div class="form-text">As it appears on your LinkedIn.</div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Email <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control" name="speaker_email_${index}" value="${escapeHtml(isFirst && user ? user.email : '')}" required>
+                    <input type="email" class="form-control" name="speaker_email_${index}" value="${escapeHtml(prefill.email || '')}" required>
                     <div class="form-text">We'll use it to confirm attendance & exchange files. Personal email tends to be easier.</div>
                 </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">Bio <span class="text-danger">*</span></label>
-                <textarea class="form-control" name="speaker_bio_${index}" rows="3" required></textarea>
+                <textarea class="form-control" name="speaker_bio_${index}" rows="3" required>${escapeHtml(prefill.bio || '')}</textarea>
                 <div class="form-text">Brief bio about the speaker. Markdown supported.</div>
             </div>
 
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Job Title <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="speaker_job_title_${index}" placeholder="e.g. Senior Software Engineer" required>
+                    <input type="text" class="form-control" name="speaker_job_title_${index}" placeholder="e.g. Senior Software Engineer" value="${escapeHtml(prefill.job_title || '')}" required>
                     <div class="form-text">Your latest job, as it appears on LinkedIn.</div>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Company/Organization <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" name="speaker_company_${index}" required>
+                    <input type="text" class="form-control" name="speaker_company_${index}" value="${escapeHtml(prefill.company || '')}" required>
                     <div class="form-text">Your latest company, as it appears on LinkedIn. Use "stealth" if not ready to disclose.</div>
                 </div>
             </div>
 
             <div class="mb-3">
                 <label class="form-label">LinkedIn Profile <span class="text-danger">*</span></label>
-                <input type="url" class="form-control" name="speaker_linkedin_${index}" placeholder="https://linkedin.com/in/username" required>
+                <input type="url" class="form-control" name="speaker_linkedin_${index}" placeholder="https://linkedin.com/in/username" value="${escapeHtml(prefill.linkedin || '')}" required>
                 <div class="form-text">Full LinkedIn profile URL is required for all speakers.</div>
             </div>
         </div>
@@ -543,7 +660,9 @@ function attachFormHandlers(eventId, event, customQuestions) {
                     router.navigate('/dashboard/proposals');
                 }
             } else {
-                router.navigate(`/e/${encodeURIComponent(event.slug)}/submitted`);
+                const newId = created.ID || created.id;
+                const tail = newId ? `?proposal_id=${newId}` : '';
+                router.navigate(`/e/${encodeURIComponent(event.slug)}/submitted${tail}`);
             }
         } catch (error) {
             console.error('Error submitting proposal:', error);

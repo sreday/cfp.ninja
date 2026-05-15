@@ -610,6 +610,10 @@ func GetMeHandler(cfg *config.Config) http.HandlerFunc {
 			"name":              user.Name,
 			"picture_url":       user.PictureURL,
 			"terms_accepted_at": user.TermsAcceptedAt,
+			"bio":               user.Bio,
+			"job_title":         user.JobTitle,
+			"company":           user.Company,
+			"linkedin":          user.LinkedIn,
 		})
 	}
 }

@@ -460,3 +460,43 @@ func (c *Client) CreateEvent(e *EventSubmission) (*Event, error) {
 
 	return &event, nil
 }
+
+// Talk represents a user's saved talk template (read-only from CLI).
+type Talk struct {
+	ID           uint      `json:"id" yaml:"id"`
+	CreatedAt    time.Time `json:"created_at" yaml:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at" yaml:"updated_at"`
+	Title        string    `json:"title" yaml:"title"`
+	Abstract     string    `json:"abstract" yaml:"abstract"`
+	Format       string    `json:"format" yaml:"format,omitempty"`
+	Duration     int       `json:"duration" yaml:"duration,omitempty"`
+	Level        string    `json:"level" yaml:"level,omitempty"`
+	Tags         string    `json:"tags" yaml:"tags,omitempty"`
+	SpeakerNotes string    `json:"speaker_notes" yaml:"speaker_notes,omitempty"`
+}
+
+// ListMyTalks returns the authenticated user's saved talks, newest first.
+func (c *Client) ListMyTalks() ([]Talk, error) {
+	data, err := c.doRequest("GET", "/api/v0/me/talks", nil)
+	if err != nil {
+		return nil, err
+	}
+	var talks []Talk
+	if err := json.Unmarshal(data, &talks); err != nil {
+		return nil, fmt.Errorf("failed to parse talks: %w", err)
+	}
+	return talks, nil
+}
+
+// GetMyTalk returns a single saved talk by ID, scoped to the authenticated user.
+func (c *Client) GetMyTalk(id uint) (*Talk, error) {
+	data, err := c.doRequest("GET", fmt.Sprintf("/api/v0/me/talks/%d", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	var talk Talk
+	if err := json.Unmarshal(data, &talk); err != nil {
+		return nil, fmt.Errorf("failed to parse talk: %w", err)
+	}
+	return &talk, nil
+}

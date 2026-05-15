@@ -67,6 +67,8 @@ cfp create
 | `cfp create` | Create a new event |
 | `cfp submit <slug>` | Submit a proposal to an event |
 | `cfp proposals [id]` | List or show your proposals |
+| `cfp talks list` | List your saved talks (reusable templates) |
+| `cfp talks show <id>` | Show one saved talk (use `-o yaml` to dump) |
 | `cfp completion <shell>` | Generate shell completion script |
 
 ### Output Formats
@@ -102,6 +104,22 @@ cfp submit gophercon-2026 --template previous-proposal.yaml
 # Validate without submitting
 cfp submit gophercon-2026 --file proposal.yaml --dry-run
 ```
+
+### Saved Talks (My Talks)
+
+Build a deck of reusable talks on the website (Dashboard → **My Saved Talks**),
+then pull them down from the CLI to reuse as YAML templates:
+
+```bash
+# Browse your deck
+cfp talks list
+
+# Dump one talk as YAML and use it as the next submission's template
+cfp talks show 42 -o yaml > my-talk.yaml
+cfp submit kubecon-2026 --template my-talk.yaml
+```
+
+The CLI is read-only for talks — add, edit, and delete in the dashboard.
 
 ### Shell Completion
 

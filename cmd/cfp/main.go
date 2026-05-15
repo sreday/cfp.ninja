@@ -45,6 +45,7 @@ func init() {
 	rootCmd.AddCommand(createCmd)
 	rootCmd.AddCommand(submitCmd)
 	rootCmd.AddCommand(proposalsCmd)
+	rootCmd.AddCommand(talksCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(completionCmd)
 	rootCmd.AddCommand(versionCmd)

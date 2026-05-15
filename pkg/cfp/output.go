@@ -298,6 +298,88 @@ func (f *Formatter) PrintProposal(proposal *Proposal) error {
 	}
 }
 
+// PrintTalks outputs a list of saved talks.
+func (f *Formatter) PrintTalks(talks []Talk) error {
+	switch f.Format {
+	case FormatJSON:
+		return f.PrintJSON(talks)
+	case FormatYAML:
+		return f.PrintYAML(talks)
+	default:
+		if len(talks) == 0 {
+			fmt.Fprintln(f.Writer, "No saved talks.")
+			return nil
+		}
+		w := tabwriter.NewWriter(f.Writer, 0, 0, 2, ' ', 0)
+		fmt.Fprintln(w, "ID\tTITLE\tFORMAT\tDURATION\tLEVEL\tUPDATED")
+		for _, t := range talks {
+			duration := "-"
+			if t.Duration > 0 {
+				duration = fmt.Sprintf("%d min", t.Duration)
+			}
+			updated := "-"
+			if !t.UpdatedAt.IsZero() {
+				updated = t.UpdatedAt.Format("Jan 2, 2006")
+			}
+			fmt.Fprintf(w, "%d\t%s\t%s\t%s\t%s\t%s\n",
+				t.ID,
+				truncate(t.Title, 50),
+				orDash(t.Format),
+				duration,
+				orDash(t.Level),
+				updated,
+			)
+		}
+		return w.Flush()
+	}
+}
+
+// PrintTalk outputs one saved talk in detail.
+func (f *Formatter) PrintTalk(talk *Talk) error {
+	switch f.Format {
+	case FormatJSON:
+		return f.PrintJSON(talk)
+	case FormatYAML:
+		return f.PrintYAML(talk)
+	default:
+		fmt.Fprintf(f.Writer, "ID:            %d\n", talk.ID)
+		fmt.Fprintf(f.Writer, "Title:         %s\n", talk.Title)
+		if talk.Format != "" {
+			fmt.Fprintf(f.Writer, "Format:        %s\n", talk.Format)
+		}
+		if talk.Duration > 0 {
+			fmt.Fprintf(f.Writer, "Duration:      %d minutes\n", talk.Duration)
+		}
+		if talk.Level != "" {
+			fmt.Fprintf(f.Writer, "Level:         %s\n", talk.Level)
+		}
+		if talk.Tags != "" {
+			fmt.Fprintf(f.Writer, "Tags:          %s\n", talk.Tags)
+		}
+		if !talk.UpdatedAt.IsZero() {
+			fmt.Fprintf(f.Writer, "Updated:       %s\n", talk.UpdatedAt.Format(time.RFC3339))
+		}
+		if talk.Abstract != "" {
+			fmt.Fprintln(f.Writer)
+			fmt.Fprintln(f.Writer, "Abstract:")
+			fmt.Fprintln(f.Writer, talk.Abstract)
+		}
+		if talk.SpeakerNotes != "" {
+			fmt.Fprintln(f.Writer)
+			fmt.Fprintln(f.Writer, "Speaker Notes:")
+			fmt.Fprintln(f.Writer, talk.SpeakerNotes)
+		}
+		return nil
+	}
+}
+
+func orDash(s string) string {
+	if s == "" {
+		return "-"
+	}
+	return s
+}
+
 // truncate truncates a string to max length with ellipsis
 func truncate(s string, max int) string {
 	if len(s) <= max {

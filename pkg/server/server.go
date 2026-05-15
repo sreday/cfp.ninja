@@ -35,6 +35,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 			&models.User{},
 			&models.Event{},
 			&models.Proposal{},
+			&models.SavedTalk{},
 		); err != nil {
 			return nil, nil, err
 		}
@@ -129,6 +130,21 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("OPTIONS /api/v0/me/events", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 	mux.HandleFunc("GET /api/v0/me/events/{id}", api.AuthCorsHandler(cfg, api.GetEventForOrganizerHandler(cfg)))
 	mux.HandleFunc("OPTIONS /api/v0/me/events/{id}", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+
+	// User profile (speaker defaults)
+	mux.HandleFunc("PUT /api/v0/me/profile", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateProfileHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/me/profile", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+
+	// Saved talks (user-owned reusable templates)
+	mux.HandleFunc("GET /api/v0/me/talks", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.ListMyTalksHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/me/talks", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.CreateMyTalkHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/me/talks", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("GET /api/v0/me/talks/{id}", api.AuthCorsHandler(cfg, readLimiter.Middleware(api.GetMyTalkHandler(cfg))))
+	mux.HandleFunc("PUT /api/v0/me/talks/{id}", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.UpdateMyTalkHandler(cfg))))
+	mux.HandleFunc("DELETE /api/v0/me/talks/{id}", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.DeleteMyTalkHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/me/talks/{id}", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	mux.HandleFunc("POST /api/v0/me/talks/from-proposal/{id}", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.SaveTalkFromProposalHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/me/talks/from-proposal/{id}", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 
 	// Stripe webhook endpoint (no auth, no CORS - server-to-server from Stripe)
 	mux.HandleFunc("POST /api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
