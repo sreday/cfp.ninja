@@ -208,8 +208,6 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals, saved
                         title: 'submit via cli'
                     })}
                 </form>
-
-                ${savedTalks.length > 0 ? renderSavedTalksPicker(savedTalks) : ''}
             </div>
         </div>
     `;
@@ -220,8 +218,12 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals, saved
     // Attach LinkedIn profile blur check
     attachLinkedInBlurCheck(document.getElementById('speakers-container'));
 
-    // Wire the saved-talks picker
+    // Wire the saved-talks picker. The modal markup is appended to <body>
+    // so Bootstrap's position:fixed centering isn't confined to the
+    // <col-lg-8> wrapper.
     if (savedTalks.length > 0) {
+        document.querySelectorAll('body > #saved-talks-modal').forEach(el => el.remove());
+        document.body.insertAdjacentHTML('beforeend', renderSavedTalksPicker(savedTalks));
         attachSavedTalksPicker(savedTalks);
     }
 
