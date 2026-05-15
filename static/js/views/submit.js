@@ -266,6 +266,9 @@ function renderSavedTalksPicker(talks) {
                         <input type="text" id="saved-talks-search" class="form-control mb-3" placeholder="Search your saved talks...">
                         <div id="saved-talks-list">${rows}</div>
                     </div>
+                    <div class="modal-footer">
+                        <a href="/dashboard/saved-talks" class="btn btn-outline-secondary">Manage saved talks</a>
+                    </div>
                 </div>
             </div>
         </div>
