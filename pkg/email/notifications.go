@@ -218,7 +218,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		Cc:      cc,
 		From:    ncfg.From,
 		ReplyTo: event.ContactEmail,
-		Subject: sanitizeSubject(fmt.Sprintf("Speaker confirmed: %s", proposal.Title)),
+		Subject: sanitizeSubject(fmt.Sprintf("Confirmed - %s - %s", speakerName, event.Name)),
 		HTML:    html,
 		Text:    text,
 	}
