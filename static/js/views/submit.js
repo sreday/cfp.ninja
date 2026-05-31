@@ -11,6 +11,7 @@ import {
     EXPERIENCE_LEVELS
 } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildSubmitYamlCommand, updateCliCommand } from '../components/cli-command.js';
+import { listTimezones, detectBrowserTimezone, bucket as tzBucket, diffHours, TZ_BUCKETS } from '../timezone.js';
 
 export async function SubmitProposalView({ slug }) {
     const main = document.getElementById('main-content');
@@ -179,7 +180,7 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals, saved
                         </div>
                         <div class="card-body">
                             <div id="speakers-container">
-                                ${renderSpeakerForm(0, user)}
+                                ${renderSpeakerForm(0, user, event)}
                             </div>
                         </div>
                     </div>
@@ -196,6 +197,8 @@ function renderSubmitForm(container, event, myProposalCount, maxProposals, saved
                     ` : ''}
 
                     ${renderAcknowledgments(event)}
+
+                    <div id="tz-mismatch-banner" class="mb-3"></div>
 
                     <div class="d-flex gap-3 mb-4">
                         <button type="submit" class="btn btn-primary">Submit Proposal</button>
@@ -368,11 +371,18 @@ export function attachLinkedInBlurCheck(container) {
     });
 }
 
-export function renderSpeakerForm(index, user = null) {
+export function renderSpeakerForm(index, user = null, event = null) {
     const isFirst = index === 0;
     // Only the primary speaker (index 0) prefills from the signed-in user's
     // saved defaults; co-speakers always start blank.
     const prefill = (isFirst && user) ? user : {};
+    // Always capture the primary speaker's timezone for in-person events.
+    // The warning further down only fires when the event has its own timezone
+    // set, but the field appears regardless so the data is collected for the
+    // review filter (and lights up automatically once the organizer sets the
+    // event timezone later).
+    const showTimezone = isFirst && event && !event.is_online;
+    const tzDefault = showTimezone ? (prefill.timezone || detectBrowserTimezone()) : '';
     return `
         <div class="speaker-form mb-4 ${isFirst ? '' : 'border-top pt-4'}" data-speaker-index="${index}">
             ${!isFirst ? `
@@ -419,6 +429,18 @@ export function renderSpeakerForm(index, user = null) {
                 <input type="url" class="form-control" name="speaker_linkedin_${index}" placeholder="https://linkedin.com/in/username" value="${escapeHtml(prefill.linkedin || '')}" required>
                 <div class="form-text">Full LinkedIn profile URL is required for all speakers.</div>
             </div>
+
+            ${showTimezone ? `
+                <div class="mb-3">
+                    <label class="form-label">Your Timezone</label>
+                    <select class="form-select" name="speaker_timezone_${index}" id="speaker-timezone-${index}">
+                        <option value="">Not set</option>
+                        ${listTimezones().map(tz => `<option value="${escapeHtml(tz)}" ${tzDefault === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('')}
+                    </select>
+                    <div class="form-text">Defaults to your browser's timezone. Used to flag misread locations.</div>
+                    <div id="speaker-timezone-warning-${index}" class="mt-2"></div>
+                </div>
+            ` : ''}
         </div>
     `;
 }
@@ -530,7 +552,8 @@ function attachFormHandlers(eventId, event, customQuestions) {
                     bio: formData.get(`speaker_bio_${idx}`) || '',
                     job_title: formData.get(`speaker_job_title_${idx}`) || '',
                     company: formData.get(`speaker_company_${idx}`) || '',
-                    linkedin: formData.get(`speaker_linkedin_${idx}`) || ''
+                    linkedin: formData.get(`speaker_linkedin_${idx}`) || '',
+                    timezone: formData.get(`speaker_timezone_${idx}`) || ''
                 });
             }
         });
@@ -564,6 +587,33 @@ function attachFormHandlers(eventId, event, customQuestions) {
 
     // Initial CLI preview update
     updateCliPreview();
+
+    // Timezone mismatch warning (primary speaker only, in-person events only)
+    const tzBanner = document.getElementById('tz-mismatch-banner');
+    const refreshTzWarning = () => {
+        if (!tzBanner || event.is_online || !event.timezone) return;
+        const tzInput = form.querySelector('[name="speaker_timezone_0"]');
+        const speakerTz = tzInput ? tzInput.value : '';
+        if (!speakerTz) { tzBanner.innerHTML = ''; return; }
+        const eventStart = event.start_date ? new Date(event.start_date) : new Date();
+        const b = tzBucket(speakerTz, event.timezone, eventStart);
+        if (b === TZ_BUCKETS.LOCAL || b === TZ_BUCKETS.UNKNOWN) {
+            tzBanner.innerHTML = '';
+            return;
+        }
+        const diff = diffHours(speakerTz, event.timezone, eventStart);
+        const absH = Math.abs(diff).toFixed(diff % 1 === 0 ? 0 : 1);
+        const location = event.location || event.timezone;
+        if (b === TZ_BUCKETS.REGIONAL) {
+            tzBanner.innerHTML = `<div class="alert alert-warning mb-0">You're ~${escapeHtml(String(absH))}h from ${escapeHtml(location)}. Just double-checking — did you mean to apply?</div>`;
+        } else {
+            tzBanner.innerHTML = `<div class="alert alert-danger mb-0">You're ~${escapeHtml(String(absH))}h from ${escapeHtml(location)}. Please confirm this isn't a misread location.</div>`;
+        }
+    };
+    speakersContainer?.addEventListener('change', (e) => {
+        if (e.target?.name === 'speaker_timezone_0') refreshTzWarning();
+    });
+    refreshTzWarning();
 
     // Add speaker (max 3)
     addSpeakerBtn?.addEventListener('click', () => {
@@ -609,7 +659,8 @@ function attachFormHandlers(eventId, event, customQuestions) {
                 bio: formData.get(`speaker_bio_${idx}`) || '',
                 job_title: formData.get(`speaker_job_title_${idx}`) || '',
                 company: formData.get(`speaker_company_${idx}`) || '',
-                linkedin: formData.get(`speaker_linkedin_${idx}`) || ''
+                linkedin: formData.get(`speaker_linkedin_${idx}`) || '',
+                timezone: formData.get(`speaker_timezone_${idx}`) || ''
             });
         });
 

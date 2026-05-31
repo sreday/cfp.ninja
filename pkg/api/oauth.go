@@ -614,6 +614,7 @@ func GetMeHandler(cfg *config.Config) http.HandlerFunc {
 			"job_title":         user.JobTitle,
 			"company":           user.Company,
 			"linkedin":          user.LinkedIn,
+			"timezone":          user.Timezone,
 		})
 	}
 }

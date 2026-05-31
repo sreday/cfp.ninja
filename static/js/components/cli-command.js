@@ -71,7 +71,7 @@ function eventDataToYaml(eventData) {
 
     // Simple fields in order
     const simpleFields = [
-        'name', 'slug', 'description', 'location', 'country',
+        'name', 'slug', 'description', 'location', 'country', 'timezone',
         'start_date', 'end_date', 'website', 'tags',
         'cfp_description', 'cfp_open_at', 'cfp_close_at', 'cfp_status'
     ];

@@ -507,6 +507,10 @@ func CreateEventHandler(cfg *config.Config) http.HandlerFunc {
 			encodeError(w, "Country must be at most 100 characters", http.StatusBadRequest)
 			return
 		}
+		if !models.IsValidTimezone(event.Timezone) {
+			encodeError(w, "Invalid timezone. Use an IANA name like 'Europe/London'.", http.StatusBadRequest)
+			return
+		}
 		if len(event.Website) > MaxEventWebsiteLen {
 			encodeError(w, "Website must be at most 2000 characters", http.StatusBadRequest)
 			return
@@ -637,7 +641,7 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 		// Only allow known safe fields to be updated (allowlist approach)
 		allowedFields := map[string]bool{
 			"name": true, "slug": true, "description": true, "location": true,
-			"country": true, "start_date": true, "end_date": true, "website": true,
+			"country": true, "timezone": true, "start_date": true, "end_date": true, "website": true,
 			"terms_url": true, "tags": true, "is_online": true, "contact_email": true,
 			"travel_covered": true, "hotel_covered": true, "honorarium_provided": true,
 			"cfp_description": true, "cfp_open_at": true, "cfp_close_at": true,
@@ -700,6 +704,10 @@ func UpdateEventHandler(cfg *config.Config) http.HandlerFunc {
 		}
 		if country, ok := updates["country"].(string); ok && len(country) > MaxEventCountryLen {
 			encodeError(w, "Country must be at most 100 characters", http.StatusBadRequest)
+			return
+		}
+		if tz, ok := updates["timezone"].(string); ok && !models.IsValidTimezone(tz) {
+			encodeError(w, "Invalid timezone. Use an IANA name like 'Europe/London'.", http.StatusBadRequest)
 			return
 		}
 		if website, ok := updates["website"].(string); ok && len(website) > MaxEventWebsiteLen {

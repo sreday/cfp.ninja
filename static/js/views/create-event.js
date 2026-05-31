@@ -3,6 +3,7 @@ import { API, getAppConfig } from '../app.js';
 import { router } from '../router.js';
 import { toast } from '../components/toast.js';
 import { escapeHtml, slugify, showLoading, validateCheckoutUrl, COUNTRIES } from '../utils.js';
+import { listTimezones, suggestTimezoneFromCountry } from '../timezone.js';
 import { renderCliCommand, attachCliCommandHandlers, buildCreateYamlCommand, updateCliCommand } from '../components/cli-command.js';
 
 export async function CreateEventView() {
@@ -90,6 +91,14 @@ function renderCreateEventForm(container, countries = []) {
                                         <option value="">Select a country</option>
                                         ${countries.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
                                     </select>
+                                </div>
+                                <div class="col-12 mb-3">
+                                    <label for="timezone" class="form-label">Timezone</label>
+                                    <select class="form-select" id="timezone" name="timezone">
+                                        <option value="">Not set</option>
+                                        ${listTimezones().map(tz => `<option value="${escapeHtml(tz)}">${escapeHtml(tz)}</option>`).join('')}
+                                    </select>
+                                    <div class="form-text">IANA name (e.g. <code>Europe/London</code>). Used to warn speakers submitting from far-away timezones.</div>
                                 </div>
                             </div>
 
@@ -297,6 +306,7 @@ function attachFormHandlers() {
             end_date: endDate ? new Date(endDate).toISOString() : undefined,
             location: formData.get('location') || undefined,
             country: formData.get('country') || undefined,
+            timezone: formData.get('timezone') || undefined,
             website: formData.get('website') || undefined,
             terms_url: formData.get('terms_url') || undefined,
             is_online: formData.get('is_online') ? true : undefined,
@@ -322,6 +332,7 @@ function attachFormHandlers() {
     const locationRow = document.getElementById('location-row');
     const locationInput = document.getElementById('location');
     const countrySelect = document.getElementById('country');
+    const timezoneSelect = document.getElementById('timezone');
 
     isOnlineCheckbox?.addEventListener('change', () => {
         const online = isOnlineCheckbox.checked;
@@ -331,6 +342,18 @@ function attachFormHandlers() {
         if (online) {
             locationInput.value = '';
             countrySelect.value = '';
+            if (timezoneSelect) timezoneSelect.value = '';
+        }
+    });
+
+    // Auto-select timezone whenever the country changes (overwrites previous
+    // pick — ambiguous countries that have no mapping leave it alone).
+    countrySelect?.addEventListener('change', () => {
+        if (!timezoneSelect) return;
+        const suggested = suggestTimezoneFromCountry(countrySelect.value);
+        if (suggested) {
+            timezoneSelect.value = suggested;
+            updateCliPreview();
         }
     });
 
@@ -417,6 +440,7 @@ function attachFormHandlers() {
             end_date: endDate ? new Date(endDate).toISOString() : null,
             location: formData.get('location') || '',
             country: formData.get('country') || '',
+            timezone: formData.get('timezone') || '',
             website: formData.get('website') || '',
             terms_url: formData.get('terms_url') || '',
             is_online: !!formData.get('is_online'),

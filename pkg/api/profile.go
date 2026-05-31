@@ -32,6 +32,7 @@ func UpdateProfileHandler(cfg *config.Config) http.HandlerFunc {
 			JobTitle string `json:"job_title"`
 			Company  string `json:"company"`
 			LinkedIn string `json:"linkedin"`
+			Timezone string `json:"timezone"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			encodeError(w, "Invalid request body", http.StatusBadRequest)
@@ -58,12 +59,17 @@ func UpdateProfileHandler(cfg *config.Config) http.HandlerFunc {
 			encodeError(w, "Invalid LinkedIn URL. Expected format: https://linkedin.com/in/username", http.StatusBadRequest)
 			return
 		}
+		if !models.IsValidTimezone(body.Timezone) {
+			encodeError(w, "Invalid timezone. Use an IANA name like 'Europe/London'.", http.StatusBadRequest)
+			return
+		}
 
 		updates := map[string]interface{}{
 			"bio":       body.Bio,
 			"job_title": body.JobTitle,
 			"company":   body.Company,
 			"linkedin":  body.LinkedIn,
+			"timezone":  body.Timezone,
 		}
 		if err := cfg.DB.Model(&models.User{}).Where("id = ?", user.ID).Updates(updates).Error; err != nil {
 			cfg.Logger.Error("failed to update profile", "user_id", user.ID, "error", err)
@@ -91,6 +97,7 @@ func UpdateProfileHandler(cfg *config.Config) http.HandlerFunc {
 			"job_title":         updated.JobTitle,
 			"company":           updated.Company,
 			"linkedin":          updated.LinkedIn,
+			"timezone":          updated.Timezone,
 		})
 	}
 }

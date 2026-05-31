@@ -16,6 +16,7 @@ import {
     EXPERIENCE_LEVELS
 } from '../utils.js';
 import { renderCliCommand, attachCliCommandHandlers, buildCreateCommand, buildSubmitCommand } from '../components/cli-command.js';
+import { listTimezones, detectBrowserTimezone } from '../timezone.js';
 
 export async function DashboardView() {
     const main = document.getElementById('main-content');
@@ -815,6 +816,17 @@ function renderDefaultsTab(me) {
                 <input type="url" class="form-control" id="defaults-linkedin" name="linkedin" placeholder="https://linkedin.com/in/username" maxlength="500" value="${escapeHtml(me.linkedin || '')}">
                 <div class="form-text">Optional here; required when submitting a proposal.</div>
             </div>
+            <div class="mb-3">
+                <label class="form-label" for="defaults-timezone">Timezone</label>
+                <select class="form-select" id="defaults-timezone" name="timezone">
+                    <option value="">Not set</option>
+                    ${(() => {
+                        const current = me.timezone || detectBrowserTimezone();
+                        return listTimezones().map(tz => `<option value="${escapeHtml(tz)}" ${current === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('');
+                    })()}
+                </select>
+                <div class="form-text">Used to warn you if you're submitting to a far-away conference. Defaults to your browser's timezone.</div>
+            </div>
             <button type="submit" class="btn btn-primary">Save defaults</button>
         </form>
     `;
@@ -831,6 +843,7 @@ function attachDefaultsHandlers(me) {
             job_title: form.querySelector('#defaults-job_title').value.trim(),
             company: form.querySelector('#defaults-company').value.trim(),
             linkedin: form.querySelector('#defaults-linkedin').value.trim(),
+            timezone: form.querySelector('#defaults-timezone').value,
         };
         try {
             submitBtn.disabled = true;
