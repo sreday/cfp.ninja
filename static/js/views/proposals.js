@@ -13,6 +13,7 @@ import {
     PROPOSAL_STATUSES,
     EXPERIENCE_LEVELS
 } from '../utils.js';
+import { bucket as tzBucket, TZ_BUCKETS } from '../timezone.js';
 
 let anonymousMode = localStorage.getItem('cfpninja_anonymous_review') === 'true';
 
@@ -93,17 +94,17 @@ function renderProposalsView(container, event, proposals) {
 
         <div class="card mb-4">
             <div class="card-header">
-                <div class="row align-items-center">
-                    <div class="col-md-4">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-3">
                         <input type="text" class="form-control form-control-sm" id="search-proposals" placeholder="Search proposals...">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" id="filter-status">
                             <option value="">All Statuses</option>
                             ${PROPOSAL_STATUSES.map(s => `<option value="${s.value}">${s.label}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" id="filter-format">
                             <option value="">All Formats</option>
                             <option value="talk">Talk</option>
@@ -112,6 +113,16 @@ function renderProposalsView(container, event, proposals) {
                             <option value="keynote">Keynote</option>
                         </select>
                     </div>
+                    ${!event.is_online ? `
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="filter-tz" title="${event.timezone ? 'Filter by how local the speaker is to the event' : 'Set the event timezone (Manage Event) to compare speakers — buckets are Unknown until then'}">
+                            <option value="">All Timezones</option>
+                            <option value="local">Local (±3h)</option>
+                            <option value="regional">Regional (3–6h)</option>
+                            <option value="remote">Remote (&gt;6h)</option>
+                            <option value="unknown">Unknown</option>
+                        </select>
+                    </div>` : ''}
                     <div class="col-md-2 text-end d-flex align-items-center justify-content-end gap-2">
                         <span class="small text-muted" id="proposal-count"></span>
                         <div class="form-check form-switch mb-0">
@@ -123,7 +134,7 @@ function renderProposalsView(container, event, proposals) {
             </div>
             <div class="card-body p-0">
                 <div id="proposals-list">
-                    ${proposals.length > 0 ? renderProposalsList(proposals) : renderEmptyState()}
+                    ${proposals.length > 0 ? renderProposalsList(proposals, event) : renderEmptyState()}
                 </div>
             </div>
         </div>
@@ -208,15 +219,15 @@ function renderTimelineChart(proposals) {
     `;
 }
 
-function renderProposalsList(proposals) {
+function renderProposalsList(proposals, event) {
     return `
         <div class="list-group list-group-flush">
-            ${proposals.map(p => renderProposalItem(p)).join('')}
+            ${proposals.map(p => renderProposalItem(p, event)).join('')}
         </div>
     `;
 }
 
-function renderProposalItem(proposal) {
+function renderProposalItem(proposal, event) {
     const proposalId = proposal.ID || proposal.id;
     const status = proposal.status || 'submitted';
     const statusInfo = PROPOSAL_STATUSES.find(s => s.value === status) || PROPOSAL_STATUSES[0];
@@ -231,8 +242,19 @@ function renderProposalItem(proposal) {
     }
     const searchIndex = searchParts.join(' ').toLowerCase();
 
+    // Timezone bucket: relies on the primary speaker's frozen timezone vs the event's.
+    let tzBucketName = TZ_BUCKETS.UNKNOWN;
+    if (event && !event.is_online && event.timezone) {
+        const primary = speakers.find(s => s.primary) || speakers[0];
+        const speakerTz = primary && primary.timezone;
+        if (speakerTz) {
+            const eventStart = event.start_date ? new Date(event.start_date) : new Date();
+            tzBucketName = tzBucket(speakerTz, event.timezone, eventStart);
+        }
+    }
+
     return `
-        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}" data-search="${escapeAttr(searchIndex)}">
+        <div class="list-group-item proposal-item" data-id="${proposalId}" data-status="${status}" data-format="${proposal.format}" data-tz-bucket="${tzBucketName}" data-search="${escapeAttr(searchIndex)}">
             <div class="d-flex justify-content-between align-items-start">
                 <div class="flex-grow-1">
                     <h6 class="mb-1 proposal-title" role="button" data-id="${proposalId}">${escapeHtml(proposal.title)}</h6>
@@ -431,6 +453,7 @@ function attachHandlers(event, allProposals) {
     const searchInput = document.getElementById('search-proposals');
     const statusFilter = document.getElementById('filter-status');
     const formatFilter = document.getElementById('filter-format');
+    const tzFilter = document.getElementById('filter-tz');
     const proposalsList = document.getElementById('proposals-list');
     const modal = document.getElementById('proposal-modal');
     const modalContent = document.getElementById('modal-content');
@@ -446,7 +469,7 @@ function attachHandlers(event, allProposals) {
         anonymousMode = e.target.checked;
         localStorage.setItem('cfpninja_anonymous_review', anonymousMode);
         // Re-render proposals list and reapply active filters
-        proposalsList.innerHTML = allProposals.length > 0 ? renderProposalsList(allProposals) : renderEmptyState();
+        proposalsList.innerHTML = allProposals.length > 0 ? renderProposalsList(allProposals, event) : renderEmptyState();
         filterProposals();
     });
 
@@ -457,6 +480,7 @@ function attachHandlers(event, allProposals) {
         const search = searchInput?.value?.toLowerCase() || '';
         const status = statusFilter?.value || '';
         const format = formatFilter?.value || '';
+        const tz = tzFilter?.value || '';
 
         const items = proposalsList.querySelectorAll('.proposal-item');
         let visibleCount = 0;
@@ -465,12 +489,14 @@ function attachHandlers(event, allProposals) {
             const searchIndex = item.dataset.search || '';
             const itemStatus = item.dataset.status;
             const itemFormat = item.dataset.format;
+            const itemTz = item.dataset.tzBucket;
 
             const matchesSearch = !search || searchIndex.includes(search);
             const matchesStatus = !status || itemStatus === status;
             const matchesFormat = !format || itemFormat === format;
+            const matchesTz = !tz || itemTz === tz;
 
-            const visible = matchesSearch && matchesStatus && matchesFormat;
+            const visible = matchesSearch && matchesStatus && matchesFormat && matchesTz;
             item.style.display = visible ? '' : 'none';
             if (visible) visibleCount++;
         });
@@ -487,6 +513,7 @@ function attachHandlers(event, allProposals) {
     });
     statusFilter?.addEventListener('change', filterProposals);
     formatFilter?.addEventListener('change', filterProposals);
+    tzFilter?.addEventListener('change', filterProposals);
 
     // View proposal
     proposalsList?.addEventListener('click', async (e) => {

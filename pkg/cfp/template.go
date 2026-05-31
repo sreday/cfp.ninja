@@ -4,9 +4,19 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+// isValidIANA reports whether tz is a loadable IANA timezone. Empty is valid.
+func isValidIANA(tz string) bool {
+	if tz == "" {
+		return true
+	}
+	_, err := time.LoadLocation(tz)
+	return err == nil
+}
 
 // linkedInURLRegex matches valid LinkedIn profile URLs
 var linkedInURLRegex = regexp.MustCompile(`^https?://(www\.)?linkedin\.com/in/[a-zA-Z0-9_-]+/?$`)
@@ -33,6 +43,7 @@ type SpeakerTemplate struct {
 	LinkedIn string `yaml:"linkedin"`
 	Company  string `yaml:"company"`
 	Primary  bool   `yaml:"primary"`
+	Timezone string `yaml:"timezone,omitempty"`
 }
 
 // GenerateTemplate creates a YAML template for proposal submission
@@ -94,7 +105,12 @@ func GenerateTemplate(event *Event) string {
 	sb.WriteString("    job_title: \"\"     # Required\n")
 	sb.WriteString("    company: \"\"       # Required\n")
 	sb.WriteString("    linkedin: \"\"      # Required (full URL: https://linkedin.com/in/username)\n")
-	sb.WriteString("    primary: true\n\n")
+	sb.WriteString("    primary: true\n")
+	if !event.IsOnline && event.Timezone != "" {
+		sb.WriteString(fmt.Sprintf("    # Your IANA timezone — event is in %s. We'll warn if it's far away.\n", event.Timezone))
+		sb.WriteString(fmt.Sprintf("    timezone: %q\n", time.Local.String()))
+	}
+	sb.WriteString("\n")
 
 	// Custom questions
 	if len(event.CFPQuestions) > 0 {
@@ -217,6 +233,12 @@ func ParseTemplate(content string) (*ProposalSubmission, error) {
 			if v, ok := speakerMap["primary"].(bool); ok {
 				speaker.Primary = v
 			}
+			if v, ok := speakerMap["timezone"].(string); ok {
+				speaker.Timezone = strings.TrimSpace(v)
+			}
+			if !isValidIANA(speaker.Timezone) {
+				return nil, fmt.Errorf("speaker %d: invalid timezone %q (use an IANA name like 'Europe/London')", i+1, speaker.Timezone)
+			}
 
 			// Validate required speaker fields
 			if speaker.Name == "" {
@@ -310,6 +332,10 @@ func GenerateEventTemplate() string {
 	sb.WriteString("# Country (ISO 3166-1 alpha-2 code, e.g., US, GB, DE)\n")
 	sb.WriteString("country: \"\"\n\n")
 
+	sb.WriteString("# Timezone (IANA name, e.g., Europe/London, America/New_York)\n")
+	sb.WriteString("# Used to warn speakers submitting from far-away timezones.\n")
+	sb.WriteString("timezone: \"\"\n\n")
+
 	sb.WriteString("# Event dates (YYYY-MM-DD)\n")
 	sb.WriteString("start_date: \"\"\n")
 	sb.WriteString("end_date: \"\"\n\n")
@@ -393,6 +419,12 @@ func ParseEventTemplate(content string) (*EventSubmission, error) {
 	}
 	if v, ok := raw["country"].(string); ok {
 		event.Country = strings.TrimSpace(v)
+	}
+	if v, ok := raw["timezone"].(string); ok {
+		event.Timezone = strings.TrimSpace(v)
+	}
+	if !isValidIANA(event.Timezone) {
+		return nil, fmt.Errorf("invalid timezone %q (use an IANA name like 'Europe/London')", event.Timezone)
 	}
 	if v, ok := raw["start_date"].(string); ok {
 		event.StartDate = strings.TrimSpace(v)

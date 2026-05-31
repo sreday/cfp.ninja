@@ -3,12 +3,24 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/sreday/cfp.ninja/pkg/cfp"
 )
+
+// tzOffsetHours returns the IANA timezone's UTC offset (in hours) at `at`.
+func tzOffsetHours(tzName string, at time.Time) (float64, bool) {
+	loc, err := time.LoadLocation(tzName)
+	if err != nil {
+		return 0, false
+	}
+	_, offsetSec := at.In(loc).Zone()
+	return float64(offsetSec) / 3600.0, true
+}
 
 var submitCmd = &cobra.Command{
 	Use:   "submit <event-slug>",
@@ -127,6 +139,30 @@ func runSubmit(cmd *cobra.Command, args []string) error {
 			primary = " (primary)"
 		}
 		fmt.Printf("            - %s <%s>%s\n", s.Name, s.Email, primary)
+	}
+
+	// Timezone-mismatch warning (in-person events only).
+	if !event.IsOnline && event.Timezone != "" {
+		for _, s := range proposal.Speakers {
+			if !s.Primary || s.Timezone == "" {
+				continue
+			}
+			speakerOff, ok1 := tzOffsetHours(s.Timezone, event.StartDate)
+			eventOff, ok2 := tzOffsetHours(event.Timezone, event.StartDate)
+			if !ok1 || !ok2 {
+				break
+			}
+			diff := math.Abs(speakerOff - eventOff)
+			if diff <= 3 {
+				break
+			}
+			loc := event.Location
+			if loc == "" {
+				loc = event.Timezone
+			}
+			fmt.Fprintf(os.Stderr, "\nWARNING: You're ~%.0fh from %s (%s). If this is a mistake, re-edit with --template.\n", diff, loc, event.Timezone)
+			break
+		}
 	}
 
 	if submitDryRun {

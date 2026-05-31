@@ -217,6 +217,10 @@ func CreateProposalHandler(cfg *config.Config) http.HandlerFunc {
 				encodeError(w, "Speaker "+speakerNum+": job_title must be at most 200 characters", http.StatusBadRequest)
 				return
 			}
+			if !models.IsValidTimezone(speaker.Timezone) {
+				encodeError(w, "Speaker "+speakerNum+": invalid timezone. Use an IANA name like 'Europe/London'.", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Require at least one speaker email matches the authenticated user

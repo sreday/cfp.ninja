@@ -32,6 +32,8 @@ type User struct {
 	// produces git_hub_id). Pin the column name so it matches the JSON field
 	// and the existing SQL conventions on the speaker JSONB.
 	LinkedIn string `gorm:"column:linkedin"`
+	// IANA timezone name (e.g. "Europe/London"). Empty = not set.
+	Timezone string
 }
 
 // CreatePartialUniqueIndexes creates partial unique indexes for fields that can be empty.

@@ -254,9 +254,16 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 	// Check if already exists
 	var existing models.Event
 	if db.Where("slug = ?", slug).First(&existing).Error == nil {
+		// One-time backfill: if the existing event has no timezone but we can
+		// suggest one from the country, fill it in (never overwrite an
+		// organizer-set value).
+		tzBackfill := ""
+		if existing.Timezone == "" {
+			tzBackfill = suggestTimezoneFromCountry(extractCountry(ref.Location))
+		}
 		// Update existing event — preserve existing is_paid value
 		diff := changedFields(existing, ref.Name, description, logoURL, contactEmail, startDate, endDate, existing.IsPaid)
-		if diff == "" {
+		if diff == "" && tzBackfill == "" {
 			return false, false, nil // nothing changed, skip
 		}
 		updates := map[string]interface{}{
@@ -266,6 +273,14 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 			"description":   description,
 			"logo_url":      logoURL,
 			"contact_email": contactEmail,
+		}
+		if tzBackfill != "" {
+			updates["timezone"] = tzBackfill
+			if diff == "" {
+				diff = "timezone"
+			} else {
+				diff += ",timezone"
+			}
 		}
 		if err := db.Model(&existing).Updates(updates).Error; err != nil {
 			return false, false, fmt.Errorf("updating event %s: %w", slug, err)
@@ -289,12 +304,14 @@ func syncEvent(db *gorm.DB, logger *slog.Logger, client *sreday.Client, ref sred
 		cfpStatus = models.CFPStatusClosed
 	}
 
+	country := extractCountry(ref.Location)
 	newEvent := models.Event{
 		Name:         ref.Name,
 		Slug:         slug,
 		Description:  description,
 		Location:     extractLocationWithoutCountry(ref.Location),
-		Country:      extractCountry(ref.Location),
+		Country:      country,
+		Timezone:     suggestTimezoneFromCountry(country),
 		StartDate:    startDate,
 		EndDate:      endDate,
 		Website:      resolveURL(baseURL, ref.URL),
@@ -664,6 +681,37 @@ func normalizeCountry(raw string) string {
 		return norm
 	}
 	return cleaned
+}
+
+// countryTZMap maps canonical country names (the values produced by
+// normalizeCountry) to IANA timezones. Ambiguous countries that span multiple
+// zones (USA, Canada, Australia, Brazil) are intentionally absent — sync leaves
+// timezone empty for those, and the organizer picks via the UI.
+var countryTZMap = map[string]string{
+	"UK":          "Europe/London",
+	"Ireland":     "Europe/Dublin",
+	"France":      "Europe/Paris",
+	"Germany":     "Europe/Berlin",
+	"Netherlands": "Europe/Amsterdam",
+	"Belgium":     "Europe/Brussels",
+	"Switzerland": "Europe/Zurich",
+	"Austria":     "Europe/Vienna",
+	"Italy":       "Europe/Rome",
+	"Spain":       "Europe/Madrid",
+	"Portugal":    "Europe/Lisbon",
+	"Sweden":      "Europe/Stockholm",
+	"Poland":      "Europe/Warsaw",
+	"Czechia":     "Europe/Prague",
+	"India":       "Asia/Kolkata",
+	"Japan":       "Asia/Tokyo",
+	"Singapore":   "Asia/Singapore",
+	"Israel":      "Asia/Jerusalem",
+}
+
+// suggestTimezoneFromCountry returns the IANA timezone for the given canonical
+// country, or empty string if the country is ambiguous or unrecognized.
+func suggestTimezoneFromCountry(country string) string {
+	return countryTZMap[country]
 }
 
 // extractLocationWithoutCountry strips only the last comma-segment (country) but keeps the rest.

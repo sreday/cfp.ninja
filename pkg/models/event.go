@@ -53,6 +53,7 @@ type Event struct {
 	Description string    `json:"description"`
 	Location    string    `gorm:"index" json:"location"` // City/venue (e.g., "London", "San Francisco")
 	Country     string    `gorm:"index" json:"country"`  // ISO 3166-1 alpha-2 (e.g., "GB", "US")
+	Timezone    string    `json:"timezone"`              // IANA timezone name (e.g. "Europe/London"). Empty = unset.
 	StartDate   time.Time `gorm:"index" json:"start_date"`
 	EndDate     time.Time `json:"end_date"`
 	Website     string    `json:"website"`

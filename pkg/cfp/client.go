@@ -152,6 +152,8 @@ type Event struct {
 	Description    string         `json:"description"`
 	Location       string         `json:"location"`
 	Country        string         `json:"country"`
+	Timezone       string         `json:"timezone"`
+	IsOnline       bool           `json:"is_online"`
 	StartDate      time.Time      `json:"start_date"`
 	EndDate        time.Time      `json:"end_date"`
 	Website        string         `json:"website"`
@@ -315,6 +317,7 @@ type Speaker struct {
 	LinkedIn string `json:"linkedin" yaml:"linkedin"`
 	Company  string `json:"company" yaml:"company"`
 	Primary  bool   `json:"primary" yaml:"primary"`
+	Timezone string `json:"timezone,omitempty" yaml:"timezone,omitempty"`
 }
 
 // ProposalSubmission represents a proposal to submit
@@ -433,6 +436,7 @@ type EventSubmission struct {
 	Description    string           `json:"description,omitempty" yaml:"description,omitempty"`
 	Location       string           `json:"location,omitempty" yaml:"location,omitempty"`
 	Country        string           `json:"country,omitempty" yaml:"country,omitempty"`
+	Timezone       string           `json:"timezone,omitempty" yaml:"timezone,omitempty"`
 	StartDate      string           `json:"start_date,omitempty" yaml:"start_date,omitempty"` // YYYY-MM-DD
 	EndDate        string           `json:"end_date,omitempty" yaml:"end_date,omitempty"`     // YYYY-MM-DD
 	Website        string           `json:"website,omitempty" yaml:"website,omitempty"`

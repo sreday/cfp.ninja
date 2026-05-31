@@ -57,6 +57,7 @@ type Speaker struct {
 	LinkedIn string `json:"linkedin,omitempty"` // Required: full LinkedIn profile URL
 	Company  string `json:"company,omitempty"`  // Required: current employer
 	Primary  bool   `json:"primary"`            // Is this the primary/submitting speaker?
+	Timezone string `json:"timezone,omitempty"` // IANA timezone frozen at submission (primary speaker only)
 }
 
 type Proposal struct {
