@@ -87,6 +87,7 @@ func TestGetSitePrefix(t *testing.T) {
 		{"https://sreday.com", "sreday"},
 		{"https://llmday.com", "llmday"},
 		{"https://devopsnotdead.com", "devopsnotdead"},
+		{"https://platformday.com", "platformday"},
 		{"https://www.example.com", "www"},
 		{"not-a-url", ""},
 	}
@@ -134,6 +135,7 @@ func TestMakeSlug(t *testing.T) {
 		{"llmday", "./2026-berlin/", "llmday-2026-berlin"},
 		{"", "2026-london", "2026-london"},
 		{"devopsnotdead", "2026-q2", "devopsnotdead-2026-q2"},
+		{"platformday", "./2026-austin-q4/", "platformday-2026-austin-q4"},
 	}
 
 	for _, tt := range tests {
@@ -178,6 +180,54 @@ func TestRenderDescription(t *testing.T) {
 			got := renderDescription(logger, tt.template, event)
 			if got != tt.want {
 				t.Errorf("renderDescription(%q) = %q, want %q", tt.template, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLogoForSource(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{"https://sreday.com", "/img/stickers/sreday.png"},
+		{"https://llmday.com", "/img/stickers/llmday.png"},
+		{"https://devopsnotdead.com", "/img/stickers/devopsnotdead.png"},
+		{"https://platformday.com", "/img/stickers/platformday.png"},
+		{"https://www.conf42.com", "/img/stickers/conf42.png"},
+		{"https://example.com", ""},
+		{"://not-a-url", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			got := logoForSource(tt.url)
+			if got != tt.want {
+				t.Errorf("logoForSource(%q) = %q, want %q", tt.url, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTermsURLForSource(t *testing.T) {
+	tests := []struct {
+		url  string
+		want string
+	}{
+		{"https://sreday.com", "https://sreday.com/assets/tnc.pdf"},
+		{"https://llmday.com", "https://llmday.com/assets/tnc.pdf"},
+		{"https://devopsnotdead.com", "https://devopsnotdead.com/assets/tnc.pdf"},
+		{"https://platformday.com", "https://platformday.com/assets/tnc.pdf"},
+		{"https://www.conf42.com", "https://www.conf42.com/terms-and-conditions.pdf"},
+		{"https://example.com", ""},
+		{"://not-a-url", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.url, func(t *testing.T) {
+			got := termsURLForSource(tt.url)
+			if got != tt.want {
+				t.Errorf("termsURLForSource(%q) = %q, want %q", tt.url, got, tt.want)
 			}
 		})
 	}

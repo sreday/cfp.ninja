@@ -21,6 +21,7 @@ var sources = []string{
 	"https://sreday.com",
 	"https://llmday.com",
 	"https://devopsnotdead.com",
+	"https://platformday.com",
 }
 
 // StartEventSync runs an immediate sync then repeats at the given interval until ctx is cancelled.
@@ -57,6 +58,8 @@ func logoForSource(sourceURL string) string {
 		return "/img/stickers/llmday.png"
 	case strings.Contains(host, "devopsnotdead.com"):
 		return "/img/stickers/devopsnotdead.png"
+	case strings.Contains(host, "platformday.com"):
+		return "/img/stickers/platformday.png"
 	case strings.Contains(host, "conf42.com"):
 		return "/img/stickers/conf42.png"
 	default:
@@ -567,6 +570,8 @@ func termsURLForSource(sourceURL string) string {
 		return "https://llmday.com/assets/tnc.pdf"
 	case strings.Contains(host, "devopsnotdead.com"):
 		return "https://devopsnotdead.com/assets/tnc.pdf"
+	case strings.Contains(host, "platformday.com"):
+		return "https://platformday.com/assets/tnc.pdf"
 	case strings.Contains(host, "conf42.com"):
 		return "https://www.conf42.com/terms-and-conditions.pdf"
 	default:
