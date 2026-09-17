@@ -383,6 +383,10 @@ export function renderSpeakerForm(index, user = null, event = null) {
     // event timezone later).
     const showTimezone = isFirst && event && !event.is_online;
     const tzDefault = showTimezone ? (prefill.timezone || detectBrowserTimezone()) : '';
+    // No "Not set" option: the select always carries a real IANA name so the
+    // organizer's local/regional/remote review filter has data to work with.
+    const tzOptions = [...listTimezones()];
+    if (tzDefault && !tzOptions.includes(tzDefault)) tzOptions.unshift(tzDefault);
     return `
         <div class="speaker-form mb-4 ${isFirst ? '' : 'border-top pt-4'}" data-speaker-index="${index}">
             ${!isFirst ? `
@@ -432,12 +436,11 @@ export function renderSpeakerForm(index, user = null, event = null) {
 
             ${showTimezone ? `
                 <div class="mb-3">
-                    <label class="form-label">Your Timezone</label>
-                    <select class="form-select" name="speaker_timezone_${index}" id="speaker-timezone-${index}">
-                        <option value="">Not set</option>
-                        ${listTimezones().map(tz => `<option value="${escapeHtml(tz)}" ${tzDefault === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('')}
+                    <label class="form-label">Your Timezone <span class="text-danger">*</span></label>
+                    <select class="form-select" name="speaker_timezone_${index}" id="speaker-timezone-${index}" required>
+                        ${tzOptions.map(tz => `<option value="${escapeHtml(tz)}" ${tzDefault === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('')}
                     </select>
-                    <div class="form-text">Defaults to your browser's timezone. Used to flag misread locations.</div>
+                    <div class="form-text">Defaults to your browser's timezone. Organizers use it to see how far you'd be travelling.</div>
                     <div id="speaker-timezone-warning-${index}" class="mt-2"></div>
                 </div>
             ` : ''}

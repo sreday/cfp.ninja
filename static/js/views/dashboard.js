@@ -818,11 +818,13 @@ function renderDefaultsTab(me) {
             </div>
             <div class="mb-3">
                 <label class="form-label" for="defaults-timezone">Timezone</label>
-                <select class="form-select" id="defaults-timezone" name="timezone">
-                    <option value="">Not set</option>
+                <select class="form-select" id="defaults-timezone" name="timezone" required>
                     ${(() => {
+                        // No "Not set" option: always a real IANA name (saved value or browser default).
                         const current = me.timezone || detectBrowserTimezone();
-                        return listTimezones().map(tz => `<option value="${escapeHtml(tz)}" ${current === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('');
+                        const options = [...listTimezones()];
+                        if (current && !options.includes(current)) options.unshift(current);
+                        return options.map(tz => `<option value="${escapeHtml(tz)}" ${current === tz ? 'selected' : ''}>${escapeHtml(tz)}</option>`).join('');
                     })()}
                 </select>
                 <div class="form-text">Used to warn you if you're submitting to a far-away conference. Defaults to your browser's timezone.</div>
