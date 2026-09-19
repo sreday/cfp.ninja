@@ -154,7 +154,7 @@ CFP.ninja automatically syncs events from external sources in the background. Sy
 
 ### Event Sources
 
-- **SREday family** (sreday.com, llmday.com, devopsnotdead.com) — both upcoming and past events are synced
+- **SREday family** (sreday.com, llmday.com, devopsnotdead.com, platformday.com) — both upcoming and past events are synced
 - **Conf42** (metadata from GitHub) — only future events, all marked as online. Slug format: `conf42-{topic}-{year}`
 
 ### Configuration
