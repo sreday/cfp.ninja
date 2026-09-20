@@ -106,8 +106,14 @@ func GenerateTemplate(event *Event) string {
 	sb.WriteString("    company: \"\"       # Required\n")
 	sb.WriteString("    linkedin: \"\"      # Required (full URL: https://linkedin.com/in/username)\n")
 	sb.WriteString("    primary: true\n")
-	if !event.IsOnline && event.Timezone != "" {
-		sb.WriteString(fmt.Sprintf("    # Your IANA timezone — event is in %s. We'll warn if it's far away.\n", event.Timezone))
+	// Always ask for the primary speaker's timezone at in-person events, even
+	// before the organizer has set the event's own: the review filter needs it.
+	if !event.IsOnline {
+		if event.Timezone != "" {
+			sb.WriteString(fmt.Sprintf("    # Your IANA timezone — event is in %s. We'll warn if it's far away.\n", event.Timezone))
+		} else {
+			sb.WriteString("    # Your IANA timezone (e.g. Europe/London). Organizers use it to see how far you'd be travelling.\n")
+		}
 		sb.WriteString(fmt.Sprintf("    timezone: %q\n", time.Local.String()))
 	}
 	sb.WriteString("\n")
