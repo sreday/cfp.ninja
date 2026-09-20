@@ -30,15 +30,15 @@ const (
 
 // Field length limits for proposals
 const (
-	MaxProposalTitleLen         = 300
-	MaxProposalAbstractLen      = 10000
+	MaxProposalTitleLen          = 300
+	MaxProposalAbstractLen       = 10000
 	MaxProposalOrganizerNotesLen = 5000
-	MaxSpeakerNameLen           = 200
-	MaxSpeakerEmailLen          = 320
-	MaxSpeakerBioLen            = 2000
-	MaxSpeakerCompanyLen        = 200
-	MaxSpeakerJobTitleLen       = 200
-	MaxSpeakerLinkedInLen       = 500
+	MaxSpeakerNameLen            = 200
+	MaxSpeakerEmailLen           = 320
+	MaxSpeakerBioLen             = 2000
+	MaxSpeakerCompanyLen         = 200
+	MaxSpeakerJobTitleLen        = 200
+	MaxSpeakerLinkedInLen        = 500
 )
 
 // MaxCustomAnswerLen is the maximum length for a custom question answer value.
@@ -991,4 +991,3 @@ func EmergencyCancelHandler(cfg *config.Config) http.HandlerFunc {
 		encodeResponse(w, r, proposal)
 	}
 }
-

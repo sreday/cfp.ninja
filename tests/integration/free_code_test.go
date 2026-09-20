@@ -166,4 +166,3 @@ func TestFreeListingCode_OpenStatusWithValidCode_Allowed(t *testing.T) {
 		t.Errorf("expected cfp_status 'open', got %q", created.CFPStatus)
 	}
 }
-

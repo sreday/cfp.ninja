@@ -17,11 +17,11 @@ func TestCreateEvent_FillAndSubmit(t *testing.T) {
 
 	// Fill in the form
 	fillForm(page, map[string]string{
-		"input[name='name'], #name":               "E2E Created Conference",
-		"input[name='slug'], #slug":               "e2e-created-conf",
+		"input[name='name'], #name":                  "E2E Created Conference",
+		"input[name='slug'], #slug":                  "e2e-created-conf",
 		"textarea[name='description'], #description": "A conference created by E2E tests",
-		"input[name='location'], #location":       "Test City",
-		"input[name='website'], #website":         "https://e2e-test.example.com",
+		"input[name='location'], #location":          "Test City",
+		"input[name='website'], #website":            "https://e2e-test.example.com",
 	})
 
 	// Select country if dropdown exists

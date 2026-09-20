@@ -108,18 +108,18 @@ func writeInPersonCSV(w *csv.Writer, proposals []models.Proposal) {
 			string(p.Status),
 			boolToYesNo(p.AttendanceConfirmed),
 			sanitizeCSVCell(name),
-			"",    // track
+			"", // track
 			sanitizeCSVCell(email),
-			"",    // day
-			sanitizeCSVCell(org),   // organization
-			"",    // photo
+			"",                   // day
+			sanitizeCSVCell(org), // organization
+			"",                   // photo
 			sanitizeCSVCell(linkedin),
 			sanitizeCSVCell(linkedin2),
 			"", // twitter
 			"", // twitter2
 			sanitizeCSVCell(p.Title),
 			sanitizeCSVCell(p.Abstract),
-			sanitizeCSVCell(p.Abstract),     // description (same as abstract)
+			sanitizeCSVCell(p.Abstract), // description (same as abstract)
 			sanitizeCSVCell(bio),
 		}
 		w.Write(row)
@@ -153,8 +153,8 @@ func writeOnlineCSV(w *csv.Writer, proposals []models.Proposal) {
 		}
 
 		row := []string{
-			"",        // Featured
-			"",        // Track
+			"", // Featured
+			"", // Track
 			sanitizeCSVCell(name1),
 			sanitizeCSVCell(email1),
 			sanitizeCSVCell(jobTitle1),

@@ -250,4 +250,3 @@ func TestCfp_UnknownCommand(t *testing.T) {
 	// Unknown command should fail
 	assertExitCode(t, exitCode, 1)
 }
-

@@ -30,16 +30,16 @@ With a slug argument, shows detailed information about that event.`,
 }
 
 var (
-	eventsQuery     string
-	eventsTag       string
-	eventsCountry   string
-	eventsLocation  string
-	eventsFrom      string
-	eventsTo        string
-	eventsStatus string
-	eventsSort   string
-	eventsOrder     string
-	eventsLimit     int
+	eventsQuery    string
+	eventsTag      string
+	eventsCountry  string
+	eventsLocation string
+	eventsFrom     string
+	eventsTo       string
+	eventsStatus   string
+	eventsSort     string
+	eventsOrder    string
+	eventsLimit    int
 )
 
 func init() {
