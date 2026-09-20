@@ -207,4 +207,3 @@ func CreateOrUpdateUserFromGitHub(db *gorm.DB, gitHubID, email, name, pictureURL
 	}
 	return &user, nil
 }
-

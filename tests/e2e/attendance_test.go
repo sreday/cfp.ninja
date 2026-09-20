@@ -40,8 +40,8 @@ func TestAttendance_ConfirmedProposalShowsConfirmedBadge(t *testing.T) {
 	// Set proposal to accepted and attendance confirmed
 	now := time.Now()
 	testConfig.DB.Model(proposal).Updates(map[string]interface{}{
-		"status":                "accepted",
-		"attendance_confirmed":  true,
+		"status":                  "accepted",
+		"attendance_confirmed":    true,
 		"attendance_confirmed_at": now,
 	})
 
@@ -121,8 +121,8 @@ func TestAttendance_ModalShowsConfirmedForConfirmedProposal(t *testing.T) {
 	// Set proposal to accepted and confirmed
 	now := time.Now()
 	testConfig.DB.Model(proposal).Updates(map[string]interface{}{
-		"status":                "accepted",
-		"attendance_confirmed":  true,
+		"status":                  "accepted",
+		"attendance_confirmed":    true,
 		"attendance_confirmed_at": now,
 	})
 

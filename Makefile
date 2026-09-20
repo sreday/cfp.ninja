@@ -1,4 +1,4 @@
-.PHONY: build run run-migrate test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
+.PHONY: fmt build run run-migrate test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
 
 # Common test environment variables
 TEST_DB_ENV = \
@@ -15,6 +15,11 @@ TEST_INTEGRATION_ENV = \
 TEST_INSECURE_ENV = \
 	$(TEST_DB_ENV) \
 	INSECURE=true
+
+# Format and vet all Go code
+fmt:
+	go fmt ./...
+	go vet ./...
 
 # Build the server
 build:

@@ -23,12 +23,12 @@ func TestPaymentGateCFPStatus(t *testing.T) {
 
 	// Create a draft event
 	event := createTestEvent(adminToken, EventInput{
-		Name:      "Payment Gate Test Event",
-		Slug:      "payment-gate-test",
-		StartDate: futureDate(30),
-		EndDate:   futureDate(31),
-		Website:   "https://example.com",
-		CFPOpenAt: futureDate(-1),
+		Name:       "Payment Gate Test Event",
+		Slug:       "payment-gate-test",
+		StartDate:  futureDate(30),
+		EndDate:    futureDate(31),
+		Website:    "https://example.com",
+		CFPOpenAt:  futureDate(-1),
 		CFPCloseAt: futureDate(29),
 	})
 

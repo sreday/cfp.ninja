@@ -109,11 +109,11 @@ func TestDeleteEvent_CascadesProposals(t *testing.T) {
 
 	// Create event with an open CFP
 	event := createTestEvent(adminToken, EventInput{
-		Name:      "Cascade Delete Test",
-		Slug:      "cascade-delete-" + fmt.Sprintf("%d", now.UnixNano()),
-		StartDate: now.AddDate(0, 1, 0).Format(time.RFC3339),
-		EndDate:   now.AddDate(0, 1, 1).Format(time.RFC3339),
-		CFPOpenAt: now.AddDate(0, 0, -1).Format(time.RFC3339),
+		Name:       "Cascade Delete Test",
+		Slug:       "cascade-delete-" + fmt.Sprintf("%d", now.UnixNano()),
+		StartDate:  now.AddDate(0, 1, 0).Format(time.RFC3339),
+		EndDate:    now.AddDate(0, 1, 1).Format(time.RFC3339),
+		CFPOpenAt:  now.AddDate(0, 0, -1).Format(time.RFC3339),
 		CFPCloseAt: now.AddDate(0, 0, 7).Format(time.RFC3339),
 	})
 	updateCFPStatus(adminToken, event.ID, "open")

@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/sreday/cfp.ninja/pkg/config"
+	"github.com/sreday/cfp.ninja/pkg/models"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"github.com/sreday/cfp.ninja/pkg/config"
-	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
 // Pagination constants for event listings
@@ -28,8 +28,8 @@ const (
 )
 
 // Proposals listing constants
-const MaxProposalsPerPage = 500  // Hard cap on proposals returned per API request
-const MaxExportRows      = 5000 // Hard cap on rows in CSV export
+const MaxProposalsPerPage = 500 // Hard cap on proposals returned per API request
+const MaxExportRows = 5000      // Hard cap on rows in CSV export
 
 // Field length limits for events
 const (
@@ -1272,4 +1272,3 @@ func RemoveOrganizerHandler(cfg *config.Config) http.HandlerFunc {
 		encodeResponse(w, r, map[string]string{"message": "Organizer removed"})
 	}
 }
-
