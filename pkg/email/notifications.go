@@ -152,9 +152,39 @@ func SendProposalStatusNotification(ncfg *NotifyConfig, proposal *models.Proposa
 	return nil
 }
 
+// organiserRecipients returns who gets organiser notifications for an event.
+// If the event has a contact email, it goes in To and every organiser is in Cc.
+// Otherwise the first organiser is in To with the remaining organisers in Cc.
+// Addresses are deduplicated case-insensitively. To is empty when there is no one to notify.
+func organiserRecipients(event *models.Event) (to, cc []string, recipientName string) {
+	recipientName = "Organizer"
+	seen := map[string]bool{}
+	add := func(addr string) {
+		key := strings.ToLower(strings.TrimSpace(addr))
+		if key == "" || seen[key] {
+			return
+		}
+		seen[key] = true
+		if len(to) == 0 {
+			to = []string{addr}
+		} else {
+			cc = append(cc, addr)
+		}
+	}
+
+	add(event.ContactEmail)
+	for _, org := range event.Organizers {
+		wasEmpty := len(to) == 0
+		add(org.Email)
+		if wasEmpty && len(to) == 1 && org.Name != "" {
+			recipientName = org.Name
+		}
+	}
+	return to, cc, recipientName
+}
+
 // SendAttendanceConfirmedNotification emails organisers when a speaker confirms.
-// If the event has a contact email, it is sent there only.
-// Otherwise it is sent to the first organizer with remaining organisers in Cc.
+// See organiserRecipients for who receives it.
 func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Proposal, event *models.Event) error {
 	speakers, err := proposal.GetSpeakers()
 	if err != nil {
@@ -177,22 +207,9 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 		speakerBio = primary.Bio
 	}
 
-	var to []string
-	var cc []string
-	recipientName := "Organizer"
-
-	if event.ContactEmail != "" {
-		to = []string{event.ContactEmail}
-	} else {
-		if len(event.Organizers) == 0 {
-			return nil
-		}
-		primary := event.Organizers[0]
-		recipientName = primary.Name
-		to = []string{primary.Email}
-		for _, org := range event.Organizers[1:] {
-			cc = append(cc, org.Email)
-		}
+	to, cc, recipientName := organiserRecipients(event)
+	if len(to) == 0 {
+		return nil
 	}
 
 	data := attendanceConfirmedData{
@@ -239,8 +256,7 @@ func SendAttendanceConfirmedNotification(ncfg *NotifyConfig, proposal *models.Pr
 }
 
 // SendEmergencyCancelNotification sends a single email when a speaker emergency-cancels.
-// If the event has a contact email, it is sent there only.
-// Otherwise it is sent to the first organizer with remaining organisers in Cc.
+// See organiserRecipients for who receives it.
 func SendEmergencyCancelNotification(ncfg *NotifyConfig, proposal *models.Proposal, event *models.Event) error {
 	speakers, err := proposal.GetSpeakers()
 	if err != nil {
@@ -259,22 +275,9 @@ func SendEmergencyCancelNotification(ncfg *NotifyConfig, proposal *models.Propos
 		}
 	}
 
-	var to []string
-	var cc []string
-	recipientName := "Organizer"
-
-	if event.ContactEmail != "" {
-		to = []string{event.ContactEmail}
-	} else {
-		if len(event.Organizers) == 0 {
-			return nil
-		}
-		primary := event.Organizers[0]
-		recipientName = primary.Name
-		to = []string{primary.Email}
-		for _, org := range event.Organizers[1:] {
-			cc = append(cc, org.Email)
-		}
+	to, cc, recipientName := organiserRecipients(event)
+	if len(to) == 0 {
+		return nil
 	}
 
 	data := attendanceConfirmedData{

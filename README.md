@@ -352,8 +352,8 @@ CFP.ninja sends transactional emails via [Resend](https://resend.com). When `RES
 | Proposal Accepted | Organiser accepts a proposal | Primary speaker | Co-speakers | "Your proposal has been accepted!" |
 | Proposal Rejected | Organiser rejects a proposal | Primary speaker | Co-speakers | "Update on your proposal" |
 | Proposal Tentative | Organiser marks proposal tentative | Primary speaker | Co-speakers | "Update on your proposal" |
-| Attendance Confirmed | Speaker confirms attendance | Contact email (or 1st organiser) | — (or remaining organisers) | "Speaker confirmed: {title}" |
-| Emergency Cancel | Confirmed speaker cancels | Contact email (or 1st organiser) | — (or remaining organisers) | "Emergency cancellation: {title}" |
+| Attendance Confirmed | Speaker confirms attendance | Contact email (or 1st organiser) | All organisers (deduplicated, minus whoever is in To) | "Speaker confirmed: {title}" |
+| Emergency Cancel | Confirmed speaker cancels | Contact email (or 1st organiser) | All organisers (deduplicated, minus whoever is in To) | "Emergency cancellation: {title}" |
 | Weekly Digest | Every Monday 09:00 UTC | Each organiser | — | "Your weekly CFP digest" |
 
 - **Reply-To**: Proposal status emails set reply-to to the event's contact email so speakers can reply directly to organisers.

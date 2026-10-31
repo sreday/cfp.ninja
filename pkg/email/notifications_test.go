@@ -233,8 +233,8 @@ func TestSendAttendanceConfirmedNotification_ContactEmail(t *testing.T) {
 	if msg.To[0] != "contact@sreday.com" {
 		t.Errorf("To = %v, want contact@sreday.com", msg.To)
 	}
-	if len(msg.Cc) != 0 {
-		t.Errorf("Cc = %v, want empty (no Cc when contact email is set)", msg.Cc)
+	if len(msg.Cc) != 1 || msg.Cc[0] != "org1@example.com" {
+		t.Errorf("Cc = %v, want [org1@example.com] (organisers Cc'd alongside the contact email)", msg.Cc)
 	}
 }
 
@@ -287,8 +287,8 @@ func TestSendEmergencyCancelNotification_ContactEmail(t *testing.T) {
 	if msg.To[0] != "contact@sreday.com" {
 		t.Errorf("To = %v, want contact@sreday.com", msg.To)
 	}
-	if len(msg.Cc) != 0 {
-		t.Errorf("Cc = %v, want empty (no Cc when contact email is set)", msg.Cc)
+	if len(msg.Cc) != 1 || msg.Cc[0] != "org1@example.com" {
+		t.Errorf("Cc = %v, want [org1@example.com] (organisers Cc'd alongside the contact email)", msg.Cc)
 	}
 }
 
@@ -354,4 +354,89 @@ func TestSendWeeklyDigest(t *testing.T) {
 	if msgs[0].Headers["List-Unsubscribe"] == "" {
 		t.Error("missing List-Unsubscribe header")
 	}
+}
+
+func TestOrganiserRecipients(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    *models.Event
+		wantTo   []string
+		wantCc   []string
+		wantName string
+	}{
+		{
+			name: "contact email plus every co-organiser",
+			event: &models.Event{
+				ContactEmail: "contact@sreday.com",
+				Organizers: []models.User{
+					{Email: "org1@example.com", Name: "Org One"},
+					{Email: "org2@example.com", Name: "Org Two"},
+				},
+			},
+			wantTo:   []string{"contact@sreday.com"},
+			wantCc:   []string{"org1@example.com", "org2@example.com"},
+			wantName: "Organizer",
+		},
+		{
+			name: "organiser who is also the contact email is not repeated",
+			event: &models.Event{
+				ContactEmail: "Mark@SREday.com",
+				Organizers: []models.User{
+					{Email: "mark@sreday.com", Name: "Mark"},
+					{Email: "miko@sreday.com", Name: "Miko"},
+					{Email: "miko@sreday.com", Name: "Miko"},
+				},
+			},
+			wantTo:   []string{"Mark@SREday.com"},
+			wantCc:   []string{"miko@sreday.com"},
+			wantName: "Organizer",
+		},
+		{
+			name: "no contact email, first organiser with an email in To",
+			event: &models.Event{
+				Organizers: []models.User{
+					{Email: "", Name: "No Email"},
+					{Email: "org1@example.com", Name: "Org One"},
+					{Email: "org2@example.com", Name: "Org Two"},
+				},
+			},
+			wantTo:   []string{"org1@example.com"},
+			wantCc:   []string{"org2@example.com"},
+			wantName: "Org One",
+		},
+		{
+			name:     "nobody to notify",
+			event:    &models.Event{},
+			wantTo:   nil,
+			wantCc:   nil,
+			wantName: "Organizer",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			to, cc, name := organiserRecipients(tt.event)
+			if !equalStrings(to, tt.wantTo) {
+				t.Errorf("To = %v, want %v", to, tt.wantTo)
+			}
+			if !equalStrings(cc, tt.wantCc) {
+				t.Errorf("Cc = %v, want %v", cc, tt.wantCc)
+			}
+			if name != tt.wantName {
+				t.Errorf("recipientName = %q, want %q", name, tt.wantName)
+			}
+		})
+	}
+}
+
+func equalStrings(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
