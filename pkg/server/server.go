@@ -36,6 +36,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 			&models.Event{},
 			&models.Proposal{},
 			&models.SavedTalk{},
+			&models.GameScore{},
 		); err != nil {
 			return nil, nil, err
 		}
@@ -147,6 +148,11 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("OPTIONS /api/v0/me/talks/from-proposal/{id}", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 
 	// Stripe webhook endpoint (no auth, no CORS - server-to-server from Stripe)
+	// Frog Ninja scoreboard (cfp.ninja/game): public list, logged-in submit
+	mux.HandleFunc("GET /api/v0/game/scores", api.CorsHandler(cfg, readLimiter.Middleware(api.OptionalAuthHandler(cfg, api.ListGameScoresHandler(cfg)))))
+	mux.HandleFunc("POST /api/v0/game/scores", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.SubmitGameScoreHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/game/scores", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+
 	mux.HandleFunc("POST /api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 
 	// cors is a shorthand for the common CORS preflight handler

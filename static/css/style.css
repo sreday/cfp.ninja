@@ -1408,3 +1408,43 @@ a:hover {
 .terms-page li {
     margin-bottom: 0.5rem;
 }
+
+/* Frog Ninja game (/game) */
+.fg-stage { position: relative; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.fg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
+.fg-frog { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: clamp(150px, 28%, 270px); height: auto; overflow: visible; z-index: 1; pointer-events: none; }
+.fg-hud { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 3; pointer-events: none; }
+.fg-pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 14px; border-radius: 999px; font-variant-numeric: tabular-nums;
+    background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid var(--border); color: var(--text);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+.fg-pill b { font-size: 1.15rem; font-weight: 700; }
+.fg-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); }
+.fg-right { margin-left: auto; }
+.fg-combo-pill { background: #a3211d; border-color: #a3211d; color: #fff; }
+.fg-combo-pill[hidden], .fg-overlay[hidden] { display: none; }
+.fg-overlay { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: color-mix(in srgb, var(--background) 35%, transparent); }
+.fg-panel { max-width: 360px; text-align: center; padding: 22px 24px; border-radius: var(--radius-xl);
+    background: color-mix(in srgb, var(--surface) 82%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-lg);
+    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.fg-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 .4rem; }
+.fg-sub { color: var(--text-secondary); margin: 0 0 1rem; }
+.fg-start { min-width: 140px; }
+
+.fg-saved { font-weight: 600; color: var(--success); }
+
+.game-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+.game-head h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
+#game-stage { height: max(440px, calc(100vh - 220px)); border-radius: var(--radius-xl); border: 1px solid var(--border);
+    background: radial-gradient(120% 80% at 50% 110%, rgba(152, 183, 75, .22), transparent 60%), color-mix(in srgb, var(--surface) 60%, transparent); }
+.game-board-card { margin-top: 20px; }
+.game-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.game-board { list-style: none; padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; }
+.game-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--radius); background: var(--border-light); }
+.game-row-me { background: rgba(152, 183, 75, .25); }
+.game-rank { width: 28px; font-weight: 700; color: var(--text-light); font-variant-numeric: tabular-nums; }
+.game-row:nth-child(1) .game-rank { color: #a3211d; }
+.game-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-points { font-variant-numeric: tabular-nums; }
+.game-empty { grid-column: 1 / -1; padding: 6px 0; }
+@media (max-width: 640px) { #game-stage { height: max(420px, calc(100svh - 190px)); } }

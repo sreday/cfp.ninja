@@ -20,6 +20,7 @@ import { SubmissionSuccessView } from './views/submission-success.js';
 import { StatsView } from './views/stats.js';
 import { TermsView } from './views/terms.js';
 import { LoginView } from './views/login.js';
+import { GameView } from './views/game.js';
 
 // App configuration (populated on init)
 let appConfig = { auth_providers: ['github', 'google'] }; // defaults until fetched
@@ -221,6 +222,15 @@ export const API = {
 
     saveTalkFromProposal(proposalId) {
         return this.request('POST', `/me/talks/from-proposal/${proposalId}`);
+    },
+
+    // Frog Ninja scoreboard (/game)
+    getGameScores() {
+        return this.request('GET', '/game/scores');
+    },
+
+    submitGameScore(round) {
+        return this.request('POST', '/game/scores', round);
     }
 };
 
@@ -495,6 +505,7 @@ async function init() {
         .add('/pricing', PricingView)
         .add('/terms', TermsView)
         .add('/login', LoginView)
+        .add('/game', GameView)
         .add('/e/:slug', EventDetailView)
         .add('/e/:slug/submit', requireAuth(SubmitProposalView))
         .add('/e/:slug/submitted', requireAuth(SubmissionSuccessView))
