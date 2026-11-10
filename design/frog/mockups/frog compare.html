@@ -1,0 +1,21 @@
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Frog vs logo</title>
+<link rel="stylesheet" href="game.css">
+<style>
+body{margin:0;font:600 14px Inter,sans-serif;background:#fff;--surface:#fff;--border:#ddd;--background:#fff}
+.row{display:flex;gap:16px;padding:16px}
+.box{position:relative;width:512px;height:484px;border:1px solid #ddd}
+.box img,.box svg{position:absolute;inset:0;width:100%;height:100%}
+.box .fg-frog{transform:none;left:0;bottom:auto;top:0}
+.ov svg{opacity:.55}
+.lbl{padding:4px 16px 0}
+#hidden{position:absolute;left:-9999px;width:800px;height:600px}
+</style></head><body>
+<div class="lbl">Logo | My SVG | Overlay (SVG at 55% over logo)</div>
+<div class="row"><div class="box"><img src="../../../static/img/cfpninja_full.png"></div><div class="box" id="mine"></div><div class="box ov" id="ov"><img src="../../../static/img/cfpninja_full.png"></div></div>
+<div id="hidden"></div>
+<script src="frog-game.js"></script>
+<script>
+const g=FrogGame.mount(document.getElementById('hidden'),{mode:'time'});
+setTimeout(()=>{const svg=document.querySelector('#hidden .fg-frog');
+ for(const id of ['mine','ov']){const c=svg.cloneNode(true);c.querySelectorAll('[id]').forEach(e=>e.removeAttribute('id'));c.setAttribute('preserveAspectRatio','none');document.getElementById(id).appendChild(c);} g.destroy();},300);
+</script></body></html>

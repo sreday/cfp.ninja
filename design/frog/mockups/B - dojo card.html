@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFP.ninja game - B</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../../../static/css/style.css"><link rel="stylesheet" href="game.css">
+<style>
+.dojo { display:grid; grid-template-columns: 280px 1fr; gap: 20px; align-items: stretch; }
+.dojo-side { padding: 22px; } .dojo-side h1 { font-size:1.4rem; font-weight:700; } .dojo-side ol { padding-left: 1.1rem; color: var(--text-secondary); }
+.dojo-side img { width: 120px; display:block; margin: 0 auto 10px; }
+.tiers { display:grid; gap:6px; margin-top: 12px; font-size:.85rem } .tiers div { display:flex; justify-content:space-between; padding:6px 10px; border-radius: var(--radius); background: var(--border-light); }
+#game-stage { aspect-ratio: 4 / 3; max-height: calc(100vh - 170px); width: 100%; padding: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, #98b74b) 0%, var(--surface) 70%),
+              repeating-linear-gradient(90deg, transparent 0 79px, var(--border) 79px 80px); }
+#game-stage::after { content:""; position:absolute; left:0; right:0; bottom:0; height: 18%; background: repeating-linear-gradient(90deg, #d9c9a3 0 60px, #cdbb92 60px 120px); opacity:.55; z-index:0 }
+[data-theme="dark"] #game-stage::after { opacity:.12 }
+@media (max-width: 860px) { .dojo { grid-template-columns: 1fr; } .dojo-side { order: 2 } #game-stage { aspect-ratio: auto; height: min(600px, calc(100vh - 150px)); } }
+</style>
+<script src="mock.js"></script>
+</head>
+<body>
+<div id="app">
+<header><nav class="navbar navbar-expand-lg"><div class="container">
+  <a class="navbar-brand d-flex align-items-center gap-2" href="#"><img src="../../../static/img/cfpninja-logo.png" alt="CFP.ninja" height="32" class="logo-spin">CFP.ninja</a>
+  <ul class="navbar-nav flex-row gap-3 me-auto ms-3"><li class="nav-item"><a class="nav-link" href="#">Pricing</a></li><li class="nav-item"><a class="nav-link" href="#">CLI</a></li></ul>
+  <button type="button" class="btn btn-sm btn-primary mock-theme">Dark</button>
+</div></nav></header>
+<main class="container py-4" id="main-content">
+<div class="dojo">
+  <div class="card dojo-side">
+    <img src="../../../static/img/cfpninja.png" alt="">
+    <h1>Frog Ninja</h1>
+    <ol><li>Click or swipe a fruit to slice it.</li><li>Fruit flies in from the bottom, left and right.</li><li>Let three fruits drop and the round ends.</li></ol>
+    <div class="tiers"><div><span>Slow fruit</span><b>10+</b></div><div><span>Fast fruit</span><b>60+</b></div><div><span>Combo (within 0.3 s)</span><b>x2 to x5</b></div></div>
+  </div>
+  <div class="card" id="game-stage"></div>
+</div>
+</main>
+<footer class="mt-auto"><div class="container text-center py-3"><p class="text-muted mb-0">&copy; 2025 CFP.ninja - Open Source | Terms &amp; Conditions</p></div></footer>
+</div>
+<div class="mock-tag">Mockup B &middot; <span class="mock-switch"><a class="text-white" href="A - full stage.html">A</a><a class="text-white" href="B - dojo card.html">B</a><a class="text-white" href="C - night arcade.html">C</a></span></div>
+<script src="frog-game.js"></script>
+<script>FrogGame.mount(document.getElementById('game-stage'), { mode: 'lives' });</script>
+</body></html>

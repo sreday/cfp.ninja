@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFP.ninja game - C</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="../../../static/css/style.css"><link rel="stylesheet" href="game.css">
+<style>
+#game-stage { height: max(440px, calc(100vh - 150px)); border-radius: var(--radius-xl);
+  --surface:#18181b; --background:#09090b; --border:#3f3f46; --text:#fafafa; --text-light:#a1a1aa; --text-secondary:#d4d4d8; color: var(--text);
+  background:
+    radial-gradient(circle at 78% 22%, #fff8d6 0 46px, rgba(255,248,214,.25) 47px, transparent 120px),
+    linear-gradient(180deg, #0b1020 0%, #1b1f3a 55%, #3a1f2b 100%); }
+#game-stage::before { content:""; position:absolute; left:0; right:0; bottom:0; height:40%; z-index:0;
+  background: repeating-linear-gradient(90deg, transparent 0 34px, rgba(152,183,75,.20) 34px 42px, transparent 42px 110px); -webkit-mask: linear-gradient(transparent, #000 40%); mask: linear-gradient(transparent, #000 40%); }
+#game-stage .btn-primary { background:#a3211d; color:#fff } #game-stage .btn-primary:hover { background:#ba2823; color:#fff }
+.fg-title { letter-spacing: .04em; text-transform: uppercase; font-weight: 900 }
+</style>
+<script src="mock.js"></script>
+</head>
+<body>
+<div id="app">
+<header><nav class="navbar navbar-expand-lg"><div class="container">
+  <a class="navbar-brand d-flex align-items-center gap-2" href="#"><img src="../../../static/img/cfpninja-logo.png" alt="CFP.ninja" height="32" class="logo-spin">CFP.ninja</a>
+  <ul class="navbar-nav flex-row gap-3 me-auto ms-3"><li class="nav-item"><a class="nav-link" href="#">Pricing</a></li><li class="nav-item"><a class="nav-link" href="#">CLI</a></li></ul>
+  <button type="button" class="btn btn-sm btn-primary mock-theme">Dark</button>
+</div></nav></header>
+<main class="container py-4" id="main-content">
+<div id="game-stage"></div>
+</main>
+<footer class="mt-auto"><div class="container text-center py-3"><p class="text-muted mb-0">&copy; 2025 CFP.ninja - Open Source | Terms &amp; Conditions</p></div></footer>
+</div>
+<div class="mock-tag">Mockup C &middot; <span class="mock-switch"><a class="text-white" href="A - full stage.html">A</a><a class="text-white" href="B - dojo card.html">B</a><a class="text-white" href="C - night arcade.html">C</a></span></div>
+<script src="frog-game.js"></script>
+<script>FrogGame.mount(document.getElementById('game-stage'), { mode: 'time' });</script>
+</body></html>
