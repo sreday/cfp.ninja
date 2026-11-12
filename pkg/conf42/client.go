@@ -27,6 +27,7 @@ type EventEntry struct {
 	Location    string `yaml:"location"`
 	Description string `yaml:"description"`
 	ShortURL    string `yaml:"short_url"`
+	CFPURL      string `yaml:"cfp_url"`
 }
 
 func NewClient() *Client {
