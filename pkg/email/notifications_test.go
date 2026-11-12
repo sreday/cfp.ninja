@@ -440,3 +440,65 @@ func equalStrings(a, b []string) bool {
 	}
 	return true
 }
+
+func TestSendProposalStatusNotification_AcceptedBccsOrganisers(t *testing.T) {
+	mock := &mockSender{}
+	ncfg := newTestNotifyConfig(mock)
+
+	proposal := &models.Proposal{
+		Title: "My Talk",
+		Speakers: makeSpeakersJSON([]models.Speaker{
+			{Name: "Alice", Email: "alice@example.com", Primary: true},
+		}),
+	}
+	event := &models.Event{
+		Name:         "SREday London",
+		ContactEmail: "organisers@sreday.com",
+		Organizers: []models.User{
+			{Email: "Mark@sreday.com", Name: "Mark"},
+			{Email: "anna@sreday.com", Name: "Anna"},
+			{Email: "ORGANISERS@sreday.com", Name: "Shared inbox"}, // same as the contact email
+			{Email: "alice@example.com", Name: "Alice"},            // an organiser who is also the speaker
+			{Email: "", Name: "No email"},
+		},
+	}
+
+	if err := SendProposalStatusNotification(ncfg, proposal, event, models.ProposalStatusAccepted); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	msg := mock.Messages()[0]
+	want := []string{"organisers@sreday.com", "Mark@sreday.com", "anna@sreday.com"}
+	if len(msg.Bcc) != len(want) {
+		t.Fatalf("Bcc = %v, want %v", msg.Bcc, want)
+	}
+	for i := range want {
+		if msg.Bcc[i] != want[i] {
+			t.Errorf("Bcc[%d] = %q, want %q", i, msg.Bcc[i], want[i])
+		}
+	}
+	if len(msg.To) != 1 || msg.To[0] != "alice@example.com" || len(msg.Cc) != 0 {
+		t.Errorf("speakers changed: To=%v Cc=%v", msg.To, msg.Cc)
+	}
+}
+
+func TestSendProposalStatusNotification_RejectedNoBcc(t *testing.T) {
+	mock := &mockSender{}
+	ncfg := newTestNotifyConfig(mock)
+
+	proposal := &models.Proposal{
+		Title:    "Talk",
+		Speakers: makeSpeakersJSON([]models.Speaker{{Name: "Charlie", Email: "charlie@example.com"}}),
+	}
+	event := &models.Event{
+		Name:         "Conf",
+		ContactEmail: "organisers@sreday.com",
+		Organizers:   []models.User{{Email: "mark@sreday.com", Name: "Mark"}},
+	}
+
+	if err := SendProposalStatusNotification(ncfg, proposal, event, models.ProposalStatusRejected); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if bcc := mock.Messages()[0].Bcc; len(bcc) != 0 {
+		t.Errorf("Bcc = %v, want none on rejections", bcc)
+	}
+}

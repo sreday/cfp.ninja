@@ -727,7 +727,10 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 				}
 			}
 
-			return tx.Model(&proposal).Update("status", req.Status).Error
+			return tx.Model(&proposal).Updates(map[string]interface{}{
+				"status":               req.Status,
+				"status_changed_by_id": user.ID,
+			}).Error
 		})
 		if err != nil {
 			if errors.Is(err, errMaxAcceptedReached) {
@@ -738,6 +741,7 @@ func UpdateProposalStatusHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		proposal.Status = req.Status
+		proposal.StatusChangedByID = &user.ID
 
 		cfg.Logger.Info("proposal status changed",
 			"proposal_id", proposal.ID,

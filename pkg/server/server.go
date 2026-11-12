@@ -46,6 +46,22 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		}
 	}
 
+	// proposals.status_changed_by_id ("Accepted by ..."): production never runs the
+	// full auto-migrate, so this one nullable column (+ its index) is added on its own.
+	// Additive only: no existing column, row or index is touched.
+	if m := db.Migrator(); !m.HasColumn(&models.Proposal{}, "StatusChangedByID") {
+		if err := m.AddColumn(&models.Proposal{}, "StatusChangedByID"); err != nil {
+			cfg.Logger.Error("failed to add proposals.status_changed_by_id", "error", err)
+		} else {
+			cfg.Logger.Info("added proposals.status_changed_by_id")
+		}
+	}
+	if m := db.Migrator(); m.HasColumn(&models.Proposal{}, "StatusChangedByID") && !m.HasIndex(&models.Proposal{}, "StatusChangedByID") {
+		if err := m.CreateIndex(&models.Proposal{}, "StatusChangedByID"); err != nil {
+			cfg.Logger.Error("failed to index proposals.status_changed_by_id", "error", err)
+		}
+	}
+
 	// Set Stripe API key once at startup (not per-request) to avoid data races
 	if cfg.StripeSecretKey != "" {
 		stripe.Key = cfg.StripeSecretKey
