@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/email"
 	"github.com/sreday/cfp.ninja/pkg/models"
 	"github.com/stripe/stripe-go/v82"
+	"gorm.io/gorm"
 )
 
 // SetupServer initializes config, database, and routes, returning the config and handler.
@@ -46,21 +48,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 		}
 	}
 
-	// proposals.status_changed_by_id ("Accepted by ..."): production never runs the
-	// full auto-migrate, so this one nullable column (+ its index) is added on its own.
-	// Additive only: no existing column, row or index is touched.
-	if m := db.Migrator(); !m.HasColumn(&models.Proposal{}, "StatusChangedByID") {
-		if err := m.AddColumn(&models.Proposal{}, "StatusChangedByID"); err != nil {
-			cfg.Logger.Error("failed to add proposals.status_changed_by_id", "error", err)
-		} else {
-			cfg.Logger.Info("added proposals.status_changed_by_id")
-		}
-	}
-	if m := db.Migrator(); m.HasColumn(&models.Proposal{}, "StatusChangedByID") && !m.HasIndex(&models.Proposal{}, "StatusChangedByID") {
-		if err := m.CreateIndex(&models.Proposal{}, "StatusChangedByID"); err != nil {
-			cfg.Logger.Error("failed to index proposals.status_changed_by_id", "error", err)
-		}
-	}
+	EnsureStatusChangedByColumn(db, cfg.Logger)
 
 	// Set Stripe API key once at startup (not per-request) to avoid data races
 	if cfg.StripeSecretKey != "" {
@@ -225,5 +213,25 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 		authLimiter.Stop()
 		writeLimiter.Stop()
 		readLimiter.Stop()
+	}
+}
+
+// EnsureStatusChangedByColumn adds proposals.status_changed_by_id ("Accepted by ...")
+// and its index when they are missing. Production never runs the full auto-migrate,
+// so this one nullable column is added on its own at startup. Additive only: no
+// existing column, row or index is touched. Errors are logged, not fatal.
+func EnsureStatusChangedByColumn(db *gorm.DB, logger *slog.Logger) {
+	m := db.Migrator()
+	if !m.HasColumn(&models.Proposal{}, "StatusChangedByID") {
+		if err := m.AddColumn(&models.Proposal{}, "StatusChangedByID"); err != nil {
+			logger.Error("failed to add proposals.status_changed_by_id", "error", err)
+			return
+		}
+		logger.Info("added proposals.status_changed_by_id")
+	}
+	if !m.HasIndex(&models.Proposal{}, "StatusChangedByID") {
+		if err := m.CreateIndex(&models.Proposal{}, "StatusChangedByID"); err != nil {
+			logger.Error("failed to index proposals.status_changed_by_id", "error", err)
+		}
 	}
 }
