@@ -33,3 +33,6 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Database dumps (make db-backup) - real user data, never commit
+backups/

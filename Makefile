@@ -1,4 +1,4 @@
-.PHONY: fmt build run run-migrate test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
+.PHONY: fmt build run run-migrate db-backup test test-cover test-db-start test-db-stop test-db-status test-db-delete test-integration test-integration-only test-integration-cover test-payments test-payments-only coverage test-e2e test-e2e-only test-e2e-headed test-cli test-cli-only test-all secret stripe-listen
 
 # Common test environment variables
 TEST_DB_ENV = \
@@ -32,6 +32,15 @@ run:
 # Run the server
 run-migrate:
 	go run main.go -auto-migrate
+
+# Backup the production database (Neon) to backups/ (git-ignored). The URL is read
+# from Heroku at run time and never printed. Needs pg_dump 16+ and `heroku login`.
+# See docs/database-backups.md.
+HEROKU_APP ?= cfpninja
+db-backup:
+	@mkdir -p backups
+	@pg_dump --format=custom --no-owner --file="backups/cfpninja-$$(date +%Y%m%d-%H%M%S).dump" "$$(heroku config:get DATABASE_URL -a $(HEROKU_APP))"
+	@ls -lh backups | tail -1
 
 # Run unit tests (excludes integration/e2e/cli tests that need database)
 test:
