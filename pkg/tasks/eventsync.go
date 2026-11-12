@@ -385,7 +385,10 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 			continue
 		}
 
-		slug := conf42Slug(entry.ShortURL)
+		// The cfp_url slug wins over one derived from short_url, so renaming an
+		// event's short_url (ce2026 -> chaos2026) keeps its existing CFP and
+		// submissions instead of creating a second, empty event.
+		slug := conf42EventSlug(entry)
 		if slug == "" {
 			logger.Error("failed to generate conf42 slug", "short_url", entry.ShortURL, "name", entry.Name)
 			continue
@@ -414,6 +417,13 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 		var existing models.Event
 		if db.Where("slug = ?", slug).First(&existing).Error == nil {
 			diff := changedFields(existing, eventName, description, conf42Logo, conf42ContactEmail, eventDate, eventDate, true)
+			website := fmt.Sprintf("https://www.conf42.com/%s", entry.ShortURL)
+			if existing.Website != website {
+				if diff != "" {
+					diff += ","
+				}
+				diff += "website"
+			}
 			if diff == "" {
 				skipped++
 				continue // nothing changed
@@ -426,6 +436,7 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 				"logo_url":      conf42Logo,
 				"contact_email": conf42ContactEmail,
 				"is_paid":       true,
+				"website":       website,
 			}
 			if err := db.Model(&existing).Updates(updates).Error; err != nil {
 				logger.Error("failed to update conf42 event", "slug", slug, "error", err)
@@ -507,6 +518,18 @@ func syncConf42(db *gorm.DB, logger *slog.Logger, organiserIDs []uint) (created,
 }
 
 var conf42SlugRegex = regexp.MustCompile(`^([a-zA-Z]+)(\d{4})$`)
+
+var cfpNinjaURLRegex = regexp.MustCompile(`^https?://(?:www\.)?cfp\.ninja/e/([a-z0-9][a-z0-9-]*)/?$`)
+
+// conf42EventSlug returns the cfp.ninja slug for a Conf42 metadata entry: the
+// slug in its cfp_url (e.g. "https://cfp.ninja/e/conf42-ce-2026") when it has
+// one, otherwise the slug derived from short_url.
+func conf42EventSlug(entry conf42.EventEntry) string {
+	if m := cfpNinjaURLRegex.FindStringSubmatch(strings.TrimSpace(entry.CFPURL)); m != nil {
+		return m[1]
+	}
+	return conf42Slug(entry.ShortURL)
+}
 
 // conf42Slug converts a Conf42 short_url (e.g. "golang2026") to a slug (e.g. "conf42-golang-2026").
 func conf42Slug(shortURL string) string {

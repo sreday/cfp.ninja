@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sreday/cfp.ninja/pkg/conf42"
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
@@ -230,5 +231,25 @@ func TestTermsURLForSource(t *testing.T) {
 				t.Errorf("termsURLForSource(%q) = %q, want %q", tt.url, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestConf42EventSlug(t *testing.T) {
+	tests := []struct {
+		shortURL, cfpURL, want string
+	}{
+		// a renamed short_url keeps the slug of its existing CFP
+		{"chaos2026", "https://cfp.ninja/e/conf42-ce-2026", "conf42-ce-2026"},
+		{"chaos2027", "https://www.cfp.ninja/e/conf42-ce-2027/", "conf42-ce-2027"},
+		// no cfp_url, or one that isn't a cfp.ninja event: derive from short_url
+		{"golang2027", "", "conf42-golang-2027"},
+		{"ce2025", "https://www.papercall.io/conf42-chaos-engineering-2025", "conf42-ce-2025"},
+		{"sre2027", "https://cfp.ninja/e/", "conf42-sre-2027"},
+	}
+	for _, tt := range tests {
+		got := conf42EventSlug(conf42.EventEntry{ShortURL: tt.shortURL, CFPURL: tt.cfpURL})
+		if got != tt.want {
+			t.Errorf("conf42EventSlug(%q, %q) = %q, want %q", tt.shortURL, tt.cfpURL, got, tt.want)
+		}
 	}
 }
