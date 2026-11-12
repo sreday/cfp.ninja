@@ -12,6 +12,7 @@ import (
 type Message struct {
 	To      []string
 	Cc      []string
+	Bcc     []string
 	From    string
 	ReplyTo string
 	Subject string
@@ -46,6 +47,9 @@ func (s *ResendSender) Send(ctx context.Context, msg *Message) error {
 	if len(msg.Cc) > 0 {
 		params.Cc = msg.Cc
 	}
+	if len(msg.Bcc) > 0 {
+		params.Bcc = msg.Bcc
+	}
 	if msg.ReplyTo != "" {
 		params.ReplyTo = msg.ReplyTo
 	}
@@ -69,6 +73,7 @@ func (s *NoopSender) Send(_ context.Context, msg *Message) error {
 	s.Logger.Info("email send (noop)",
 		"to", msg.To,
 		"cc", msg.Cc,
+		"bcc", msg.Bcc,
 		"subject", msg.Subject,
 	)
 	return nil

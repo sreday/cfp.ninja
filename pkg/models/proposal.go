@@ -95,6 +95,13 @@ type Proposal struct {
 	StripePaymentID string `json:"stripe_payment_id,omitempty"`
 
 	CreatedByID *uint `gorm:"index;constraint:OnDelete:SET NULL" json:"created_by_id,omitempty"` // User who submitted
+
+	// Organiser who last changed the status (accept/reject/...). Nullable: older
+	// proposals and API-created ones have none.
+	StatusChangedByID *uint `gorm:"index" json:"status_changed_by_id,omitempty"`
+	// First name of that organiser, filled for organisers only when it was someone
+	// else ("Accepted by Anna" in the proposals view). Not stored.
+	StatusChangedBy string `gorm:"-" json:"status_changed_by,omitempty"`
 }
 
 // GetSpeakers unmarshals the speakers JSON

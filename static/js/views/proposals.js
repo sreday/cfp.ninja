@@ -261,6 +261,7 @@ function renderProposalItem(proposal, event) {
                     <p class="text-muted small mb-2">${escapeHtml(truncate((proposal.abstract || '').split('\n')[0], 150))}</p>
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <span class="badge ${statusInfo.class}">${escapeHtml(statusInfo.label)}</span>
+                        ${status === 'accepted' && proposal.status_changed_by ? `<span class="small text-muted accepted-by">Accepted by ${escapeHtml(proposal.status_changed_by)}</span>` : ''}
                         ${status === 'accepted' ? (proposal.attendance_confirmed
                             ? '<span class="badge bg-success">&#10003; Attendance Confirmed</span>'
                             : '<span class="badge bg-warning text-dark">&#9203; Awaiting Confirmation</span>'
@@ -343,6 +344,7 @@ function renderProposalModal(proposal) {
         <div class="modal-body">
             <div class="mb-3">
                 <span class="badge ${statusInfo.class} me-2">${escapeHtml(statusInfo.label)}</span>
+                ${proposal.status === 'accepted' && proposal.status_changed_by ? `<span class="small text-muted me-2 accepted-by">Accepted by ${escapeHtml(proposal.status_changed_by)}</span>` : ''}
                 <span class="badge bg-light text-dark me-2">${escapeHtml(proposal.format)}</span>
                 <span class="badge bg-light text-dark me-2">${escapeHtml(String(proposal.duration))} min</span>
                 <span class="badge bg-light text-dark">${escapeHtml(proposal.level)}</span>
@@ -617,12 +619,15 @@ function attachHandlers(event, allProposals) {
             try {
                 await API.updateProposalStatus(proposalId, status);
                 currentProposal.status = status;
+                currentProposal.status_changed_by = '';   // you changed it now: no "Accepted by"
 
                 // Update the proposal in allProposals array
                 const proposalIndex = allProposals.findIndex(p => (p.ID || p.id) === proposalId);
                 if (proposalIndex !== -1) {
                     allProposals[proposalIndex].status = status;
+                    allProposals[proposalIndex].status_changed_by = '';
                 }
+                modalContent.querySelectorAll('.accepted-by').forEach(el => el.remove());
 
                 toast.success('Status updated.');
                 // Update buttons
@@ -646,6 +651,7 @@ function attachHandlers(event, allProposals) {
                         listBadge.className = `badge ${newStatus.class}`;
                         listBadge.textContent = newStatus.label;
                     }
+                    listItem.querySelectorAll('.accepted-by').forEach(el => el.remove());
                 }
                 // Update stats display
                 updateStatsDisplay(allProposals);

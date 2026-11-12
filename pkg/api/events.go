@@ -1022,6 +1022,7 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 				encodeError(w, "Failed to load proposals", http.StatusInternalServerError)
 				return
 			}
+			fillStatusChangedBy(cfg, proposals, user.ID)
 		} else {
 			// Others see only their own proposals
 			if err := query.Where("created_by_id = ?", user.ID).Find(&proposals).Error; err != nil {
@@ -1037,6 +1038,49 @@ func GetEventProposalsHandler(cfg *config.Config) http.HandlerFunc {
 
 		encodeResponse(w, r, proposals)
 	}
+}
+
+// fillStatusChangedBy sets StatusChangedBy to the first name of the organiser who
+// last changed each proposal's status, when that was not the viewer.
+func fillStatusChangedBy(cfg *config.Config, proposals []models.Proposal, viewerID uint) {
+	ids := map[uint]bool{}
+	for _, p := range proposals {
+		if p.StatusChangedByID != nil && *p.StatusChangedByID != viewerID {
+			ids[*p.StatusChangedByID] = true
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	list := make([]uint, 0, len(ids))
+	for id := range ids {
+		list = append(list, id)
+	}
+	var users []models.User
+	if err := cfg.DB.Select("id", "name", "email").Where("id IN ?", list).Find(&users).Error; err != nil {
+		cfg.Logger.Error("failed to load status changers", "error", err)
+		return
+	}
+	names := map[uint]string{}
+	for _, u := range users {
+		names[u.ID] = firstName(u.Name, u.Email)
+	}
+	for i := range proposals {
+		if id := proposals[i].StatusChangedByID; id != nil && *id != viewerID {
+			proposals[i].StatusChangedBy = names[*id]
+		}
+	}
+}
+
+// firstName returns the first word of a name, else the part of the email before the @.
+func firstName(name, email string) string {
+	if f := strings.Fields(name); len(f) > 0 {
+		return f[0]
+	}
+	if at := strings.Index(email, "@"); at > 0 {
+		return email[:at]
+	}
+	return ""
 }
 
 // GetEventOrganizersHandler returns organizers for an event
