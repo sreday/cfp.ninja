@@ -392,8 +392,9 @@ type MyEventsResponse struct {
 
 // ManagingEvent represents an event the user manages
 type ManagingEvent struct {
-	ID            uint   `json:"id"`
-	Name          string `json:"name"`
+	ID            uint      `json:"id"`
+	Name          string    `json:"name"`
+	StartDate     time.Time `json:"start_date"`
 	CFPStatus     string `json:"cfp_status"`
 	ProposalCount int64  `json:"proposal_count"`
 }

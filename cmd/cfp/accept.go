@@ -49,6 +49,9 @@ var acceptApplyCmd = &cobra.Command{
 	RunE:  runAcceptApply,
 }
 
+// farMonths: events at least this far ahead aren't accepting speakers yet.
+const farMonths = 10
+
 var (
 	acceptConfirm string
 	acceptOut     string
@@ -73,6 +76,22 @@ func findEvent(client *cfp.Client, q string) (*cfp.ManagingEvent, error) {
 		}
 		if strings.Contains(strings.ToLower(e.Name), strings.ToLower(q)) {
 			hits = append(hits, e)
+		}
+	}
+	if len(hits) > 1 {
+		// In doubt, events 10+ months away drop out: nobody accepts speakers
+		// that far ahead (Marek 2026-11-13). By id they can still be picked.
+		var near []cfp.ManagingEvent
+		cutoff := time.Now().AddDate(0, farMonths, 0)
+		for _, e := range hits {
+			if e.StartDate.IsZero() || e.StartDate.Before(cutoff) {
+				near = append(near, e)
+			} else {
+				fmt.Fprintf(os.Stderr, "(skipping %d %s: it starts %s, %d+ months away)\n", e.ID, e.Name, e.StartDate.Format("2 Jan 2006"), farMonths)
+			}
+		}
+		if len(near) > 0 {
+			hits = near
 		}
 	}
 	switch len(hits) {
@@ -109,6 +128,9 @@ func runAcceptPlan(cmd *cobra.Command, args []string) error {
 	ps, err := client.EventProposals(ev.ID)
 	if err != nil {
 		return err
+	}
+	if !ev.StartDate.IsZero() && ev.StartDate.After(time.Now().AddDate(0, farMonths, 0)) {
+		fmt.Printf("NOTE: %s starts %s, %d+ months away. Speakers are rarely accepted this far ahead; is it the right event?\n\n", ev.Name, ev.StartDate.Format("2 Jan 2006"), farMonths)
 	}
 	pl := cfp.MakePlan(rows, ps)
 	pl.EventID, pl.EventName, pl.Made, pl.Sheet, pl.SheetHash = ev.ID, ev.Name, time.Now().UTC(), filepath.Base(args[1]), hash
