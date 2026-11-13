@@ -7,82 +7,100 @@ const C = {
 const ROUND_SECONDS = 60;
 const BEST_KEY = 'cfpninja.game.best';
 
-// ---------- the frog (SVG, redrawn from cfpninja_full.png) ----------
-function katana(id, withSheath) {
+// ---------- the frog (SVG traced over cfpninja_full.png, in its own pixel space) ----------
+// The frog is drawn in the logo's coordinates (viewBox 0 0 1986 1876) so it
+// looks like the logo; the arms and katanas keep their small local units and
+// are scaled up (ARM_K, BACK_K).
+const ARM_K = 3.8;           // forearm units -> logo px
+const BACK_K = 4.5;          // katana units on the back -> logo px
+const ELBOW = { L: [430, 1100], R: [1556, 1100] };
+const EYE_Y = 500;
+const U = 5;                 // pose units (laptop toss, bob) -> logo px
+
+function katana(id, withSheath, k = 1) {
     // grip at 0,0; the blade points along -y, the pommel along +y
-    return `<g id="${id}">
-        ${withSheath ? '<rect x="-10" y="-190" width="20" height="160" rx="9" fill="#2a2d31" stroke="#000" stroke-width="5"/>' : ''}
+    return `<g id="${id}"><g transform="scale(${k})">
         <g class="fg-blade">
             <path d="M-7 -38 L-7 -165 Q-7 -186 9 -194 L9 -38 Z" fill="${C.blade}" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
             <path d="M3 -44 L3 -176" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
             <path class="fg-glint" d="M2 -150 l-9 -9 M2 -150 l9 -9 M2 -150 l-9 9 M2 -150 l9 9" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity="0"/>
         </g>
-        <rect x="-16" y="-40" width="32" height="10" rx="4" fill="#6b6e74" stroke="#000" stroke-width="5"/>
-        <rect x="-10" y="-30" width="20" height="64" rx="7" fill="${C.steel}" stroke="#000" stroke-width="5"/>
-        <path d="M-6 -22 l6 7 l6 -7 Z M-6 -6 l6 7 l6 -7 Z M-6 10 l6 7 l6 -7 Z" fill="${C.steelDark}"/>
-    </g>`;
+        ${withSheath ? '<rect x="-11" y="-196" width="22" height="160" rx="9" fill="#7d8085" stroke="#000" stroke-width="5"/>' : ''}
+        <rect x="-17" y="-42" width="34" height="11" rx="4" fill="#6b6e74" stroke="#000" stroke-width="5"/>
+        <rect x="-11" y="-31" width="22" height="66" rx="8" fill="${C.steel}" stroke="#000" stroke-width="5"/>
+        <path d="M-7 -24 l7 8 l7 -8 Z M-7 -8 l7 8 l7 -8 Z M-7 8 l7 8 l7 -8 Z" fill="${C.steelDark}"/>
+    </g></g>`;
 }
 
 function arm(id) {
-    return `<g id="${id}">
+    // a forearm from the elbow; the held katana sits in the hand
+    return `<g id="${id}"><g transform="scale(${ARM_K})">
         <g class="fg-limb">
             <rect x="-19" y="-8" width="38" height="58" rx="17" fill="${C.red}" stroke="#000" stroke-width="7"/>
             <ellipse cx="0" cy="58" rx="18" ry="16" fill="${C.green}" stroke="#000" stroke-width="7"/>
         </g>
-        <g class="fg-held" opacity="0">${katana(id + '-k', false)}</g>
-    </g>`;
+        <g class="fg-held" opacity="0">${katana(id + '-k', false, BACK_K / ARM_K)}</g>
+    </g></g>`;
 }
 
+const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 110 1346 180 1386 360 C1426 400 1516 470 1481 600 C1460 700 1300 760 993 792 C686 760 526 700 505 600 Z';
 const FROG_SVG = `
-<svg class="fg-frog" viewBox="0 0 400 380" aria-hidden="true">
-    <defs><clipPath id="fg-headclip"><path d="M95 150 C88 62 148 28 200 28 C252 28 312 62 305 150 C334 164 338 206 300 222 C250 246 150 246 100 222 C62 206 66 164 95 150 Z"/></clipPath></defs>
-    <g id="fg-all">
-        <ellipse cx="200" cy="354" rx="188" ry="16" fill="#000" opacity=".9"/>
+<svg class="fg-frog" viewBox="0 0 1986 1876" aria-hidden="true">
+    <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath></defs>
+    <g id="fg-all" stroke-linejoin="round" stroke-linecap="round">
+        <ellipse cx="993" cy="1700" rx="905" ry="80" fill="#000"/>
         <g id="fg-back">
-            <g transform="translate(54 100) rotate(152)">${katana('fg-bk1', true)}</g>
-            <g transform="translate(346 100) rotate(-152)">${katana('fg-bk2', true)}</g>
+            <g transform="translate(275 488) rotate(145)">${katana('fg-bk1', true, BACK_K)}</g>
+            <g transform="translate(1711 488) rotate(-145)">${katana('fg-bk2', true, BACK_K)}</g>
         </g>
-        <!-- body, lap, crossed legs -->
-        <path d="M72 330 C40 296 62 220 122 190 L278 190 C338 220 360 296 328 330 Z" fill="${C.red}" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
-        <path d="M165 192 L200 236 L235 192 Z" fill="${C.belly}" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
-        <ellipse cx="98" cy="300" rx="86" ry="38" fill="${C.red}" stroke="#000" stroke-width="8"/>
-        <ellipse cx="302" cy="300" rx="86" ry="38" fill="${C.red}" stroke="#000" stroke-width="8"/>
-        <path d="M40 290 Q90 268 150 282" stroke="${C.redHi}" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <path d="M250 282 Q310 268 360 290" stroke="${C.redHi}" stroke-width="9" fill="none" stroke-linecap="round"/>
-        <rect x="112" y="318" width="190" height="22" rx="11" fill="${C.green}" stroke="#000" stroke-width="7" transform="rotate(-7 207 329)"/>
-        <rect x="98" y="318" width="190" height="22" rx="11" fill="${C.green}" stroke="#000" stroke-width="7" transform="rotate(7 193 329)"/>
-        <!-- head -->
+        <g id="fg-body">
+            <path d="M175 1260 C215 1030 380 870 575 790 L1411 790 C1606 870 1771 1030 1811 1260 L1811 1520 L175 1520 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <path d="M690 780 L860 915 L1126 915 L1296 780 Z" fill="${C.belly}" stroke="#000" stroke-width="18"/>
+            <path d="M590 772 L652 920 M1396 772 L1334 920" stroke="#000" stroke-width="18" fill="none"/>
+            <ellipse cx="380" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <ellipse cx="1606" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <ellipse cx="345" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <ellipse cx="1641" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <path d="M150 1330 Q290 1278 480 1300 M1836 1330 Q1696 1278 1506 1300" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+            <path d="M530 1455 L720 1455 L700 1575 L560 1575 Z M1266 1455 L1456 1455 L1426 1575 L1286 1575 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+            <rect x="500" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-9 980 1627)"/>
+            <rect x="526" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(9 1006 1627)"/>
+        </g>
+        <g id="fg-tail">
+            <path d="M622 248 L305 192 L380 318 L565 302 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+            <path d="M592 318 L352 386 L462 466 L578 376 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+        </g>
         <g id="fg-head">
-            <path d="M95 150 C88 62 148 28 200 28 C252 28 312 62 305 150 C334 164 338 206 300 222 C250 246 150 246 100 222 C62 206 66 164 95 150 Z" fill="${C.green}" stroke="#000" stroke-width="10" stroke-linejoin="round"/>
+            <path d="${HEAD}" fill="${C.green}"/>
             <g id="fg-eyes">
-                <circle cx="157" cy="122" r="35" fill="#fff" stroke="#000" stroke-width="4"/>
-                <circle cx="243" cy="122" r="35" fill="#fff" stroke="#000" stroke-width="4"/>
-                <circle cx="161" cy="128" r="25" fill="#000"/>
-                <circle cx="239" cy="128" r="25" fill="#000"/>
-                <circle cx="170" cy="116" r="8" fill="#fff"/>
-                <circle cx="232" cy="116" r="8" fill="#fff"/>
+                <circle cx="768" cy="${EYE_Y}" r="140" fill="#fff"/>
+                <circle cx="1218" cy="${EYE_Y}" r="140" fill="#fff"/>
+                <g id="fg-pupils">
+                    <circle cx="792" cy="${EYE_Y + 6}" r="94" fill="#000"/>
+                    <circle cx="1194" cy="${EYE_Y + 6}" r="94" fill="#000"/>
+                    <circle cx="822" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
+                    <circle cx="1164" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
+                </g>
             </g>
             <g clip-path="url(#fg-headclip)">
-                <path d="M40 0 L360 0 L360 96 Q262 86 214 112 Q200 120 186 112 Q138 86 40 96 Z" fill="${C.red}" stroke="#000" stroke-width="8"/>
-                <path d="M80 66 Q200 56 320 66" stroke="#000" stroke-width="6" fill="none"/>
-                <path d="M84 80 Q200 70 316 80" stroke="${C.redHi}" stroke-width="8" fill="none"/>
+                <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M590 262 Q993 232 1396 262" stroke="#000" stroke-width="16" fill="none"/>
+                <path d="M605 296 Q993 268 1381 296" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+                <path d="M597 642 Q993 770 1389 642 Q1376 724 1290 772 Q1150 840 993 846 Q836 840 696 772 Q610 724 597 642 Z" fill="${C.belly}"/>
             </g>
-            <path d="M104 68 L60 40 L44 54 L80 76 Z" fill="${C.red}" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
-            <path d="M104 80 L66 104 L78 118 L110 92 Z" fill="${C.red}" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
-            <path d="M118 170 Q200 206 282 170 Q272 220 200 226 Q128 220 118 170 Z" fill="${C.belly}"/>
-            <path d="M116 166 Q200 202 284 166" stroke="#000" stroke-width="7" fill="none" stroke-linecap="round"/>
-            <ellipse cx="189" cy="152" rx="4" ry="6" fill="#000" transform="rotate(-25 189 152)"/>
-            <ellipse cx="211" cy="152" rx="4" ry="6" fill="#000" transform="rotate(25 211 152)"/>
-        </g>
-        <!-- laptop -->
-        <g id="fg-laptop">
-            <path d="M112 202 L288 202 L280 292 L120 292 Z" fill="${C.laptop}" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
-            <path d="M124 212 L276 212 L270 282 L130 282 Z" fill="none" stroke="${C.laptopHi}" stroke-width="3"/>
-            <text x="200" y="265" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="52" fill="#fff">CFP</text>
-            <rect x="110" y="298" width="180" height="11" rx="5" fill="${C.laptopHi}" stroke="#000" stroke-width="5"/>
+            <path d="M610 632 Q993 772 1376 632" stroke="#000" stroke-width="22" fill="none"/>
+            <ellipse cx="945" cy="640" rx="17" ry="24" fill="#000" transform="rotate(-35 945 640)"/>
+            <ellipse cx="1041" cy="640" rx="17" ry="24" fill="#000" transform="rotate(35 1041 640)"/>
+            <path d="${HEAD}" fill="none" stroke="#000" stroke-width="26"/>
         </g>
         ${arm('fg-armL')}
         ${arm('fg-armR')}
+        <g id="fg-laptop">
+            <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
+            <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
+            <text x="993" y="1290" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="330" fill="#fff">CFP</text>
+            <rect x="575" y="1408" width="836" height="40" rx="20" fill="${C.laptopHi}" stroke="#000" stroke-width="16"/>
+        </g>
     </g>
 </svg>`;
 
@@ -208,6 +226,7 @@ export function mountFrogGame(stage, opts = {}) {
     const svg = $('.fg-frog');
     const el = {
         all: $('#fg-all'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
+        pupils: $('#fg-pupils'), tail: $('#fg-tail'), body: $('#fg-body'), head: $('#fg-head'),
         armL: $('#fg-armL'), armR: $('#fg-armR'),
         limbL: $('#fg-armL .fg-limb'), limbR: $('#fg-armR .fg-limb'),
         heldL: $('#fg-armL .fg-held'), heldR: $('#fg-armR .fg-held'),
@@ -229,26 +248,35 @@ export function mountFrogGame(stage, opts = {}) {
     const ro = new ResizeObserver(resize); ro.observe(stage);
 
     // frog pose: shoulder pivots in SVG units; katana angles are world angles (0 = blade up)
-    const pose = { lRot: -21, rRot: 21, lStretch: 1, rStretch: 1, lK: -30, rK: 30, blade: 1, held: false, laptop: { x: 0, y: 0, rot: 0, gone: false }, bob: 0, blink: 0, glint: 0 };
+    const pose = { lRot: -30, rRot: 30, lStretch: 1, rStretch: 1, lK: -30, rK: 30, blade: 1, held: false, laptop: { x: 0, y: 0, rot: 0, gone: false },
+        bob: 0, blink: 0, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0 };
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
+    const REST = { l: -30, r: 30 };
     function applyPose() {
-        const setArm = (g, limb, held, blade, x, rot, stretch, kWorld) => {
-            g.setAttribute('transform', `translate(${x} 214) rotate(${rot})`);
+        const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld) => {
+            g.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
             limb.setAttribute('transform', `scale(1 ${stretch})`);
             held.setAttribute('transform', `translate(0 ${58 * stretch}) rotate(${kWorld - rot})`);
             held.setAttribute('opacity', pose.held ? 1 : 0);
             blade.setAttribute('transform', `translate(0 -38) scale(1 ${pose.blade}) translate(0 38)`);
         };
-        setArm(el.armL, el.limbL, el.heldL, el.bladeL, 100, pose.lRot, pose.lStretch, pose.lK);
-        setArm(el.armR, el.limbR, el.heldR, el.bladeR, 300, pose.rRot, pose.rStretch, pose.rK);
+        setArm(el.armL, el.limbL, el.heldL, el.bladeL, ELBOW.L, pose.lRot, pose.lStretch, pose.lK);
+        setArm(el.armR, el.limbR, el.heldR, el.bladeR, ELBOW.R, pose.rRot, pose.rStretch, pose.rK);
         el.back.setAttribute('opacity', pose.held ? 0 : 1);
         const L = pose.laptop;
         el.laptop.setAttribute('opacity', L.gone ? 0 : 1);
-        el.laptop.setAttribute('transform', `translate(${L.x} ${L.y}) rotate(${L.rot} 200 255)`);
-        el.all.setAttribute('transform', `translate(0 ${pose.bob})`);
-        el.eyes.setAttribute('transform', `translate(0 122) scale(1 ${1 - pose.blink * 0.9}) translate(0 -122)`);
+        el.laptop.setAttribute('transform', `translate(${L.x * U} ${L.y * U}) rotate(${L.rot} 993 1160)`);
+        el.all.setAttribute('transform', `translate(0 ${pose.bob * U})`);
+        // breathing: the robe swells a little from the floor up; the head rides on it
+        el.body.setAttribute('transform', `translate(0 1520) scale(1 ${1 + pose.breath * 0.012}) translate(0 -1520)`);
+        el.head.setAttribute('transform', `translate(0 ${-pose.breath * 9}) rotate(${pose.tilt} 993 700)`);
+        el.tail.setAttribute('transform', `translate(0 ${-pose.breath * 9}) rotate(${pose.tail} 600 300)`);
+        el.eyes.setAttribute('transform', `translate(0 ${EYE_Y}) scale(1 ${1 - pose.blink * 0.92}) translate(0 ${-EYE_Y})`);
+        el.pupils.setAttribute('transform', `translate(${pose.lookX} ${pose.lookY})`);
         el.glints.forEach(g => g.setAttribute('opacity', pose.glint));
     }
+
+    applyPose(); // the resting pose before the first frame (the arms would sit at 0,0)
 
     // ---------- state ----------
     let phase = 'idle';           // idle | intro | play | over
@@ -256,7 +284,25 @@ export function mountFrogGame(stage, opts = {}) {
     let best = store.get(BEST_KEY), slices = 0;
     let fruits = [], halves = [], drops = [], floats = [], trail = [], slashes = [];
     let slash = null;             // { side, t }
-    let blinkAt = 2;
+    let blinkAt = 2, hopT = 0, pointer = null;
+
+    // the eyes follow the nearest fruit (or the finger while slicing)
+    function look(dt) {
+        let tx = 0, ty = 0;
+        let target = down && pointer ? pointer : null;
+        if (!target && fruits.length) {
+            let best = Infinity;
+            fruits.forEach(f => { const d = Math.hypot(f.x - W / 2, f.y - H); if (f.entered && d < best) { best = d; target = { x: f.x, y: f.y }; } });
+        }
+        if (target) {
+            const fb = svg.getBoundingClientRect(), cb = canvas.getBoundingClientRect();
+            const ex = fb.left - cb.left + fb.width * (993 / 1986), ey = fb.top - cb.top + fb.height * (EYE_Y / 1876);
+            const dx = target.x - ex, dy = target.y - ey, d = Math.hypot(dx, dy) || 1;
+            tx = dx / d * 30; ty = dy / d * 22;
+        }
+        const k = Math.min(1, dt * 8);
+        pose.lookX += (tx - pose.lookX) * k; pose.lookY += (ty - pose.lookY) * k;
+    }
     el.best.textContent = best;
 
     function hud() {
@@ -271,13 +317,13 @@ export function mountFrogGame(stage, opts = {}) {
         if (reduced) {
             const k = seg(t, 0, 0.6);
             pose.laptop.gone = k > 0.5; pose.held = k > 0.5; pose.blade = 1;
-            pose.lRot = lerp(-21, READY.l, k); pose.rRot = lerp(21, READY.r, k);
+            pose.lRot = lerp(REST.l, READY.l, k); pose.rRot = lerp(REST.r, READY.r, k);
             pose.lK = READY.lK; pose.rK = READY.rK;
             return;
         }
         // lift (0-0.45), fling right arm (0.45-0.75), laptop flies (0.5-1.5)
         const lift = seg(t, 0, 0.45);
-        pose.lRot = lerp(-21, -38, lift); pose.rRot = lerp(21, 38, lift);
+        pose.lRot = lerp(REST.l, -48, lift); pose.rRot = lerp(REST.r, 48, lift);
         const L = pose.laptop;
         if (t < 0.5) { L.y = -26 * lift; L.x = 0; L.rot = 0; }
         else {
@@ -286,22 +332,22 @@ export function mountFrogGame(stage, opts = {}) {
             L.gone = s >= 1;
         }
         const fling = seg(t, 0.45, 0.7), back = seg(t, 0.7, 1.0);
-        pose.rRot = t < 0.45 ? pose.rRot : lerp(lerp(38, -125, fling), 21, back);
-        pose.lRot = t < 0.45 ? pose.lRot : lerp(-38, -21, seg(t, 0.45, 0.9));
+        pose.rRot = t < 0.45 ? pose.rRot : lerp(lerp(48, -125, fling), REST.r, back);
+        pose.lRot = t < 0.45 ? pose.lRot : lerp(-48, REST.l, seg(t, 0.45, 0.9));
         // reach over the shoulders (1.0-1.4)
         const reach = seg(t, 1.0, 1.4);
         if (t >= 1.0) {
-            pose.lRot = lerp(-21, 158, reach); pose.rRot = lerp(21, -158, reach);
-            pose.lStretch = pose.rStretch = lerp(1, 1.6, reach);
+            pose.lRot = lerp(REST.l, 162, reach); pose.rRot = lerp(REST.r, -162, reach);
+            pose.lStretch = pose.rStretch = lerp(1, 2.1, reach);
         }
         // grab + unsheathe (1.4-1.65)
-        if (t >= 1.4) { pose.held = true; pose.blade = seg(t, 1.4, 1.65); pose.lK = 152; pose.rK = -152; }
+        if (t >= 1.4) { pose.held = true; pose.blade = seg(t, 1.4, 1.65); pose.lK = 145; pose.rK = -145; }
         // swing out to the ready stance (1.65-2.2)
         const out = seg(t, 1.65, 2.2);
         if (t >= 1.65) {
-            pose.lRot = lerp(158, READY.l, out); pose.rRot = lerp(-158, READY.r, out);
-            pose.lStretch = pose.rStretch = lerp(1.6, 1, out);
-            pose.lK = lerp(152, 360 + READY.lK, out); pose.rK = lerp(-152, -360 + READY.rK, out);
+            pose.lRot = lerp(162, READY.l, out); pose.rRot = lerp(-162, READY.r, out);
+            pose.lStretch = pose.rStretch = lerp(2.1, 1, out);
+            pose.lK = lerp(145, 360 + READY.lK, out); pose.rK = lerp(-145, -360 + READY.rK, out);
         }
         pose.glint = t > 2.15 ? Math.sin(clamp((t - 2.15) / 0.4, 0, 1) * Math.PI) : 0;
         pose.bob = t > 1.0 && t < 1.4 ? -6 * Math.sin((t - 1.0) / 0.4 * Math.PI) : 0;
@@ -380,7 +426,7 @@ export function mountFrogGame(stage, opts = {}) {
     const pos = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
     function onDown(e) {
         if (phase === 'intro') { phaseT = INTRO; return; }  // skip the intro
-        down = true; [lx, ly] = pos(e);
+        down = true; [lx, ly] = pos(e); pointer = { x: lx, y: ly };
         trail.push({ x: lx, y: ly, t: performance.now() });
         hitTest(lx, ly, lx, ly);
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
@@ -389,6 +435,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (!down) return;
         const [x, y] = pos(e);
         trail.push({ x, y, t: performance.now() });
+        pointer = { x, y };
         hitTest(lx, ly, x, y);
         lx = x; ly = y;
     }
@@ -406,7 +453,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function gameOver() {
         phase = 'over';
-        if (score > best) { best = score; store.set(BEST_KEY, best); el.best.textContent = best; }
+        if (score > best) { best = score; store.set(BEST_KEY, best); el.best.textContent = best; hopT = 0.5; }
         el.title.textContent = score >= best && score > 0 ? 'New best: ' + score : 'Score: ' + score;
         el.sub.textContent = 'Time is up. Your best on this device: ' + best + '.';
         el.start.textContent = 'Play again';
@@ -442,6 +489,11 @@ export function mountFrogGame(stage, opts = {}) {
                 if (slash.t > 0.26) slash = null;
             }
         }
+        pose.breath = Math.sin(idleT * 1.7);
+        pose.tail = Math.sin(idleT * 5.3) * 5 + Math.sin(idleT * 11.7) * 2 + (slash ? 6 : 0);
+        pose.tilt = slash ? (slash.side === 'L' ? -3 : 3) * Math.sin(clamp(slash.t / 0.26, 0, 1) * Math.PI) : Math.sin(idleT * 0.6) * 1.2;
+        look(dt);
+        if (hopT > 0) { hopT = Math.max(0, hopT - dt); pose.bob -= 14 * Math.sin((1 - hopT / 0.5) * Math.PI); }
         blinkAt -= dt;
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
         applyPose();
