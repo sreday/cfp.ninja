@@ -24,7 +24,12 @@ func InitDB(dsn string) (*gorm.DB, error) {
 		logLevel = logger.Silent
 	}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	// Simple protocol: no named prepared statements. Production sits behind
+	// Neon's PgBouncer pooler, which keeps prepared statements on its server
+	// connections across app restarts; after a column was added (2026-11-13)
+	// those stale "SELECT *" plans failed with "cached plan must not change
+	// result type". Unprepared queries can't go stale.
+	db, err := gorm.Open(postgres.New(postgres.Config{DSN: dsn, PreferSimpleProtocol: true}), &gorm.Config{
 		Logger: logger.Default.LogMode(logLevel),
 	})
 	if err != nil {
