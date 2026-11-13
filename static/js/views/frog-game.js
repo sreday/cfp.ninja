@@ -19,10 +19,11 @@ const BURN_TIME = 0.3;                          // seconds a fruit must stay in 
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 const SAKE_SECONDS = 5;                         // golden sake: free slashes
 // A cut is at most CUT_MAX of the screen's longer side (no limits while sake is on) and a sharp turn starts
-// a new one, so circling or scrubbing can't slice for free. Between cuts the
-// blade rests for CUT_BREAK seconds.
-const CUT_MAX = 1, CUT_BREAK = 0.09;            // CUT_MAX = the screen's longer side
-const TURN_STEP = 16, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, max turn
+// a new one, so circling or scrubbing can't slice for free. Between cuts the blade
+// lifts for CUT_GAP px of travel: a distance, not a time, so the gap stays small
+// however fast you slash.
+const CUT_MAX = 1, CUT_GAP = 12;                 // CUT_MAX = the screen's longer side
+const TURN_STEP = 10, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, max turn
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
 const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
@@ -432,8 +433,12 @@ export function mountFrogGame(stage, opts = {}) {
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        glowCv.width = canvas.width; glowCv.height = canvas.height;
         measureFrog();
     }
+    // the trail's glow is drawn opaque here, then laid over the game at one alpha
+    // (overlapping translucent strokes would double up into beads)
+    var glowCv = document.createElement('canvas'), gctx = glowCv.getContext('2d');
     // the frog SVG's box relative to the canvas, measured on resize (no layout reads per frame)
     let fbox = { x: 0, y: 0, w: 1, h: 1 };
     function measureFrog() {
@@ -782,7 +787,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     let down = false, lx = 0, ly = 0, aim = null;
-    let cut = null, cutId = 0, cutRestAt = 0;   // the live cut; no new cut before cutRestAt
+    let cut = null, cutId = 0, gapLeft = 0;     // the live cut; px still to travel before the next one
+    let dullId = 0;                             // out of stamina: a thin red trace that doesn't cut
     let press = null;                           // a press that hasn't moved yet: no cut, no stamina
     const PRESS_DRAG = 10;                      // px of drag before a press becomes the first cut
     const cutMax = () => CUT_MAX * Math.max(W, H);
@@ -797,11 +803,12 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function startCut(x, y, loud) {
         if (!payCut(loud)) return false;
-        cut = { id: ++cutId, len: 0, ax: x, ay: y, hx: 0, hy: 0 };
+        dullId = 0;
+        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0 };
         trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
         return true;
     }
-    function endCut() { cut = null; cutRestAt = performance.now() + CUT_BREAK * 1000; }
+    function endCut() { cut = null; gapLeft = CUT_GAP; }
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
@@ -834,8 +841,13 @@ export function mountFrogGame(stage, opts = {}) {
             lx = p0.x; ly = p0.y;
         }
         if (!cut) {
-            // resting between cuts, or waiting for stamina: the next cut starts here
-            if (performance.now() >= cutRestAt) startCut(x, y, false);
+            // the blade lifts for a few px between cuts, then the next cut starts here
+            gapLeft -= Math.hypot(x - lx, y - ly);
+            if (gapLeft <= 0 && !startCut(x, y, false)) {
+                // no stamina: show where the blade is, thin and red, cutting nothing
+                if (!dullId) dullId = ++cutId;
+                trail.push({ x, y, t: performance.now(), cut: dullId, d: 0, dull: true });
+            }
             lx = x; ly = y; return;
         }
         // sake: no limits, one continuous slash for as long as you hold
@@ -850,8 +862,13 @@ export function mountFrogGame(stage, opts = {}) {
         const ddx = x - cut.ax, ddy = y - cut.ay, dd = Math.hypot(ddx, ddy);
         if (dd >= TURN_STEP) {
             const hx = ddx / dd, hy = ddy / dd;
-            if ((cut.hx || cut.hy) && hx * cut.hx + hy * cut.hy < TURN_COS) { endCut(); lx = x; ly = y; return; }
-            cut.hx = hx; cut.hy = hy; cut.ax = x; cut.ay = y;
+            if ((cut.hx || cut.hy) && hx * cut.hx + hy * cut.hy < TURN_COS) {
+                // the turn was at the anchor: drop the bit drawn past it so the trace ends clean
+                const id = cut.id, ad = cut.ad;
+                trail = trail.filter(p => p.cut !== id || p.d <= ad + 0.5);
+                endCut(); gapLeft -= dd; lx = x; ly = y; return;
+            }
+            cut.hx = hx; cut.hy = hy; cut.ax = x; cut.ay = y; cut.ad = cut.len + Math.hypot(x - lx, y - ly);
         }
         // the length cap: clip the last bit and end the cut there
         const seg = Math.hypot(x - lx, y - ly), left = cutMax() - cut.len;
@@ -863,7 +880,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (done) endCut();
         lx = x; ly = y;
     }
-    function onUp() { down = false; cut = null; press = null; }
+    function onUp() { down = false; cut = null; press = null; dullId = 0; gapLeft = 0; }
     canvas.addEventListener('pointerdown', onDown);
     const noMenu = e => e.preventDefault();
     canvas.addEventListener('contextmenu', noMenu);
@@ -1205,45 +1222,38 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.restore();
         });
         if (trail.length > 1) {
-            // Each cut is one filled ribbon (glow, then the white blade). Stroking segment by
-            // segment with alpha doubled up at every joint and left beads on fast slashes.
+            // Each cut is a chain of round-capped strokes (a union of capsules: exact at any
+            // speed, no spikes at hairpins). The blade is opaque white; the glow is drawn opaque
+            // on its own layer and laid over once at 42%, so overlaps never bead up.
             const cm = cutMax();
-            const halfW = (p, glow) => {
+            const halfW = p => {
                 const age = clamp((tn - p.t) / 140, 0, 1);
                 const taper = p.free ? 0.15 + 0.85 * clamp(p.d / (cm * 0.1), 0, 1)     // sake: full width after a short ramp
                     : 0.15 + 0.85 * Math.pow(Math.sin(Math.PI * clamp(p.d / cm, 0, 1)), 0.6);
-                const w = (3.5 * (1 - age) + 0.5) * taper;      // fades by thinning, not by alpha
-                return glow ? w * 2.6 + 2 : w;
+                return (3.5 * (1 - age) + 0.5) * taper;          // fades by thinning, not by alpha
             };
-            const ribbon = (pts, glow) => {
-                const L = [], R = [];
-                for (let i = 0; i < pts.length; i++) {
-                    const a = pts[Math.max(0, i - 1)], c = pts[Math.min(pts.length - 1, i + 1)];
-                    let nx = -(c.y - a.y), ny = c.x - a.x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
-                    const w = halfW(pts[i], glow);
-                    L.push([pts[i].x + nx * w, pts[i].y + ny * w]); R.push([pts[i].x - nx * w, pts[i].y - ny * w]);
+            const strokeAll = (c2, glow) => {
+                c2.lineCap = 'round';
+                for (let i = 1; i < trail.length; i++) {
+                    const a = trail[i - 1], b = trail[i];
+                    if (a.cut !== b.cut || a.dull) continue;
+                    const w = (halfW(a) + halfW(b));             // = 2 x the mean half-width
+                    c2.lineWidth = glow ? w * 2.6 + 4 : w;
+                    c2.beginPath(); c2.moveTo(a.x, a.y); c2.lineTo(b.x, b.y); c2.stroke();
                 }
-                ctx.beginPath();
-                L.forEach(([x, y], i) => ctx[i ? 'lineTo' : 'moveTo'](x, y));
-                const head = pts[pts.length - 1], hw = halfW(head, glow);
-                const ha = Math.atan2(L[L.length - 1][1] - head.y, L[L.length - 1][0] - head.x);
-                ctx.arc(head.x, head.y, hw, ha, ha + Math.PI, true);        // round blade tip
-                for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
-                ctx.closePath(); ctx.fill();
             };
-            // split into cuts, dropping near-duplicate samples (they twist the normals)
-            const cuts = [];
-            let cur = null;
-            trail.forEach(p => {
-                if (!cur || cur.id !== p.cut) { cur = { id: p.cut, pts: [p] }; cuts.push(cur); return; }
-                const q = cur.pts[cur.pts.length - 1];
-                if (Math.abs(p.x - q.x) + Math.abs(p.y - q.y) >= 1.5) cur.pts.push(p);
-            });
-            ctx.save();
-            ctx.fillStyle = 'rgba(152,183,75,.42)';
-            cuts.forEach(c => { if (c.pts.length > 1) ribbon(c.pts, true); });
-            ctx.fillStyle = '#fff';
-            cuts.forEach(c => { if (c.pts.length > 1) ribbon(c.pts, false); });
+            gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
+            gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            gctx.strokeStyle = '#98b74b'; strokeAll(gctx, true);
+            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.42; ctx.drawImage(glowCv, 0, 0); ctx.restore();
+            ctx.save(); ctx.strokeStyle = '#fff'; strokeAll(ctx, false);
+            // out of stamina: a thin dark-red trace that cuts nothing
+            ctx.strokeStyle = '#b71c1c'; ctx.lineWidth = 2;
+            for (let i = 1; i < trail.length; i++) {
+                const a = trail[i - 1], b = trail[i];
+                if (a.cut !== b.cut || !a.dull || tn - b.t > 140) continue;
+                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            }
             ctx.restore();
         }
         floats.forEach(f => {
