@@ -14,6 +14,7 @@ import {
     EXPERIENCE_LEVELS
 } from '../utils.js';
 import { bucket as tzBucket, TZ_BUCKETS } from '../timezone.js';
+import { readSheet, makePlan, checkPlan, renderPlan } from './accept-csv.js';
 
 let anonymousMode = localStorage.getItem('cfpninja_anonymous_review') === 'true';
 
@@ -123,8 +124,10 @@ function renderProposalsView(container, event, proposals) {
                             <option value="unknown">Unknown</option>
                         </select>
                     </div>` : ''}
-                    <div class="col-md-2 text-end d-flex align-items-center justify-content-end gap-2">
+                    <div class="col text-end d-flex align-items-center justify-content-end gap-2">
                         <span class="small text-muted" id="proposal-count"></span>
+                        <button class="btn btn-outline-success btn-sm text-nowrap" id="accept-csv-btn" title="Upload your lineup (a CSV with the speakers' emails): you see who would be accepted and confirm">Accept speakers with .csv</button>
+                        <input type="file" id="accept-csv-file" accept=".csv,text/csv" hidden>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="anonymous-mode" ${localStorage.getItem('cfpninja_anonymous_review') === 'true' ? 'checked' : ''}>
                             <label class="form-check-label small" for="anonymous-mode">Anonymous</label>
@@ -477,6 +480,66 @@ function attachHandlers(event, allProposals) {
 
     let currentProposal = null;
 
+    // Accept speakers with a .csv (accept-csv.js): pick the file, see the
+    // list, confirm. Only the listed proposals change.
+    const csvInput = document.getElementById('accept-csv-file');
+    document.getElementById('accept-csv-btn')?.addEventListener('click', () => {
+        csvInput.value = '';
+        csvInput.click();
+    });
+    csvInput?.addEventListener('change', async () => {
+        const file = csvInput.files && csvInput.files[0];
+        if (!file) return;
+        let plan;
+        try {
+            plan = makePlan(readSheet(await file.text()), allProposals);
+        } catch (error) {
+            toast.error(error.message || 'Could not read the CSV.');
+            return;
+        }
+        currentProposal = null;
+        modalContent.innerHTML = renderPlan(plan, event, file.name);
+        openModal();
+        document.getElementById('accept-csv-go')?.addEventListener('click', async (e) => {
+            if (checkPlan(plan)) return;
+            const go = e.currentTarget;
+            go.disabled = true;
+            modalContent.querySelectorAll('[data-bs-dismiss="modal"]').forEach(b => { b.disabled = true; });
+            const progress = document.getElementById('accept-csv-progress');
+            let done = 0;
+            const failed = [];
+            for (const it of plan.accept) {
+                const p = allProposals.find(x => (x.ID || x.id) === it.id);
+                // Changed since the list was made (someone else, another tab): leave it.
+                if (!p || (p.status || 'submitted') !== it.status) { failed.push(`#${it.id} changed meanwhile, skipped`); continue; }
+                try {
+                    await API.updateProposalStatus(it.id, 'accepted');
+                    p.status = 'accepted';
+                    p.status_changed_by = '';
+                    done++;
+                    const li = proposalsList.querySelector(`.proposal-item[data-id="${it.id}"]`);
+                    if (li) {
+                        li.dataset.status = 'accepted';
+                        const badge = li.querySelector('.badge');
+                        const st = PROPOSAL_STATUSES.find(x => x.value === 'accepted');
+                        if (badge && st) { badge.className = `badge ${st.class}`; badge.textContent = st.label; }
+                    }
+                } catch (error) {
+                    failed.push(`#${it.id} ${it.speakers}: ${error.message || 'failed'}`);
+                }
+                progress.textContent = `Accepted ${done} of ${plan.accept.length}...`;
+            }
+            updateStatsDisplay(allProposals);
+            filterProposals();
+            progress.innerHTML = `<b>Done: ${done} of ${plan.accept.length} accepted.</b>` +
+                (failed.length ? `<div class="text-danger">${failed.map(f => escapeHtml(f)).join('<br>')}</div>` : '');
+            go.remove();
+            modalContent.querySelectorAll('[data-bs-dismiss="modal"]').forEach(b => { b.disabled = false; });
+            if (failed.length) toast.error(`${failed.length} not accepted, see the list.`);
+            else toast.success(`${done} speakers accepted.`);
+        });
+    });
+
     // Filter function
     const filterProposals = () => {
         const search = searchInput?.value?.toLowerCase() || '';
@@ -528,7 +591,10 @@ function attachHandlers(event, allProposals) {
 
         currentProposal = proposal;
         modalContent.innerHTML = renderProposalModal(proposal);
+        openModal();
+    });
 
+    function openModal() {
         // Simple modal show (without Bootstrap JS)
         modal.style.display = 'block';
         modal.classList.add('show');
@@ -553,7 +619,7 @@ function attachHandlers(event, allProposals) {
             if (e.key === 'Escape') closeModal();
         };
         document.addEventListener('keydown', modal._escHandler);
-    });
+    }
 
     // Close modal
     modal?.addEventListener('click', (e) => {
