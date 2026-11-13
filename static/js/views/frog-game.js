@@ -5,6 +5,12 @@ const C = {
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
 };
 const ROUND_SECONDS = 60;
+// Stamina: every slash costs one bar; bars come back at a steady pace.
+const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
+const FLY_POINTS = 25;
+const SAKE_SECONDS = 5;                         // golden sake: free slashes
+const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
+const MOUTH_Y = 700;                            // the smile, in logo px
 const BEST_KEY = 'cfpninja.game.best';
 
 // ---------- the frog (SVG traced over cfpninja_full.png, in its own pixel space) ----------
@@ -183,6 +189,42 @@ function drawHalf(ctx, f, r, lw) {
     ctx.restore();
 }
 
+function drawFly(ctx, fl, s, t) {
+    // a red fly: body, head, flapping wings
+    ctx.save(); ctx.translate(fl.x, fl.y); ctx.rotate(fl.dir < 0 ? Math.PI : 0); ctx.scale(fl.dir < 0 ? 1 : 1, fl.dir < 0 ? -1 : 1);
+    const flap = Math.abs(Math.sin(t * 55 + fl.phase));
+    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1;
+    [[-0.2, -1], [0.25, -1]].forEach(([ox]) => { ctx.beginPath(); ctx.ellipse(ox * s, -s * 0.55, s * 0.55, s * 0.9 * (0.3 + flap * 0.7), -0.3, 0, 7); ctx.fill(); ctx.stroke(); });
+    ctx.fillStyle = '#c62828'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1.2, s * 0.18);
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, s * 0.6, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#7f0000'; ctx.beginPath(); ctx.arc(s * 0.95, -s * 0.05, s * 0.42, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(s * 1.12, -s * 0.18, s * 0.14, 0, 7); ctx.fill();
+    ctx.restore();
+}
+
+function drawSake(ctx, b, lw) {
+    // a golden sake bottle (tokkuri): round belly, narrow neck, a red label
+    const r = b.r;
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    ctx.shadowColor = 'rgba(255,215,64,.9)'; ctx.shadowBlur = 16 + Math.sin(b.t * 8) * 6;
+    ctx.beginPath();
+    ctx.moveTo(-r * 0.22, -r * 1.25); ctx.lineTo(r * 0.22, -r * 1.25);
+    ctx.quadraticCurveTo(r * 0.2, -r * 0.55, r * 0.75, -r * 0.1);
+    ctx.quadraticCurveTo(r * 1.05, r * 0.45, r * 0.7, r * 0.85);
+    ctx.lineTo(-r * 0.7, r * 0.85);
+    ctx.quadraticCurveTo(-r * 1.05, r * 0.45, -r * 0.75, -r * 0.1);
+    ctx.quadraticCurveTo(-r * 0.2, -r * 0.55, -r * 0.22, -r * 1.25);
+    ctx.closePath();
+    ctx.fillStyle = '#f5c542'; ctx.fill();
+    ctx.shadowBlur = 0; ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.ellipse(-r * 0.4, -r * 0.05, r * 0.12, r * 0.35, 0.3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#a3211d'; ctx.fillRect(-r * 0.32, r * 0.05, r * 0.64, r * 0.5); ctx.strokeRect(-r * 0.32, r * 0.05, r * 0.64, r * 0.5);
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${r * 0.34}px Inter, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('酒', 0, r * 0.31);
+    ctx.fillStyle = '#6d4c41'; ctx.fillRect(-r * 0.26, -r * 1.42, r * 0.52, r * 0.2); ctx.strokeRect(-r * 0.26, -r * 1.42, r * 0.52, r * 0.2);
+    ctx.restore();
+}
+
 // ---------- helpers ----------
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -209,6 +251,7 @@ export function mountFrogGame(stage, opts = {}) {
         <canvas class="fg-canvas"></canvas>
         <div class="fg-hud">
             <div class="fg-pill"><span class="fg-label">Score</span><b class="fg-score">0</b></div>
+            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
             <div class="fg-pill fg-combo-pill" hidden><b class="fg-combo"></b></div>
             <div class="fg-pill fg-right"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
             <div class="fg-pill fg-best-pill"><span class="fg-label">Best</span><b class="fg-best">0</b></div>
@@ -216,7 +259,7 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-overlay">
             <div class="fg-panel">
                 <h2 class="fg-title">Frog Ninja</h2>
-                <p class="fg-sub">Slice the fruit before it lands. Faster fruit scores more. Chain slices for a combo.</p>
+                <p class="fg-sub">Left-drag to slice fruit (each slash uses a green stamina bar). Right-click to shoot your tongue: flies score, golden sake gives 5 s of free slashes, but swallowing fruit stuns you.</p>
                 <button type="button" class="btn btn-primary fg-start">Start</button>
                 <div class="fg-save"></div>
             </div>
@@ -234,7 +277,8 @@ export function mountFrogGame(stage, opts = {}) {
         glints: stage.querySelectorAll('.fg-held .fg-glint'),
         score: $('.fg-score'), best: $('.fg-best'), clock: $('.fg-clock'),
         combo: $('.fg-combo'), comboPill: $('.fg-combo-pill'),
-        save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start')
+        save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start'),
+        stamina: $('.fg-stamina'), bars: [...stage.querySelectorAll('.fg-stamina b')]
     };
 
     let W = 0, H = 0, dpr = 1;
@@ -285,6 +329,15 @@ export function mountFrogGame(stage, opts = {}) {
     let fruits = [], halves = [], drops = [], floats = [], trail = [], slashes = [];
     let slash = null;             // { side, t }
     let blinkAt = 2, hopT = 0, pointer = null;
+    let flies = [], sakes = [], stars = [], flyT = 3, sakeT = 12, flyCatches = 0;
+    let stamina = STAMINA_BARS, sakeLeft = 0, emptyFlash = 0, stunT = 0, stunFor = 0;
+    let tongue = null;            // { tx, ty, t, out, back, caught: { kind, obj } }
+
+    // where the mouth and the head are on the canvas
+    function frogPoint(lx, ly) {
+        const fb = svg.getBoundingClientRect(), cb = canvas.getBoundingClientRect();
+        return { x: fb.left - cb.left + fb.width * (lx / 1986), y: fb.top - cb.top + fb.height * (ly / 1876) + pose.bob * U * fb.height / 1876 };
+    }
 
     // the eyes follow the nearest fruit (or the finger while slicing)
     function look(dt) {
@@ -305,6 +358,14 @@ export function mountFrogGame(stage, opts = {}) {
     }
     el.best.textContent = best;
 
+    function staminaHud() {
+        const gold = sakeLeft > 0;
+        el.bars.forEach((b, i) => { b.style.width = (gold ? 100 : clamp(stamina - i, 0, 1) * 100) + '%'; });
+        el.stamina.classList.toggle('gold', gold);
+        el.stamina.classList.toggle('empty', !gold && stamina < 1);
+        el.stamina.classList.toggle('flash', emptyFlash > 0);
+        el.stamina.classList.toggle('stunned', stunT > 0);
+    }
     function hud() {
         el.score.textContent = score;
         el.clock.textContent = Math.max(0, Math.ceil(ROUND_SECONDS - clockT));
@@ -426,7 +487,17 @@ export function mountFrogGame(stage, opts = {}) {
     const pos = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
     function onDown(e) {
         if (phase === 'intro') { phaseT = INTRO; return; }  // skip the intro
-        down = true; [lx, ly] = pos(e); pointer = { x: lx, y: ly };
+        const [px, py] = pos(e);
+        if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        if (phase === 'play') {
+            if (stunT > 0) return;                                 // dizzy: no slashing
+            if (sakeLeft <= 0) {
+                if (stamina < 1) { emptyFlash = 0.5; return; }     // out of stamina
+                stamina -= 1;
+            }
+        }
+        down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         trail.push({ x: lx, y: ly, t: performance.now() });
         hitTest(lx, ly, lx, ly);
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
@@ -441,13 +512,92 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function onUp() { down = false; }
     canvas.addEventListener('pointerdown', onDown);
+    const noMenu = e => e.preventDefault();
+    canvas.addEventListener('contextmenu', noMenu);
     canvas.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+
+    // ---------- the tongue ----------
+    function shootTongue(x, y) {
+        if (phase !== 'play' || stunT > 0 || tongue) return;
+        const m = frogPoint(993, MOUTH_Y);
+        const d = Math.hypot(x - m.x, y - m.y);
+        tongue = { tx: x, ty: y, t: 0, out: 0.08 + d / 2600, back: 0.16, caught: null, hit: false };
+    }
+    function tongueGrab(x, y) {
+        const reach = Math.max(18, Math.min(W, H) * 0.035);
+        for (let i = flies.length - 1; i >= 0; i--) {
+            if (Math.hypot(flies[i].x - x, flies[i].y - y) < reach + flies[i].s) return { kind: 'fly', obj: flies.splice(i, 1)[0] };
+        }
+        for (let i = sakes.length - 1; i >= 0; i--) {
+            if (Math.hypot(sakes[i].x - x, sakes[i].y - y) < reach + sakes[i].r) return { kind: 'sake', obj: sakes.splice(i, 1)[0] };
+        }
+        for (let i = fruits.length - 1; i >= 0; i--) {
+            if (Math.hypot(fruits[i].x - x, fruits[i].y - y) < reach * 0.6 + fruits[i].r) return { kind: 'fruit', obj: fruits.splice(i, 1)[0] };
+        }
+        return null;
+    }
+    function swallow(c) {
+        const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
+        if (c.kind === 'fly') {
+            score += FLY_POINTS; flyCatches++;
+            floats.push({ x: m.x, y: m.y - 30, text: '+' + FLY_POINTS, t: 0, hot: false });
+        } else if (c.kind === 'sake') {
+            sakeLeft = SAKE_SECONDS; stamina = STAMINA_BARS;
+            floats.push({ x: m.x, y: m.y - 40, text: 'Sake! Free slashes', t: 0, hot: true });
+            hopT = 0.5;
+        } else {
+            // the fruit smashes on the frog's head: the bigger, the longer the stun
+            const f = c.obj, k = clamp((f.type.r - 0.85) / (1.35 - 0.85), 0, 1);
+            stunT = stunFor = lerp(STUN_MIN, STUN_MAX, k);
+            for (let i = 0; i < 18; i++) {
+                const a = rand(3.4, 6.0), v = rand(0.15, 0.5) * H;
+                drops.push({ x: head.x, y: head.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: f.type.juice, t: 0, s: rand(2, 6) });
+            }
+            [1, -1].forEach(s => halves.push({ type: f.type, r: f.r, x: head.x, y: head.y, vx: s * H * 0.25, vy: -H * 0.45, g: G(), rot: s < 0 ? Math.PI : 0, spin: s * 4, t: 0 }));
+            floats.push({ x: head.x, y: head.y - 20, text: 'Bonk!', t: 0, hot: true });
+            down = false; slash = null;
+        }
+        hud();
+    }
+    function stepTongue(dt) {
+        if (!tongue) return;
+        tongue.t += dt;
+        if (!tongue.hit && tongue.t >= tongue.out) {
+            tongue.hit = true;
+            tongue.caught = tongueGrab(tongue.tx, tongue.ty);
+        }
+        if (tongue.t >= tongue.out + tongue.back) {
+            if (tongue.caught) swallow(tongue.caught);
+            tongue = null;
+        }
+    }
+    function tongueTip() {
+        const m = frogPoint(993, MOUTH_Y);
+        const k = tongue.t < tongue.out ? tongue.t / tongue.out : 1 - (tongue.t - tongue.out) / tongue.back;
+        const e = clamp(k, 0, 1);
+        return { m, x: lerp(m.x, tongue.tx, e), y: lerp(m.y, tongue.ty, e) };
+    }
+
+    // ---------- flies and sake ----------
+    function spawnFly() {
+        const dir = Math.random() < 0.5 ? 1 : -1;
+        const s = clamp(Math.min(W, H) * 0.018, 8, 13);
+        flies.push({ x: dir > 0 ? -20 : W + 20, y: rand(H * 0.12, H * 0.55), base: 0, dir, s, speed: W * rand(0.1, 0.18), phase: rand(0, 6), t: 0 });
+        flies[flies.length - 1].base = flies[flies.length - 1].y;
+    }
+    function spawnSake() {
+        const r = clamp(Math.min(W, H) * 0.05, 20, 38);
+        const x = rand(W * 0.2, W * 0.8), g = G() * 0.55;
+        sakes.push({ x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * H), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
+    }
 
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
         score = 0; slices = 0; combo = 0; clockT = 0; spawnT = 0.6;
         fruits = []; halves = []; drops = []; floats = [];
+        flies = []; sakes = []; stars = []; flyT = 3; sakeT = rand(10, 16); flyCatches = 0;
+        stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
         if (pose.held) { phase = 'play'; } else { phase = 'intro'; phaseT = 0; }
     }
@@ -457,7 +607,8 @@ export function mountFrogGame(stage, opts = {}) {
         el.title.textContent = score >= best && score > 0 ? 'New best: ' + score : 'Score: ' + score;
         el.sub.textContent = 'Time is up. Your best on this device: ' + best + '.';
         el.start.textContent = 'Play again';
-        if (opts.onGameOver) opts.onGameOver({ score, slices, duration_ms: Math.round(clockT * 1000) }, el.save);
+        // flies count as cuts for the scoreboard's points-per-cut check
+        if (opts.onGameOver) opts.onGameOver({ score, slices: slices + flyCatches, duration_ms: Math.round(clockT * 1000) }, el.save);
         el.overlay.hidden = false;
     }
     el.start.addEventListener('click', start);
@@ -493,6 +644,11 @@ export function mountFrogGame(stage, opts = {}) {
         pose.tail = Math.sin(idleT * 5.3) * 5 + Math.sin(idleT * 11.7) * 2 + (slash ? 6 : 0);
         pose.tilt = slash ? (slash.side === 'L' ? -3 : 3) * Math.sin(clamp(slash.t / 0.26, 0, 1) * Math.PI) : Math.sin(idleT * 0.6) * 1.2;
         look(dt);
+        if (stunT > 0) {
+            pose.tilt = Math.sin(idleT * 14) * 7;
+            pose.lookX = Math.cos(idleT * 12) * 26; pose.lookY = Math.sin(idleT * 12) * 18;
+            pose.lRot = READY.l - 25; pose.rRot = READY.r + 25;
+        }
         if (hopT > 0) { hopT = Math.max(0, hopT - dt); pose.bob -= 14 * Math.sin((1 - hopT / 0.5) * Math.PI); }
         blinkAt -= dt;
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
@@ -508,9 +664,23 @@ export function mountFrogGame(stage, opts = {}) {
                 for (let i = 0; i < volley; i++) spawn(difficulty);
                 spawnT = lerp(1.1, 0.5, difficulty) * rand(0.8, 1.2);
             }
+            flyT -= dt;
+            if (flyT <= 0) { spawnFly(); flyT = rand(2.5, 5); }
+            sakeT -= dt;
+            if (sakeT <= 0) { spawnSake(); sakeT = rand(14, 20); }
+            if (sakeLeft > 0) sakeLeft = Math.max(0, sakeLeft - dt);
+            else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
+            if (stunT > 0) stunT = Math.max(0, stunT - dt);
             if (clockT >= ROUND_SECONDS) gameOver();
             hud();
         }
+        stepTongue(dt);
+        emptyFlash = Math.max(0, emptyFlash - dt);
+        flies.forEach(f => { f.t += dt; f.x += f.dir * f.speed * dt + Math.sin(f.t * 9 + f.phase) * 0.6; f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
+        flies = flies.filter(f => f.x > -40 && f.x < W + 40);
+        sakes.forEach(b => { b.t += dt; b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; });
+        sakes = sakes.filter(b => b.y < H + b.r * 3);
+        staminaHud();
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
             f.vy += f.g * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.spin * dt;
@@ -539,6 +709,37 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.globalAlpha = 1;
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         fruits.forEach(f => { ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); drawWhole(ctx, f, f.r, lw); ctx.restore(); });
+        sakes.forEach(b => drawSake(ctx, b, lw));
+        flies.forEach(f => drawFly(ctx, f, f.s, tn / 1000));
+        if (tongue) {
+            const { m, x, y } = tongueTip();
+            const w = clamp(Math.min(W, H) * 0.018, 6, 12);
+            ctx.save(); ctx.lineCap = 'round';
+            ctx.strokeStyle = '#000'; ctx.lineWidth = w + lw * 2; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(x, y); ctx.stroke();
+            ctx.strokeStyle = '#e57373'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(x, y); ctx.stroke();
+            ctx.fillStyle = '#ef9a9a'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
+            ctx.beginPath(); ctx.arc(x, y, w * 0.95, 0, 7); ctx.fill(); ctx.stroke();
+            ctx.restore();
+            const c = tongue.caught;
+            if (c) {
+                if (c.kind === 'fly') { c.obj.x = x; c.obj.y = y; drawFly(ctx, c.obj, c.obj.s, tn / 1000); }
+                else if (c.kind === 'sake') { c.obj.x = x; c.obj.y = y; drawSake(ctx, c.obj, lw); }
+                else { ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawWhole(ctx, c.obj, c.obj.r, lw); ctx.restore(); }
+            }
+        }
+        if (stunT > 0) {
+            const h = frogPoint(993, 150), rr = Math.min(W, H) * 0.07;
+            ctx.save(); ctx.globalAlpha = Math.min(1, stunT / 0.25);
+            for (let i = 0; i < 4; i++) {
+                const a = tn / 260 + i * Math.PI / 2;
+                const sx = h.x + Math.cos(a) * rr, sy = h.y + Math.sin(a) * rr * 0.35;
+                ctx.fillStyle = '#ffd54f'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+                ctx.beginPath();
+                for (let j = 0; j < 10; j++) { const ra = j % 2 ? 4 : 10, aa = j * Math.PI / 5 - Math.PI / 2; ctx[j ? 'lineTo' : 'moveTo'](sx + Math.cos(aa) * ra, sy + Math.sin(aa) * ra); }
+                ctx.closePath(); ctx.fill(); ctx.stroke();
+            }
+            ctx.restore();
+        }
         slashes.forEach(s => {
             const k = s.t / 0.18;
             ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a);
@@ -575,6 +776,7 @@ export function mountFrogGame(stage, opts = {}) {
     function destroy() {
         dead = true; cancelAnimationFrame(raf); ro.disconnect();
         window.removeEventListener('pointerup', onUp);
+        canvas.removeEventListener('contextmenu', noMenu);
         document.removeEventListener('visibilitychange', onVis);
     }
     return { destroy };

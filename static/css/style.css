@@ -1432,6 +1432,20 @@ a:hover {
 .fg-start { min-width: 140px; }
 
 .fg-saved { font-weight: 600; color: var(--success); }
+/* stamina: one bar per slash, green; red glow when empty; gold on sake */
+.fg-stamina { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); display: flex; gap: 5px; padding: 7px 10px; border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid var(--border); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s; }
+.fg-stamina i { display: block; width: 26px; height: 12px; border-radius: 4px; background: rgba(0,0,0,.35); border: 1.5px solid #000; overflow: hidden; }
+.fg-stamina b { display: block; height: 100%; width: 100%; background: linear-gradient(#b6d36a, #98b74b); }
+.fg-stamina.empty { border-color: #e53935; box-shadow: 0 0 14px 3px rgba(229,57,53,.75); animation: fg-empty 0.9s ease-in-out infinite; }
+.fg-stamina.flash { animation: fg-shake .25s linear 2; }
+.fg-stamina.gold { border-color: #f5c542; box-shadow: 0 0 16px 4px rgba(245,197,66,.8); }
+.fg-stamina.gold b { background: linear-gradient(#ffe082, #f5c542); }
+.fg-stamina.stunned { opacity: .55; }
+@keyframes fg-empty { 50% { box-shadow: 0 0 22px 6px rgba(229,57,53,.95); } }
+@keyframes fg-shake { 25% { transform: translateX(calc(-50% - 4px)); } 75% { transform: translateX(calc(-50% + 4px)); } }
+@media (max-width: 575px) { .fg-stamina { top: 46px; } .fg-stamina i { width: 18px; } }
+@media (prefers-reduced-motion: reduce) { .fg-stamina.empty, .fg-stamina.flash { animation: none; } }
 
 .game-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
 .game-head h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
