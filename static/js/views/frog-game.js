@@ -378,7 +378,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
                         <div class="fg-fruits"></div>
-                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per fruit, up to +40% as ${GRADES[GRADES.length - 1].name}.</p>
+                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per slashed fruit, up to +40% as ${GRADES[GRADES.length - 1].name} (fire gets half). The grade never drops during slow motion.</p>
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
@@ -726,7 +726,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- fire breath (firefly) ----------
     function burnFruit(f) {
-        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus);
+        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         // what's left: a puddle of molten fruit dripping down
         const r = f.r, col = f.type.flesh, skin = f.type.skin;
@@ -1106,8 +1106,8 @@ export function mountFrogGame(stage, opts = {}) {
         slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
         const tn = performance.now();
         trail = trail.filter(p => tn - p.t < 140);
-        // the style meter drains once you stop slashing (not while the fire breath locks the blades)
-        if (phase === 'play' && fireLeft <= 0 && style > 0 && tn - lastSlice > STYLE_HOLD * 1000) {
+        // the style meter drains once you stop slashing; it only goes up during fire breath and slow motion
+        if (phase === 'play' && fireLeft <= 0 && freezeLeft <= 0 && style > 0 && tn - lastSlice > STYLE_HOLD * 1000) {
             style = Math.max(0, style - STYLE_DRAIN * dt); updateGrade(false);
         }
 
