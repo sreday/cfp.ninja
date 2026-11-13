@@ -850,7 +850,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase !== 'play' || stunT > 0 || tongue) return;
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
-        tongue = { tx: x, ty: y, t: 0, out: 0.08 + d / 2600, back: 0.16, caught: null, hit: false };
+        tongue = { tx: x, ty: y, t: 0, out: 0.04 + d / 5200, back: 0.08, caught: null, hit: false };
     }
     function tongueGrab(x, y) {
         // pickups first and generous (they sit in front of the fruit), fruit a little stricter
