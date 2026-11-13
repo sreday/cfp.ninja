@@ -126,12 +126,12 @@ function renderProposalsView(container, event, proposals) {
                     </div>` : ''}
                     <div class="col text-end d-flex align-items-center justify-content-end gap-2">
                         <span class="small text-muted" id="proposal-count"></span>
-                        <button class="btn btn-outline-success btn-sm text-nowrap" id="accept-csv-btn" title="Upload your lineup (a CSV with the speakers' emails): you see who would be accepted and confirm">Accept speakers with .csv</button>
-                        <input type="file" id="accept-csv-file" accept=".csv,text/csv" hidden>
                         <div class="form-check form-switch mb-0">
                             <input class="form-check-input" type="checkbox" id="anonymous-mode" ${localStorage.getItem('cfpninja_anonymous_review') === 'true' ? 'checked' : ''}>
                             <label class="form-check-label small" for="anonymous-mode">Anonymous</label>
                         </div>
+                        <button class="btn btn-outline-success btn-sm text-nowrap" id="accept-csv-btn" title="Upload your lineup (a CSV with the speakers' emails): you see who would be accepted and confirm">Accept speakers with .csv</button>
+                        <input type="file" id="accept-csv-file" accept=".csv,text/csv" hidden>
                     </div>
                 </div>
             </div>
