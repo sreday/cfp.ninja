@@ -13,7 +13,7 @@ import (
 )
 
 // Frog Ninja (cfp.ninja/game) is a survival run: the clock starts at 30 s and
-// every cut fruit buys back at most 1 s (0.5 s doubled by a combo), so the score
+// every cut fruit buys back at most 0.7 s (0.5 s +40% at the top style grade; the cap allows 1 s), so the score
 // (ms survived) can't exceed the start time plus 1 s per cut. No round cap: good players
 // go for minutes. These caps reject runs no human reaches.
 const (

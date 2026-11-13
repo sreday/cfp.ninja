@@ -1422,8 +1422,24 @@ a:hover {
 .fg-pill.fg-low b { color: #e53935; }
 .fg-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); }
 .fg-right { margin-left: auto; }
-.fg-combo-pill { background: #a3211d; border-color: #a3211d; color: #fff; }
-.fg-combo-pill[hidden], .fg-overlay[hidden] { display: none; }
+.fg-overlay[hidden] { display: none; }
+/* style grade: C Tadpole .. SS Frog Sensei */
+.fg-grade { position: absolute; left: 12px; top: 62px; z-index: 3; pointer-events: none; display: flex; align-items: center; gap: 10px;
+    padding: 6px 14px 6px 8px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm); --gc: #9e9e9e; }
+.fg-grade-letter { font: 900 2.1rem/1 Inter, sans-serif; min-width: 1.5em; text-align: center; color: var(--gc); -webkit-text-stroke: 1.5px #000; paint-order: stroke fill; font-style: italic; }
+.fg-grade-body { display: flex; flex-direction: column; min-width: 128px; }
+.fg-grade-name { font-weight: 700; font-size: .9rem; line-height: 1.15; }
+.fg-grade-bonus { font-size: .72rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.fg-grade i { display: block; height: 5px; margin-top: 4px; border-radius: 3px; background: rgba(0,0,0,.25); overflow: hidden; }
+.fg-grade s { display: block; height: 100%; width: 0; background: var(--gc); }
+.fg-grade[data-g="B"] { --gc: #7cb342; }
+.fg-grade[data-g="A"] { --gc: #42a5f5; }
+.fg-grade[data-g="S"] { --gc: #f5c542; border-color: #f5c542; }
+.fg-grade[data-g="SS"] { --gc: #ff5252; border-color: #ff5252; box-shadow: 0 0 14px 3px rgba(255,82,82,.55); }
+.fg-grade.fg-grade-up .fg-grade-letter { animation: fg-grade-pop .45s ease-out; }
+@keyframes fg-grade-pop { 0% { transform: scale(1.9); } 100% { transform: scale(1); } }
+@media (max-width: 900px) { .fg-grade { top: 104px; } }
 .fg-overlay { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px;
     background: color-mix(in srgb, var(--background) 35%, transparent); }
 .fg-panel { max-width: 460px; width: 100%; text-align: center; padding: 22px 24px; border-radius: var(--radius-xl);
@@ -1453,7 +1469,7 @@ a:hover {
     font: 900 min(28vh, 180px)/1 Inter, sans-serif; color: #fff; -webkit-text-stroke: 6px #000; paint-order: stroke fill; }
 .fg-count.pop { animation: fg-pop .9s ease-out both; }
 @keyframes fg-pop { 0% { transform: scale(1.8); opacity: 0; } 20% { transform: scale(1); opacity: 1; } 75% { opacity: 1; } 100% { transform: scale(.85); opacity: 0; } }
-.fg-combo-pill.fg-combo-on { background: #f5c542; border-color: #000; color: #000; }
+
 
 .fg-saved { font-weight: 600; color: var(--success); }
 /* stamina: one bar per slash, green; red glow when empty; gold on sake */
@@ -1470,7 +1486,7 @@ a:hover {
 @keyframes fg-shake { 25% { transform: translateX(calc(-50% - 4px)); } 75% { transform: translateX(calc(-50% + 4px)); } }
 @media (max-width: 575px) { .fg-stamina { top: 46px; gap: 5px; padding: 7px 10px; } .fg-stamina i { width: 36px; height: 20px; } }
 @media (max-width: 900px) and (min-width: 576px) { .fg-stamina { top: 46px; } }
-@media (prefers-reduced-motion: reduce) { .fg-stamina.empty, .fg-stamina.flash, .fg-count.pop { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .fg-stamina.empty, .fg-stamina.flash, .fg-count.pop, .fg-grade.fg-grade-up .fg-grade-letter { animation: none; } }
 
 .game-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
 .game-head h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }

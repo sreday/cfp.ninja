@@ -26,8 +26,16 @@ const TURN_STEP = 16, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, 
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
 const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
-// combo: COMBO_STREAK fruit slashed with gaps under COMBO_GAP ms doubles the time each fruit buys
-const COMBO_STREAK = 10, COMBO_GAP = 700;
+// Style grade: every slashed fruit fills the meter; stop slashing for STYLE_HOLD s and it
+// drains. The grade adds a bonus to the time each fruit buys.
+const GRADES = [
+    { g: 'C', name: 'Tadpole', at: 0, bonus: 0 },
+    { g: 'B', name: 'Pond Ninja', at: 5, bonus: 0.1 },
+    { g: 'A', name: 'Lily Pad Assassin', at: 12, bonus: 0.2 },
+    { g: 'S', name: 'Shadow Frog', at: 22, bonus: 0.3 },
+    { g: 'SS', name: 'Frog Sensei', at: 35, bonus: 0.4 }
+];
+const STYLE_MAX = 45, STYLE_HOLD = 0.9, STYLE_DRAIN = 8;     // meter points; seconds; points per second
 
 // ---------- the frog (SVG traced over cfpninja_full.png, in its own pixel space) ----------
 // The frog is drawn in the logo's coordinates (viewBox 0 0 1986 1876) so it
@@ -343,9 +351,12 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-hud">
             <div class="fg-pill"><span class="fg-label">Survived</span><b class="fg-score">0.0</b></div>
             <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
-            <div class="fg-pill fg-combo-pill" hidden><b class="fg-combo"></b></div>
             <div class="fg-pill fg-right"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
             <div class="fg-pill fg-best-pill"><span class="fg-label">Best</span><b class="fg-best">0</b></div>
+        </div>
+        <div class="fg-grade" data-g="C">
+            <b class="fg-grade-letter">C</b>
+            <span class="fg-grade-body"><span class="fg-grade-name">Tadpole</span><span class="fg-grade-bonus">+0% time</span><i><s></s></i></span>
         </div>
         <div class="fg-count" hidden></div>
         <div class="fg-overlay">
@@ -367,7 +378,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
                         <div class="fg-fruits"></div>
-                        <p class="fg-tip-combo"><b>Combo:</b> slash ${COMBO_STREAK} fruit in quick succession and every fruit buys double time.</p>
+                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per fruit, up to +40% as ${GRADES[GRADES.length - 1].name}.</p>
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
@@ -387,7 +398,7 @@ export function mountFrogGame(stage, opts = {}) {
         bladeL: $('#fg-armL .fg-blade'), bladeR: $('#fg-armR .fg-blade'),
         glints: stage.querySelectorAll('.fg-held .fg-glint'),
         score: $('.fg-score'), best: $('.fg-best'), clock: $('.fg-clock'),
-        combo: $('.fg-combo'), comboPill: $('.fg-combo-pill'),
+        grade: $('.fg-grade'), gradeLetter: $('.fg-grade-letter'), gradeName: $('.fg-grade-name'), gradeBonus: $('.fg-grade-bonus'), gradeBar: $('.fg-grade s'),
         save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start'),
         stamina: $('.fg-stamina'), bars: [...stage.querySelectorAll('.fg-stamina b')],
         tips: $('.fg-tips'), pages: [...stage.querySelectorAll('.fg-tip')], skip: $('.fg-skip'), count: $('.fg-count')
@@ -477,7 +488,7 @@ export function mountFrogGame(stage, opts = {}) {
     let phaseT = 0, clockT = 0, spawnT = 0, combo = 0, lastSlice = -1;
     let timeLeft = START_SECONDS;     // clockT = seconds survived
     let countT = 0, introOn = false, countShown = '';   // the 3-2-1 before a run
-    let tipsPage = 0, hurtFlash = 0, streak = 0;
+    let tipsPage = 0, hurtFlash = 0, style = 0, gradeIx = 0, gradeBarW = '';
     let best = store.get(BEST_KEY), slices = 0;
     let fruits = [], halves = [], drops = [], floats = [], trail = [], slashes = [];
     let slash = null;             // { side, t }
@@ -606,18 +617,12 @@ export function mountFrogGame(stage, opts = {}) {
         const speed = Math.hypot(f.vx, f.vy);
         const vn = speed / H;                                // stage heights per second
         const now = performance.now();
-        streak = now - lastSlice < COMBO_GAP ? streak + 1 : 1;
         lastSlice = now;
-        const comboOn = streak >= COMBO_STREAK;
-        const gain = fruitTime(f.type) * (comboOn ? 2 : 1);
+        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus);
         timeLeft += gain; slices++;
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: comboOn || gain >= 0.4 || vn > 1.2 });
-        if (streak === COMBO_STREAK) floats.push({ x: W / 2, y: H * 0.3, text: 'COMBO! Double time', t: 0, hot: true });
-        if (streak >= 3) {
-            el.combo.textContent = comboOn ? 'Combo x2 time' : 'Streak ' + streak + '/' + COMBO_STREAK;
-            el.comboPill.classList.toggle('fg-combo-on', comboOn);
-            el.comboPill.hidden = false; comboHideAt = now + COMBO_GAP;
-        }
+        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: gradeIx >= 2 || vn > 1.2 });
+        style = Math.min(STYLE_MAX, style + 1);
+        updateGrade(true);
         const nx = -Math.sin(angle), ny = Math.cos(angle);
         const kick = H * 0.12;
         [1, -1].forEach(s => halves.push({
@@ -632,7 +637,27 @@ export function mountFrogGame(stage, opts = {}) {
         slash = { side: f.x < W / 2 ? 'L' : 'R', t: 0 };
         hud();
     }
-    let comboHideAt = 0;
+    // the style grade: C .. SS from the meter; announce a climb, never a fall
+    function updateGrade(announce) {
+        let ix = 0;
+        GRADES.forEach((g, i) => { if (style >= g.at) ix = i; });
+        if (ix !== gradeIx) {
+            const up = ix > gradeIx;
+            gradeIx = ix;
+            const G = GRADES[ix];
+            el.grade.dataset.g = G.g; el.gradeLetter.textContent = G.g;
+            el.gradeName.textContent = G.name; el.gradeBonus.textContent = '+' + Math.round(G.bonus * 100) + '% time';
+            if (up && announce) {
+                floats.push({ x: W / 2, y: H * 0.3, text: G.g + ': ' + G.name + '! +' + Math.round(G.bonus * 100) + '%', t: 0, hot: true });
+                el.grade.classList.remove('fg-grade-up'); void el.grade.offsetWidth; el.grade.classList.add('fg-grade-up');
+            }
+        }
+        // the bar: progress to the next grade (full at the top grade)
+        const G = GRADES[ix], N = GRADES[ix + 1];
+        const k = N ? (style - G.at) / (N.at - G.at) : style / STYLE_MAX;
+        const w = Math.round(clamp(k, 0, 1) * 100) + '%';
+        if (w !== gradeBarW) { el.gradeBar.style.width = gradeBarW = w; }
+    }
 
     function hitTest(ax, ay, bx, by) {
         if (phase !== 'play') return;
@@ -701,7 +726,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- fire breath (firefly) ----------
     function burnFruit(f) {
-        const gain = fruitTime(f.type);
+        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus);
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         // what's left: a puddle of molten fruit dripping down
         const r = f.r, col = f.type.flesh, skin = f.type.skin;
@@ -940,7 +965,7 @@ export function mountFrogGame(stage, opts = {}) {
     showTips(0);
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
-        slices = 0; combo = 0; streak = 0; hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
+        slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
@@ -1081,7 +1106,10 @@ export function mountFrogGame(stage, opts = {}) {
         slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
         const tn = performance.now();
         trail = trail.filter(p => tn - p.t < 140);
-        if (comboHideAt && tn > comboHideAt) { el.comboPill.hidden = true; comboHideAt = 0; }
+        // the style meter drains once you stop slashing (not while the fire breath locks the blades)
+        if (phase === 'play' && fireLeft <= 0 && style > 0 && tn - lastSlice > STYLE_HOLD * 1000) {
+            style = Math.max(0, style - STYLE_DRAIN * dt); updateGrade(false);
+        }
 
         draw(tn);
         raf = requestAnimationFrame(frame);
