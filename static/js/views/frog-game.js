@@ -379,7 +379,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
                         <div class="fg-fruits"></div>
-                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per slashed fruit, up to +40% as ${GRADES[GRADES.length - 1].name} (fire gets half). The grade never drops during slow motion.</p>
+                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per slashed fruit, up to +40% as ${GRADES[GRADES.length - 1].name} (fire: half the bonus and half the grade points). The grade never drops during slow motion.</p>
                     </div>
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
@@ -733,6 +733,7 @@ export function mountFrogGame(stage, opts = {}) {
     function burnFruit(f) {
         const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
+        style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);   // and half a style point
         // what's left: a puddle of molten fruit dripping down
         const r = f.r, col = f.type.flesh, skin = f.type.skin;
         bit(f.x, f.y + r * 0.3, (ctx, lw, b) => {
