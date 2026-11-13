@@ -24,13 +24,14 @@ func TestValidateGameScore(t *testing.T) {
 		score, slices, durationMs int
 		ok                        bool
 	}{
-		{"short run, no slices", 15000, 0, 15000, true},
+		{"short run, no slices", 30000, 0, 30000, true},
 		{"normal run", 62300, 150, 62300, true},
 		{"ten minute run", 600000, 1500, 600000, true},
 		{"negative score", -1, 0, 15000, false},
 		{"too many slices", 1000, MaxGameSlices + 1, 60000, false},
 		{"score not the time survived", 90000, 500, 60000, false},
 		{"longer than the slices allow", 60000, 10, 60000, false},
+		{"combo run at the 1 s cap", 130000, 100, 130000, true},
 		{"run too short", 500, 0, 500, false},
 		{"run too long", MaxGameRoundMillis + 1, MaxGameSlices, MaxGameRoundMillis + 1, false},
 	}

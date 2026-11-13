@@ -12,14 +12,14 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Frog Ninja (cfp.ninja/game) is a survival run: the clock starts at 15 s and
-// every cut fruit buys back at most 0.5 s, so the score (milliseconds survived)
-// can't exceed the start time plus 0.5 s per cut. No round cap: good players
+// Frog Ninja (cfp.ninja/game) is a survival run: the clock starts at 30 s and
+// every cut fruit buys back at most 1 s (0.5 s doubled by a combo), so the score
+// (ms survived) can't exceed the start time plus 1 s per cut. No round cap: good players
 // go for minutes. These caps reject runs no human reaches.
 const (
 	GameScoreboardSize  = 20
-	GameStartMillis     = 15000
-	MaxGameMillisPerCut = 500
+	GameStartMillis     = 30000
+	MaxGameMillisPerCut = 1000
 	GameSlackMillis     = 2000 // frame timing and rounding
 	MaxGameSlices       = 100000
 	MinGameRoundMillis  = 1000
