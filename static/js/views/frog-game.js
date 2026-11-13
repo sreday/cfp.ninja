@@ -29,11 +29,11 @@ const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
 // Style grade: every slashed fruit fills the meter; stop slashing for STYLE_HOLD s and it
 // drains. The grade adds a bonus to the time each fruit buys.
 const GRADES = [
-    { g: 'C', name: 'Tadpole', at: 0, bonus: 0 },
-    { g: 'B', name: 'Pond Ninja', at: 5, bonus: 0.1 },
-    { g: 'A', name: 'Lily Pad Assassin', at: 12, bonus: 0.2 },
+    { g: 'C', name: 'Croaker', at: 0, bonus: 0 },
+    { g: 'B', name: 'Bullfrog', at: 5, bonus: 0.1 },
+    { g: 'A', name: 'Amphibian Assassin', at: 12, bonus: 0.2 },
     { g: 'S', name: 'Shadow Frog', at: 22, bonus: 0.3 },
-    { g: 'SS', name: 'Frog Sensei', at: 35, bonus: 0.4 }
+    { g: 'SS', name: 'Supreme Sensei', at: 35, bonus: 0.4 }
 ];
 const STYLE_MAX = 45, STYLE_HOLD = 0.9, STYLE_DRAIN = 8;     // meter points; seconds; points per second
 
@@ -356,7 +356,7 @@ export function mountFrogGame(stage, opts = {}) {
         </div>
         <div class="fg-grade" data-g="C">
             <b class="fg-grade-letter">C</b>
-            <span class="fg-grade-body"><span class="fg-grade-name">Tadpole</span><span class="fg-grade-bonus">+0% time</span><i><s></s></i></span>
+            <span class="fg-grade-body"><span class="fg-grade-name">Croaker</span><span class="fg-grade-bonus">+0% time</span><i><s></s></i></span>
         </div>
         <div class="fg-count" hidden></div>
         <div class="fg-overlay">

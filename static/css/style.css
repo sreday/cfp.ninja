@@ -1423,7 +1423,7 @@ a:hover {
 .fg-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); }
 .fg-right { margin-left: auto; }
 .fg-overlay[hidden] { display: none; }
-/* style grade: C Tadpole .. SS Frog Sensei */
+/* style grade: C Croaker .. SS Supreme Sensei */
 .fg-grade { position: absolute; left: 12px; top: 62px; z-index: 3; pointer-events: none; display: flex; align-items: center; gap: 10px;
     padding: 6px 14px 6px 8px; border-radius: 16px; background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border);
     box-shadow: var(--shadow-sm); --gc: #9e9e9e; }
