@@ -18,9 +18,10 @@ func TestAcceptPlan(t *testing.T) {
 		"No,a,Nobody,none@x.com,,Fast track\n" +
 		"No,a,Rex Old,rex@x.com,,Was rejected\n" +
 		"No,a,Cy Done,cy@x.com,,Done already\n" +
+		"No,a,Pat Two,pat@x.com,,Backups are not recovery\n" +
 		",,,,,\n"
 	rows, hash, err := ReadSheet(strings.NewReader("\ufeff" + sheet))
-	if err != nil || len(rows) != 7 || hash == "" || len(rows[1].Emails) != 2 {
+	if err != nil || len(rows) != 8 || hash == "" || len(rows[1].Emails) != 2 {
 		t.Fatalf("sheet: %v %+v", err, rows)
 	}
 	var ps []Proposal
@@ -34,6 +35,9 @@ func TestAcceptPlan(t *testing.T) {
 		prop(7, "accepted", "Done already", Speaker{Name: "Cy Done", Email: "cy@x.com"}),
 		prop(8, "accepted", "Not in sheet", Speaker{Name: "Zed", Email: "zed@x.com"}),
 	)
+	ps = append(ps,
+		prop(9, "submitted", "Backups are not recovery", Speaker{Name: "Pat Two", Email: "pat@x.com"}),
+		prop(10, "submitted", "Backups are not recovery", Speaker{Name: "Pat Two", Email: "pat@x.com"}))
 	for i := uint(100); i < 120; i++ { // the rest of the CFP
 		ps = append(ps, prop(i, "submitted", "Other talk", Speaker{Name: "Someone", Email: "s@z.com"}))
 	}
@@ -44,7 +48,7 @@ func TestAcceptPlan(t *testing.T) {
 		}
 		return
 	}
-	if got := ids(pl.Accept); len(got) != 3 || got[0] != 1 || got[1] != 2 || got[2] != 3 {
+	if got := ids(pl.Accept); len(got) != 4 || got[0] != 1 || got[1] != 2 || got[2] != 3 || got[3] != 10 {
 		t.Fatalf("accept: %v", got)
 	}
 	if got := ids(pl.Unsure); len(got) != 2 || got[0] != 5 || got[1] != 6 { // name only; rejected before
@@ -59,7 +63,7 @@ func TestAcceptPlan(t *testing.T) {
 	if err := pl.Confirm([]uint{100}); err == nil {
 		t.Fatal("confirmed a proposal that isn't an unsure match")
 	}
-	if err := pl.Confirm([]uint{5}); err != nil || len(pl.Accept) != 4 || len(pl.Unsure) != 1 {
+	if err := pl.Confirm([]uint{5}); err != nil || len(pl.Accept) != 5 || len(pl.Unsure) != 1 {
 		t.Fatalf("confirm: %v", err)
 	}
 

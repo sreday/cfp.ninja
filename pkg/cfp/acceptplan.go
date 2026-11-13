@@ -211,7 +211,19 @@ func MakePlan(rows []SheetRow, ps []Proposal) *Plan {
 			})
 			pick = cands[0]
 			best, next := TitleSimilarity(row.Title, ps[cands[0]].Title), TitleSimilarity(row.Title, ps[cands[1]].Title)
-			if best < 0.5 || best-next < 0.2 {
+			dupes := 0 // the same talk submitted again: accept one, the newest
+			for _, i := range cands[1:] {
+				if normName(ps[i].Title) == normName(ps[cands[0]].Title) && ps[i].Status != "accepted" {
+					dupes++
+					if ps[i].ID > ps[pick].ID {
+						pick = i
+					}
+				}
+			}
+			if dupes > 0 && best >= 0.5 && (len(cands) == dupes+1 || best-TitleSimilarity(row.Title, ps[cands[dupes+1]].Title) >= 0.2) {
+				how += fmt.Sprintf(" + title (submitted %d times, the newest picked)", dupes+1)
+			} else if best < 0.5 || best-next < 0.2 {
+				pick = cands[0]
 				sure = false
 				var alts []string
 				for _, i := range cands {
