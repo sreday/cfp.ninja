@@ -681,6 +681,8 @@ export function mountFrogGame(stage, opts = {}) {
 
     let down = false, lx = 0, ly = 0, aim = null;
     let cut = null, cutId = 0, cutRestAt = 0;   // the live cut; no new cut before cutRestAt
+    let press = null;                           // a press that hasn't moved yet: no cut, no stamina
+    const PRESS_DRAG = 10;                      // px of drag before a press becomes the first cut
     const cutMax = () => CUT_MAX * Math.max(W, H);
     // canvas events: offsetX/Y need no layout read (pointermove can fire 1000x a second)
     const pos = e => { if (e.target === canvas) return [e.offsetX, e.offsetY]; const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
@@ -706,14 +708,20 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'play' && stunT > 0) return;                 // dizzy: no slashing
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
-        cut = null;
-        if (startCut(px, py, true)) hitTest(lx, ly, lx, ly);
+        cut = null; press = { x: px, y: py };
     }
     function onMove(e) {
         const [x, y] = pos(e);
         aim = { x, y };                                   // the fire breath follows the cursor
         if (!down) return;
         pointer = { x, y };
+        if (press) {
+            // the first cut of a press starts once it drags, from where it was pressed
+            if (Math.hypot(x - press.x, y - press.y) < PRESS_DRAG) return;
+            const p0 = press; press = null;
+            if (!startCut(p0.x, p0.y, true)) { lx = x; ly = y; return; }
+            lx = p0.x; ly = p0.y;
+        }
         if (!cut) {
             // resting between cuts, or waiting for stamina: the next cut starts here
             if (performance.now() >= cutRestAt) startCut(x, y, false);
@@ -736,7 +744,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (done) endCut();
         lx = x; ly = y;
     }
-    function onUp() { down = false; cut = null; }
+    function onUp() { down = false; cut = null; press = null; }
     canvas.addEventListener('pointerdown', onDown);
     const noMenu = e => e.preventDefault();
     canvas.addEventListener('contextmenu', noMenu);
@@ -884,6 +892,12 @@ export function mountFrogGame(stage, opts = {}) {
         pose.tail = Math.sin(idleT * 5.3) * 5 + Math.sin(idleT * 11.7) * 2 + (slash ? 6 : 0);
         pose.tilt = slash ? (slash.side === 'L' ? -3 : 3) * Math.sin(clamp(slash.t / 0.26, 0, 1) * Math.PI) : Math.sin(idleT * 0.6) * 1.2;
         look(dt);
+        const tired = phase === 'play' && sakeLeft <= 0 && stamina < 1 && stunT <= 0;
+        if (tired) {
+            pose.bob = Math.sin(idleT * 1.6) * 2.5;
+            pose.lK = READY.lK - 55; pose.rK = READY.rK + 55;
+            pose.lRot = READY.l - 12; pose.rRot = READY.r + 12;
+        }
         if (stunT > 0) {
             pose.tilt = Math.sin(idleT * 14) * 7;
             pose.lookX = Math.cos(idleT * 12) * 26; pose.lookY = Math.sin(idleT * 12) * 18;
@@ -996,6 +1010,14 @@ export function mountFrogGame(stage, opts = {}) {
                 else if (c.kind !== 'fruit') { c.obj.x = x; c.obj.y = y; drawPickup(ctx, c.obj, lw); }
                 else { ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawWhole(ctx, c.obj, c.obj.r, lw); ctx.restore(); }
             }
+        }
+        if (phase === 'play' && sakeLeft <= 0 && stamina < 1 && stunT <= 0) {
+            // tired: a sweat drop slides down the side of the head
+            const k = (tn / 900) % 1, sp = frogPoint(1430, 330 + k * 260), r = Math.min(W, H) * 0.012 + 3;
+            ctx.save(); ctx.globalAlpha = 1 - k * 0.6; ctx.fillStyle = '#81d4fa'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(sp.x, sp.y - r * 1.8);
+            ctx.quadraticCurveTo(sp.x + r * 1.1, sp.y, sp.x, sp.y + r); ctx.quadraticCurveTo(sp.x - r * 1.1, sp.y, sp.x, sp.y - r * 1.8);
+            ctx.fill(); ctx.stroke(); ctx.restore();
         }
         if (stunT > 0) {
             const h = frogPoint(993, 150), rr = Math.min(W, H) * 0.07;
