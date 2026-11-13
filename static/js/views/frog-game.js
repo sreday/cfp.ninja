@@ -359,7 +359,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s. Aim with the cursor: fruit in the flame melts.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops the world and your countdown for 3 s: you only gain time.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing.</span></div></div>
                     </div>
@@ -601,7 +601,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     // ---------- slicing ----------
-    function sliceFruit(f, angle) {
+    function sliceFruit(f, angle, hx, hy) {
         const speed = Math.hypot(f.vx, f.vy);
         const vn = speed / H;                                // stage heights per second
         const now = performance.now();
@@ -627,7 +627,7 @@ export function mountFrogGame(stage, opts = {}) {
             const a = rand(0, 6.28), v = rand(0.1, 0.45) * H;
             drops.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: f.type.juice, t: 0, s: rand(2, 5) });
         }
-        slashes.push({ x: f.x, y: f.y, a: angle, r: f.r * 1.8, t: 0 });
+        slashes.push({ x: hx ?? f.x, y: hy ?? f.y, a: angle, r: f.r * 1.8, t: 0 });
         slash = { side: f.x < W / 2 ? 'L' : 'R', t: 0 };
         hud();
     }
@@ -640,7 +640,9 @@ export function mountFrogGame(stage, opts = {}) {
             const f = fruits[i];
             if (segDist(f.x, f.y, ax, ay, bx, by) < f.r * 1.25) {
                 fruits.splice(i, 1);
-                sliceFruit(f, ax === bx && ay === by ? rand(-0.6, 0.6) + (Math.random() < 0.5 ? 0 : Math.PI / 2) : ang);
+                // the flash sits where the blade crossed the fruit, along the blade
+                const l2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
+                sliceFruit(f, ax === bx && ay === by ? rand(-0.6, 0.6) + (Math.random() < 0.5 ? 0 : Math.PI / 2) : ang, ax + (bx - ax) * k, ay + (by - ay) * k);
             }
         }
         // the blade wrecks pickups: they're for the tongue
@@ -758,8 +760,8 @@ export function mountFrogGame(stage, opts = {}) {
     let press = null;                           // a press that hasn't moved yet: no cut, no stamina
     const PRESS_DRAG = 10;                      // px of drag before a press becomes the first cut
     const cutMax = () => CUT_MAX * Math.max(W, H);
-    // canvas events: offsetX/Y need no layout read (pointermove can fire 1000x a second)
-    const pos = e => { if (e.target === canvas) return [e.offsetX, e.offsetY]; const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    // one way to measure every pointer position (offsetX rounds, clientX does not)
+    const pos = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
     // pays for a cut (one stamina bar unless sake is on); false = can't cut now
     function payCut(loud) {
         if (phase !== 'play' || sakeLeft > 0) return true;
@@ -776,6 +778,7 @@ export function mountFrogGame(stage, opts = {}) {
     function endCut() { cut = null; cutRestAt = performance.now() + CUT_BREAK * 1000; }
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
+        if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
         if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -785,9 +788,17 @@ export function mountFrogGame(stage, opts = {}) {
         cut = null; press = { x: px, y: py };
     }
     function onMove(e) {
-        const [x, y] = pos(e);
+        // browsers hand us one pointermove per frame; the samples in between are in
+        // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
+        const b = canvas.getBoundingClientRect();
+        const list = (down && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+        const evs = list.length ? list : [e];
+        for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top);
+    }
+    function movePoint(x, y) {
         aim = { x, y };                                   // the fire breath follows the cursor
         if (!down) return;
+        if (fireLeft > 0) { down = false; cut = null; press = null; return; }
         pointer = { x, y };
         if (press) {
             // the first cut of a press starts once it drags, from where it was pressed
@@ -859,6 +870,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (c.kind === 'fly') {
             flyCatches++;
             fireLeft = FIRE_SECONDS; fireEmit = 0;
+            down = false; cut = null; press = null;             // the blades rest while the frog breathes fire
             floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
             hopT = 0.5;
         } else if (c.kind === 'sake') {
@@ -1163,23 +1175,45 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.restore();
         });
         if (trail.length > 1) {
-            ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            // Each cut is one filled ribbon (glow, then the white blade). Stroking segment by
+            // segment with alpha doubled up at every joint and left beads on fast slashes.
             const cm = cutMax();
-            // two passes instead of shadowBlur: a wide green glow, then the white blade line
-            for (let pass = 0; pass < 2; pass++) {
-                for (let i = 1; i < trail.length; i++) {
-                    const a = trail[i - 1], b = trail[i], age = (tn - b.t) / 140;
-                    if (a.cut !== b.cut) continue;                        // the rest between cuts: a gap
-                    // thin at the start, full in the middle, thinning to a point at the max length
-                    const md = (a.d + b.d) / 2;
-                    const taper = b.free ? 0.15 + 0.85 * clamp(md / (cm * 0.1), 0, 1)   // sake: full width after a short ramp
-                        : 0.15 + 0.85 * Math.pow(Math.sin(Math.PI * clamp(md / cm, 0, 1)), 0.6);
-                    const w = (7 * (1 - age) + 1) * taper;
-                    ctx.strokeStyle = pass ? `rgba(255,255,255,${1 - age})` : `rgba(152,183,75,${0.45 * (1 - age)})`;
-                    ctx.lineWidth = pass ? w : w * 2.6 + 4;
-                    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            const halfW = (p, glow) => {
+                const age = clamp((tn - p.t) / 140, 0, 1);
+                const taper = p.free ? 0.15 + 0.85 * clamp(p.d / (cm * 0.1), 0, 1)     // sake: full width after a short ramp
+                    : 0.15 + 0.85 * Math.pow(Math.sin(Math.PI * clamp(p.d / cm, 0, 1)), 0.6);
+                const w = (3.5 * (1 - age) + 0.5) * taper;      // fades by thinning, not by alpha
+                return glow ? w * 2.6 + 2 : w;
+            };
+            const ribbon = (pts, glow) => {
+                const L = [], R = [];
+                for (let i = 0; i < pts.length; i++) {
+                    const a = pts[Math.max(0, i - 1)], c = pts[Math.min(pts.length - 1, i + 1)];
+                    let nx = -(c.y - a.y), ny = c.x - a.x; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+                    const w = halfW(pts[i], glow);
+                    L.push([pts[i].x + nx * w, pts[i].y + ny * w]); R.push([pts[i].x - nx * w, pts[i].y - ny * w]);
                 }
-            }
+                ctx.beginPath();
+                L.forEach(([x, y], i) => ctx[i ? 'lineTo' : 'moveTo'](x, y));
+                const head = pts[pts.length - 1], hw = halfW(head, glow);
+                const ha = Math.atan2(L[L.length - 1][1] - head.y, L[L.length - 1][0] - head.x);
+                ctx.arc(head.x, head.y, hw, ha, ha + Math.PI, true);        // round blade tip
+                for (let i = R.length - 1; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+                ctx.closePath(); ctx.fill();
+            };
+            // split into cuts, dropping near-duplicate samples (they twist the normals)
+            const cuts = [];
+            let cur = null;
+            trail.forEach(p => {
+                if (!cur || cur.id !== p.cut) { cur = { id: p.cut, pts: [p] }; cuts.push(cur); return; }
+                const q = cur.pts[cur.pts.length - 1];
+                if (Math.abs(p.x - q.x) + Math.abs(p.y - q.y) >= 1.5) cur.pts.push(p);
+            });
+            ctx.save();
+            ctx.fillStyle = 'rgba(152,183,75,.42)';
+            cuts.forEach(c => { if (c.pts.length > 1) ribbon(c.pts, true); });
+            ctx.fillStyle = '#fff';
+            cuts.forEach(c => { if (c.pts.length > 1) ribbon(c.pts, false); });
             ctx.restore();
         }
         floats.forEach(f => {
