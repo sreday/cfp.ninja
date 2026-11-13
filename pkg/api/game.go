@@ -12,14 +12,18 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// Frog Ninja (cfp.ninja/game) is a 60 s round. A slice is worth at most
-// (10 + 40 * speed) * 5 combo; these caps reject scores no human round reaches.
+// Frog Ninja (cfp.ninja/game) is a survival run: the clock starts at 15 s and
+// every cut fruit buys back at most 0.5 s, so the score (milliseconds survived)
+// can't exceed the start time plus 0.5 s per cut. No round cap: good players
+// go for minutes. These caps reject runs no human reaches.
 const (
 	GameScoreboardSize  = 20
-	MaxGameSlices       = 600
-	MaxGamePointsPerCut = 2000
-	MinGameRoundMillis  = 55000
-	MaxGameRoundMillis  = 120000
+	GameStartMillis     = 15000
+	MaxGameMillisPerCut = 500
+	GameSlackMillis     = 2000 // frame timing and rounding
+	MaxGameSlices       = 100000
+	MinGameRoundMillis  = 1000
+	MaxGameRoundMillis  = 6 * 3600 * 1000
 )
 
 // GameScoreEntry is one public scoreboard row. Names are shortened to
@@ -50,11 +54,13 @@ func validateGameScore(score, slices, durationMs int) string {
 	case score < 0 || slices < 0:
 		return "Score must not be negative"
 	case slices > MaxGameSlices:
-		return "Too many slices for one round"
-	case score > slices*MaxGamePointsPerCut:
-		return "Score is too high for the number of slices"
+		return "Too many slices for one run"
 	case durationMs < MinGameRoundMillis || durationMs > MaxGameRoundMillis:
-		return "Round length is not valid"
+		return "Run length is not valid"
+	case score > durationMs+GameSlackMillis || score < durationMs-GameSlackMillis:
+		return "Score must match the time survived"
+	case durationMs > GameStartMillis+slices*MaxGameMillisPerCut+GameSlackMillis:
+		return "Survived longer than the slices allow"
 	}
 	return ""
 }

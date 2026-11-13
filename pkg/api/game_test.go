@@ -24,13 +24,15 @@ func TestValidateGameScore(t *testing.T) {
 		score, slices, durationMs int
 		ok                        bool
 	}{
-		{"normal round", 4200, 80, 60000, true},
-		{"zero round", 0, 0, 60000, true},
-		{"negative score", -1, 0, 60000, false},
+		{"short run, no slices", 15000, 0, 15000, true},
+		{"normal run", 62300, 150, 62300, true},
+		{"ten minute run", 600000, 1500, 600000, true},
+		{"negative score", -1, 0, 15000, false},
 		{"too many slices", 1000, MaxGameSlices + 1, 60000, false},
-		{"score above slice cap", 2001, 1, 60000, false},
-		{"round too short", 100, 5, 10000, false},
-		{"round too long", 100, 5, 600000, false},
+		{"score not the time survived", 90000, 500, 60000, false},
+		{"longer than the slices allow", 60000, 10, 60000, false},
+		{"run too short", 500, 0, 500, false},
+		{"run too long", MaxGameRoundMillis + 1, MaxGameSlices, MaxGameRoundMillis + 1, false},
 	}
 	for _, c := range cases {
 		msg := validateGameScore(c.score, c.slices, c.durationMs)

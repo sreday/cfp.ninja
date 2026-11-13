@@ -1415,9 +1415,11 @@ a:hover {
 .fg-frog { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: clamp(150px, 28%, 270px); height: auto; overflow: visible; z-index: 1; pointer-events: none; }
 .fg-hud { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 3; pointer-events: none; }
 .fg-pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 14px; border-radius: 999px; font-variant-numeric: tabular-nums;
-    background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid var(--border); color: var(--text);
-    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); }
+    background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border); color: var(--text);
+    box-shadow: var(--shadow-sm); }
 .fg-pill b { font-size: 1.15rem; font-weight: 700; }
+.fg-pill.fg-low { border-color: #e53935; box-shadow: 0 0 12px 2px rgba(229,57,53,.6); }
+.fg-pill.fg-low b { color: #e53935; }
 .fg-label { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-light); }
 .fg-right { margin-left: auto; }
 .fg-combo-pill { background: #a3211d; border-color: #a3211d; color: #fff; }
@@ -1434,7 +1436,7 @@ a:hover {
 .fg-saved { font-weight: 600; color: var(--success); }
 /* stamina: one bar per slash, green; red glow when empty; gold on sake */
 .fg-stamina { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); display: flex; gap: 5px; padding: 7px 10px; border-radius: 999px;
-    background: color-mix(in srgb, var(--surface) 72%, transparent); border: 1px solid var(--border); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s; }
+    background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s; }
 .fg-stamina i { display: block; width: 26px; height: 12px; border-radius: 4px; background: rgba(0,0,0,.35); border: 1.5px solid #000; overflow: hidden; }
 .fg-stamina b { display: block; height: 100%; width: 100%; background: linear-gradient(#b6d36a, #98b74b); }
 .fg-stamina.empty { border-color: #e53935; box-shadow: 0 0 14px 3px rgba(229,57,53,.75); animation: fg-empty 0.9s ease-in-out infinite; }

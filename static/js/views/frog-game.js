@@ -1,17 +1,29 @@
 // Frog Ninja engine: the CFP.ninja frog tosses its laptop, draws its katanas and slices fruit.
-// mountFrogGame(stage, { onGameOver }) -> { destroy }. 60 s rounds, so scores compare on the scoreboard.
+// mountFrogGame(stage, { onGameOver }) -> { destroy }. Survival: time is the only currency.
+// The clock runs down; every sliced fruit buys time back (small fruit more). The score
+// is how long you survived, so a good player can go for many minutes.
 const C = {
     green: '#98b74b', red: '#a3211d', redHi: '#ba2823', belly: '#f1eda4',
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
 };
-const ROUND_SECONDS = 60;
-// Stamina: every slash costs one bar; bars come back at a steady pace.
+const START_SECONDS = 15;                       // on the clock at the start
+const TIME_SMALL = 0.5, TIME_BIG = 0.1;         // seconds a fruit buys: smallest .. biggest
+const LOW_TIME = 5;                             // the clock turns red below this
+// Stamina: every cut costs one bar; bars come back at a steady pace.
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
-const FLY_POINTS = 25;
+const FREEZE_SECONDS = 3;                       // alarm clock: the world stops
+const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
+const BURN_TIME = 1;                            // seconds a fruit must stay in the flame to explode
+const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 const SAKE_SECONDS = 5;                         // golden sake: free slashes
+// A cut is at most CUT_MAX of the screen's longer side and a sharp turn starts
+// a new one, so circling or scrubbing can't slice for free. Between cuts the
+// blade rests for CUT_BREAK seconds.
+const CUT_MAX = 0.5, CUT_BREAK = 0.09;
+const TURN_STEP = 16, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, max turn
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
-const BEST_KEY = 'cfpninja.game.best';
+const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
 
 // ---------- the frog (SVG traced over cfpninja_full.png, in its own pixel space) ----------
 // The frog is drawn in the logo's coordinates (viewBox 0 0 1986 1876) so it
@@ -189,16 +201,29 @@ function drawHalf(ctx, f, r, lw) {
     ctx.restore();
 }
 
+// a soft glow without shadowBlur: one radial gradient disc
+function glow(ctx, x, y, r, rgb, a) {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+}
+
 function drawFly(ctx, fl, s, t) {
-    // a red fly: body, head, flapping wings
-    ctx.save(); ctx.translate(fl.x, fl.y); ctx.rotate(fl.dir < 0 ? Math.PI : 0); ctx.scale(fl.dir < 0 ? 1 : 1, fl.dir < 0 ? -1 : 1);
+    // a firefly: dark body, red head, flapping wings, a pulsing glowing tail
+    ctx.save(); ctx.translate(fl.x, fl.y); ctx.rotate(fl.dir < 0 ? Math.PI : 0); ctx.scale(1, fl.dir < 0 ? -1 : 1);
     const flap = Math.abs(Math.sin(t * 55 + fl.phase));
-    ctx.fillStyle = 'rgba(255,255,255,.75)'; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1;
-    [[-0.2, -1], [0.25, -1]].forEach(([ox]) => { ctx.beginPath(); ctx.ellipse(ox * s, -s * 0.55, s * 0.55, s * 0.9 * (0.3 + flap * 0.7), -0.3, 0, 7); ctx.fill(); ctx.stroke(); });
-    ctx.fillStyle = '#c62828'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1.2, s * 0.18);
-    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.95, s * 0.6, 0, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#7f0000'; ctx.beginPath(); ctx.arc(s * 0.95, -s * 0.05, s * 0.42, 0, 7); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffeb3b'; ctx.beginPath(); ctx.arc(s * 1.12, -s * 0.18, s * 0.14, 0, 7); ctx.fill();
+    const pulse = 0.65 + 0.35 * Math.sin(t * 6 + fl.phase);
+    ctx.save();
+    glow(ctx, -s * 0.75, 0, s * 2.8, '244,255,129', 0.75 * pulse);
+    ctx.fillStyle = '#eeff41'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1.2, s * 0.18);
+    ctx.beginPath(); ctx.ellipse(-s * 0.75, s * 0.05, s * 0.62, s * 0.5, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.lineWidth = 1;
+    [-0.1, 0.3].forEach(ox => { ctx.beginPath(); ctx.ellipse(ox * s, -s * 0.55, s * 0.5, s * 0.85 * (0.3 + flap * 0.7), -0.3, 0, 7); ctx.fill(); ctx.stroke(); });
+    ctx.fillStyle = '#3e2723'; ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(1.2, s * 0.18);
+    ctx.beginPath(); ctx.ellipse(s * 0.15, 0, s * 0.6, s * 0.45, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#d84315'; ctx.beginPath(); ctx.arc(s * 0.8, -s * 0.05, s * 0.32, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(s * 1.0, -s * 0.25); ctx.lineTo(s * 1.4, -s * 0.6); ctx.moveTo(s * 1.0, -s * 0.15); ctx.lineTo(s * 1.45, -s * 0.35); ctx.stroke();
     ctx.restore();
 }
 
@@ -206,7 +231,7 @@ function drawSake(ctx, b, lw) {
     // a golden sake bottle (tokkuri): round belly, narrow neck, a red label
     const r = b.r;
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
-    ctx.shadowColor = 'rgba(255,215,64,.9)'; ctx.shadowBlur = 16 + Math.sin(b.t * 8) * 6;
+    glow(ctx, 0, 0, r * 1.7, '255,215,64', 0.6 + Math.sin(b.t * 8) * 0.15);
     ctx.beginPath();
     ctx.moveTo(-r * 0.22, -r * 1.25); ctx.lineTo(r * 0.22, -r * 1.25);
     ctx.quadraticCurveTo(r * 0.2, -r * 0.55, r * 0.75, -r * 0.1);
@@ -216,7 +241,7 @@ function drawSake(ctx, b, lw) {
     ctx.quadraticCurveTo(-r * 0.2, -r * 0.55, -r * 0.22, -r * 1.25);
     ctx.closePath();
     ctx.fillStyle = '#f5c542'; ctx.fill();
-    ctx.shadowBlur = 0; ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
     ctx.fillStyle = '#fff3c4'; ctx.beginPath(); ctx.ellipse(-r * 0.4, -r * 0.05, r * 0.12, r * 0.35, 0.3, 0, 7); ctx.fill();
     ctx.fillStyle = '#a3211d'; ctx.fillRect(-r * 0.32, r * 0.05, r * 0.64, r * 0.5); ctx.strokeRect(-r * 0.32, r * 0.05, r * 0.64, r * 0.5);
     ctx.fillStyle = '#fff'; ctx.font = `900 ${r * 0.34}px Inter, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -225,9 +250,64 @@ function drawSake(ctx, b, lw) {
     ctx.restore();
 }
 
+function drawClock(ctx, b, lw) {
+    // a red twin-bell alarm clock
+    const r = b.r;
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    glow(ctx, 0, 0, r * 1.8, '129,212,250', 0.6 + Math.sin(b.t * 8) * 0.15);
+    ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-r * 0.55, r * 0.7); ctx.lineTo(-r * 0.8, r * 1.1); ctx.moveTo(r * 0.55, r * 0.7); ctx.lineTo(r * 0.8, r * 1.1); ctx.stroke();
+    [-1, 1].forEach(sd => {
+        ctx.save(); ctx.translate(sd * r * 0.62, -r * 0.82); ctx.rotate(sd * 0.55 + Math.sin(b.t * 30) * 0.08);
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.4, Math.PI, 0); ctx.closePath(); ctx.fillStyle = '#e53935'; ctx.fill(); ctx.stroke();
+        ctx.restore();
+    });
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fillStyle = '#e53935'; ctx.fill();
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.78, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = lw * 0.7; ctx.stroke();
+    ctx.lineWidth = Math.max(1.5, lw * 0.6);
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, q = i % 3 ? 0.66 : 0.58; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * q, Math.sin(a) * r * q); ctx.lineTo(Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72); ctx.stroke(); }
+    const hm = b.t * 6, hh = b.t * 0.5;
+    ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hh) * r * 0.38, -Math.cos(hh) * r * 0.38); ctx.stroke();
+    ctx.lineWidth = lw * 0.7; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.sin(hm) * r * 0.6, -Math.cos(hm) * r * 0.6); ctx.stroke();
+    ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(0, 0, r * 0.08, 0, 7); ctx.fill();
+    ctx.restore();
+}
+
+function drawPickup(ctx, b, lw) {
+    if (b.kind === 'clock') drawClock(ctx, b, lw);
+    else drawSake(ctx, b, lw);
+}
+
+// a jagged shard polygon (glass, clock face pieces)
+function shardPath(n, size) {
+    const pts = [];
+    for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + Math.random() * 0.8, d = size * (0.45 + Math.random() * 0.55); pts.push([Math.cos(a) * d, Math.sin(a) * d]); }
+    return pts;
+}
+function fillPoly(ctx, pts, fill, lw) {
+    ctx.beginPath(); pts.forEach(([x, y], i) => ctx[i ? 'lineTo' : 'moveTo'](x, y)); ctx.closePath();
+    ctx.fillStyle = fill; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round'; ctx.stroke();
+}
+function drawGear(ctx, r, lw) {
+    ctx.beginPath();
+    for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8, q = i % 2 ? r : r * 0.75; ctx.lineTo(Math.cos(a) * q, Math.sin(a) * q); }
+    ctx.closePath(); ctx.fillStyle = '#b5b4bf'; ctx.fill(); ctx.lineWidth = lw * 0.6; ctx.strokeStyle = '#000'; ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.28, 0, 7); ctx.fillStyle = '#5d6066'; ctx.fill();
+}
+
 // ---------- helpers ----------
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
+// seconds a fruit buys: kiwi/plum 0.5 s down to watermelon 0.1 s
+const fruitTime = type => Math.round(lerp(TIME_SMALL, TIME_BIG, clamp((type.r - 0.85) / (1.35 - 0.85), 0, 1)) * 20) / 20;
+// 65.3 s -> "1:05.3", 12.4 s -> "12.4"
+export function formatSurvival(sec) {
+    sec = Math.max(0, sec);
+    if (sec < 60) return sec.toFixed(1);
+    const m = Math.floor(sec / 60), r = sec - m * 60;
+    return m + ':' + (r < 10 ? '0' : '') + r.toFixed(1);
+}
 const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 const seg = (t, t0, t1) => ease(clamp((t - t0) / (t1 - t0), 0, 1));
 const rand = (a, b) => a + Math.random() * (b - a);
@@ -250,7 +330,7 @@ export function mountFrogGame(stage, opts = {}) {
         ${FROG_SVG}
         <canvas class="fg-canvas"></canvas>
         <div class="fg-hud">
-            <div class="fg-pill"><span class="fg-label">Score</span><b class="fg-score">0</b></div>
+            <div class="fg-pill"><span class="fg-label">Survived</span><b class="fg-score">0.0</b></div>
             <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
             <div class="fg-pill fg-combo-pill" hidden><b class="fg-combo"></b></div>
             <div class="fg-pill fg-right"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
@@ -259,7 +339,7 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-overlay">
             <div class="fg-panel">
                 <h2 class="fg-title">Frog Ninja</h2>
-                <p class="fg-sub">Left-drag to slice fruit (each slash uses a green stamina bar). Right-click to shoot your tongue: flies score, golden sake gives 5 s of free slashes, but swallowing fruit stuns you.</p>
+                <p class="fg-sub">The clock never stops: slice fruit to buy time (small fruit +0.5 s, big fruit +0.1 s) and survive as long as you can. Left-drag to slice (each cut uses a green stamina bar; a cut is at most half the screen, and a sharp turn starts a new one). Right-click to shoot your tongue: a firefly makes you breathe fire for 3 s (aim with the cursor; fruit held in the flame for 1 s explodes), the alarm clock freezes time for 3 s, golden sake gives 5 s of free slashes, but swallowing fruit stuns you. Slashing a pickup wrecks it.</p>
                 <button type="button" class="btn btn-primary fg-start">Start</button>
                 <div class="fg-save"></div>
             </div>
@@ -287,6 +367,15 @@ export function mountFrogGame(stage, opts = {}) {
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        measureFrog();
+    }
+    // the frog SVG's box relative to the canvas, measured on resize (no layout reads per frame)
+    let fbox = { x: 0, y: 0, w: 1, h: 1 };
+    function measureFrog() {
+        const f = stage.querySelector('.fg-frog'), c = stage.querySelector('.fg-canvas');
+        if (!f || !c) return;
+        const fb = f.getBoundingClientRect(), cb = c.getBoundingClientRect();
+        fbox = { x: fb.left - cb.left, y: fb.top - cb.top, w: fb.width || 1, h: fb.height || 1 };
     }
     resize();
     const ro = new ResizeObserver(resize); ro.observe(stage);
@@ -296,47 +385,57 @@ export function mountFrogGame(stage, opts = {}) {
         bob: 0, blink: 0, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0 };
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
+    // write an SVG attribute only when its (rounded) value changed: fewer style/paint invalidations
+    const n2 = v => Math.round(v * 100) / 100;
+    function setA(node, name, val) {
+        const k = '_fg_' + name;
+        if (node[k] !== val) { node.setAttribute(name, val); node[k] = val; }
+    }
     function applyPose() {
         const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld) => {
-            g.setAttribute('transform', `translate(${x} ${y}) rotate(${rot})`);
-            limb.setAttribute('transform', `scale(1 ${stretch})`);
-            held.setAttribute('transform', `translate(0 ${58 * stretch}) rotate(${kWorld - rot})`);
-            held.setAttribute('opacity', pose.held ? 1 : 0);
-            blade.setAttribute('transform', `translate(0 -38) scale(1 ${pose.blade}) translate(0 38)`);
+            setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
+            setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
+            setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
+            setA(held, 'opacity', pose.held ? 1 : 0);
+            setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, ELBOW.L, pose.lRot, pose.lStretch, pose.lK);
         setArm(el.armR, el.limbR, el.heldR, el.bladeR, ELBOW.R, pose.rRot, pose.rStretch, pose.rK);
-        el.back.setAttribute('opacity', pose.held ? 0 : 1);
+        setA(el.back, 'opacity', pose.held ? 0 : 1);
         const L = pose.laptop;
-        el.laptop.setAttribute('opacity', L.gone ? 0 : 1);
-        el.laptop.setAttribute('transform', `translate(${L.x * U} ${L.y * U}) rotate(${L.rot} 993 1160)`);
-        el.all.setAttribute('transform', `translate(0 ${pose.bob * U})`);
+        setA(el.laptop, 'opacity', L.gone ? 0 : 1);
+        if (!L.gone) setA(el.laptop, 'transform', `translate(${n2(L.x * U)} ${n2(L.y * U)}) rotate(${n2(L.rot)} 993 1160)`);
+        setA(el.all, 'transform', `translate(0 ${n2(pose.bob * U)})`);
         // breathing: the robe swells a little from the floor up; the head rides on it
-        el.body.setAttribute('transform', `translate(0 1520) scale(1 ${1 + pose.breath * 0.012}) translate(0 -1520)`);
-        el.head.setAttribute('transform', `translate(0 ${-pose.breath * 9}) rotate(${pose.tilt} 993 700)`);
-        el.tail.setAttribute('transform', `translate(0 ${-pose.breath * 9}) rotate(${pose.tail} 600 300)`);
-        el.eyes.setAttribute('transform', `translate(0 ${EYE_Y}) scale(1 ${1 - pose.blink * 0.92}) translate(0 ${-EYE_Y})`);
-        el.pupils.setAttribute('transform', `translate(${pose.lookX} ${pose.lookY})`);
-        el.glints.forEach(g => g.setAttribute('opacity', pose.glint));
+        setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
+        setA(el.head, 'transform', `translate(0 ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt)} 993 700)`);
+        setA(el.tail, 'transform', `translate(0 ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
+        setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
+        setA(el.pupils, 'transform', `translate(${n2(pose.lookX)} ${n2(pose.lookY)})`);
+        const gl = n2(pose.glint);
+        el.glints.forEach(g => setA(g, 'opacity', gl));
     }
 
     applyPose(); // the resting pose before the first frame (the arms would sit at 0,0)
 
     // ---------- state ----------
     let phase = 'idle';           // idle | intro | play | over
-    let phaseT = 0, clockT = 0, spawnT = 0, score = 0, combo = 0, lastSlice = -1;
+    let phaseT = 0, clockT = 0, spawnT = 0, combo = 0, lastSlice = -1;
+    let timeLeft = START_SECONDS;     // clockT = seconds survived
     let best = store.get(BEST_KEY), slices = 0;
     let fruits = [], halves = [], drops = [], floats = [], trail = [], slashes = [];
     let slash = null;             // { side, t }
     let blinkAt = 2, hopT = 0, pointer = null;
-    let flies = [], sakes = [], stars = [], flyT = 3, sakeT = 12, flyCatches = 0;
+    let flies = [], pickups = [], stars = [], flyT = 6, flyCatches = 0;
+    let pickT = { sake: 12, clock: 20 };                       // seconds until the next of each
+    let bits = [], flames = [];                                // debris of slashed pickups; fire breath
+    let freezeLeft = 0, fireLeft = 0, fireEmit = 0;
     let stamina = STAMINA_BARS, sakeLeft = 0, emptyFlash = 0, stunT = 0, stunFor = 0;
     let tongue = null;            // { tx, ty, t, out, back, caught: { kind, obj } }
 
     // where the mouth and the head are on the canvas
     function frogPoint(lx, ly) {
-        const fb = svg.getBoundingClientRect(), cb = canvas.getBoundingClientRect();
-        return { x: fb.left - cb.left + fb.width * (lx / 1986), y: fb.top - cb.top + fb.height * (ly / 1876) + pose.bob * U * fb.height / 1876 };
+        return { x: fbox.x + fbox.w * (lx / 1986), y: fbox.y + fbox.h * (ly / 1876) + pose.bob * U * fbox.h / 1876 };
     }
 
     // the eyes follow the nearest fruit (or the finger while slicing)
@@ -348,15 +447,14 @@ export function mountFrogGame(stage, opts = {}) {
             fruits.forEach(f => { const d = Math.hypot(f.x - W / 2, f.y - H); if (f.entered && d < best) { best = d; target = { x: f.x, y: f.y }; } });
         }
         if (target) {
-            const fb = svg.getBoundingClientRect(), cb = canvas.getBoundingClientRect();
-            const ex = fb.left - cb.left + fb.width * (993 / 1986), ey = fb.top - cb.top + fb.height * (EYE_Y / 1876);
+            const ex = fbox.x + fbox.w * (993 / 1986), ey = fbox.y + fbox.h * (EYE_Y / 1876);
             const dx = target.x - ex, dy = target.y - ey, d = Math.hypot(dx, dy) || 1;
             tx = dx / d * 30; ty = dy / d * 22;
         }
         const k = Math.min(1, dt * 8);
         pose.lookX += (tx - pose.lookX) * k; pose.lookY += (ty - pose.lookY) * k;
     }
-    el.best.textContent = best;
+    el.best.textContent = formatSurvival(best / 1000);
 
     function staminaHud() {
         const gold = sakeLeft > 0;
@@ -366,9 +464,13 @@ export function mountFrogGame(stage, opts = {}) {
         el.stamina.classList.toggle('flash', emptyFlash > 0);
         el.stamina.classList.toggle('stunned', stunT > 0);
     }
+    let hudS = '', hudC = '', hudLow = null;
     function hud() {
-        el.score.textContent = score;
-        el.clock.textContent = Math.max(0, Math.ceil(ROUND_SECONDS - clockT));
+        // DOM writes only when the text changes (tenths), not every frame
+        const sv = formatSurvival(clockT), cl = Math.max(0, timeLeft).toFixed(1), low = timeLeft < LOW_TIME;
+        if (sv !== hudS) { el.score.textContent = hudS = sv; }
+        if (cl !== hudC) { el.clock.textContent = hudC = cl; }
+        if (low !== hudLow) { el.clock.parentElement.classList.toggle('fg-low', low); hudLow = low; }
     }
     hud();
 
@@ -450,11 +552,10 @@ export function mountFrogGame(stage, opts = {}) {
         const now = performance.now();
         combo = now - lastSlice < 300 ? combo + 1 : 1;
         lastSlice = now;
-        const mult = Math.min(combo, 5);
-        const pts = Math.round(10 + vn * 40) * mult;
-        score += pts; slices++;
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + pts, t: 0, hot: vn > 1.2 });
-        if (combo > 1) { el.combo.textContent = 'Combo x' + mult; el.comboPill.hidden = false; comboHideAt = now + 900; }
+        const gain = fruitTime(f.type);
+        timeLeft += gain; slices++;
+        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: gain >= 0.4 || vn > 1.2 });
+        if (combo > 1) { el.combo.textContent = 'Combo x' + combo; el.comboPill.hidden = false; comboHideAt = now + 900; }
         const nx = -Math.sin(angle), ny = Math.cos(angle);
         const kick = H * 0.12;
         [1, -1].forEach(s => halves.push({
@@ -476,41 +577,166 @@ export function mountFrogGame(stage, opts = {}) {
         const ang = Math.atan2(by - ay, bx - ax);
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            if (segDist(f.x, f.y, ax, ay, bx, by) < f.r * 1.1) {
+            if (segDist(f.x, f.y, ax, ay, bx, by) < f.r * 1.25) {
                 fruits.splice(i, 1);
                 sliceFruit(f, ax === bx && ay === by ? rand(-0.6, 0.6) + (Math.random() < 0.5 ? 0 : Math.PI / 2) : ang);
             }
         }
+        // the blade wrecks pickups: they're for the tongue
+        for (let i = flies.length - 1; i >= 0; i--) {
+            const f = flies[i];
+            if (segDist(f.x, f.y, ax, ay, bx, by) < f.s * 1.6) breakFly(flies.splice(i, 1)[0], ang);
+        }
+        for (let i = pickups.length - 1; i >= 0; i--) {
+            const b = pickups[i];
+            if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) breakPickup(pickups.splice(i, 1)[0], ang);
+        }
     }
 
-    let down = false, lx = 0, ly = 0;
-    const pos = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    // ---------- debris ----------
+    function bit(x, y, draw, o = {}) {
+        const a = rand(0, 6.28), v = rand(0.12, 0.35) * H;
+        bits.push(Object.assign({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.25, g: G(), rot: rand(0, 6.28), spin: rand(-8, 8), t: 0, life: 1.4, draw }, o));
+    }
+    function splash(x, y, c, n, size) {
+        for (let i = 0; i < n; i++) {
+            const a = rand(0, 6.28), v = rand(0.1, 0.45) * H;
+            drops.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c, t: 0, s: rand(size * 0.5, size) });
+        }
+    }
+    function breakFly(f, ang) {
+        // cut in half: the halves fly apart, then drop
+        const nx = -Math.sin(ang), ny = Math.cos(ang);
+        [1, -1].forEach(sd => bit(f.x, f.y, ctx => {
+            ctx.beginPath(); ctx.rect(sd > 0 ? 0 : -f.s * 3, -f.s * 3, f.s * 3, f.s * 6); ctx.clip();
+            drawFly(ctx, { x: 0, y: 0, dir: f.dir, phase: f.phase }, f.s, 0);
+        }, { vx: nx * H * 0.15 * sd, vy: ny * H * 0.15 * sd - H * 0.1, rot: 0, spin: sd * rand(4, 8) }));
+        splash(f.x, f.y, '#eeff41', 8, 3);
+    }
+    function breakPickup(b, ang) {
+        const r = b.r;
+        if (b.kind === 'clock') {
+            // broken to pieces: bells, gears, hands, face shards, a spring
+            [-1, 1].forEach(sd => bit(b.x + sd * r * 0.6, b.y - r * 0.8, (ctx, lw) => {
+                ctx.beginPath(); ctx.arc(0, 0, r * 0.4, Math.PI, 0); ctx.closePath(); ctx.fillStyle = '#e53935'; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
+            }));
+            for (let i = 0; i < 3; i++) { const gr = r * rand(0.22, 0.34); bit(b.x, b.y, (ctx, lw) => drawGear(ctx, gr, lw)); }
+            [0.38, 0.6].forEach(len => bit(b.x, b.y, (ctx, lw) => { ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -r * len); ctx.stroke(); }));
+            for (let i = 0; i < 5; i++) { const pts = shardPath(3 + (i % 2), r * 0.45); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i % 2 ? '#fff' : '#e53935', lw * 0.7)); }
+            bit(b.x, b.y, (ctx, lw) => { ctx.lineWidth = lw * 0.6; ctx.strokeStyle = '#5d6066'; ctx.beginPath(); for (let k = 0; k <= 24; k++) ctx.lineTo(Math.cos(k * 0.9) * r * 0.14, -r * 0.3 + k * r * 0.025); ctx.stroke(); });
+            floats.push({ x: b.x, y: b.y - r, text: 'Clank!', t: 0, hot: false });
+        } else {
+            // the sake bottle shatters
+            for (let i = 0; i < 8; i++) { const pts = shardPath(3, r * rand(0.25, 0.5)); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i === 0 ? '#a3211d' : '#f5c542', lw * 0.7)); }
+            splash(b.x, b.y, '#fff3c4', 16, 5);
+            floats.push({ x: b.x, y: b.y - r, text: 'Smash!', t: 0, hot: false });
+        }
+    }
+
+    // ---------- fire breath (firefly) ----------
+    function burnFruit(f) {
+        const gain = fruitTime(f.type);
+        timeLeft += gain; slices++;                               // burned fruit counts as a cut
+        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: true });
+        splash(f.x, f.y, f.type.juice, 16, 5);
+        splash(f.x, f.y, '#424242', 8, 4);
+        for (let k = 0; k < 18; k++) { const a = rand(0, 6.28), v = H * rand(0.3, 0.8); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.25, 0.45), s: rand(6, 12) }); }
+        hud();
+    }
+    function stepFire(dt) {
+        // the breath is a wide cone from the mouth toward the cursor (no click needed);
+        // a fruit that stays in it for BURN_TIME seconds in a row explodes
+        const on = fireLeft > 0 && phase === 'play';
+        const m = on ? frogPoint(993, MOUTH_Y) : null;
+        let aimA = 0, reach = 0;
+        if (on) {
+            fireLeft = Math.max(0, fireLeft - dt);
+            const ax = aim ? aim.x : W / 2, ay = aim ? aim.y : 0;
+            aimA = Math.atan2(ay - m.y, ax - m.x);
+            reach = Math.hypot(W, H);
+            fireEmit += dt * 160;
+            while (fireEmit >= 1) {
+                fireEmit -= 1;
+                const a = aimA + rand(-FIRE_SPREAD, FIRE_SPREAD) * 0.9, v = H * rand(1.5, 2.3);
+                flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) });
+            }
+        }
+        flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; });
+        flames = flames.filter(p => p.t < p.life);
+        if (flames.length > 500) flames.splice(0, flames.length - 500);
+        for (let i = fruits.length - 1; i >= 0; i--) {
+            const f = fruits[i];
+            let inside = false;
+            if (on && f.entered) {
+                const dx = f.x - m.x, dy = f.y - m.y, d = Math.hypot(dx, dy);
+                let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
+                inside = d < reach && da < FIRE_SPREAD + Math.atan2(f.r, Math.max(d, 1));
+            }
+            if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * 3); continue; }   // out of the flame: cools fast
+            f.burn = (f.burn || 0) + dt;
+            if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
+            if (f.burn >= BURN_TIME) { fruits.splice(i, 1); burnFruit(f); }
+        }
+    }
+
+    let down = false, lx = 0, ly = 0, aim = null;
+    let cut = null, cutId = 0, cutRestAt = 0;   // the live cut; no new cut before cutRestAt
+    const cutMax = () => CUT_MAX * Math.max(W, H);
+    // canvas events: offsetX/Y need no layout read (pointermove can fire 1000x a second)
+    const pos = e => { if (e.target === canvas) return [e.offsetX, e.offsetY]; const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+    // pays for a cut (one stamina bar unless sake is on); false = can't cut now
+    function payCut(loud) {
+        if (phase !== 'play' || sakeLeft > 0) return true;
+        if (stamina < 1) { if (loud) emptyFlash = 0.5; return false; }
+        stamina -= 1;
+        return true;
+    }
+    function startCut(x, y, loud) {
+        if (!payCut(loud)) return false;
+        cut = { id: ++cutId, len: 0, ax: x, ay: y, hx: 0, hy: 0 };
+        trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
+        return true;
+    }
+    function endCut() { cut = null; cutRestAt = performance.now() + CUT_BREAK * 1000; }
     function onDown(e) {
         if (phase === 'intro') { phaseT = INTRO; return; }  // skip the intro
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
         if (e.button !== 0 && e.pointerType === 'mouse') return;
-        if (phase === 'play') {
-            if (stunT > 0) return;                                 // dizzy: no slashing
-            if (sakeLeft <= 0) {
-                if (stamina < 1) { emptyFlash = 0.5; return; }     // out of stamina
-                stamina -= 1;
-            }
-        }
+        if (phase === 'play' && stunT > 0) return;                 // dizzy: no slashing
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
-        trail.push({ x: lx, y: ly, t: performance.now() });
-        hitTest(lx, ly, lx, ly);
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+        cut = null;
+        if (startCut(px, py, true)) hitTest(lx, ly, lx, ly);
     }
     function onMove(e) {
-        if (!down) return;
         const [x, y] = pos(e);
-        trail.push({ x, y, t: performance.now() });
+        aim = { x, y };                                   // the fire breath follows the cursor
+        if (!down) return;
         pointer = { x, y };
-        hitTest(lx, ly, x, y);
+        if (!cut) {
+            // resting between cuts, or waiting for stamina: the next cut starts here
+            if (performance.now() >= cutRestAt) startCut(x, y, false);
+            lx = x; ly = y; return;
+        }
+        // a sharp change of direction ends this cut; the next one starts after the rest
+        const ddx = x - cut.ax, ddy = y - cut.ay, dd = Math.hypot(ddx, ddy);
+        if (dd >= TURN_STEP) {
+            const hx = ddx / dd, hy = ddy / dd;
+            if ((cut.hx || cut.hy) && hx * cut.hx + hy * cut.hy < TURN_COS) { endCut(); lx = x; ly = y; return; }
+            cut.hx = hx; cut.hy = hy; cut.ax = x; cut.ay = y;
+        }
+        // the length cap: clip the last bit and end the cut there
+        const seg = Math.hypot(x - lx, y - ly), left = cutMax() - cut.len;
+        let ex = x, ey = y, done = false;
+        if (seg >= left) { const k = seg > 0 ? left / seg : 0; ex = lx + (x - lx) * k; ey = ly + (y - ly) * k; done = true; }
+        hitTest(lx, ly, ex, ey);
+        cut.len += done ? left : seg;
+        trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len });
+        if (done) endCut();
         lx = x; ly = y;
     }
-    function onUp() { down = false; }
+    function onUp() { down = false; cut = null; }
     canvas.addEventListener('pointerdown', onDown);
     const noMenu = e => e.preventDefault();
     canvas.addEventListener('contextmenu', noMenu);
@@ -525,26 +751,33 @@ export function mountFrogGame(stage, opts = {}) {
         tongue = { tx: x, ty: y, t: 0, out: 0.08 + d / 2600, back: 0.16, caught: null, hit: false };
     }
     function tongueGrab(x, y) {
+        // pickups first and generous (they sit in front of the fruit), fruit a little stricter
         const reach = Math.max(18, Math.min(W, H) * 0.035);
         for (let i = flies.length - 1; i >= 0; i--) {
-            if (Math.hypot(flies[i].x - x, flies[i].y - y) < reach + flies[i].s) return { kind: 'fly', obj: flies.splice(i, 1)[0] };
+            if (Math.hypot(flies[i].x - x, flies[i].y - y) < reach * 1.5 + flies[i].s * 1.5) return { kind: 'fly', obj: flies.splice(i, 1)[0] };
         }
-        for (let i = sakes.length - 1; i >= 0; i--) {
-            if (Math.hypot(sakes[i].x - x, sakes[i].y - y) < reach + sakes[i].r) return { kind: 'sake', obj: sakes.splice(i, 1)[0] };
+        for (let i = pickups.length - 1; i >= 0; i--) {
+            if (Math.hypot(pickups[i].x - x, pickups[i].y - y) < reach * 1.4 + pickups[i].r * 1.25) { const b = pickups.splice(i, 1)[0]; return { kind: b.kind, obj: b }; }
         }
         for (let i = fruits.length - 1; i >= 0; i--) {
-            if (Math.hypot(fruits[i].x - x, fruits[i].y - y) < reach * 0.6 + fruits[i].r) return { kind: 'fruit', obj: fruits.splice(i, 1)[0] };
+            if (Math.hypot(fruits[i].x - x, fruits[i].y - y) < reach * 0.75 + fruits[i].r * 1.1) return { kind: 'fruit', obj: fruits.splice(i, 1)[0] };
         }
         return null;
     }
     function swallow(c) {
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
-            score += FLY_POINTS; flyCatches++;
-            floats.push({ x: m.x, y: m.y - 30, text: '+' + FLY_POINTS, t: 0, hot: false });
+            flyCatches++;
+            fireLeft = FIRE_SECONDS; fireEmit = 0;
+            floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
+            hopT = 0.5;
         } else if (c.kind === 'sake') {
             sakeLeft = SAKE_SECONDS; stamina = STAMINA_BARS;
             floats.push({ x: m.x, y: m.y - 40, text: 'Sake! Free slashes', t: 0, hot: true });
+            hopT = 0.5;
+        } else if (c.kind === 'clock') {
+            freezeLeft = FREEZE_SECONDS;
+            floats.push({ x: m.x, y: m.y - 40, text: 'Time freeze!', t: 0, hot: true });
             hopT = 0.5;
         } else {
             // the fruit smashes on the frog's head: the bigger, the longer the stun
@@ -556,7 +789,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             [1, -1].forEach(s => halves.push({ type: f.type, r: f.r, x: head.x, y: head.y, vx: s * H * 0.25, vy: -H * 0.45, g: G(), rot: s < 0 ? Math.PI : 0, spin: s * 4, t: 0 }));
             floats.push({ x: head.x, y: head.y - 20, text: 'Bonk!', t: 0, hot: true });
-            down = false; slash = null;
+            down = false; slash = null; cut = null;
         }
         hud();
     }
@@ -582,33 +815,40 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- flies and sake ----------
     function spawnFly() {
         const dir = Math.random() < 0.5 ? 1 : -1;
-        const s = clamp(Math.min(W, H) * 0.018, 8, 13);
+        const s = clamp(Math.min(W, H) * 0.015, 7, 11);          // small: hard to catch
         flies.push({ x: dir > 0 ? -20 : W + 20, y: rand(H * 0.12, H * 0.55), base: 0, dir, s, speed: W * rand(0.1, 0.18), phase: rand(0, 6), t: 0 });
         flies[flies.length - 1].base = flies[flies.length - 1].y;
     }
-    function spawnSake() {
-        const r = clamp(Math.min(W, H) * 0.05, 20, 38);
+    // sizes follow the payoff: firefly smallest (fire), clock medium (freeze), sake biggest (free slashes)
+    const PICK_SIZE = { clock: 0.8, sake: 1.2 };
+    const PICK_EVERY = { sake: [14, 20], clock: [16, 24] };
+    function spawnPickup(kind) {
+        const r = clamp(Math.min(W, H) * 0.05, 20, 38) * PICK_SIZE[kind];
         const x = rand(W * 0.2, W * 0.8), g = G() * 0.55;
-        sakes.push({ x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * H), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
+        pickups.push({ kind, x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * H), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
     }
 
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
-        score = 0; slices = 0; combo = 0; clockT = 0; spawnT = 0.6;
+        slices = 0; combo = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; drops = []; floats = [];
-        flies = []; sakes = []; stars = []; flyT = 3; sakeT = rand(10, 16); flyCatches = 0;
+        flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0;
+        pickT = { sake: rand(10, 16), clock: rand(16, 24) };
+        bits = []; flames = []; freezeLeft = 0; fireLeft = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
         if (pose.held) { phase = 'play'; } else { phase = 'intro'; phaseT = 0; }
     }
     function gameOver() {
         phase = 'over';
-        if (score > best) { best = score; store.set(BEST_KEY, best); el.best.textContent = best; hopT = 0.5; }
-        el.title.textContent = score >= best && score > 0 ? 'New best: ' + score : 'Score: ' + score;
-        el.sub.textContent = 'Time is up. Your best on this device: ' + best + '.';
+        const ms = Math.round(clockT * 1000);
+        const isBest = ms > best;
+        if (isBest) { best = ms; store.set(BEST_KEY, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
+        el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
+        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.';
         el.start.textContent = 'Play again';
-        // flies count as cuts for the scoreboard's points-per-cut check
-        if (opts.onGameOver) opts.onGameOver({ score, slices: slices + flyCatches, duration_ms: Math.round(clockT * 1000) }, el.save);
+        // score = milliseconds survived; fireflies count as cuts for the server's time-per-cut check
+        if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches, duration_ms: ms }, el.save);
         el.overlay.hidden = false;
     }
     el.start.addEventListener('click', start);
@@ -654,36 +894,41 @@ export function mountFrogGame(stage, opts = {}) {
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
         applyPose();
 
-        // game
+        // game; the alarm clock freezes the world (wdt = 0), not the round clock or the frog
+        const wdt = freezeLeft > 0 ? 0 : dt;
         if (phase === 'play') {
-            clockT += dt;
-            const difficulty = clamp(clockT / 45, 0, 1);
-            spawnT -= dt;
+            clockT += dt; timeLeft -= dt;
+            // ramps over minutes and never quite tops out
+            const difficulty = 1 - Math.exp(-clockT / 150);
+            if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
+            spawnT -= wdt;
             if (spawnT <= 0) {
-                const volley = Math.random() < 0.15 + difficulty * 0.25 ? Math.floor(rand(2, 4.99)) : 1;
+                const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
                 for (let i = 0; i < volley; i++) spawn(difficulty);
-                spawnT = lerp(1.1, 0.5, difficulty) * rand(0.8, 1.2);
+                spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2);
             }
-            flyT -= dt;
-            if (flyT <= 0) { spawnFly(); flyT = rand(2.5, 5); }
-            sakeT -= dt;
-            if (sakeT <= 0) { spawnSake(); sakeT = rand(14, 20); }
+            flyT -= wdt;
+            if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
+            for (const k in pickT) { pickT[k] -= wdt; if (pickT[k] <= 0) { spawnPickup(k); pickT[k] = rand(...PICK_EVERY[k]); } }
             if (sakeLeft > 0) sakeLeft = Math.max(0, sakeLeft - dt);
             else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
             if (stunT > 0) stunT = Math.max(0, stunT - dt);
-            if (clockT >= ROUND_SECONDS) gameOver();
+            if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
             hud();
         }
         stepTongue(dt);
+        stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
-        flies.forEach(f => { f.t += dt; f.x += f.dir * f.speed * dt + Math.sin(f.t * 9 + f.phase) * 0.6; f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
+        if (wdt) flies.forEach(f => { f.t += dt; f.x += f.dir * f.speed * dt + Math.sin(f.t * 9 + f.phase) * 0.6; f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
         flies = flies.filter(f => f.x > -40 && f.x < W + 40);
-        sakes.forEach(b => { b.t += dt; b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; });
-        sakes = sakes.filter(b => b.y < H + b.r * 3);
+        pickups.forEach(b => { b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
+        pickups = pickups.filter(b => b.y < H + b.r * 3);
+        bits.forEach(b => { b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; b.t += dt; });
+        bits = bits.filter(b => b.t < b.life && b.y < H + 80);
         staminaHud();
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            f.vy += f.g * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.spin * dt;
+            f.vy += f.g * wdt; f.x += f.vx * wdt; f.y += f.vy * wdt; f.rot += f.spin * wdt;
             if (!f.entered && f.x > -f.r && f.x < W + f.r && f.y < H) f.entered = true;
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);
             if (out || f.y > H + H) fruits.splice(i, 1);
@@ -692,6 +937,7 @@ export function mountFrogGame(stage, opts = {}) {
         halves = halves.filter(h => h.y < H + h.r * 3);
         drops.forEach(d => { d.vy += G() * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.t += dt; });
         drops = drops.filter(d => d.t < 0.7);
+        if (drops.length > 400) drops.splice(0, drops.length - 400);
         floats.forEach(f => f.t += dt); floats = floats.filter(f => f.t < 0.9);
         slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
         const tn = performance.now();
@@ -708,9 +954,33 @@ export function mountFrogGame(stage, opts = {}) {
         drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
         ctx.globalAlpha = 1;
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
-        fruits.forEach(f => { ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); drawWhole(ctx, f, f.r, lw); ctx.restore(); });
-        sakes.forEach(b => drawSake(ctx, b, lw));
-        flies.forEach(f => drawFly(ctx, f, f.s, tn / 1000));
+        fruits.forEach(f => {
+            ctx.save(); ctx.translate(f.x, f.y); ctx.rotate(f.rot); drawWhole(ctx, f, f.r, lw);
+            if (f.burn) {   // charring while it heats up
+                ctx.globalAlpha = clamp(f.burn / BURN_TIME, 0, 1) * 0.8; ctx.fillStyle = '#2b1b17';
+                ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill();
+            }
+            ctx.restore();
+        });
+        if (freezeLeft > 0) {   // frost over the frozen world
+            ctx.save(); ctx.globalAlpha = Math.min(1, freezeLeft / 0.3) * 0.18; ctx.fillStyle = '#81d4fa'; ctx.fillRect(0, 0, W, H); ctx.restore();
+        }
+        bits.forEach(b => {
+            ctx.save(); ctx.globalAlpha = clamp((b.life - b.t) / 0.3, 0, 1);
+            ctx.translate(b.x, b.y); ctx.rotate(b.rot); b.draw(ctx, lw, b); ctx.restore();
+        });
+        // pickups and fireflies sit in front of the fruit
+        pickups.forEach(b => drawPickup(ctx, b, lw));
+        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 ? f.phase : tn / 1000));
+        if (flames.length) {
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            flames.forEach(p => {
+                const k = p.t / p.life;
+                ctx.fillStyle = k < 0.3 ? 'rgba(255,241,118,.85)' : k < 0.6 ? 'rgba(255,152,0,.7)' : 'rgba(229,57,53,.45)';
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + k * 1.2), 0, 7); ctx.fill();
+            });
+            ctx.restore();
+        }
         if (tongue) {
             const { m, x, y } = tongueTip();
             const w = clamp(Math.min(W, H) * 0.018, 6, 12);
@@ -723,7 +993,7 @@ export function mountFrogGame(stage, opts = {}) {
             const c = tongue.caught;
             if (c) {
                 if (c.kind === 'fly') { c.obj.x = x; c.obj.y = y; drawFly(ctx, c.obj, c.obj.s, tn / 1000); }
-                else if (c.kind === 'sake') { c.obj.x = x; c.obj.y = y; drawSake(ctx, c.obj, lw); }
+                else if (c.kind !== 'fruit') { c.obj.x = x; c.obj.y = y; drawPickup(ctx, c.obj, lw); }
                 else { ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawWhole(ctx, c.obj, c.obj.r, lw); ctx.restore(); }
             }
         }
@@ -743,19 +1013,27 @@ export function mountFrogGame(stage, opts = {}) {
         slashes.forEach(s => {
             const k = s.t / 0.18;
             ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a);
-            ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fff'; ctx.lineCap = 'round';
-            ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 10;
-            ctx.lineWidth = 5 * (1 - k) + 1;
-            ctx.beginPath(); ctx.moveTo(-s.r, 0); ctx.lineTo(s.r, 0); ctx.stroke();
+            ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.moveTo(-s.r, 0); ctx.lineTo(s.r, 0);
+            ctx.globalAlpha = (1 - k) * 0.35; ctx.strokeStyle = '#fff'; ctx.lineWidth = 14 * (1 - k) + 2; ctx.stroke();
+            ctx.globalAlpha = 1 - k; ctx.lineWidth = 5 * (1 - k) + 1; ctx.stroke();
             ctx.restore();
         });
         if (trail.length > 1) {
             ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            ctx.shadowColor = 'rgba(152,183,75,.9)'; ctx.shadowBlur = 12;
-            for (let i = 1; i < trail.length; i++) {
-                const a = trail[i - 1], b = trail[i], age = (tn - b.t) / 140;
-                ctx.strokeStyle = `rgba(255,255,255,${1 - age})`; ctx.lineWidth = 7 * (1 - age) + 1;
-                ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+            const cm = cutMax();
+            // two passes instead of shadowBlur: a wide green glow, then the white blade line
+            for (let pass = 0; pass < 2; pass++) {
+                for (let i = 1; i < trail.length; i++) {
+                    const a = trail[i - 1], b = trail[i], age = (tn - b.t) / 140;
+                    if (a.cut !== b.cut) continue;                        // the rest between cuts: a gap
+                    // thin at the start, full in the middle, thinning to a point at the max length
+                    const taper = 0.15 + 0.85 * Math.pow(Math.sin(Math.PI * clamp((a.d + b.d) / 2 / cm, 0, 1)), 0.6);
+                    const w = (7 * (1 - age) + 1) * taper;
+                    ctx.strokeStyle = pass ? `rgba(255,255,255,${1 - age})` : `rgba(152,183,75,${0.45 * (1 - age)})`;
+                    ctx.lineWidth = pass ? w : w * 2.6 + 4;
+                    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+                }
             }
             ctx.restore();
         }

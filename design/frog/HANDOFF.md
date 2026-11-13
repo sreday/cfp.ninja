@@ -4,7 +4,7 @@ Read this first when picking the work up on another machine. Everything needed i
 
 ## What exists
 - **The game is shipped to `main` (commit 115b272), but not deployed.**
-  - It is the `/game` route: a 60 s fruit slicer starring the CFP.ninja frog.
+  - It is the `/game` route: a survival fruit slicer starring the CFP.ninja frog (time is the currency: fruit buys seconds, the score is how long you last).
   - It has a top-20 scoreboard with GitHub login.
   - Code:
     - `static/js/views/frog-game.js`: the engine. The frog is an inline SVG; fruit, particles and the slash trail are drawn on a canvas.
