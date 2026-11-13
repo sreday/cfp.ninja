@@ -6,8 +6,8 @@
 // proposals keep their status. The organizer sees the full list and
 // confirms before anything is sent.
 //
-// Hard limits (the button refuses): never more than the CSV's rows, never
-// more than half of the event's proposals.
+// Hard limit (the button refuses): never more matches than the CSV's rows.
+// (No share-of-proposals limit: small events accept every submission.)
 
 import { escapeHtml } from '../utils.js';
 
@@ -149,9 +149,7 @@ export function makePlan(rows, proposals) {
 // check: the reasons the button refuses ('' = fine).
 export function checkPlan(plan) {
     if (!plan.accept.length) return 'Nothing to accept: every match is accepted already or unsure.';
-    const after = plan.accept.length + plan.already.length + plan.acceptedNotInSheet.length;
     if (plan.accept.length + plan.already.length > plan.rows) return `Refusing: ${plan.accept.length + plan.already.length} matches for a CSV of ${plan.rows} rows.`;
-    if (after * 2 > plan.total) return `Refusing: ${after} accepted would be more than half of the ${plan.total} proposals. Accept these one by one instead.`;
     return '';
 }
 

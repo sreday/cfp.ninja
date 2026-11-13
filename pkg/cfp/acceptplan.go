@@ -295,9 +295,6 @@ func (pl *Plan) Check() error {
 	if len(pl.Accept)+len(pl.Already) > pl.SheetRows {
 		return fmt.Errorf("refusing: %d to accept + %d accepted already is more than the sheet's %d rows", len(pl.Accept), len(pl.Already), pl.SheetRows)
 	}
-	if after := len(pl.Accept) + len(pl.Already) + len(pl.AcceptedNotSheet); after*2 > pl.Total {
-		return fmt.Errorf("refusing: %d accepted would be more than half of the event's %d proposals; do this one in the web UI", after, pl.Total)
-	}
 	if pl.Total >= MaxProposalsPerRequest {
 		return fmt.Errorf("refusing: cfp.ninja returned %d proposals, its per-request cap, so the list may be cut short", pl.Total)
 	}

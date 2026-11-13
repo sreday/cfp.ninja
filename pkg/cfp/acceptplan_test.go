@@ -73,10 +73,10 @@ func TestAcceptPlan(t *testing.T) {
 	if big.Check() == nil {
 		t.Fatal("more than the sheet's rows")
 	}
-	half := *pl
-	half.Total = 10
-	if half.Check() == nil {
-		t.Fatal("more than half the proposals")
+	small := *pl // a small event: every proposal in the sheet is fine
+	small.Total = len(small.Accept) + len(small.Already)
+	if err := small.Check(); err != nil {
+		t.Fatalf("small event: %v", err)
 	}
 	capped := *pl
 	capped.Total = MaxProposalsPerRequest
