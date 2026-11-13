@@ -11,6 +11,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/stripe/stripe-go/v82 v82.5.1
 	golang.org/x/oauth2 v0.34.0
+	golang.org/x/term v0.27.0
 	golang.org/x/time v0.14.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
