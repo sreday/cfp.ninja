@@ -213,7 +213,11 @@ func MakePlan(rows []SheetRow, ps []Proposal) *Plan {
 			best, next := TitleSimilarity(row.Title, ps[cands[0]].Title), TitleSimilarity(row.Title, ps[cands[1]].Title)
 			if best < 0.5 || best-next < 0.2 {
 				sure = false
-				how = fmt.Sprintf("%d proposals from this speaker, the title doesn't settle it", len(cands))
+				var alts []string
+				for _, i := range cands {
+					alts = append(alts, fmt.Sprintf("%d %q (%s)", ps[i].ID, ps[i].Title, ps[i].Status))
+				}
+				how = fmt.Sprintf("%d proposals from this speaker, the title doesn't settle it: %s", len(cands), strings.Join(alts, "; "))
 			} else {
 				how += " + title"
 			}
