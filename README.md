@@ -390,7 +390,7 @@ CFP.ninja sends transactional emails via [Resend](https://resend.com). When `RES
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MAX_PROPOSALS_PER_EVENT` | `3` | Maximum proposals a speaker can submit per event |
-| `MAX_ORGANIZERS_PER_EVENT` | `5` | Maximum co-organizers per event |
+| `MAX_ORGANIZERS_PER_EVENT` | `10` | Maximum co-organizers per event |
 
 ### Email (Resend)
 

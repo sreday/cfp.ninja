@@ -19,7 +19,7 @@ func TestGetConfig_ReturnsExpectedShape(t *testing.T) {
 		t.Errorf("expected max_proposals_per_event > 0, got %d", cfg.MaxProposalsPerEvent)
 	}
 
-	// MaxOrganizersPerEvent should reflect the configured default (5)
+	// MaxOrganizersPerEvent should reflect the configured default (10)
 	if cfg.MaxOrganizersPerEvent <= 0 {
 		t.Errorf("expected max_organizers_per_event > 0, got %d", cfg.MaxOrganizersPerEvent)
 	}

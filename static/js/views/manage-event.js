@@ -421,7 +421,7 @@ async function loadOrganisers(eventId) {
         html += '</ul>';
 
         const config = getAppConfig();
-        const maxOrganisers = config.max_organizers_per_event || 5;
+        const maxOrganisers = config.max_organizers_per_event || 10;
         if (organisers.length < maxOrganisers) {
             html += `
                 <div class="input-group mt-3" id="add-organiser-group">

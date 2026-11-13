@@ -230,7 +230,7 @@ func InitConfig() (*Config, error) {
 		}
 	}
 
-	maxOrganizersPerEvent := 5
+	maxOrganizersPerEvent := 10
 	if v := os.Getenv("MAX_ORGANIZERS_PER_EVENT"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			maxOrganizersPerEvent = n
