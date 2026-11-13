@@ -12,7 +12,8 @@ const TIME_SMALL = 0.5, TIME_BIG = 0.1;         // seconds a fruit buys: smalles
 const LOW_TIME = 5;                             // the clock turns red below this
 // Stamina: every cut costs one bar; bars come back at a steady pace.
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
-const FREEZE_SECONDS = 3;                       // alarm clock: the world stops
+const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops, world at SLOWMO speed
+const SLOWMO = 0.1;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
@@ -360,7 +361,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops the world and your countdown for 3 s: you only gain time.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
@@ -879,7 +880,7 @@ export function mountFrogGame(stage, opts = {}) {
             hopT = 0.5;
         } else if (c.kind === 'clock') {
             freezeLeft = FREEZE_SECONDS; clockCatches++;   // the countdown stops too
-            floats.push({ x: m.x, y: m.y - 40, text: 'Time freeze!', t: 0, hot: true });
+            floats.push({ x: m.x, y: m.y - 40, text: 'Slow motion!', t: 0, hot: true });
             hopT = 0.5;
         } else {
             // the fruit smashes on the frog's head: the bigger, the longer the stun
@@ -1030,13 +1031,14 @@ export function mountFrogGame(stage, opts = {}) {
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
         applyPose();
 
-        // game; the alarm clock freezes the world (wdt = 0), not the round clock or the frog
-        const wdt = freezeLeft > 0 ? 0 : dt;
+        // game; the alarm clock slows the world to 10% (wdt) and stops the countdown, not the frog
+        const wdt = freezeLeft > 0 ? dt * SLOWMO : dt;
         if (phase === 'play') {
             clockT += dt; if (freezeLeft <= 0) timeLeft -= dt;   // the alarm clock stops the countdown
             // ramps over minutes and never quite tops out
             const difficulty = 1 - Math.exp(-clockT / 150);
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
+            if (freezeLeft > 0 && !fruits.some(f => f.entered)) { freezeLeft = 0; floats.push({ x: W / 2, y: H * 0.3, text: 'Screen clear!', t: 0, hot: true }); }   // time flows again
             spawnT -= wdt;
             if (spawnT <= 0) {
                 const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
@@ -1056,7 +1058,7 @@ export function mountFrogGame(stage, opts = {}) {
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
-        if (wdt) flies.forEach(f => { f.t += dt; f.x += f.dir * f.speed * dt + Math.sin(f.t * 9 + f.phase) * 0.6; f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
+        flies.forEach(f => { f.t += wdt; f.x += f.dir * f.speed * wdt + Math.sin(f.t * 9 + f.phase) * 0.6 * (wdt / (dt || 1)); f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
         flies = flies.filter(f => f.x > -40 && f.x < W + 40);
         pickups.forEach(b => { b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
         pickups = pickups.filter(b => b.y < H + b.r * 3);
@@ -1118,7 +1120,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // pickups and fireflies sit in front of the fruit
         pickups.forEach(b => drawPickup(ctx, b, lw));
-        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 ? f.phase : tn / 1000));
+        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 ? tn / 10000 : tn / 1000));
         if (flames.length) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter';
             flames.forEach(p => {
