@@ -17,7 +17,10 @@ const SLOWMO = 0.1;                             // ...until the time is up or th
 const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
-const SAKE_SECONDS = 5;                         // golden sake: free slashes
+const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
+// Drunk vision: every fruit drags two echoes behind it (where it was ECHO_GAP and
+// 2 x ECHO_GAP seconds ago, swaying), and all three are smeared along their flight.
+const ECHO_GAP = 0.14, ECHO_ALPHA = [0.55, 0.3], BLUR_TIME = 0.011, BLUR_STEPS = 3;
 // A cut is at most CUT_MAX of the screen's longer side (no limits while sake is on) and a sharp turn starts
 // a new one, so circling or scrubbing can't slice for free. Between cuts the blade
 // lifts for CUT_GAP px of travel: a distance, not a time, so the gap stays small
@@ -379,7 +382,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing. The frog gets drunk and sees every fruit three times.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
@@ -1153,13 +1156,40 @@ export function mountFrogGame(stage, opts = {}) {
         raf = requestAnimationFrame(frame);
     }
 
+    // one fruit image smeared back along its flight: faint copies first, the sharpest one last
+    function drawSmeared(f, x, y, rot, alpha, lw, k) {
+        for (let i = BLUR_STEPS; i >= 1; i--) {
+            const tau = BLUR_TIME * k * i;
+            ctx.save(); ctx.globalAlpha = alpha * 0.34 * (1 - (i - 1) / (BLUR_STEPS + 1));
+            ctx.translate(x - f.vx * tau, y - f.vy * tau); ctx.rotate(rot - f.spin * tau);
+            drawWhole(ctx, f, f.r, lw); ctx.restore();
+        }
+    }
+    // the two echoes behind a fruit (furthest first), then the smear of the fruit itself;
+    // the caller draws the solid fruit on top
+    function drawEchoes(f, lw, k, tn) {
+        for (let n = ECHO_ALPHA.length; n >= 1; n--) {
+            const tau = ECHO_GAP * n * k;
+            // where it was tau seconds ago on its arc, plus a drunken sway
+            const sway = reduced ? 0 : Math.sin(tn / 1000 * 5 + n * 1.9 + f.born) * f.r * 0.3 * n * k;
+            const ex = f.x - f.vx * tau + sway, ey = f.y - f.vy * tau + 0.5 * f.g * tau * tau;
+            const rot = f.rot - f.spin * tau, a = ECHO_ALPHA[n - 1] * k;
+            drawSmeared(f, ex, ey, rot, a, lw, k);
+            ctx.save(); ctx.globalAlpha = a; ctx.translate(ex, ey); ctx.rotate(rot); drawWhole(ctx, f, f.r, lw); ctx.restore();
+        }
+        drawSmeared(f, f.x, f.y, f.rot, 1, lw, k);
+    }
+
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
         const lw = clamp(W / 260, 2.5, 4);
         drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
         ctx.globalAlpha = 1;
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
+        // sake: the frog sees triple (eases in and out with the sake)
+        const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
+            if (drunk) drawEchoes(f, lw, drunk, tn);
             ctx.save(); ctx.translate(f.x, f.y);
             const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
             if (mk) {   // melting: it sags, spreads and glows, drips hang off the bottom
