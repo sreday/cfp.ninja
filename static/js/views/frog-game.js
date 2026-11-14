@@ -158,22 +158,91 @@ const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUIT
 const sizeK = type => clamp((type.r - SIZE_MIN) / (SIZE_MAX - SIZE_MIN), 0, 1);   // 0 = smallest fruit, 1 = biggest
 const PINE_X = 0.8, PINE_Y = 1.16;               // the pineapple is taller than wide
 const MIN_HIT = 15;                              // px: the smallest fruit still has a fair target
+// Precision. Across a fruit, at right angles to the blade, there are five bands:
+// the outer EDGE_BAND on each side only clips it (the fruit bounces away, still whole),
+// the middle third of the rest is a clean cut (full time), the two bands between are
+// off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
+// included, and every cut after the first is worth RECUT of the one before.
+const EDGE_BAND = 0.1, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+
+// ---------- polygons (fruit and its pieces, in the fruit's own frame) ----------
+const polyOval = (rx, ry, n = 28) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [Math.cos(a) * rx, Math.sin(a) * ry]; });
+// both sides of a polygon cut by the line through (px, py) with normal (nx, ny): [n side, other side]
+function splitPoly(poly, px, py, nx, ny) {
+    const A = [], B = [];
+    for (let i = 0; i < poly.length; i++) {
+        const c = poly[i], d = poly[(i + 1) % poly.length];
+        const sc = (c[0] - px) * nx + (c[1] - py) * ny, sd = (d[0] - px) * nx + (d[1] - py) * ny;
+        if (sc >= 0) A.push(c);
+        if (sc <= 0) B.push(c);
+        if (sc * sd < 0) { const t = sc / (sc - sd), q = [c[0] + (d[0] - c[0]) * t, c[1] + (d[1] - c[1]) * t]; A.push(q); B.push(q); }
+    }
+    return [polyArea(A) > 3 ? A : null, polyArea(B) > 3 ? B : null];
+}
+function polyArea(poly) {
+    let a = 0;
+    for (let i = 0; i < poly.length; i++) { const c = poly[i], d = poly[(i + 1) % poly.length]; a += c[0] * d[1] - d[0] * c[1]; }
+    return Math.abs(a) / 2;
+}
+function polyCentroid(poly) {
+    let a = 0, x = 0, y = 0;
+    for (let i = 0; i < poly.length; i++) { const c = poly[i], d = poly[(i + 1) % poly.length], k = c[0] * d[1] - d[0] * c[1]; a += k; x += (c[0] + d[0]) * k; y += (c[1] + d[1]) * k; }
+    return a ? [x / (3 * a), y / (3 * a)] : poly[0];
+}
+function pointInPoly(poly, x, y) {
+    let inside = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const a = poly[i], b = poly[j];
+        if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+    }
+    return inside;
+}
+const cross3 = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+function segHitsPoly(poly, ax, ay, bx, by) {
+    if (pointInPoly(poly, ax, ay) || pointInPoly(poly, bx, by)) return true;
+    for (let i = 0; i < poly.length; i++) {
+        const c = poly[i], d = poly[(i + 1) % poly.length];
+        if (cross3(ax, ay, bx, by, c[0], c[1]) * cross3(ax, ay, bx, by, d[0], d[1]) < 0 &&
+            cross3(c[0], c[1], d[0], d[1], ax, ay) * cross3(c[0], c[1], d[0], d[1], bx, by) < 0) return true;
+    }
+    return false;
+}
+// the shortest distance between a segment and a polygon's outline (they don't cross)
+function segPolyGap(poly, ax, ay, bx, by) {
+    let g = Infinity;
+    for (let i = 0; i < poly.length; i++) {
+        const c = poly[i], d = poly[(i + 1) % poly.length];
+        g = Math.min(g, segDist(c[0], c[1], ax, ay, bx, by), segDist(ax, ay, c[0], c[1], d[0], d[1]), segDist(bx, by, c[0], c[1], d[0], d[1]));
+    }
+    return g;
+}
+// the pineapple's crown: a fan of leaves (each its own polygon, so a cut can take some of them)
+function crownLeaves(r) {
+    const q = (p0, c, p1, t) => [(1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * c[0] + t * t * p1[0], (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * c[1] + t * t * p1[1]];
+    return [-58, 58, -30, 30, 0].map(deg => {
+        const a = deg * Math.PI / 180, len = r * (deg ? 0.85 : 1.05), hw = r * 0.2;
+        const dx = Math.sin(a), dy = -Math.cos(a), by = -r * 0.95;
+        const tip = [dx * len, by + dy * len], out = [];
+        for (let i = 0; i < 5; i++) out.push(q([-hw, by], [dx * len * 0.5 - hw * 1.1, by + dy * len * 0.5], tip, i / 5));
+        for (let i = 0; i <= 5; i++) out.push(q(tip, [dx * len * 0.5 + hw * 1.1, by + dy * len * 0.5], [hw, by], i / 5));
+        return out;
+    });
+}
+function pathPoly(ctx, poly) {
+    ctx.beginPath(); ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+    ctx.closePath();
+}
+function drawCrown(ctx, leaves, r, lw) {
+    ctx.fillStyle = '#689f38'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.min(lw, Math.max(1, r * 0.09)); ctx.lineJoin = 'round';
+    leaves.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); ctx.stroke(); });
+}
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
 
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
     lw = Math.min(lw, Math.max(1.2, r * 0.2));
-    if (t.kind === 'pineapple') {   // the crown sits behind the body: a fan of leaves, the middle one last
-        ctx.fillStyle = '#689f38'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.min(lw, Math.max(1, r * 0.09)); ctx.lineJoin = 'round';
-        [-58, 58, -30, 30, 0].forEach(deg => {
-            const a = deg * Math.PI / 180, len = r * (deg ? 0.85 : 1.05), hw = r * 0.2;
-            const dx = Math.sin(a), dy = -Math.cos(a), by = -r * 0.95;
-            ctx.beginPath(); ctx.moveTo(-hw, by);
-            ctx.quadraticCurveTo(dx * len * 0.5 - hw * 1.1, by + dy * len * 0.5, dx * len, by + dy * len);
-            ctx.quadraticCurveTo(dx * len * 0.5 + hw * 1.1, by + dy * len * 0.5, hw, by);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
-        });
-    }
+    if (t.kind === 'pineapple') drawCrown(ctx, f.crown || crownLeaves(r), r, lw);   // behind the body
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -211,44 +280,67 @@ function drawWhole(ctx, f, r, lw) {
     }
 }
 
+// the cut face of a fruit, the whole of it, centred on the origin (pieces clip it)
+function drawFace(ctx, t, r) {
+    ctx.save();
+    if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
+    const disc = (rad, col) => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
+    disc(r, t.skin);
+    disc(r * 0.88, t.ring);
+    disc(r * 0.8, t.flesh);
+    // the seeds and segments are drawn for one half; the other half is the same, turned
+    for (let turn = 0; turn < 2; turn++) {
+        if (t.kind === 'watermelon') {
+            ctx.fillStyle = '#000';
+            for (let i = 0; i < 7; i++) { const a = 0.35 + i * 0.4; ctx.beginPath(); ctx.ellipse(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.05, r * 0.09, a, 0, 7); ctx.fill(); }
+        } else if (t.kind === 'kiwi') {
+            disc(r * 0.3, '#f1f8e9');
+            ctx.fillStyle = '#000';
+            for (let i = 0; i < 10; i++) { const a = 0.15 + i * 0.3; ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42, r * 0.04, 0, 7); ctx.fill(); }
+        } else if (t.kind === 'pineapple') {
+            disc(r * 0.22, '#fff9c4');
+            ctx.strokeStyle = '#fbc02d'; ctx.lineWidth = r * 0.045;
+            for (let i = 0; i <= 8; i++) { const a = i * Math.PI / 8; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.28); ctx.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); ctx.stroke(); }
+        } else if (t.kind === 'orange') {
+            ctx.strokeStyle = t.ring; ctx.lineWidth = r * 0.06;
+            for (let i = 0; i <= 4; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); ctx.stroke(); }
+        } else if (t.kind === 'plum') {
+            ctx.fillStyle = '#8d4a1f'; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.3, r * 0.2, 0, 0, 7); ctx.fill();
+        } else if (t.kind === 'apple') {
+            ctx.fillStyle = '#5d4037';
+            ctx.beginPath(); ctx.ellipse(-r * 0.15, r * 0.25, r * 0.05, r * 0.1, 0.3, 0, 7); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(r * 0.15, r * 0.25, r * 0.05, r * 0.1, -0.3, 0, 7); ctx.fill();
+        }
+        ctx.rotate(Math.PI);
+    }
+    ctx.restore();
+}
+
 function drawHalf(ctx, f, r, lw) {
     // local frame: the cut runs along the x axis, this half is y >= 0
     const t = f.type;
     lw = Math.min(lw, Math.max(1.2, r * 0.2));
     ctx.save();
-    if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
-    ctx.beginPath(); ctx.rect(-r * 2, 0, r * 4, r * 2); ctx.clip();
-    const disc = (rad, col) => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
-    disc(r, t.skin);
-    disc(r * 0.88, t.ring);
-    disc(r * 0.8, t.flesh);
-    if (t.kind === 'watermelon') {
-        ctx.fillStyle = '#000';
-        for (let i = 0; i < 7; i++) { const a = 0.35 + i * 0.4; ctx.beginPath(); ctx.ellipse(Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5, r * 0.05, r * 0.09, a, 0, 7); ctx.fill(); }
-    } else if (t.kind === 'kiwi') {
-        disc(r * 0.3, '#f1f8e9');
-        ctx.fillStyle = '#000';
-        for (let i = 0; i < 10; i++) { const a = 0.15 + i * 0.3; ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42, r * 0.04, 0, 7); ctx.fill(); }
-    } else if (t.kind === 'pineapple') {
-        disc(r * 0.22, '#fff9c4');
-        ctx.strokeStyle = '#fbc02d'; ctx.lineWidth = r * 0.045;
-        for (let i = 0; i <= 8; i++) { const a = i * Math.PI / 8; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.28); ctx.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); ctx.stroke(); }
-    } else if (t.kind === 'orange') {
-        ctx.strokeStyle = t.ring; ctx.lineWidth = r * 0.06;
-        for (let i = 0; i <= 4; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); ctx.stroke(); }
-    } else if (t.kind === 'plum') {
-        ctx.fillStyle = '#8d4a1f'; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.3, r * 0.2, 0, 0, 7); ctx.fill();
-    } else if (t.kind === 'apple') {
-        ctx.fillStyle = '#5d4037';
-        ctx.beginPath(); ctx.ellipse(-r * 0.15, r * 0.25, r * 0.05, r * 0.1, 0.3, 0, 7); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(r * 0.15, r * 0.25, r * 0.05, r * 0.1, -0.3, 0, 7); ctx.fill();
-    }
+    ctx.beginPath(); ctx.rect(-r * 2.4, 0, r * 4.8, r * 2.4); ctx.clip();
+    drawFace(ctx, t, r);
     ctx.restore();
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.closePath(); ctx.stroke();
     ctx.restore();
+}
+
+// a piece of cut fruit: its polygon filled with the cut face, plus what's left of the crown
+function drawPiece(ctx, p, lw) {
+    lw = Math.min(lw, Math.max(1.2, p.r * 0.2));
+    if (p.crown) drawCrown(ctx, p.crown, p.r, lw);
+    if (!p.poly) return;
+    ctx.save();
+    pathPoly(ctx, p.poly); ctx.clip();
+    ctx.translate(p.ox, p.oy); drawFace(ctx, p.type, p.r);
+    ctx.restore();
+    pathPoly(ctx, p.poly); ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
 }
 
 // a soft glow without shadowBlur: one radial gradient disc
@@ -420,6 +512,13 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-fruits"></div>
                         <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per slashed fruit, up to +40% as ${GRADES[GRADES.length - 1].name} (fire: half the bonus and half the grade points). The grade never drops during slow motion.</p>
                     </div>
+                    <div class="fg-tip" data-page="3" hidden>
+                        <p class="fg-tip-lead">Precision pays. Aim for the middle of the fruit.</p>
+                        <div class="fg-row"><div><b>Through the middle: full time</b><span>An off-centre cut gives 30% less.</span></div></div>
+                        <div class="fg-row"><div><b>Clip the edge: no cut</b><span>The fruit is knocked away by your blade, still whole. Catch it again.</span></div></div>
+                        <div class="fg-row"><div><b>Cut it again: up to 3 cuts a fruit</b><span>Pieces can be cut too, with a new slash. Each cut is worth half the one before.</span></div></div>
+                        <div class="fg-row"><div><b>Pineapple leaves</b><span>Cutting only the crown buys no time.</span></div></div>
+                    </div>
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
                 <button type="button" class="btn btn-link btn-sm fg-skip">Skip the tips</button>
@@ -535,7 +634,7 @@ export function mountFrogGame(stage, opts = {}) {
     let countT = 0, introOn = false, countShown = '';   // the 3-2-1 before a run
     let tipsPage = 0, hurtFlash = 0, style = 0, gradeIx = 0, gradeBarW = '';
     let best = store.get(BEST_KEY), slices = 0;
-    let fruits = [], halves = [], drops = [], floats = [], trail = [], slashes = [];
+    let fruits = [], halves = [], pieces = [], drops = [], floats = [], trail = [], slashes = [];
     let slash = null;             // { side, t }
     let blinkAt = 2, hopT = 0, pointer = null;
     let flies = [], pickups = [], stars = [], flyT = 6, flyCatches = 0, clockCatches = 0;
@@ -654,33 +753,120 @@ export function mountFrogGame(stage, opts = {}) {
             vx = dir * W * rand(0.35, 0.6) * sp;
             vy = -Math.sqrt(2 * g * rand(0.15, Math.min(0.55, y / H - 0.1)) * H);
         }
-        fruits.push({ type, r, x, y, vx, vy, g, rot: rand(0, 6.28), spin: rand(-3, 3), entered: false, born: performance.now() });
+        const pine = type.kind === 'pineapple';
+        fruits.push({
+            type, r, x, y, vx, vy, g, rot: rand(0, 6.28), spin: rand(-3, 3), entered: false, born: performance.now(),
+            // its outline for the blade, and the cuts its family (the fruit and all its pieces) has taken
+            poly: pine ? polyOval(r * PINE_X, r * PINE_Y) : polyOval(r, r), crown: pine ? crownLeaves(r) : null,
+            R: pine ? r * 2.1 : r, ox: 0, oy: 0, fam: { cuts: 0 }, noCut: 0, cutAt: 0
+        });
     }
 
     // ---------- slicing ----------
-    function sliceFruit(f, angle, hx, hy) {
-        const speed = Math.hypot(f.vx, f.vy);
-        const vn = speed / H;                                // stage heights per second
-        const now = performance.now();
+    // What a blade stroke (a -> b, heading (dx, dy)) does to a fruit or a piece:
+    // null, or { kind: 'cut' | 'crown' | 'edge', ... } with the cut line in the fruit's own frame.
+    function strike(f, ax, ay, bx, by, dx, dy) {
+        const reach = f.R * Math.max(1, MIN_HIT / f.r) * 1.3 + 6;
+        if (segDist(f.x, f.y, ax, ay, bx, by) > reach) return null;
+        // into the fruit's frame; a tiny fruit is hit as if it were MIN_HIT big
+        const k = f.poly ? Math.max(1, MIN_HIT / f.r) : 1, c = Math.cos(-f.rot), sn = Math.sin(-f.rot);
+        const loc = (x, y) => [((x - f.x) * c - (y - f.y) * sn) / k, ((x - f.x) * sn + (y - f.y) * c) / k];
+        const a = loc(ax, ay), b = loc(bx, by);
+        const ldx = dx * c - dy * sn, ldy = dx * sn + dy * c, nx = -ldy, ny = ldx;   // the heading and its normal, local
+        if (f.poly) {
+            let lo = Infinity, hi = -Infinity;
+            f.poly.forEach(v => { const d = (v[0] - a[0]) * nx + (v[1] - a[1]) * ny; if (d < lo) lo = d; if (d > hi) hi = d; });
+            if (segHitsPoly(f.poly, a[0], a[1], b[0], b[1]) && lo < 0 && hi > 0) {
+                const t = -lo / (hi - lo);                       // where across the fruit the blade went, 0..1
+                if (t < EDGE_BAND || t > 1 - EDGE_BAND) return { kind: 'edge', side: t < EDGE_BAND ? 1 : -1 };
+                const third = (1 - 2 * EDGE_BAND) / 3;
+                return { kind: 'cut', clean: t >= EDGE_BAND + third && t <= 1 - EDGE_BAND - third, px: a[0], py: a[1], nx, ny };
+            }
+        }
+        if (f.crown && f.crown.some(leaf => segHitsPoly(leaf, a[0], a[1], b[0], b[1]))) return { kind: 'crown', px: a[0], py: a[1], nx, ny };
+        // a near miss still clips the fruit
+        if (f.poly && segPolyGap(f.poly, a[0], a[1], b[0], b[1]) < Math.max(f.r * 0.18, 4) / k) {
+            return { kind: 'edge', side: (0 - a[0]) * nx + (0 - a[1]) * ny > 0 ? 1 : -1 };
+        }
+        return null;
+    }
+    // one side of a cut becomes its own flying piece, turning about its own centre
+    function makePiece(f, poly, crown, o) {
+        const cen = poly ? polyCentroid(poly) : polyCentroid(crown[0]);
+        const sh = pl => pl.map(v => [v[0] - cen[0], v[1] - cen[1]]);
+        const c = Math.cos(f.rot), sn = Math.sin(f.rot);
+        const body = poly && sh(poly), leaves = crown && crown.length ? crown.map(sh) : null;
+        let R = 0;
+        (body || []).concat(...(leaves || [])).forEach(v => { R = Math.max(R, Math.hypot(v[0], v[1])); });
+        return Object.assign({
+            type: f.type, r: f.r, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
+            x: f.x + cen[0] * c - cen[1] * sn, y: f.y + cen[0] * sn + cen[1] * c, rot: f.rot, g: G(), fam: f.fam, t: 0,
+            area: poly ? polyArea(poly) : 0
+        }, o);
+    }
+    function cutFruit(f, hit, dx, dy, hx, hy) {
+        const now = performance.now(), id = cut ? cut.id : 0;
+        const [bodyA, bodyB] = splitPoly(f.poly, hit.px, hit.py, hit.nx, hit.ny);
+        if (!bodyA || !bodyB) return false;                    // a sliver: not a cut
+        const leavesA = [], leavesB = [];
+        (f.crown || []).forEach(leaf => { const [la, lb] = splitPoly(leaf, hit.px, hit.py, hit.nx, hit.ny); if (la) leavesA.push(la); if (lb) leavesB.push(lb); });
+        // the time: the clean middle pays in full, and each cut of the same fruit pays half the last
+        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts);
+        f.fam.cuts++;
         lastSlice = now;
-        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus);
         timeLeft += gain; slices++;
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: gradeIx >= 2 || vn > 1.2 });
-        style = Math.min(STYLE_MAX, style + 1);
+        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: hit.clean });
+        style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
-        const nx = -Math.sin(angle), ny = Math.cos(angle);
-        const kick = H * 0.12;
-        [1, -1].forEach(s => halves.push({
-            type: f.type, r: f.r, x: f.x, y: f.y, vx: f.vx * 0.5 + nx * kick * s, vy: f.vy * 0.4 + ny * kick * s - H * 0.1,
-            g: G(), rot: angle + (s < 0 ? Math.PI : 0), spin: s * rand(2, 5), t: 0
-        }));
+        // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
+        const nwx = -dy, nwy = dx, whole = polyArea(bodyA) + polyArea(bodyB);
+        const drag = Math.min(bladeSpeed, H * 3) * 0.1, live = f.fam.cuts < MAX_CUTS;
+        [[bodyA, leavesA, 1], [bodyB, leavesB, -1]].forEach(([body, leaves, side]) => {
+            const share = polyArea(body) / whole, kick = H * 0.11 * clamp(0.5 / Math.max(share, 0.12), 0.7, 2.2);
+            pieces.push(makePiece(f, body, leaves, {
+                vx: f.vx * 0.6 + nwx * kick * side + dx * drag, vy: f.vy * 0.5 + nwy * kick * side + dy * drag - H * 0.12,
+                spin: f.spin * 0.5 + side * rand(2, 5) + (dx * nwy - dy * nwx) * 0, live, noCut: id, cutAt: now
+            }));
+        });
         for (let i = 0; i < 14; i++) {
             const a = rand(0, 6.28), v = rand(0.1, 0.45) * H;
             drops.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: f.type.juice, t: 0, s: rand(2, 5) });
         }
-        slashes.push({ x: hx ?? f.x, y: hy ?? f.y, a: angle, r: f.r * 1.8, t: 0 });
+        slashes.push({ x: hx, y: hy, a: Math.atan2(dy, dx), r: Math.max(f.R, f.r) * 1.6, t: 0 });
         slash = { side: f.x < W / 2 ? 'L' : 'R', t: 0 };
         hud();
+        return true;
+    }
+    // the blade takes leaves off the crown: no time for that, and the fruit flies on
+    function cutCrown(f, hit, dx, dy) {
+        const keep = [], off = [];
+        const bodySide = (0 - hit.px) * hit.nx + (0 - hit.py) * hit.ny >= 0;
+        f.crown.forEach(leaf => {
+            const [la, lb] = splitPoly(leaf, hit.px, hit.py, hit.nx, hit.ny);
+            const mine = bodySide ? la : lb, gone = bodySide ? lb : la;
+            if (mine) keep.push(mine); if (gone) off.push(gone);
+        });
+        if (!off.length) return;
+        f.crown = keep.length ? keep : null;
+        if (!f.poly && !f.crown) f.dead = true;
+        const side = bodySide ? -1 : 1, drag = Math.min(bladeSpeed, H * 3) * 0.12;
+        pieces.push(makePiece(f, null, off, {
+            vx: f.vx * 0.6 - dy * H * 0.1 * side + dx * drag, vy: f.vy * 0.5 + dx * H * 0.1 * side + dy * drag - H * 0.1,
+            spin: side * rand(3, 7), live: false, noCut: 0, cutAt: 0
+        }));
+    }
+    // clipped on the edge: the fruit is knocked away, whole, by the blade's speed and direction
+    function knockFruit(f, hit, dx, dy, hx, hy) {
+        const v = clamp(bladeSpeed, H * 0.4, H * 3), light = clamp(1 / Math.sqrt(f.type.r), 0.75, 1.7);
+        const nwx = -dy * hit.side, nwy = dx * hit.side;      // away from the blade's line
+        f.vx += (nwx * (H * 0.12 + v * 0.16) + dx * v * 0.22) * light;
+        f.vy += (nwy * (H * 0.12 + v * 0.16) + dy * v * 0.22) * light;
+        const sp = Math.hypot(f.vx, f.vy), top = H * 2.2;
+        if (sp > top) { f.vx *= top / sp; f.vy *= top / sp; }
+        // the blade drags the near edge along: spin, by which side of the centre it passed
+        f.spin = clamp(f.spin - hit.side * v / Math.max(f.r, 12) * 0.35, -14, 14);
+        slashes.push({ x: hx, y: hy, a: Math.atan2(dy, dx), r: f.r * 0.9, t: 0 });
+        for (let i = 0; i < 4; i++) drops.push({ x: hx, y: hy, vx: dx * v * 0.2 + rand(-60, 60), vy: dy * v * 0.2 + rand(-60, 60), c: f.type.skin, t: 0, s: rand(1.5, 3) });
     }
     // the style grade: C .. SS from the meter; announce a climb, never a fall
     function updateGrade(announce) {
@@ -704,18 +890,35 @@ export function mountFrogGame(stage, opts = {}) {
         if (w !== gradeBarW) { el.gradeBar.style.width = gradeBarW = w; }
     }
 
-    function hitTest(ax, ay, bx, by) {
+    function hitTest(ax, ay, bx, by, hx, hy) {
         if (phase !== 'play') return;
-        const ang = Math.atan2(by - ay, bx - ax);
-        for (let i = fruits.length - 1; i >= 0; i--) {
-            const f = fruits[i];
-            if (segDist(f.x, f.y, ax, ay, bx, by) < Math.max(f.r * 1.25, MIN_HIT)) {
-                fruits.splice(i, 1);
-                // the flash sits where the blade crossed the fruit, along the blade
-                const l2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
-                sliceFruit(f, ax === bx && ay === by ? rand(-0.6, 0.6) + (Math.random() < 0.5 ? 0 : Math.PI / 2) : ang, ax + (bx - ax) * k, ay + (by - ay) * k);
+        // the blade's heading: this move's, or the stroke's when the move is too short to tell
+        let dx = bx - ax, dy = by - ay;
+        const len = Math.hypot(dx, dy);
+        if (len < 6 && (hx || hy)) { dx = hx; dy = hy; }
+        else if (len > 0) { dx /= len; dy /= len; }
+        else { const a = rand(0, 6.28); dx = Math.cos(a); dy = Math.sin(a); }
+        const ang = Math.atan2(dy, dx), id = cut ? cut.id : 0, now = performance.now();
+        [fruits, pieces].forEach(list => {
+            for (let i = list.length - 1; i >= 0; i--) {
+                const f = list[i];
+                if (list === pieces && !f.live) continue;
+                // one stroke cuts (or clips) a fruit once; its pieces wait for the next stroke
+                if (f.noCut && f.noCut === id && (sakeLeft <= 0 || now - f.cutAt < 180)) continue;
+                const hit = strike(f, ax, ay, bx, by, dx, dy);
+                if (!hit) continue;
+                // the flash sits where the blade passed the fruit
+                const l2 = len * len || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
+                const px = ax + (bx - ax) * k, py = ay + (by - ay) * k;
+                if (hit.kind === 'cut') {
+                    if (cutFruit(f, hit, dx, dy, px, py)) list.splice(i, 1);
+                } else if (hit.kind === 'crown') {
+                    cutCrown(f, hit, dx, dy); f.noCut = id; f.cutAt = now;
+                } else {
+                    knockFruit(f, hit, dx, dy, px, py); f.noCut = id; f.cutAt = now;
+                }
             }
-        }
+        });
         // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
         const wrecked = flies.length + pickups.length;
         for (let i = flies.length - 1; i >= 0; i--) {
@@ -872,10 +1075,17 @@ export function mountFrogGame(stage, opts = {}) {
         const b = canvas.getBoundingClientRect();
         const list = (down && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
         const evs = list.length ? list : [e];
-        for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top);
+        for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top, ce.timeStamp || e.timeStamp);
     }
-    function movePoint(x, y) {
+    let bladeSpeed = 0, bladeAt = 0, bladeX = 0, bladeY = 0;   // px/s, smoothed, from the pointer's own timestamps
+    function movePoint(x, y, ts) {
         aim = { x, y };                                   // the fire breath follows the cursor
+        if (ts) {
+            const dt = ts - bladeAt;
+            if (bladeAt && dt > 0 && dt < 120) bladeSpeed = lerp(bladeSpeed, Math.hypot(x - bladeX, y - bladeY) / dt * 1000, 0.5);
+            else if (dt >= 120 || !bladeAt) bladeSpeed = 0;
+            if (dt > 0 || !bladeAt) { bladeAt = ts; bladeX = x; bladeY = y; }
+        }
         if (!down) return;
         if (fireLeft > 0) { down = false; cut = null; press = null; return; }
         pointer = { x, y };
@@ -909,7 +1119,7 @@ export function mountFrogGame(stage, opts = {}) {
         // sake: no limits, one continuous slash for as long as you hold
         const free = sakeLeft > 0;
         if (free) {
-            hitTest(lx, ly, x, y);
+            hitTest(lx, ly, x, y, cut.hx, cut.hy);
             cut.len += Math.hypot(x - lx, y - ly);
             trail.push({ x, y, t: performance.now(), cut: cut.id, d: cut.len, free: true });
             lx = x; ly = y; return;
@@ -931,7 +1141,7 @@ export function mountFrogGame(stage, opts = {}) {
         const seg = Math.hypot(x - lx, y - ly), left = cutMax() - cut.len;
         let ex = x, ey = y, done = false;
         if (seg >= left) { const k = seg > 0 ? left / seg : 0; ex = lx + (x - lx) * k; ey = ly + (y - ly) * k; done = true; }
-        hitTest(lx, ly, ex, ey);
+        hitTest(lx, ly, ex, ey, cut.hx, cut.hy);
         cut.len += done ? left : seg;
         trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len });
         // capped mid-move: the rest of the move carries on as the next cut
@@ -1047,7 +1257,7 @@ export function mountFrogGame(stage, opts = {}) {
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
-        fruits = []; halves = []; drops = []; floats = [];
+        fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0;
@@ -1181,6 +1391,9 @@ export function mountFrogGame(stage, opts = {}) {
             if (out || f.y > H + H) fruits.splice(i, 1);
         }
         halves.forEach(h => { h.vy += h.g * dt; h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.spin * dt; h.t += dt; });
+        // cut pieces belong to the world (slow motion slows them too), so they can be cut again
+        pieces.forEach(q => { q.vy += q.g * wdt; q.x += q.vx * wdt; q.y += q.vy * wdt; q.rot += q.spin * wdt; q.t += wdt; });
+        pieces = pieces.filter(q => q.y < H + q.R * 2 + 40 && q.x > -q.R * 2 - 40 && q.x < W + q.R * 2 + 40);
         halves = halves.filter(h => h.y < H + h.r * 3);
         drops.forEach(d => { d.vy += G() * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.t += dt; });
         drops = drops.filter(d => d.t < 0.7);
@@ -1228,6 +1441,7 @@ export function mountFrogGame(stage, opts = {}) {
         drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
         ctx.globalAlpha = 1;
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
+        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPiece(ctx, q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
