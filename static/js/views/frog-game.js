@@ -223,7 +223,7 @@ const MIN_HIT = 15;                              // px: the smallest fruit still
 // the middle third of the rest is a clean cut (full time), the two bands between are
 // off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
 // included, and every cut after the first is worth RECUT of the one before.
-const EDGE_BAND = 0.02, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+const EDGE_BAND = 0.01, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
 // One slash through several fruits: every fruit after the first is worth MULTI more than
 // the one before (+10%, +20%, ...), up to MULTI_MAX extra.
 const MULTI = 0.1, MULTI_MAX = 1;
@@ -905,7 +905,8 @@ export function mountFrogGame(stage, opts = {}) {
         crates.push({ x, y: H + hw, vx: (W / 2 - x) * rand(0.15, 0.4), vy: -Math.sqrt(2 * g * rand(0.6, 0.78) * H), g, hw, rot: rand(-0.3, 0.3), spin: rand(-1.2, 1.2) });
     }
     // slashed open: the planks fly apart (they stay behind the fruit) and the fruit bursts out
-    function breakCrate(c, dx, dy, hx, hy, mult = 1) {
+    // cone > 0: the fruit is launched straight up instead, inside a cone that wide (radians)
+    function breakCrate(c, dx, dy, hx, hy, mult = 1, cone = 0) {
         const cs = Math.cos(c.rot), sn = Math.sin(c.rot), drag = Math.min(bladeSpeed, H * 3) * 0.12;
         cratePlanks(c.hw).forEach(pl => {
             if (pl.col === WOOD.inside) return;
@@ -935,8 +936,10 @@ export function mountFrogGame(stage, opts = {}) {
             // a fan upwards, wide enough to fill the screen, high enough to be cut
             // cut through the middle: fruit flies out all round. Cut off-centre: it bursts out
             // on that side (cut the top and it goes up, the left side and it goes left...)
-            const a = (omni ? i / CRATE_FRUIT * Math.PI * 2 + rand(-0.15, 0.15) : outA + (i / (CRATE_FRUIT - 1) - 0.5) * 2 + rand(-0.1, 0.1));
-            const v = Math.sqrt(2 * g * rand(0.3, 0.6) * H) * CRATE_BURST;
+            const a = cone ? -Math.PI / 2 + (i / (CRATE_FRUIT - 1) - 0.5) * cone
+                : (omni ? i / CRATE_FRUIT * Math.PI * 2 + rand(-0.15, 0.15) : outA + (i / (CRATE_FRUIT - 1) - 0.5) * 2 + rand(-0.1, 0.1));
+            // in a narrow cone the fruit would fly as one clump: spread it out by speed instead
+            const v = cone ? Math.sqrt(2 * g * rand(0.25, 0.85) * H) : Math.sqrt(2 * g * rand(0.3, 0.6) * H) * CRATE_BURST;
             fruits.push(newFruit(type, base * type.r, c.x + rand(-1, 1) * c.hw * 0.5, c.y + rand(-1, 1) * c.hw * 0.3,
                 Math.cos(a) * v * 0.9 + c.vx * 0.3, Math.sin(a) * v, g,
                 { entered: true, noCut: cut ? cut.id : 0, cutAt: performance.now() }));   // the stroke that opened the crate can't cut what's inside
@@ -970,7 +973,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (f.crown && f.crown.some(leaf => segHitsPoly(leaf, a[0], a[1], b[0], b[1]))) return { kind: 'crown', px: a[0], py: a[1], nx, ny };
         // a near miss still clips the fruit
-        if (f.poly && segPolyGap(f.poly, a[0], a[1], b[0], b[1]) < Math.max(f.r * EDGE_BAND, 2) / k) {
+        if (f.poly && segPolyGap(f.poly, a[0], a[1], b[0], b[1]) < Math.max(f.r * EDGE_BAND, 1) / k) {
             return { kind: 'edge', side: (0 - a[0]) * nx + (0 - a[1]) * ny > 0 ? 1 : -1 };
         }
         return null;
@@ -1511,7 +1514,8 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     // the crate the tongue hauled in: lifted over the head (PUNCH_LIFT s), then the fist lands
-    // and it bursts open, fruit flying out all round
+    // and it bursts open, the fruit launched upwards
+    const PUNCH_CONE = 30 * Math.PI / 180;                     // the fruit a punched crate throws: a 30 degree cone, straight up
     const PUNCH_LIFT = 0.12, PUNCH_HIT = 0.22, PUNCH_END = 0.42;
     let punch = null;
     function stepPunch(dt) {
@@ -1521,7 +1525,7 @@ export function mountFrogGame(stage, opts = {}) {
         punch.c.x = lerp(punch.x0, punch.x, k); punch.c.y = lerp(punch.y0, punch.y, k);
         if (!punch.done && punch.t >= PUNCH_HIT) {
             punch.done = true;
-            if (phase === 'play') breakCrate(punch.c, 0, -1, punch.c.x, punch.c.y);   // dead centre: all round
+            if (phase === 'play') breakCrate(punch.c, 0, -1, punch.c.x, punch.c.y, 1, PUNCH_CONE);   // up, in a narrow cone
             floats.push({ x: punch.x, y: punch.y - punch.c.hw - 26, text: 'Smash!', t: 0, hot: true });
             hopT = 0.4;
         }
