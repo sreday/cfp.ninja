@@ -1272,6 +1272,8 @@ export function mountFrogGame(stage, opts = {}) {
     let cut = null, cutId = 0, gapLeft = 0;     // the live cut; px still to travel before the next one
     let dullId = 0;                             // out of stamina: a thin red trace that doesn't cut
     let press = null;                           // a press that hasn't moved yet: no cut, no stamina
+    const TAP_SLOP = 30, TAP_TIME = 300;        // px and ms: how far and how long a finger's tap may slide
+    let touchDown = null;                       // the press in progress: where, when, how far it has strayed
     const PRESS_DRAG = 10;                      // px of drag before a press becomes the first cut
     const cutMax = () => CUT_MAX * Math.max(W, H);
     // one way to measure every pointer position (offsetX rounds, clientX does not)
@@ -1315,6 +1317,7 @@ export function mountFrogGame(stage, opts = {}) {
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
         cut = null; press = { x: px, y: py };
+        touchDown = { x: px, y: py, t: performance.now(), far: 0, finger: e.pointerType !== 'mouse' };
     }
     function onMove(e) {
         // browsers hand us one pointermove per frame; the samples in between are in
@@ -1359,6 +1362,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (fireLeft > 0) { down = false; cut = null; press = null; return; }
         pointer = { x, y };
         if (auto && !cut) { autoCut = true; startCut(x, y, false); lx = x; ly = y; return; }
+        if (touchDown && down) touchDown.far = Math.max(touchDown.far, Math.hypot(x - touchDown.x, y - touchDown.y));
         if (press) {
             // the first cut of a press starts once it drags, from where it was pressed
             if (Math.hypot(x - press.x, y - press.y) < PRESS_DRAG) return;
@@ -1430,7 +1434,13 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function onUp(e) {
         // a press released where it landed (a tap, or a left click with no drag) is the tongue
-        const tap = down && e.type === 'pointerup' ? press : null;
+        let tap = down && e.type === 'pointerup' ? press : null;
+        // A finger is not a mouse: a quick touch that slid a little is still a tap, as long as
+        // it never became a real slash (nothing paid for, nothing cut).
+        const td = touchDown;
+        if (!tap && down && e.type === 'pointerup' && td && td.finger && td.far < TAP_SLOP && performance.now() - td.t < TAP_TIME
+            && (!cut || !cut.paid)) tap = { x: td.x, y: td.y };
+        touchDown = null;
         down = false; cut = null; press = null; dullId = 0; gapLeft = 0;
         if (tap) shootTongue(tap.x, tap.y);
     }
