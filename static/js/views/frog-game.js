@@ -23,6 +23,9 @@ const SAKE_SECONDS = 5;                         // golden sake: free slashes
 // lifts for CUT_GAP px of travel: a distance, not a time, so the gap stays small
 // however fast you slash.
 const CUT_MAX = 1, CUT_GAP = 12;                 // CUT_MAX = the screen's longer side
+// A cut also times out (real seconds, sake excepted), so creeping the blade along
+// doesn't stretch one stamina bar: the next bit of travel is a new, paid cut.
+const CUT_TIME = 0.6;
 const TURN_STEP = 10, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, max turn
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
@@ -369,11 +372,11 @@ export function mountFrogGame(stage, opts = {}) {
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
-                        <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar. A sharp turn starts a new slash.</span></div></div>
+                        <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash.</span></div></div>
                         <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
-                        <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it.</p>
+                        <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing.</span></div></div>
@@ -679,7 +682,8 @@ export function mountFrogGame(stage, opts = {}) {
                 sliceFruit(f, ax === bx && ay === by ? rand(-0.6, 0.6) + (Math.random() < 0.5 ? 0 : Math.PI / 2) : ang, ax + (bx - ax) * k, ay + (by - ay) * k);
             }
         }
-        // the blade wrecks pickups: they're for the tongue
+        // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
+        const wrecked = flies.length + pickups.length;
         for (let i = flies.length - 1; i >= 0; i--) {
             const f = flies[i];
             if (segDist(f.x, f.y, ax, ay, bx, by) < f.s * 1.6) breakFly(flies.splice(i, 1)[0], ang);
@@ -688,6 +692,8 @@ export function mountFrogGame(stage, opts = {}) {
             const b = pickups[i];
             if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) breakPickup(pickups.splice(i, 1)[0], ang);
         }
+        const lost = wrecked - flies.length - pickups.length;
+        if (lost && sakeLeft <= 0) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
     }
 
     // ---------- debris ----------
@@ -808,11 +814,13 @@ export function mountFrogGame(stage, opts = {}) {
     function startCut(x, y, loud) {
         if (!payCut(loud)) return false;
         dullId = 0;
-        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0 };
+        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0, t0: performance.now() };
         trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
         return true;
     }
     function endCut() { cut = null; gapLeft = CUT_GAP; }
+    // a cut that has run out of time ends where the blade is (checked on every move and every frame)
+    function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
@@ -844,6 +852,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!startCut(p0.x, p0.y, true)) { lx = x; ly = y; return; }
             lx = p0.x; ly = p0.y;
         }
+        expireCut();
         if (!cut) {
             // the blade lifts for a few px between cuts, then the next cut starts here
             gapLeft -= Math.hypot(x - lx, y - ly);
@@ -1107,6 +1116,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
             hud();
         }
+        expireCut();
         stepTongue(dt);
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
