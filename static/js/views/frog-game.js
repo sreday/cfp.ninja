@@ -505,7 +505,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing. The frog gets drunk and sees every fruit three times.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing: just move, no need to hold the button. The frog gets drunk and sees every fruit three times.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
@@ -1073,10 +1073,11 @@ export function mountFrogGame(stage, opts = {}) {
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
         const b = canvas.getBoundingClientRect();
-        const list = (down && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+        const list = ((down || sakeLeft > 0) && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
         const evs = list.length ? list : [e];
         for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top, ce.timeStamp || e.timeStamp);
     }
+    let autoCut = false;                                       // a sake slash running without a press
     let bladeSpeed = 0, bladeAt = 0, bladeX = 0, bladeY = 0;   // px/s, smoothed, from the pointer's own timestamps
     function movePoint(x, y, ts) {
         aim = { x, y };                                   // the fire breath follows the cursor
@@ -1086,9 +1087,12 @@ export function mountFrogGame(stage, opts = {}) {
             else if (dt >= 120 || !bladeAt) bladeSpeed = 0;
             if (dt > 0 || !bladeAt) { bladeAt = ts; bladeX = x; bladeY = y; }
         }
-        if (!down) return;
+        // sake: the blades never rest, the cursor slashes wherever it goes, no button needed
+        const auto = !down && sakeLeft > 0 && phase === 'play' && fireLeft <= 0 && stunT <= 0;
+        if (!down && !auto) { if (autoCut) { cut = null; autoCut = false; } return; }
         if (fireLeft > 0) { down = false; cut = null; press = null; return; }
         pointer = { x, y };
+        if (auto && !cut) { autoCut = true; startCut(x, y, false); lx = x; ly = y; return; }
         if (press) {
             // the first cut of a press starts once it drags, from where it was pressed
             if (Math.hypot(x - press.x, y - press.y) < PRESS_DRAG) return;
