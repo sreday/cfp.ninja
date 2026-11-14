@@ -23,6 +23,10 @@ const SLOWMO = 0.02;                             // ...until the time is up or t
 const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
+// What the fire breath burns changes it for the rest of that breath, and it adds up:
+// every sake makes the cone FIRE_WIDER wider, every clock slows the fruit the flame touches
+// by FIRE_SLOW more (that fruit stays slow until it falls or bursts).
+const FIRE_WIDER = 0.3, FIRE_WIDE_MAX = 3, FIRE_SLOW = 0.3, FIRE_SLOW_MAX = 0.9;
 const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
 // Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
@@ -593,7 +597,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth. No slashing or tongue.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth: a sake widens the flame, a clock makes it slow fruit. No slashing or tongue.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
@@ -747,7 +751,8 @@ export function mountFrogGame(stage, opts = {}) {
         sake: ['rgba(255,253,231,.9)', 'rgba(255,235,59,.75)', 'rgba(251,192,45,.45)'],
         clock: ['rgba(225,245,254,.9)', 'rgba(79,195,247,.75)', 'rgba(41,121,255,.45)']
     };
-    let fireTint = '';
+    let fireTint = '', fireWide = 0, fireSlow = 0;             // sakes and clocks burned by this breath
+    const fireSpread = () => FIRE_SPREAD * Math.min(1 + FIRE_WIDER * fireWide, FIRE_WIDE_MAX);
     function setBladeFx(kind, x, y) {
         if (sakeLeft <= 0) return;
         bladeFx[kind] = true; bladeFx.last = kind;
@@ -1219,7 +1224,7 @@ export function mountFrogGame(stage, opts = {}) {
             fireEmit += dt * 160;
             while (fireEmit >= 1) {
                 fireEmit -= 1;
-                const a = aimA + rand(-FIRE_SPREAD, FIRE_SPREAD) * 0.9, v = H * rand(1.5, 2.3);
+                const sp = fireSpread(), a = aimA + rand(-sp, sp) * 0.9, v = H * rand(1.5, 2.3);
                 flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) });
             }
         }
@@ -1229,7 +1234,7 @@ export function mountFrogGame(stage, opts = {}) {
         const inFlame = (x, y, r) => {
             const dx = x - m.x, dy = y - m.y, d = Math.hypot(dx, dy);
             let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
-            return d < reach && da < FIRE_SPREAD + Math.atan2(r, Math.max(d, 1));
+            return d < reach && da < fireSpread() + Math.atan2(r, Math.max(d, 1));
         };
         // Power-ups burn too (no tongue while breathing fire, so they'd be wasted): each one
         // that stays in the flame for BURN_TIME goes up like a fruit and pays like a burned apple.
@@ -1243,6 +1248,8 @@ export function mountFrogGame(stage, opts = {}) {
                     list.splice(i, 1);
                     // burned sake turns the flame yellow, a burned clock turns it blue, for the rest of this breath
                     if (b.kind === 'sake' || b.kind === 'clock') fireTint = b.kind;
+                    if (b.kind === 'sake') { fireWide++; floats.push({ x: b.x, y: b.y - 34, text: 'Wider flame!', t: 0, hot: true }); }
+                    if (b.kind === 'clock') { fireSlow++; floats.push({ x: b.x, y: b.y - 34, text: 'Slowing flame!', t: 0, hot: true }); }
                     burnFruit({ type: APPLE, r, x: b.x, y: b.y, vx: b.vx || 0, vy: 0 });
                 }
             }
@@ -1260,6 +1267,7 @@ export function mountFrogGame(stage, opts = {}) {
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
             const inside = on && f.entered && inFlame(f.x, f.y, f.r);
+            if (inside && fireSlow) f.slow = Math.max(f.slow || 0, Math.min(FIRE_SLOW * fireSlow, FIRE_SLOW_MAX));   // it stays slow
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * 3); continue; }   // out of the flame: cools fast
             f.burn = (f.burn || 0) + dt;
             if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
@@ -1480,7 +1488,7 @@ export function mountFrogGame(stage, opts = {}) {
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
             flyCatches++;
-            fireLeft = FIRE_SECONDS; fireEmit = 0; fireTint = '';
+            fireLeft = FIRE_SECONDS; fireEmit = 0; fireTint = ''; fireWide = 0; fireSlow = 0;
             down = false; cut = null; press = null;             // the blades rest while the frog breathes fire
             floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
             hopT = 0.5;
@@ -1609,7 +1617,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
-        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; clearBladeFx(); fireTint = '';
+        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = [];
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
@@ -1814,7 +1822,8 @@ export function mountFrogGame(stage, opts = {}) {
         staminaHud();
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            f.vy += f.g * wdt; f.x += f.vx * wdt; f.y += f.vy * wdt; f.rot += f.spin * wdt;
+            const ft = f.slow ? wdt * (1 - f.slow) : wdt;      // a fruit slowed by a clock-fed flame lives in slower time
+            f.vy += f.g * ft; f.x += f.vx * ft; f.y += f.vy * ft; f.rot += f.spin * ft;
             if (!f.entered && f.x > -f.r && f.x < W + f.r && f.y < H) f.entered = true;
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);
             if (out || f.y > H + H) fruits.splice(i, 1);
@@ -1885,6 +1894,7 @@ export function mountFrogGame(stage, opts = {}) {
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
             if (f.mark) glow(ctx, f.x, f.y, f.R * 1.9 + 14, '129,212,250', 0.75);   // marked during a time freeze
+            else if (f.slow) glow(ctx, f.x, f.y, f.R * 1.5 + 8, '79,195,247', 0.25 + 0.45 * f.slow);   // slowed by the flame
             if (drunk) drawEchoes(f, lw, drunk, tn);
             ctx.save(); ctx.translate(f.x, f.y);
             const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
