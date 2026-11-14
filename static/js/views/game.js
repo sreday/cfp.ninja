@@ -137,16 +137,17 @@ export function GameView() {
     });
     fit.observe(nav);
 
-    // the scoreboard is its own full screen under the navbar, opened from the start / game-over panel
+    // the scoreboard is a panel over the game (70% of the screen), opened from the start / game-over panel
     const screen = document.getElementById('game-board-screen');
     const showBoard = (on) => { screen.hidden = !on; if (on) { loadBoard(); screen.querySelector('.game-board-close').focus(); } };
     main.querySelector('.game-page').addEventListener('click', (e) => {
         if (e.target.closest('.game-login')) Auth.login('github');
-        if (e.target.closest('.game-board-close')) showBoard(false);
+        if (e.target.closest('.game-board-close') || e.target === screen) showBoard(false);   // the button, or a click away from the panel
     });
     screen.addEventListener('keydown', (e) => { if (e.key === 'Escape') showBoard(false); });
 
     mountFrogGame(document.getElementById('game-stage'), {
+        busy: () => !screen.hidden,
         onScoreboard() {
             showBoard(true);
         },
