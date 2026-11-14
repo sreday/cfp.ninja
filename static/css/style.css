@@ -1492,7 +1492,17 @@ a:hover {
 #main-content:has(> .game-page) { max-width: none; padding: 0 !important; }
 #game-stage { height: calc(100vh - var(--game-nav-h, 53px)); height: calc(100dvh - var(--game-nav-h, 53px)); min-height: 380px; border-bottom: 1px solid var(--border);
     background: radial-gradient(120% 80% at 50% 110%, rgba(152, 183, 75, .22), transparent 60%), color-mix(in srgb, var(--surface) 60%, transparent); }
-#app:has(.game-page) footer { display: none; }
+#app:has(.game-page) footer, #app:has(.game-page) #nav-container { display: none; }
+/* no navbar here: a small notch at the top left (home + GitHub login), the HUD starts beside it */
+.game-notch { position: fixed; z-index: 40; top: 12px; left: 12px; width: 84px; height: 38px; padding: 0 10px; align-items: center; justify-content: space-between; gap: 8px; }
+.game-notch-home { display: inline-flex; border-radius: 50%; }
+.game-notch-home img { display: block; }
+.game-notch-gh { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-secondary); transition: background .15s ease, color .15s ease; }
+button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-light); color: var(--text); }
+.game-notch-on { color: #98b74b; }
+.game-page .fg-hud { left: 104px; }
+@media (max-width: 575px) { .game-page .fg-best-pill { display: none; } }
+.game-board-screen { padding-top: 64px !important; }
 .fg-board-link { display: block; margin: 10px auto 0; }
 /* the scoreboard: a full screen under the navbar, opened from the game's own panel */
 .game-board-screen { position: fixed; z-index: 30; left: 0; right: 0; bottom: 0; top: var(--game-nav-h, 53px); overflow-y: auto; padding: 28px 16px 40px;

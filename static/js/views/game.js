@@ -39,6 +39,14 @@ const row = s => `
     </li>`;
 
 // the top three stand on a podium, everyone else is listed below
+// the notch's GitHub mark: logs in when logged out, lights up green when logged in
+function notchLogin() {
+    if (!githubEnabled()) return '';
+    return Auth.isLoggedIn()
+        ? `<span class="game-notch-gh game-notch-on" title="Logged in with GitHub" aria-label="Logged in with GitHub">${GITHUB_ICON}</span>`
+        : `<button type="button" class="game-notch-gh game-login" title="Log in with GitHub" aria-label="Log in with GitHub">${GITHUB_ICON}</button>`;
+}
+
 function renderBoard(data) {
     const podium = document.getElementById('game-podium');
     const list = document.getElementById('game-board');
@@ -98,6 +106,10 @@ export function GameView() {
     main.innerHTML = `
         <div class="game-page">
             <h1 class="visually-hidden">Frog Ninja</h1>
+            <div class="fg-pill game-notch">
+                <a href="/" class="game-notch-home" title="CFP.ninja" aria-label="CFP.ninja home"><img src="/img/cfpninja-logo.png" alt="" width="26" height="26"></a>
+                ${notchLogin()}
+            </div>
             <div id="game-stage"></div>
             <div class="game-board-screen" id="game-board-screen" hidden>
                 <div class="game-board-inner">
@@ -115,7 +127,7 @@ export function GameView() {
             </div>
         </div>`;
 
-    // the stage fills the screen under the navbar: keep its height in step with the navbar's
+    // the stage fills the screen (the navbar is hidden on this page, so this measures 0)
     const page = main.querySelector('.game-page'), nav = document.getElementById('nav-container');
     const fit = new ResizeObserver(() => {
         if (!page.isConnected) { fit.disconnect(); return; }
