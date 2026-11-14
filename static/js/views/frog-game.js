@@ -14,6 +14,7 @@ const LOW_TIME = 5;                             // the clock turns red below thi
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
 const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops, world at SLOWMO speed (98% slower)
 // The fruit crate: rare, thrown like fruit; slash it open and CRATE_FRUIT fruit burst out.
+const CRATE_TALL = 1;                            // the crate's height against its width: square
 const CRATE_BURST = 0.7;                         // how fast the fruit leaves the crate (1 = as fast as thrown fruit)
 const CRATE_FRUIT = 10, CRATE_FIRST = [22, 34], CRATE_EVERY = [38, 60];   // seconds
 const WOOD = { face: '#c9a36b', dark: '#a9834f', back: '#8d6b3f', inside: '#5d452a' };
@@ -420,7 +421,7 @@ function drawPlank(ctx, w, h, col, lw) {
 // The crate's planks, in its own frame (hw = half its width): the open back first, then the
 // front slats and the two corner posts. The same list is what flies apart when it is cut.
 function cratePlanks(hw) {
-    const hh = hw * 0.7, slat = hh * 2 / 4.6, post = hw * 0.2, out = [];
+    const hh = hw * CRATE_TALL, slat = hh * 2 / 4.6, post = hw * 0.2, out = [];
     out.push({ x: 0, y: 0, w: hw * 1.9, h: hh * 1.9, col: WOOD.inside, back: true });                // the dark inside
     [-1, 1].forEach(s => out.push({ x: 0, y: s * hh * 0.5, w: hw * 1.9, h: slat * 0.9, col: WOOD.back, back: true }));
     for (let i = 0; i < 4; i++) out.push({ x: 0, y: -hh + slat * 0.55 + i * (hh * 2 - slat * 1.1) / 3, w: hw * 2, h: slat, col: i % 2 ? WOOD.dark : WOOD.face });
@@ -595,7 +596,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth. No slashing or tongue.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open: 10 fruit burst out.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
@@ -899,7 +900,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- the fruit crate ----------
     function spawnCrate() {
-        const hw = clamp(Math.min(W, H) * 0.055, 22, 44) * 2.1;
+        const hw = clamp(Math.min(W, H) * 0.055, 22, 44) * 1.8;
         const x = rand(W * 0.25, W * 0.75), g = G() * 0.8;
         crates.push({ x, y: H + hw, vx: (W / 2 - x) * rand(0.15, 0.4), vy: -Math.sqrt(2 * g * rand(0.6, 0.78) * H), g, hw, rot: rand(-0.3, 0.3), spin: rand(-1.2, 1.2) });
     }
@@ -923,7 +924,7 @@ export function mountFrogGame(stage, opts = {}) {
         const base = clamp(Math.min(W, H) * 0.055, 22, 44);
         // where on the crate the blade went, in the crate's own frame (-1..1 each way)
         const ic = Math.cos(-c.rot), is = Math.sin(-c.rot);
-        const ux = ((hx - c.x) * ic - (hy - c.y) * is) / c.hw, uy = ((hx - c.x) * is + (hy - c.y) * ic) / (c.hw * 0.7);
+        const ux = ((hx - c.x) * ic - (hy - c.y) * is) / c.hw, uy = ((hx - c.x) * is + (hy - c.y) * ic) / (c.hw * CRATE_TALL);
         const omni = Math.hypot(ux, uy) < 0.38, outA = Math.atan2(hy - c.y, hx - c.x);
         // breaking a crate is worth an apple
         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult;
@@ -1113,7 +1114,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // a crate breaks open wherever the blade meets it
         for (let i = crates.length - 1; i >= 0; i--) {
-            const c = crates[i], cs = Math.cos(-c.rot), sn = Math.sin(-c.rot), hh = c.hw * 0.7;
+            const c = crates[i], cs = Math.cos(-c.rot), sn = Math.sin(-c.rot), hh = c.hw * CRATE_TALL;
             const loc = (x, y) => [(x - c.x) * cs - (y - c.y) * sn, (x - c.x) * sn + (y - c.y) * cs];
             const a = loc(ax, ay), b = loc(bx, by);
             if (segHitsPoly([[-c.hw, -hh], [c.hw, -hh], [c.hw, hh], [-c.hw, hh]], a[0], a[1], b[0], b[1])) {
@@ -1453,6 +1454,10 @@ export function mountFrogGame(stage, opts = {}) {
         for (let i = pickups.length - 1; i >= 0; i--) {
             if (Math.hypot(pickups[i].x - x, pickups[i].y - y) < reach * 1.4 + pickups[i].r * 1.25) { const b = pickups.splice(i, 1)[0]; return { kind: b.kind, obj: b }; }
         }
+        // a crate is a big target: the tongue hauls it in and the frog punches it open
+        for (let i = crates.length - 1; i >= 0; i--) {
+            if (Math.hypot(crates[i].x - x, crates[i].y - y) < reach + crates[i].hw * 0.9) return { kind: 'crate', obj: crates.splice(i, 1)[0] };
+        }
         for (let i = fruits.length - 1; i >= 0; i--) {
             if (Math.hypot(fruits[i].x - x, fruits[i].y - y) < reach * 0.75 + fruits[i].r * 1.1) return { kind: 'fruit', obj: fruits.splice(i, 1)[0] };
         }
@@ -1466,6 +1471,10 @@ export function mountFrogGame(stage, opts = {}) {
             down = false; cut = null; press = null;             // the blades rest while the frog breathes fire
             floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
             hopT = 0.5;
+        } else if (c.kind === 'crate') {
+            // not swallowed: held up over the head, then smashed with a fist. No stun.
+            punch = { c: c.obj, t: 0, x0: m.x, y0: m.y, x: head.x, y: head.y - c.obj.hw * 0.75, done: false };
+            c.obj.mark = 0;
         } else if (c.kind === 'sake') {
             sakeLeft = SAKE_SECONDS; stamina = STAMINA_BARS; clearBladeFx();
             floats.push({ x: m.x, y: m.y - 40, text: 'Sake! Free slashes', t: 0, hot: true });
@@ -1494,10 +1503,60 @@ export function mountFrogGame(stage, opts = {}) {
         if (!tongue.hit && tongue.t >= tongue.out) {
             tongue.hit = true;
             tongue.caught = tongueGrab(tongue.tx, tongue.ty);
+            if (tongue.caught && tongue.caught.kind === 'crate') tongue.back = 0.22;   // a crate is heavy: a slower haul
         }
         if (tongue.t >= tongue.out + tongue.back) {
             if (tongue.caught) swallow(tongue.caught);
             tongue = null;
+        }
+    }
+    // the crate the tongue hauled in: lifted over the head (PUNCH_LIFT s), then the fist lands
+    // and it bursts open, fruit flying out all round
+    const PUNCH_LIFT = 0.12, PUNCH_HIT = 0.22, PUNCH_END = 0.42;
+    let punch = null;
+    function stepPunch(dt) {
+        if (!punch) return;
+        punch.t += dt;
+        const k = ease(clamp(punch.t / PUNCH_LIFT, 0, 1));
+        punch.c.x = lerp(punch.x0, punch.x, k); punch.c.y = lerp(punch.y0, punch.y, k);
+        if (!punch.done && punch.t >= PUNCH_HIT) {
+            punch.done = true;
+            if (phase === 'play') breakCrate(punch.c, 0, -1, punch.c.x, punch.c.y);   // dead centre: all round
+            floats.push({ x: punch.x, y: punch.y - punch.c.hw - 26, text: 'Smash!', t: 0, hot: true });
+            hopT = 0.4;
+        }
+        if (punch.t >= PUNCH_END) punch = null;
+    }
+    function drawPunch(lw) {
+        const c = punch.c, r = c.hw * 0.42;
+        if (!punch.done) { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore(); }
+        // the fist: from the frog's right hand up into the crate, a red mitten like its own
+        const from = frogPoint(1560, 1180), k = clamp((punch.t - PUNCH_LIFT) / (PUNCH_HIT - PUNCH_LIFT), 0, 1);
+        if (punch.t < PUNCH_LIFT) return;
+        const back = punch.done ? clamp((punch.t - PUNCH_HIT) / (PUNCH_END - PUNCH_HIT), 0, 1) : 0;
+        const e = punch.done ? 1 - back * 0.5 : k * k;
+        const fx = lerp(from.x, punch.x, e), fy = lerp(from.y, punch.y, e), a = Math.atan2(punch.y - from.y, punch.x - from.x);
+        ctx.save();
+        ctx.globalAlpha = 1 - back;
+        // the swing
+        ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineCap = 'round'; ctx.lineWidth = r * 0.9;
+        ctx.beginPath(); ctx.moveTo(lerp(from.x, fx, 0.35), lerp(from.y, fy, 0.35)); ctx.lineTo(fx, fy); ctx.stroke();
+        ctx.translate(fx, fy); ctx.rotate(a);
+        ctx.fillStyle = C.red; ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.rect(-r * 1.5, -r * 0.55, r * 1.1, r * 1.1); ctx.fill(); ctx.stroke();          // the cuff
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill(); ctx.stroke();                                    // the fist
+        ctx.fillStyle = C.redHi; ctx.beginPath(); ctx.arc(-r * 0.2, -r * 0.3, r * 0.45, 0, 7); ctx.fill();
+        ctx.strokeStyle = C.ink; ctx.lineWidth = lw * 0.7;
+        [-0.45, 0, 0.45].forEach(o => { ctx.beginPath(); ctx.moveTo(r * 0.45, r * o - r * 0.16); ctx.lineTo(r * 0.8, r * o); ctx.stroke(); });   // knuckles
+        ctx.restore();
+        if (punch.done && back < 0.6) {   // the impact: a star where the fist landed
+            const q = back / 0.6, R = c.hw * (1 + q * 0.9);
+            ctx.save(); ctx.translate(punch.x, punch.y); ctx.rotate(0.3); ctx.globalAlpha = 1 - q;
+            ctx.fillStyle = '#ffd54f'; ctx.strokeStyle = C.ink; ctx.lineWidth = lw;
+            ctx.beginPath();
+            for (let i = 0; i < 20; i++) { const an = i * Math.PI / 10, rr = i % 2 ? R * 0.55 : R; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.restore();
         }
     }
     function tongueTip() {
@@ -1536,7 +1595,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
-        crates = []; planks = []; crateT = rand(...CRATE_FIRST); bubbles = []; clearBladeFx(); fireTint = '';
+        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; clearBladeFx(); fireTint = '';
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = [];
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
@@ -1721,6 +1780,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         expireCut();
         stepTongue(dt);
+        stepPunch(dt);
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
@@ -1878,10 +1938,12 @@ export function mountFrogGame(stage, opts = {}) {
             const c = tongue.caught;
             if (c) {
                 if (c.kind === 'fly') { c.obj.x = x; c.obj.y = y; drawFly(ctx, c.obj, c.obj.s, tn / 1000); }
+                else if (c.kind === 'crate') { c.obj.x = x; c.obj.y = y; ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawCrate(ctx, c.obj.hw, lw); ctx.restore(); }
                 else if (c.kind !== 'fruit') { c.obj.x = x; c.obj.y = y; drawPickup(ctx, c.obj, lw); }
                 else { ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawWhole(ctx, c.obj, c.obj.r, lw); ctx.restore(); }
             }
         }
+        if (punch) drawPunch(lw);
         if (phase === 'play' && sakeLeft <= 0 && stamina < 1 && stunT <= 0) {
             // tired: a sweat drop slides down the side of the head
             const k = (tn / 900) % 1, sp = frogPoint(1430, 330 + k * 260), r = Math.min(W, H) * 0.012 + 3;
