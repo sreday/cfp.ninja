@@ -85,12 +85,10 @@ export function GameView() {
     const main = document.getElementById('main-content');
     main.innerHTML = `
         <div class="game-page">
-            <div class="game-head">
-                <h1>Frog Ninja</h1>
-                <span class="text-muted">Slice fruit to buy time. Survive as long as you can.</span>
-            </div>
+            <h1 class="visually-hidden">Frog Ninja</h1>
             <div id="game-stage"></div>
-            <div class="card game-board-card">
+            <div class="container game-below">
+            <div class="card game-board-card" id="game-board-card">
                 <div class="card-body">
                     <div class="game-board-head">
                         <h2 class="h5 mb-0">Scoreboard</h2>
@@ -100,13 +98,25 @@ export function GameView() {
                     <div class="game-board-me" id="game-board-me"></div>
                 </div>
             </div>
+            </div>
         </div>`;
+
+    // the stage fills the screen under the navbar: keep its height in step with the navbar's
+    const page = main.querySelector('.game-page'), nav = document.getElementById('nav-container');
+    const fit = new ResizeObserver(() => {
+        if (!page.isConnected) { fit.disconnect(); return; }
+        page.style.setProperty('--game-nav-h', nav.offsetHeight + 'px');
+    });
+    fit.observe(nav);
 
     main.querySelector('.game-page').addEventListener('click', (e) => {
         if (e.target.closest('.game-login')) Auth.login('github');
     });
 
     mountFrogGame(document.getElementById('game-stage'), {
+        onScoreboard() {
+            document.getElementById('game-board-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
         onGameOver(round, slot) {
             if (Auth.isLoggedIn()) {
                 slot.innerHTML = '<p class="text-muted small mb-0 mt-3">Saving your score...</p>';

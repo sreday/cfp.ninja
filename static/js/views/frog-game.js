@@ -340,11 +340,13 @@ const store = {
 const mouseIcon = side => `<svg class="fg-mouse" viewBox="0 0 40 56" aria-hidden="true">
     <rect x="3" y="3" width="34" height="50" rx="17" fill="#fff" stroke="#000" stroke-width="3"/>
     <path d="M3 22 H37 M20 3 V22" stroke="#000" stroke-width="3"/>
-    <path d="${side === 'L' ? 'M20 4.5 V20.5 H4.5 V20 A15.5 15.5 0 0 1 20 4.5 Z' : 'M20 4.5 V20.5 H35.5 V20 A15.5 15.5 0 0 0 20 4.5 Z'}" fill="#98b74b"/>
+    <path d="${side === 'R' ? '' : 'M20 4.5 V20.5 H4.5 V20 A15.5 15.5 0 0 1 20 4.5 Z'}${side === 'L' ? '' : 'M20 4.5 V20.5 H35.5 V20 A15.5 15.5 0 0 0 20 4.5 Z'}" fill="#98b74b"/>
 </svg>`;
 
 export function mountFrogGame(stage, opts = {}) {
     const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // the tips name the controls of the device in hand
+    const touch = !!(window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches);
     stage.classList.add('fg-stage');
     stage.innerHTML = `
         ${FROG_SVG}
@@ -367,8 +369,8 @@ export function mountFrogGame(stage, opts = {}) {
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
-                        <div class="fg-row">${mouseIcon('L')}<div><b>Left-drag: slash</b><span>Each slash uses a green stamina bar. A sharp turn starts a new slash.</span></div></div>
-                        <div class="fg-row">${mouseIcon('R')}<div><b>Right-click: tongue</b><span>Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
+                        <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar. A sharp turn starts a new slash.</span></div></div>
+                        <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it.</p>
@@ -384,6 +386,7 @@ export function mountFrogGame(stage, opts = {}) {
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
                 <button type="button" class="btn btn-link btn-sm fg-skip">Skip the tips</button>
+                ${opts.onScoreboard ? '<button type="button" class="btn btn-link btn-sm fg-skip fg-board-link">Scoreboard</button>' : ''}
                 <div class="fg-save"></div>
             </div>
         </div>`;
@@ -402,7 +405,7 @@ export function mountFrogGame(stage, opts = {}) {
         grade: $('.fg-grade'), gradeLetter: $('.fg-grade-letter'), gradeName: $('.fg-grade-name'), gradeBonus: $('.fg-grade-bonus'), gradeBar: $('.fg-grade s'),
         save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start'),
         stamina: $('.fg-stamina'), bars: [...stage.querySelectorAll('.fg-stamina b')],
-        tips: $('.fg-tips'), pages: [...stage.querySelectorAll('.fg-tip')], skip: $('.fg-skip'), count: $('.fg-count')
+        tips: $('.fg-tips'), pages: [...stage.querySelectorAll('.fg-tip')], skip: $('.fg-skip:not(.fg-board-link)'), boardLink: $('.fg-board-link'), count: $('.fg-count')
     };
 
     // tip icons: the real sprites, painted once
@@ -881,12 +884,18 @@ export function mountFrogGame(stage, opts = {}) {
         if (done) endCut();
         lx = x; ly = y;
     }
-    function onUp() { down = false; cut = null; press = null; dullId = 0; gapLeft = 0; }
+    function onUp(e) {
+        // a press released where it landed (a tap, or a left click with no drag) is the tongue
+        const tap = down && e.type === 'pointerup' ? press : null;
+        down = false; cut = null; press = null; dullId = 0; gapLeft = 0;
+        if (tap) shootTongue(tap.x, tap.y);
+    }
     canvas.addEventListener('pointerdown', onDown);
     const noMenu = e => e.preventDefault();
     canvas.addEventListener('contextmenu', noMenu);
     canvas.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
 
     // ---------- the tongue ----------
     function shootTongue(x, y) {
@@ -1025,6 +1034,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.tips.hidden = true; start();
     });
     el.skip.addEventListener('click', () => { el.tips.hidden = true; start(); });
+    if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
 
     // ---------- loop ----------
     let raf = 0, last = performance.now(), idleT = 0, dead = false;
@@ -1274,6 +1284,7 @@ export function mountFrogGame(stage, opts = {}) {
     function destroy() {
         dead = true; cancelAnimationFrame(raf); ro.disconnect();
         window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
         canvas.removeEventListener('contextmenu', noMenu);
         document.removeEventListener('visibilitychange', onVis);
     }

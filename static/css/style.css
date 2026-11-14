@@ -1488,11 +1488,11 @@ a:hover {
 @media (max-width: 900px) and (min-width: 576px) { .fg-stamina { top: 46px; } }
 @media (prefers-reduced-motion: reduce) { .fg-stamina.empty, .fg-stamina.flash, .fg-count.pop, .fg-grade.fg-grade-up .fg-grade-letter { animation: none; } }
 
-.game-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
-.game-head h1 { font-size: 1.4rem; font-weight: 700; margin: 0; }
-#game-stage { height: max(440px, calc(100vh - 220px)); border-radius: var(--radius-xl); border: 1px solid var(--border);
+/* the stage fills the screen under the navbar; the scoreboard sits below the fold */
+#main-content:has(> .game-page) { max-width: none; padding: 0 !important; }
+#game-stage { height: calc(100vh - var(--game-nav-h, 53px)); height: calc(100dvh - var(--game-nav-h, 53px)); min-height: 380px; border-bottom: 1px solid var(--border);
     background: radial-gradient(120% 80% at 50% 110%, rgba(152, 183, 75, .22), transparent 60%), color-mix(in srgb, var(--surface) 60%, transparent); }
-.game-board-card { margin-top: 20px; }
+.game-board-card { margin: 24px 0; scroll-margin-top: 16px; }
 .game-board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .game-board { list-style: none; padding: 0; margin: 0 0 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; }
 .game-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: var(--radius); background: var(--border-light); }
@@ -1502,4 +1502,3 @@ a:hover {
 .game-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .game-points { font-variant-numeric: tabular-nums; }
 .game-empty { grid-column: 1 / -1; padding: 6px 0; }
-@media (max-width: 640px) { #game-stage { height: max(420px, calc(100svh - 190px)); } }
