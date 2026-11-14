@@ -163,6 +163,9 @@ const MIN_HIT = 15;                              // px: the smallest fruit still
 // off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
 // included, and every cut after the first is worth RECUT of the one before.
 const EDGE_BAND = 0.02, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+// One slash through several fruits: every fruit after the first is worth MULTI more than
+// the one before (+10%, +20%, ...), up to MULTI_MAX extra.
+const MULTI = 0.1, MULTI_MAX = 1;
 
 // ---------- polygons (fruit and its pieces, in the fruit's own frame) ----------
 const polyOval = (rx, ry, n = 28) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [Math.cos(a) * rx, Math.sin(a) * ry]; });
@@ -237,6 +240,7 @@ function drawCrown(ctx, leaves, r, lw) {
     leaves.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); ctx.stroke(); });
 }
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
+const APPLE = FRUITS.find(f => f.kind === 'apple');   // a power-up burned by the fire breath counts as one
 
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
@@ -502,7 +506,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts. No slashing or tongue meanwhile.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts, and power-ups burn for an apple's worth of time. No slashing or tongue meanwhile.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing: just move, no need to hold the button. The frog gets drunk and sees every fruit three times.</span></div></div>
                     </div>
@@ -516,6 +520,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><div><b>Through the middle: full time</b><span>An off-centre cut gives 30% less.</span></div></div>
                         <div class="fg-row"><div><b>Clip the edge: no cut</b><span>The fruit is knocked away by your blade, still whole. Catch it again.</span></div></div>
                         <div class="fg-row"><div><b>Cut it again: up to 3 cuts a fruit</b><span>Pieces can be cut too, with a new slash. Each cut is worth half the one before.</span></div></div>
+                        <div class="fg-row"><div><b>Several fruits in one slash</b><span>Every fruit after the first is worth 10% more than the one before.</span></div></div>
                         <div class="fg-row"><div><b>Pineapple leaves</b><span>Cutting only the crown buys no time.</span></div></div>
                     </div>
                 </div>
@@ -810,11 +815,15 @@ export function mountFrogGame(stage, opts = {}) {
         const leavesA = [], leavesB = [];
         (f.crown || []).forEach(leaf => { const [la, lb] = splitPoly(leaf, hit.px, hit.py, hit.nx, hit.ny); if (la) leavesA.push(la); if (lb) leavesB.push(lb); });
         // the time: the clean middle pays in full, and each cut of the same fruit pays half the last
-        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts);
+        // (and a slash that has already cut other fruit pays more for each one after the first)
+        const chain = cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
+        if (cut && f.fam.cuts === 0) cut.hits = chain + 1;
+        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
+            * (1 + Math.min(MULTI * chain, MULTI_MAX));
         f.fam.cuts++;
         lastSlice = now;
         timeLeft += gain; slices++;
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: hit.clean });
+        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
@@ -1016,14 +1025,27 @@ export function mountFrogGame(stage, opts = {}) {
         flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; });
         flames = flames.filter(p => p.t < p.life);
         if (flames.length > 500) flames.splice(0, flames.length - 500);
+        const inFlame = (x, y, r) => {
+            const dx = x - m.x, dy = y - m.y, d = Math.hypot(dx, dy);
+            let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
+            return d < reach && da < FIRE_SPREAD + Math.atan2(r, Math.max(d, 1));
+        };
+        // Power-ups burn too (no tongue while breathing fire, so they'd be wasted): each one
+        // that stays in the flame for BURN_TIME goes up like a fruit and pays like a burned apple.
+        const burnExtras = (list, rad) => {
+            for (let i = list.length - 1; i >= 0; i--) {
+                const b = list[i], r = rad(b);
+                if (!(on && inFlame(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * 3); continue; }
+                b.burn = (b.burn || 0) + dt;
+                if (Math.random() < 0.5) flames.push({ x: b.x + rand(-r, r) * 0.6, y: b.y - r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
+                if (b.burn >= BURN_TIME) { list.splice(i, 1); burnFruit({ type: APPLE, r, x: b.x, y: b.y, vx: b.vx || 0, vy: 0 }); }
+            }
+        };
+        burnExtras(pickups, b => b.r);
+        burnExtras(flies, f => f.s * 1.6);
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            let inside = false;
-            if (on && f.entered) {
-                const dx = f.x - m.x, dy = f.y - m.y, d = Math.hypot(dx, dy);
-                let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
-                inside = d < reach && da < FIRE_SPREAD + Math.atan2(f.r, Math.max(d, 1));
-            }
+            const inside = on && f.entered && inFlame(f.x, f.y, f.r);
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * 3); continue; }   // out of the flame: cools fast
             f.burn = (f.burn || 0) + dt;
             if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
