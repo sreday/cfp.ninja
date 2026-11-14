@@ -571,7 +571,7 @@ export function mountFrogGame(stage, opts = {}) {
         ${FROG_SVG}
         <canvas class="fg-canvas"></canvas>
         <div class="fg-hud">
-            <div class="fg-pill fg-mini"><span class="fg-label">Survived</span><b class="fg-score">0.0</b></div>
+            <div class="fg-pill fg-mini"><span class="fg-label">Survived</span><b class="fg-score">0</b></div>
             <div class="fg-pill fg-mini fg-best-pill"><span class="fg-label">Best</span><b class="fg-best">0</b></div>
         </div>
         <div class="fg-center">
@@ -800,7 +800,8 @@ export function mountFrogGame(stage, opts = {}) {
     let hudS = '', hudC = '', hudLow = null;
     function hud() {
         // DOM writes only when the text changes (tenths), not every frame
-        const sv = formatSurvival(clockT), cl = Math.max(0, timeLeft).toFixed(1), low = timeLeft < LOW_TIME;
+        // survived: whole seconds only ("47", then "1:05")
+        const ss = Math.floor(clockT), sv = ss < 60 ? String(ss) : Math.floor(ss / 60) + ':' + String(ss % 60).padStart(2, '0'), cl = Math.max(0, timeLeft).toFixed(1), low = timeLeft < LOW_TIME;
         if (sv !== hudS) { el.score.textContent = hudS = sv; }
         if (cl !== hudC) { el.clock.textContent = hudC = cl; }
         if (low !== hudLow) { el.clock.parentElement.classList.toggle('fg-low', low); hudLow = low; }
