@@ -43,7 +43,7 @@ Then port the result into `static/js/views/frog-game.js`; the mockup copy is the
 ## Still open
 - **Deploy.** cfp.ninja is a Heroku app, and pushing `main` does not deploy it.
   - Deploy `main` from the Heroku dashboard (Deploy, then Manual deploy) or with `git push heroku main`.
-  - Make sure `DATABASE_AUTO_MIGRATE=true` is set; it creates the `game_scores` table.
+  - Do not set `DATABASE_AUTO_MIGRATE` in production: it never runs the full auto-migrate. The server creates the `game_scores` table itself on startup when it is missing (`EnsureGameScoresTable` in `pkg/server/server.go`).
   - Check it worked: `https://cfp.ninja/api/v0/game/scores` returns `{"scores":[]}`, not a 404. Don't check a static file, because the SPA fallback answers 200 for any path.
 - **Nav link.** There is no link to /game anywhere yet; it's a hidden easter egg until Marek says otherwise.
 
