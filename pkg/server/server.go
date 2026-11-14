@@ -49,6 +49,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 	}
 
 	EnsureStatusChangedByColumn(db, cfg.Logger)
+	EnsureGameScoresTable(db, cfg.Logger)
 
 	// Set Stripe API key once at startup (not per-request) to avoid data races
 	if cfg.StripeSecretKey != "" {
@@ -234,4 +235,21 @@ func EnsureStatusChangedByColumn(db *gorm.DB, logger *slog.Logger) {
 			logger.Error("failed to index proposals.status_changed_by_id", "error", err)
 		}
 	}
+}
+
+// EnsureGameScoresTable creates the game_scores table (the Frog Ninja scoreboard,
+// cfp.ninja/game) when it is missing. Production never runs the full auto-migrate,
+// so this one new table is created on its own at startup. Additive only: no
+// existing table, column, row or index is touched. Errors are logged, not fatal:
+// without the table only the scoreboard fails, the rest of the site is unaffected.
+func EnsureGameScoresTable(db *gorm.DB, logger *slog.Logger) {
+	m := db.Migrator()
+	if m.HasTable(&models.GameScore{}) {
+		return
+	}
+	if err := m.CreateTable(&models.GameScore{}); err != nil {
+		logger.Error("failed to create game_scores", "error", err)
+		return
+	}
+	logger.Info("created game_scores")
 }
