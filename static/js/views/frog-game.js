@@ -13,6 +13,7 @@ const LOW_TIME = 5;                             // the clock turns red below thi
 // Stamina: every cut costs one bar; bars come back at a steady pace.
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
 const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops, world at SLOWMO speed
+const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
 const SLOWMO = 0.1;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
@@ -507,7 +508,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>Breathe fire for 3 s: aim with the cursor, fruit in the flame melts, and power-ups burn for an apple's worth of time. No slashing or tongue meanwhile.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s, or until you clear the screen.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>Stops your countdown and slows the world to 10% for 3 s. No slashing: move over fruit to mark it. When time flows again, every marked fruit is cut clean through the middle, in the order you marked it.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free, unlimited slashing: just move, no need to hold the button. The frog gets drunk and sees every fruit three times.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
@@ -645,6 +646,9 @@ export function mountFrogGame(stage, opts = {}) {
     let pickT = { sake: 12, clock: 20 };                       // seconds until the next of each
     let bits = [], flames = [];                                // debris of slashed pickups; fire breath
     let freezeLeft = 0, fireLeft = 0, fireEmit = 0;
+    // time freeze: the blades rest; fruit the cursor passes over is marked, in order, and
+    // when time flows again every marked fruit is cut clean through the middle, in that order
+    let markSeq = 0, wasFrozen = false, markQueue = [], markT = 0, markFrom = null;
     let stamina = STAMINA_BARS, sakeLeft = 0, emptyFlash = 0, stunT = 0, stunFor = 0;
     let tongue = null;            // { tx, ty, t, out, back, caught: { kind, obj } }
 
@@ -953,7 +957,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     function breakFly(f, ang) {
-        hurtFlash = 0.35;                                   // you just wasted a power-up
+        if (sakeLeft <= 0) hurtFlash = 0.35;                // you just wasted a power-up (free of charge on sake: no flash)
         // cut in half: the halves fly apart, then drop
         const nx = -Math.sin(ang), ny = Math.cos(ang);
         [1, -1].forEach(sd => bit(f.x, f.y, ctx => {
@@ -963,7 +967,7 @@ export function mountFrogGame(stage, opts = {}) {
         splash(f.x, f.y, '#eeff41', 8, 3);
     }
     function breakPickup(b, ang) {
-        hurtFlash = 0.35;
+        if (sakeLeft <= 0) hurtFlash = 0.35;
         const r = b.r;
         if (b.kind === 'clock') {
             // broken to pieces: bells, gears, hands, face shards, a spring
@@ -1083,6 +1087,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
         const [px, py] = pos(e);
+        if (freezeLeft > 0 && phase === 'play') { aim = { x: px, y: py }; movePoint(px, py); }   // a touch marks fruit too
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
         if (e.button !== 0 && e.pointerType === 'mouse') return;
         if (phase === 'play' && stunT > 0) return;                 // dizzy: no slashing
@@ -1094,14 +1099,25 @@ export function mountFrogGame(stage, opts = {}) {
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
         const b = canvas.getBoundingClientRect();
-        const list = ((down || sakeLeft > 0) && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
+        const list = ((down || sakeLeft > 0 || freezeLeft > 0) && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
         const evs = list.length ? list : [e];
         for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top, ce.timeStamp || e.timeStamp);
     }
     let autoCut = false;                                       // a sake slash running without a press
     let bladeSpeed = 0, bladeAt = 0, bladeX = 0, bladeY = 0;   // px/s, smoothed, from the pointer's own timestamps
     function movePoint(x, y, ts) {
+        const from = aim || { x, y };
         aim = { x, y };                                   // the fire breath follows the cursor
+        if (freezeLeft > 0 && phase === 'play') {
+            // frozen time: no slashing; whatever the cursor (or finger) passes over is marked
+            fruits.forEach(f => {
+                if (!f.mark && f.entered && segDist(f.x, f.y, from.x, from.y, x, y) < Math.max(f.r, MIN_HIT)) f.mark = ++markSeq;
+            });
+            cut = null; autoCut = false;
+            if (press && Math.hypot(x - press.x, y - press.y) >= PRESS_DRAG) press = null;   // a drag is not a tap
+            if (down) pointer = { x, y };
+            return;
+        }
         if (ts) {
             const dt = ts - bladeAt;
             if (bladeAt && dt > 0 && dt < 120) bladeSpeed = lerp(bladeSpeed, Math.hypot(x - bladeX, y - bladeY) / dt * 1000, 0.5);
@@ -1285,7 +1301,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
-        bits = []; flames = []; freezeLeft = 0; fireLeft = 0;
+        bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = [];
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
@@ -1380,7 +1396,38 @@ export function mountFrogGame(stage, opts = {}) {
             // ramps over minutes and never quite tops out
             const difficulty = 1 - Math.exp(-clockT / 150);
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
-            if (freezeLeft > 0 && !fruits.some(f => f.entered)) { freezeLeft = 0; floats.push({ x: W / 2, y: H * 0.3, text: 'Screen clear!', t: 0, hot: true }); }   // time flows again
+            // every fruit on screen marked (or none left): time flows again
+            if (freezeLeft > 0 && !fruits.some(f => f.entered && !f.mark)) {
+                if (fruits.some(f => f.mark)) floats.push({ x: W / 2, y: H * 0.3, text: 'All marked!', t: 0, hot: true });
+                freezeLeft = 0;
+            }
+            if (wasFrozen && freezeLeft <= 0) {
+                markQueue = fruits.filter(f => f.mark).sort((a, b) => a.mark - b.mark);
+                markT = 0; markFrom = null;
+            }
+            wasFrozen = freezeLeft > 0;
+            // the marked fruit goes one by one, each cut clean through the middle
+            if (markQueue.length) {
+                markT -= dt;
+                while (markQueue.length && markT <= 0) {
+                    markT += MARK_STEP;
+                    const f = markQueue.shift(), ix = fruits.indexOf(f);
+                    if (ix < 0) continue;
+                    f.mark = 0;
+                    if (f.x < -f.r || f.x > W + f.r || f.y > H + f.r) continue;        // it left the screen meanwhile
+                    // the blade comes from the fruit before (the first one: from the frog)
+                    const o = markFrom || frogPoint(993, 300);
+                    let dx = f.x - o.x, dy = f.y - o.y;
+                    const d = Math.hypot(dx, dy);
+                    if (d > 1) { dx /= d; dy /= d; } else { dx = 1; dy = 0; }
+                    const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
+                    cut = null;
+                    if (cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) fruits.splice(ix, 1);
+                    // the stroke that links it to the one before
+                    if (markFrom && d > 1) slashes.push({ x: (o.x + f.x) / 2, y: (o.y + f.y) / 2, a: Math.atan2(dy, dx), r: d / 2 + f.r, t: 0 });
+                    markFrom = { x: f.x, y: f.y };
+                }
+            }
             spawnT -= wdt;
             if (spawnT <= 0) {
                 const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
@@ -1474,6 +1521,11 @@ export function mountFrogGame(stage, opts = {}) {
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
+            if (f.mark) {   // marked during a time freeze: a light-blue glow and ring
+                glow(ctx, f.x, f.y, f.R * 1.9 + 14, '129,212,250', 0.75);
+                ctx.save(); ctx.strokeStyle = '#b3e5fc'; ctx.lineWidth = 3; ctx.globalAlpha = 0.9;
+                ctx.beginPath(); ctx.arc(f.x, f.y, f.r + 7 + Math.sin(tn / 120 + f.mark) * 1.5, 0, 7); ctx.stroke(); ctx.restore();
+            }
             if (drunk) drawEchoes(f, lw, drunk, tn);
             ctx.save(); ctx.translate(f.x, f.y);
             const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
