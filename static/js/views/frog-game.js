@@ -1325,6 +1325,12 @@ export function mountFrogGame(stage, opts = {}) {
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
         cut = null; press = { x: px, y: py };
+        // A press that lands on a tongue-only power-up is meant for the tongue: give it the
+        // benefit of the doubt. It may slide much further (and take as long as it likes) before
+        // it turns into a slash, and the tongue goes for the power-up itself, wherever it has got to.
+        const finger = e.pointerType !== 'mouse', pad = finger ? 26 : 14;
+        const target = pickups.find(b => Math.hypot(b.x - px, b.y - py) < b.r * 1.3 + pad) || flies.find(f => Math.hypot(f.x - px, f.y - py) < f.s * 2 + pad + 6);
+        if (target && phase === 'play') { press.target = target; press.drag = finger ? 70 : 45; }
         touchDown = { x: px, y: py, t: performance.now(), far: 0, finger: e.pointerType !== 'mouse' };
     }
     function onMove(e) {
@@ -1350,6 +1356,7 @@ export function mountFrogGame(stage, opts = {}) {
     function movePoint(x, y, ts) {
         const from = aim || { x, y };
         aim = { x, y };                                   // the fire breath follows the cursor
+        if (markQueue.length && freezeLeft <= 0 && phase === 'play') { cut = null; autoCut = false; press = null; return; }   // the marked slashes are running: hands off
         if (freezeLeft > 0 && phase === 'play') {
             // frozen time: no slashing; whatever the cursor (or finger) passes over is marked
             markAlong(from.x, from.y, x, y, 0);
@@ -1373,7 +1380,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (touchDown && down) touchDown.far = Math.max(touchDown.far, Math.hypot(x - touchDown.x, y - touchDown.y));
         if (press) {
             // the first cut of a press starts once it drags, from where it was pressed
-            if (Math.hypot(x - press.x, y - press.y) < PRESS_DRAG) return;
+            if (Math.hypot(x - press.x, y - press.y) < (press.drag || PRESS_DRAG)) return;
             const p0 = press; press = null;
             if (!startCut(p0.x, p0.y, true)) { lx = x; ly = y; return; }
             lx = p0.x; ly = p0.y;
@@ -1450,7 +1457,10 @@ export function mountFrogGame(stage, opts = {}) {
             && (!cut || !cut.paid)) tap = { x: td.x, y: td.y };
         touchDown = null;
         down = false; cut = null; press = null; dullId = 0; gapLeft = 0;
-        if (tap) shootTongue(tap.x, tap.y);
+        if (tap) {
+            const t = tap.target, there = t && (pickups.includes(t) || flies.includes(t));
+            shootTongue(there ? t.x : tap.x, there ? t.y : tap.y);
+        }
     }
     canvas.addEventListener('pointerdown', onDown);
     const noMenu = e => e.preventDefault();
@@ -1718,9 +1728,11 @@ export function mountFrogGame(stage, opts = {}) {
         applyPose();
 
         // game; the alarm clock slows the world to SLOWMO (wdt) and stops the countdown, not the frog
-        const wdt = freezeLeft > 0 ? dt * SLOWMO : dt;
+        // (the slashes that follow a freeze are made while the world is still slow; then time resumes)
+        const slowed = freezeLeft > 0 || markQueue.length > 0;
+        const wdt = slowed ? dt * SLOWMO : dt;
         if (phase === 'play') {
-            clockT += dt; if (freezeLeft <= 0) timeLeft -= dt;   // the alarm clock stops the countdown
+            clockT += dt; if (!slowed) timeLeft -= dt;   // the alarm clock stops the countdown
             // ramps over minutes and never quite tops out
             const difficulty = 1 - Math.exp(-clockT / 150);
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
@@ -1844,7 +1856,7 @@ export function mountFrogGame(stage, opts = {}) {
         // A power-up never costs the grade: while one runs the meter holds, and when it ends
         // the player gets the full STYLE_HOLD to start slashing again (fire allows no slashing,
         // so without this the meter drained the instant the flame went out).
-        if (fireLeft > 0 || freezeLeft > 0 || sakeLeft > 0) lastSlice = tn;
+        if (fireLeft > 0 || freezeLeft > 0 || sakeLeft > 0 || markQueue.length) lastSlice = tn;
         if (phase === 'play' && fireLeft <= 0 && freezeLeft <= 0 && style > 0 && tn - lastSlice > STYLE_HOLD * 1000) {
             style = Math.max(0, style - STYLE_DRAIN * dt); updateGrade(false);
         }
@@ -1913,8 +1925,21 @@ export function mountFrogGame(stage, opts = {}) {
         if (hurtFlash > 0) {    // a power-up got slashed: the screen flashes dim red
             ctx.save(); ctx.globalAlpha = 0.3 * hurtFlash / 0.35; ctx.fillStyle = '#b71c1c'; ctx.fillRect(0, 0, W, H); ctx.restore();
         }
-        if (freezeLeft > 0) {   // frost over the frozen world
-            ctx.save(); ctx.globalAlpha = Math.min(1, freezeLeft / 0.3) * 0.18; ctx.fillStyle = '#81d4fa'; ctx.fillRect(0, 0, W, H); ctx.restore();
+        if (freezeLeft > 0 || markQueue.length) {   // frost over the frozen world
+            ctx.save(); ctx.globalAlpha = (markQueue.length ? 1 : Math.min(1, freezeLeft / 0.3)) * 0.1; ctx.fillStyle = '#81d4fa'; ctx.fillRect(0, 0, W, H); ctx.restore();
+        }
+        // a power-up at work tints the edges of the screen, breathing: fire orange, sake yellow, clock blue
+        if (phase === 'play') {
+            const breath = reduced ? 0.8 : 0.72 + 0.28 * Math.sin(tn / 320);
+            const edge = (rgb, k) => {
+                if (k <= 0) return;
+                const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.38, W / 2, H / 2, Math.hypot(W, H) * 0.56);
+                g.addColorStop(0, `rgba(${rgb},0)`); g.addColorStop(1, `rgba(${rgb},${(0.34 * k * breath).toFixed(3)})`);
+                ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+            };
+            edge('255,120,20', Math.min(1, fireLeft / 0.3));
+            edge('255,213,60', Math.min(1, sakeLeft / 0.3));
+            edge('80,180,255', markQueue.length ? 1 : Math.min(1, freezeLeft / 0.3));
         }
         bits.forEach(b => {
             ctx.save(); ctx.globalAlpha = clamp((b.life - b.t) / 0.3, 0, 1);
@@ -1939,7 +1964,7 @@ export function mountFrogGame(stage, opts = {}) {
             });
             ctx.restore();
         }
-        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 ? tn / 10000 : tn / 1000));
+        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 || markQueue.length ? tn / 10000 : tn / 1000));
         if (flames.length) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter';
             const tint = FLAME[fireLeft > 0 ? fireTint : ''];
