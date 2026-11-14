@@ -227,7 +227,7 @@ const MIN_HIT = 15;                              // px: the smallest fruit still
 // the middle third of the rest is a clean cut (full time), the two bands between are
 // off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
 // included, and every cut after the first is worth RECUT of the one before.
-const EDGE_BAND = 0.01, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+const EDGE_BAND = 0.01, OFF_CUT = 0.7, MAX_CUTS = 10, RECUT = 0.5;
 // One slash through several fruits: every fruit after the first is worth MULTI more than
 // the one before (+10%, +20%, ...), up to MULTI_MAX extra.
 const MULTI = 0.1, MULTI_MAX = 1;
@@ -408,8 +408,9 @@ function drawPiece(ctx, p, lw) {
     pathPoly(ctx, p.poly); ctx.clip();
     ctx.translate(p.ox, p.oy); drawFace(ctx, p.type, p.r);
     ctx.restore();
-    if (p.ash) {   // charred by the flame blade: ash grey, darker with every cut
-        ctx.save(); ctx.globalAlpha = Math.min(0.3 * p.ash, 0.85); ctx.fillStyle = '#5b5752';
+    const ashA = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
+    if (ashA > 0) {   // charred by the flame blade (darker with every cut) or melting in a fire
+        ctx.save(); ctx.globalAlpha = ashA; ctx.fillStyle = '#5b5752';
         pathPoly(ctx, p.poly); ctx.fill();
         if (p.crown) p.crown.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); });
         ctx.restore();
@@ -617,7 +618,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <p class="fg-tip-lead">Precision pays. Aim for the middle of the fruit.</p>
                         <div class="fg-row"><div><b>Through the middle: full time</b><span>An off-centre cut gives 30% less.</span></div></div>
                         <div class="fg-row"><div><b>Clip the edge: no cut</b><span>The fruit is knocked away by your blade, still whole. Catch it again.</span></div></div>
-                        <div class="fg-row"><div><b>Cut it again: up to 3 cuts a fruit</b><span>Pieces can be cut too, with a new slash. Each cut is worth half the one before.</span></div></div>
+                        <div class="fg-row"><div><b>Cut it again: up to 10 cuts a fruit</b><span>Pieces can be cut too, with a new slash. Each cut is worth half the one before.</span></div></div>
                         <div class="fg-row"><div><b>Several fruits in one slash</b><span>Every fruit after the first is worth 10% more than the one before.</span></div></div>
                         <div class="fg-row"><div><b>Pineapple leaves</b><span>Cutting only the crown buys no time.</span></div></div>
                     </div>
@@ -794,7 +795,7 @@ export function mountFrogGame(stage, opts = {}) {
         floats.push({ x, y: y - 30, text: BLADE_FX[kind].text, t: 0, hot: true });
     }
     // everything marked during a time freeze, in the order it was marked
-    const allMarked = () => fruits.filter(f => f.mark).concat(crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
+    const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
     const clearBladeFx = () => { bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
     const FIRE_HALF = 14;                                      // px either side the fire blade also cuts
     // what the blade sheds along a stretch of a sake slash
@@ -802,7 +803,7 @@ export function mountFrogGame(stage, opts = {}) {
         const n = Math.min(8, Math.floor(Math.hypot(x1 - x0, y1 - y0) / 16));
         for (let i = 0; i < n; i++) {
             const k = (i + Math.random()) / n, x = x0 + (x1 - x0) * k, y = y0 + (y1 - y0) * k;
-            if (bladeFx.fire) flames.push({ x, y, vx: rand(-40, 40), vy: -H * rand(0.05, 0.25), t: 0, life: rand(0.25, 0.45), s: rand(5, 10) });
+            if (bladeFx.fire) flames.push({ x, y, vx: rand(-40, 40), vy: -H * rand(0.05, 0.25), t: 0, life: rand(0.35, 0.6), s: rand(5, 10), blade: true });
             if (bladeFx.bubbles) bubbles.push({ x: x + rand(-6, 6), y: y + rand(-6, 6), vx: rand(-25, 25), vy: -H * rand(0.04, 0.14), r: rand(3, 9), t: 0, life: rand(0.5, 1), ph: rand(0, 6.28) });
             if (bladeFx.frost && Math.random() < 0.6) drops.push({ x, y, vx: rand(-50, 50), vy: rand(-50, 50), c: '#b3e5fc', t: 0, s: rand(1.5, 3.5) });
         }
@@ -1042,8 +1043,8 @@ export function mountFrogGame(stage, opts = {}) {
         // (and a slash that has already cut other fruit pays more for each one after the first)
         const chain = cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
         if (cut && f.fam.cuts === 0) cut.hits = chain + 1;
-        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
-            * (1 + Math.min(MULTI * chain, MULTI_MAX));
+        const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
+            * (1 + Math.min(MULTI * chain, MULTI_MAX)), 0.01);   // the 10th cut of a fruit is still worth something
         f.fam.cuts++;
         lastSlice = now;
         timeLeft += gain; slices++;
@@ -1227,8 +1228,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     // ---------- fire breath (firefly) ----------
-    function burnFruit(f) {
-        const gain = fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5);   // fire gets half the grade bonus
+    function burnFruit(f, mult = 1) {
+        const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult, 0.01);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);   // and half a style point
         // what's left: a puddle of molten fruit dripping down
@@ -1268,6 +1269,9 @@ export function mountFrogGame(stage, opts = {}) {
         flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; });
         flames = flames.filter(p => p.t < p.life);
         if (flames.length > 500) flames.splice(0, flames.length - 500);
+        // the flames a fire blade (sake + firefly) leaves along its trace burn like the breath does
+        const hot = flames.filter(p => p.blade);
+        const inBlade = (x, y, r) => hot.some(p => Math.hypot(p.x - x, p.y - y) < r + p.s * 1.6);
         const inFlame = (x, y, r) => {
             const dx = x - m.x, dy = y - m.y, d = Math.hypot(dx, dy);
             let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
@@ -1303,13 +1307,22 @@ export function mountFrogGame(stage, opts = {}) {
         }
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            const inside = on && f.entered && inFlame(f.x, f.y, f.r);
+            const inside = (on && f.entered && inFlame(f.x, f.y, f.r)) || inBlade(f.x, f.y, f.r);
             if (inside && fireSlow) f.slow = Math.max(f.slow || 0, Math.min(FIRE_SLOW * fireSlow, FIRE_SLOW_MAX));   // it stays slow
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * 3); continue; }   // out of the flame: cools fast
             f.burn = (f.burn || 0) + dt;
             if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
             if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
             if (f.burn >= BURN_TIME) { fruits.splice(i, 1); burnFruit(f); }
+        }
+        // cut pieces melt the same way (flame blade or breath), for what is left of their worth
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const q = pieces[i];
+            if (!q.poly) continue;
+            const inside = (on && inFlame(q.x, q.y, q.R * 0.7)) || inBlade(q.x, q.y, q.R * 0.7);
+            if (!inside) { if (q.burn) q.burn = Math.max(0, q.burn - dt * 3); continue; }
+            q.burn = (q.burn || 0) + dt;
+            if (q.burn >= BURN_TIME) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts)); }
         }
     }
 
@@ -1374,6 +1387,7 @@ export function mountFrogGame(stage, opts = {}) {
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
         const b = canvas.getBoundingClientRect();
+        if (down && e.pointerType === 'mouse' && !(e.buttons & 1)) { down = false; cut = null; press = null; dullId = 0; gapLeft = 0; }
         const list = ((down || sakeLeft > 0 || freezeLeft > 0) && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
         const evs = list.length ? list : [e];
         for (const ce of evs) movePoint(ce.clientX - b.left, ce.clientY - b.top, ce.timeStamp || e.timeStamp);
@@ -1385,6 +1399,8 @@ export function mountFrogGame(stage, opts = {}) {
         fruits.forEach(f => {
             if (!f.mark && f.entered && segDist(f.x, f.y, x0, y0, x1, y1) < Math.max(f.r, MIN_HIT) + slack) f.mark = ++markSeq;
         });
+        // pieces that can still be cut can be marked again
+        pieces.forEach(q => { if (!q.mark && q.live && q.poly && segDist(q.x, q.y, x0, y0, x1, y1) < Math.max(q.R * 0.8, MIN_HIT) + slack) q.mark = ++markSeq; });
         crates.forEach(c => { if (!c.mark && segDist(c.x, c.y, x0, y0, x1, y1) < c.hw * 0.9 + slack) c.mark = ++markSeq; });
         // power-ups can be marked as well: cut on release, each one pays like an apple
         pickups.forEach(b => { if (!b.mark && segDist(b.x, b.y, x0, y0, x1, y1) < b.r * 1.2 + slack) b.mark = ++markSeq; });
@@ -1818,7 +1834,8 @@ export function mountFrogGame(stage, opts = {}) {
                         markFrom = { x: f.x, y: f.y };
                         continue;
                     }
-                    if (ix < 0) continue;
+                    const pcx = pieces.indexOf(f);
+                    if (ix < 0 && (pcx < 0 || !f.live)) continue;
                     f.mark = 0;
                     if (f.x < -f.r || f.x > W + f.r || f.y > H + f.r) continue;        // it left the screen meanwhile
                     // the blade comes from the fruit before (the first one: from the frog)
@@ -1830,7 +1847,7 @@ export function mountFrogGame(stage, opts = {}) {
                     const mine = cut; cut = markCut;
                     const done = cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y);
                     cut = mine;
-                    if (done) fruits.splice(ix, 1);
+                    if (done) { if (ix >= 0) fruits.splice(ix, 1); else pieces.splice(pcx, 1); }
                     // the stroke that links it to the one before
                     if (markFrom && d > 1) slashes.push({ x: (o.x + f.x) / 2, y: (o.y + f.y) / 2, a: Math.atan2(dy, dx), r: d / 2 + f.r, t: 0 });
                     markFrom = { x: f.x, y: f.y };
@@ -1847,7 +1864,12 @@ export function mountFrogGame(stage, opts = {}) {
             crateT -= wdt;
             if (crateT <= 0) { spawnCrate(); crateT = rand(...CRATE_EVERY); }
             for (const k in pickT) { pickT[k] -= wdt; if (pickT[k] <= 0) { spawnPickup(k); pickT[k] = rand(...PICK_EVERY[k]); } }
-            if (sakeLeft > 0) { sakeLeft = Math.max(0, sakeLeft - dt); if (sakeLeft <= 0) clearBladeFx(); }
+            if (sakeLeft > 0) {
+                sakeLeft = Math.max(0, sakeLeft - dt);
+                // the sake is over: the free slash ends with it, and nothing carries over. A button
+                // (or a finger) still held from the sake doesn't slash: it takes a fresh press.
+                if (sakeLeft <= 0) { clearBladeFx(); down = false; cut = null; autoCut = false; press = null; dullId = 0; gapLeft = 0; }
+            }
             else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
             if (stunT > 0) stunT = Math.max(0, stunT - dt);
             if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
@@ -1959,7 +1981,11 @@ export function mountFrogGame(stage, opts = {}) {
             }
             ctx.rotate(f.rot); drawWhole(ctx, f, f.r, lw);
             if (mk) {
-                ctx.globalAlpha = mk * 0.55; ctx.fillStyle = '#ff6d00';
+                // melting, by any fire: it turns ash grey as it goes, with a glow of heat over it
+                if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
+                ctx.globalAlpha = mk * 0.75; ctx.fillStyle = '#5b5752';
+                ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill();
+                ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00';
                 ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill();
             }
             ctx.restore();
@@ -2000,7 +2026,7 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 3.5; path(); ctx.stroke();
             }
             marked.forEach(f => {
-                if (f.kind || f.s) glow(ctx, f.x, f.y, 46, '129,212,250', 0.7);   // a marked power-up glows like marked fruit
+                if (f.kind || f.s || f.area !== undefined) glow(ctx, f.x, f.y, f.area !== undefined ? f.R * 1.6 + 10 : 46, '129,212,250', 0.7);   // a marked power-up glows like marked fruit
                 ctx.fillStyle = '#e1f5fe'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc(f.x, f.y, 7, 0, 7); ctx.fill(); ctx.stroke();
             });
@@ -2098,14 +2124,25 @@ export function mountFrogGame(stage, opts = {}) {
             };
             const fx = sakeLeft > 0 && bladeFx.last ? BLADE_FX[bladeFx.last] : null;
             const fxWide = bladeFx.fire && sakeLeft > 0 ? BLADE_FX.fire.wide : 1, fxSpread = fx ? fx.spread : 2.6;
+            // The pointer gives us corners; the blade draws a curve. Each sample is rounded off:
+            // a quadratic from the middle of the stretch before it to the middle of the one
+            // after, bent at the sample itself (the two ends of a cut stay straight).
             const strokeAll = (c2, glow) => {
-                c2.lineCap = 'round';
-                for (let i = 1; i < trail.length; i++) {
-                    const a = trail[i - 1], b = trail[i];
-                    if (a.cut !== b.cut || a.dull) continue;
-                    const w = (halfW(a) + halfW(b)) * (a.free ? fxWide : 1);   // = 2 x the mean half-width
-                    c2.lineWidth = glow ? w * (a.free ? fxSpread : 2.6) + 4 : w;
-                    c2.beginPath(); c2.moveTo(a.x, a.y); c2.lineTo(b.x, b.y); c2.stroke();
+                c2.lineCap = 'round'; c2.lineJoin = 'round';
+                for (let i = 0; i < trail.length; i++) {
+                    const b = trail[i];
+                    if (b.dull) continue;
+                    const a = i > 0 && trail[i - 1].cut === b.cut ? trail[i - 1] : null;
+                    const c = i < trail.length - 1 && trail[i + 1].cut === b.cut ? trail[i + 1] : null;
+                    if (!a && !c) continue;
+                    const w = 2 * halfW(b) * (b.free ? fxWide : 1);
+                    c2.lineWidth = glow ? w * (b.free ? fxSpread : 2.6) + 4 : w;
+                    c2.beginPath();
+                    if (a) c2.moveTo((a.x + b.x) / 2, (a.y + b.y) / 2); else c2.moveTo(b.x, b.y);
+                    if (a && c) c2.quadraticCurveTo(b.x, b.y, (b.x + c.x) / 2, (b.y + c.y) / 2);
+                    else if (c) c2.lineTo((b.x + c.x) / 2, (b.y + c.y) / 2);
+                    else c2.lineTo(b.x, b.y);
+                    c2.stroke();
                 }
             };
             gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
@@ -2133,6 +2170,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     function onVis() { last = performance.now(); }
+    function onBlur() { down = false; cut = null; autoCut = false; press = null; dullId = 0; gapLeft = 0; }
+    window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVis);
     raf = requestAnimationFrame(frame);
 
@@ -2140,6 +2179,7 @@ export function mountFrogGame(stage, opts = {}) {
         dead = true; cancelAnimationFrame(raf); ro.disconnect();
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('keydown', onKey);
+        window.removeEventListener('blur', onBlur);
         window.removeEventListener('pointercancel', onUp);
         canvas.removeEventListener('contextmenu', noMenu);
         document.removeEventListener('visibilitychange', onVis);
