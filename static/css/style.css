@@ -1503,6 +1503,9 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .game-notch-on { color: #98b74b; }
 .game-page .fg-hud { left: 104px; }
 @media (max-width: 575px) { .game-page .fg-best-pill { display: none; } }
+/* the how-to-play pages must fit a phone screen whole: the stage can't scroll */
+@media (max-width: 575px), (max-height: 720px) { .fg-panel { padding: 14px 16px; } .fg-title { font-size: 1.25rem; margin-bottom: .2rem; } .fg-tip-lead { font-size: .9rem; margin-bottom: .5rem; }
+    .fg-row { padding: 6px 0; } .fg-row b { font-size: .9rem; } .fg-row span { font-size: .8rem; line-height: 1.25; } .fg-tip-combo { font-size: .8rem; } }
 .game-board-screen { padding-top: 64px !important; }
 .fg-board-link { display: block; margin: 10px auto 0; }
 /* the scoreboard: a full screen under the navbar, opened from the game's own panel */
