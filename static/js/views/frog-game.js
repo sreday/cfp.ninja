@@ -143,16 +143,15 @@ const FROG_SVG = `
 </svg>`;
 
 // ---------- fruit ----------
-// The watermelon is as big as the frog's head and the pineapple is true to life against it.
-// The small fruit (orange, apple, kiwi, plum) is three times its real size, so it can be
-// seen and aimed at; it keeps its order, plum smallest.
+// The watermelon is as big as the frog's head; each fruit down the line is 20% smaller
+// than the one before: watermelon, pineapple, orange, apple, kiwi, plum.
 const FRUITS = [
     { kind: 'watermelon', r: 1.62, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
-    { kind: 'orange', r: 1.56, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
-    { kind: 'pineapple', r: 1.05, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
-    { kind: 'kiwi', r: 1.2, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
-    { kind: 'apple', r: 1.56, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
-    { kind: 'plum', r: 0.99, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
+    { kind: 'orange', r: 1.04, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
+    { kind: 'pineapple', r: 1.3, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
+    { kind: 'kiwi', r: 0.66, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
+    { kind: 'apple', r: 0.83, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
+    { kind: 'plum', r: 0.53, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
 ];
 const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUITS.map(f => f.r));
 const sizeK = type => clamp((type.r - SIZE_MIN) / (SIZE_MAX - SIZE_MIN), 0, 1);   // 0 = smallest fruit, 1 = biggest
@@ -163,7 +162,7 @@ const MIN_HIT = 15;                              // px: the smallest fruit still
 // the middle third of the rest is a clean cut (full time), the two bands between are
 // off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
 // included, and every cut after the first is worth RECUT of the one before.
-const EDGE_BAND = 0.03, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+const EDGE_BAND = 0.02, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
 
 // ---------- polygons (fruit and its pieces, in the fruit's own frame) ----------
 const polyOval = (rx, ry, n = 28) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [Math.cos(a) * rx, Math.sin(a) * ry]; });
@@ -559,7 +558,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (seen.has(t.kind)) return; seen.add(t.kind);
             const cell = document.createElement('div'); cell.className = 'fg-fruit';
             const c = document.createElement('canvas'); const x = prep(c);
-            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, t.kind === 'pineapple' ? 11 : lerp(7, 15, Math.sqrt(sizeK(t))), 2);
+            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * (t.kind === 'pineapple' ? 0.85 : 1), 2);
             const g = fruitTime(t);
             cell.appendChild(c); cell.insertAdjacentHTML('beforeend', `<span>${t.kind}</span><b>+${g.toFixed(g * 10 % 1 ? 2 : 1)} s</b>`);
             box.appendChild(cell);
