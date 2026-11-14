@@ -748,9 +748,37 @@ export function mountFrogGame(stage, opts = {}) {
     const BLADE_FX = {
         fire: { glow: '#ff6d00', core: '#ffe082', wide: 3, spread: 2.6, alpha: 0.5, text: 'Fire blade!' },
         bubbles: { glow: '#ffd54f', core: '#fffde7', wide: 1, spread: 2.6, alpha: 0.42, text: 'Bubbly blade!' },
-        frost: { glow: '#4fc3f7', core: '#e1f5fe', wide: 1, spread: 5, alpha: 0.7, text: 'Frost blade!' }
+        frost: { glow: '#4fc3f7', core: '#e1f5fe', wide: 1, spread: 5, alpha: 0.7, text: 'Chronoblade!' }
     };
     let bladeFx = { fire: false, bubbles: false, frost: false, last: '' }, bubbles = [];
+    // Chronoblade (a clock slashed on sake): the blade's trace hangs in the air for WARP_LIFE s,
+    // a rip in time, and cuts any fruit that flies through it (once per fruit and piece).
+    const WARP_LIFE = 1.6;
+    let warps = [], warpCut = { id: 0, hits: 0 };
+    function stepWarps(dt) {
+        warps.forEach(w => { w.t += dt; });
+        warps = warps.filter(w => w.t < WARP_LIFE);
+        if (!warps.length || phase !== 'play') return;
+        const mine = cut;
+        warps.forEach(w => {
+            if (w.t < 0.12) return;                       // the blade itself is still cutting here
+            [fruits, pieces].forEach(list => {
+                for (let i = list.length - 1; i >= 0; i--) {
+                    const f = list[i];
+                    if ((list === pieces && !f.live) || (list === fruits && !f.entered) || f.noCut === warpCut.id) continue;
+                    const hit = strike(f, w.x0, w.y0, w.x1, w.y1, w.dx, w.dy);
+                    if (!hit) continue;
+                    if (hit.kind === 'cut') {
+                        warpCut.hits = 0; cut = warpCut;
+                        const done = cutFruit(f, hit, w.dx, w.dy, f.x, f.y);
+                        cut = mine;
+                        if (done) list.splice(i, 1);
+                    } else f.noCut = warpCut.id;          // only grazed: it passes
+                }
+            });
+        });
+        cut = mine;
+    }
     // the fire breath's colours, young to old: its own, after burning a sake, after burning a clock
     const FLAME = {
         '': ['rgba(255,241,118,.85)', 'rgba(255,152,0,.7)', 'rgba(229,57,53,.45)'],
@@ -762,11 +790,12 @@ export function mountFrogGame(stage, opts = {}) {
     function setBladeFx(kind, x, y) {
         if (sakeLeft <= 0) return;
         bladeFx[kind] = true; bladeFx.last = kind;
+        if (kind === 'frost' && !warpCut.id) warpCut = { id: ++cutId, hits: 0 };
         floats.push({ x, y: y - 30, text: BLADE_FX[kind].text, t: 0, hot: true });
     }
     // everything marked during a time freeze, in the order it was marked
     const allMarked = () => fruits.filter(f => f.mark).concat(crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
-    const clearBladeFx = () => { bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; };
+    const clearBladeFx = () => { bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
     const FIRE_HALF = 14;                                      // px either side the fire blade also cuts
     // what the blade sheds along a stretch of a sake slash
     function shedBladeFx(x0, y0, x1, y1) {
@@ -1419,6 +1448,10 @@ export function mountFrogGame(stage, opts = {}) {
             hitTest(lx, ly, x, y, cut.hx, cut.hy);
             cut.len += Math.hypot(x - lx, y - ly);
             shedBladeFx(lx, ly, x, y);
+            if (bladeFx.frost) {
+                const d = Math.hypot(x - lx, y - ly);
+                if (d > 2) { warps.push({ x0: lx, y0: ly, x1: x, y1: y, dx: (x - lx) / d, dy: (y - ly) / d, t: 0 }); if (warps.length > 500) warps.shift(); }
+            }
             trail.push({ x, y, t: performance.now(), cut: cut.id, d: cut.len, free: true });
             lx = x; ly = y; return;
         }
@@ -1635,7 +1668,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
-        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0;
+        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = [];
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
@@ -1831,6 +1864,7 @@ export function mountFrogGame(stage, opts = {}) {
         pickups.forEach(b => { b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
         pickups = pickups.filter(b => b.y < H + b.r * 3);
         bits.forEach(b => { b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; b.t += dt; });
+        stepWarps(dt);
         bubbles.forEach(q => { q.t += dt; q.x += (q.vx + Math.sin(q.t * 9 + q.ph) * 30) * dt; q.y += q.vy * dt; });
         bubbles = bubbles.filter(q => q.t < q.life);
         if (bubbles.length > 300) bubbles.splice(0, bubbles.length - 300);
@@ -2031,6 +2065,17 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.globalAlpha = 1 - k; ctx.lineWidth = 5 * (1 - k) + 1; ctx.stroke();
             ctx.restore();
         });
+        if (warps.length) {   // the chronoblade's traces: blue rips that shimmer and thin out
+            ctx.save(); ctx.lineCap = 'round';
+            warps.forEach(w => {
+                const k = w.t / WARP_LIFE, flick = reduced ? 1 : 0.8 + 0.2 * Math.sin(tn / 60 + w.x0 * 0.05);
+                ctx.globalAlpha = (1 - k) * 0.45 * flick; ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 12 * (1 - k * 0.6);
+                ctx.beginPath(); ctx.moveTo(w.x0, w.y0); ctx.lineTo(w.x1, w.y1); ctx.stroke();
+                ctx.globalAlpha = (1 - k) * 0.95; ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2.5 * (1 - k * 0.5);
+                ctx.beginPath(); ctx.moveTo(w.x0, w.y0); ctx.lineTo(w.x1, w.y1); ctx.stroke();
+            });
+            ctx.restore();
+        }
         if (bubbles.length) {
             ctx.save(); ctx.lineWidth = 1.5;
             bubbles.forEach(q => {
