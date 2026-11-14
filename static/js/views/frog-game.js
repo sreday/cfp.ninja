@@ -38,16 +38,16 @@ const TURN_STEP = 10, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, 
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
 const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
-// Style grade: every slashed fruit fills the meter; stop slashing for STYLE_HOLD s and it
-// drains. The grade adds a bonus to the time each fruit buys.
-const GRADES = [
-    { g: 'C', name: 'Croaker', at: 0, bonus: 0 },
-    { g: 'B', name: 'Bullfrog', at: 5, bonus: 0.1 },
-    { g: 'A', name: 'Amphibian Assassin', at: 12, bonus: 0.2 },
-    { g: 'S', name: 'Shadow Frog', at: 22, bonus: 0.3 },
-    { g: 'SS', name: 'Supreme Sensei', at: 35, bonus: 0.4 }
-];
-const STYLE_MAX = 45, STYLE_HOLD = 0.9, STYLE_DRAIN = 8;     // meter points; seconds; points per second
+// Combo: every slashed fruit fills the meter; stop slashing for STYLE_HOLD s and it drains.
+// Each step up the ladder adds COMBO_STEP to the time a fruit buys. The first step has no
+// name: the HUD shows only the bar filling up. The names are the classic arcade shout-outs.
+const COMBO_NAMES = ['', 'Good!', 'Sweet!', 'Great!', 'Super!', 'Wow!', 'Amazing!', 'Extreme!', 'Fantastic!', 'Splendid!', 'No Way!'];
+const COMBO_AT = [0, 4, 9, 15, 22, 30, 39, 49, 60, 72, 85], COMBO_STEP = 0.05;
+const GRADES = COMBO_NAMES.map((name, i) => ({ g: String(i), name, at: COMBO_AT[i], bonus: i * COMBO_STEP }));
+const STYLE_MAX = 95, STYLE_HOLD = 0.9, STYLE_DRAIN = 8;     // meter points; seconds; points per second
+// A slash only counts (costs its stamina bar, cuts fruit) once it is MIN_CUT long, as a share
+// of the screen's shorter side: a twitch of the mouse or a jittery hand is not a slash.
+const MIN_CUT = 0.06, MIN_CUT_PX = 36;
 
 // ---------- the frog (SVG traced over cfpninja_full.png, in its own pixel space) ----------
 // The frog is drawn in the logo's coordinates (viewBox 0 0 1986 1876) so it
@@ -86,6 +86,61 @@ function arm(id) {
 }
 
 const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 110 1346 180 1386 360 C1426 400 1516 470 1481 600 C1460 700 1300 760 993 792 C686 760 526 700 505 600 Z';
+// The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
+// It fills the stage from the bottom up (the shore stays put on any screen shape).
+const BEACH_SVG = `
+<svg class="fg-bg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+        <linearGradient id="fg-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0a0f14"/><stop offset="1" stop-color="#1a252d"/></linearGradient>
+        <linearGradient id="fg-sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16242d"/><stop offset="1" stop-color="#101a21"/></linearGradient>
+        <linearGradient id="fg-sand" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#27231d"/><stop offset="1" stop-color="#171411"/></linearGradient>
+    </defs>
+    <rect x="-400" y="-900" width="2400" height="1520" fill="url(#fg-sky)"/>
+    <g fill="#18222a">
+        <ellipse cx="260" cy="170" rx="260" ry="62"/><ellipse cx="470" cy="130" rx="210" ry="70"/><ellipse cx="90" cy="120" rx="170" ry="52"/>
+        <ellipse cx="1180" cy="210" rx="300" ry="66"/><ellipse cx="1420" cy="160" rx="230" ry="74"/><ellipse cx="980" cy="170" rx="170" ry="48"/>
+        <ellipse cx="760" cy="60" rx="320" ry="58"/>
+    </g>
+    <g fill="#1f2b34">
+        <ellipse cx="380" cy="330" rx="330" ry="54"/><ellipse cx="640" cy="300" rx="220" ry="48"/><ellipse cx="120" cy="360" rx="210" ry="40"/>
+        <ellipse cx="1300" cy="380" rx="340" ry="52"/><ellipse cx="1060" cy="350" rx="200" ry="42"/><ellipse cx="1560" cy="330" rx="180" ry="46"/>
+    </g>
+    <g fill="#222f38"><ellipse cx="800" cy="500" rx="520" ry="40"/><ellipse cx="240" cy="530" rx="300" ry="30"/><ellipse cx="1400" cy="525" rx="320" ry="32"/></g>
+    <rect x="-400" y="600" width="2400" height="130" fill="url(#fg-sea)"/>
+    <path d="M-400 600 H2000" stroke="#2b3b45" stroke-width="3"/>
+    <g fill="none" stroke="#22323c" stroke-width="4" stroke-linecap="round">
+        <path d="M60 640 q60 -10 120 0 t120 0"/><path d="M520 628 q50 -8 100 0 t100 0"/><path d="M980 650 q60 -10 120 0 t120 0"/><path d="M1360 632 q45 -8 90 0 t90 0"/>
+        <path d="M250 676 q70 -12 140 0 t140 0"/><path d="M820 684 q60 -10 120 0 t120 0"/><path d="M1240 690 q70 -12 140 0 t140 0"/>
+    </g>
+    <rect x="-400" y="718" width="2400" height="400" fill="url(#fg-sand)"/>
+    <path d="M-400 722 q100 -16 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0" fill="none" stroke="#3a4b55" stroke-width="6" stroke-linecap="round"/>
+    <g fill="#322d26">
+        <ellipse cx="140" cy="800" rx="16" ry="9"/><ellipse cx="330" cy="850" rx="22" ry="11"/><ellipse cx="520" cy="790" rx="12" ry="7"/><ellipse cx="1010" cy="840" rx="20" ry="10"/>
+        <ellipse cx="1190" cy="792" rx="14" ry="8"/><ellipse cx="1420" cy="860" rx="24" ry="12"/><ellipse cx="1530" cy="800" rx="13" ry="7"/><ellipse cx="660" cy="870" rx="17" ry="9"/>
+    </g>
+    <g fill="#3b362e"><ellipse cx="230" cy="820" rx="9" ry="5"/><ellipse cx="890" cy="800" rx="11" ry="6"/><ellipse cx="1300" cy="830" rx="10" ry="6"/><ellipse cx="450" cy="880" rx="8" ry="5"/></g>
+</svg>`;
+// The frog's seat: a weathered wooden post standing in the shallows. It is stretched to the
+// stage (height) and to the frog (width), so its outline is drawn at a fixed thickness.
+const POLE_SVG = `
+<svg class="fg-pole" viewBox="0 0 100 200" preserveAspectRatio="none" aria-hidden="true">
+    <defs><linearGradient id="fg-pole-wet" x1="0" y1="0" x2="0" y2="1"><stop offset="0.45" stop-color="#3a2d24" stop-opacity="0"/><stop offset="1" stop-color="#2a2019"/></linearGradient></defs>
+    <path d="M7 14 V210 H93 V14 Z" fill="#6f6359" stroke="#000" stroke-width="3.5" vector-effect="non-scaling-stroke"/>
+    <path d="M7 14 V210 H30 V14 Z" fill="#877b70" opacity=".55"/>
+    <path d="M70 14 V210 H93 V14 Z" fill="#4b4037" opacity=".6"/>
+    <g fill="none" stroke="#453a32" stroke-width="2.5" stroke-linecap="round" vector-effect="non-scaling-stroke">
+        <path d="M22 26 V118" vector-effect="non-scaling-stroke"/><path d="M38 40 V200" vector-effect="non-scaling-stroke"/><path d="M55 24 V92" vector-effect="non-scaling-stroke"/>
+        <path d="M63 70 V200" vector-effect="non-scaling-stroke"/><path d="M80 30 V150" vector-effect="non-scaling-stroke"/><path d="M15 130 V200" vector-effect="non-scaling-stroke"/>
+    </g>
+    <g fill="none" stroke="#9a8f84" stroke-width="2" stroke-linecap="round">
+        <path d="M30 34 V96" vector-effect="non-scaling-stroke"/><path d="M47 60 V130" vector-effect="non-scaling-stroke"/><path d="M73 44 V84" vector-effect="non-scaling-stroke"/>
+    </g>
+    <path d="M7 14 V210 H93 V14 Z" fill="url(#fg-pole-wet)"/>
+    <ellipse cx="50" cy="14" rx="43" ry="10" fill="#93877b" stroke="#000" stroke-width="3.5" vector-effect="non-scaling-stroke"/>
+    <ellipse cx="50" cy="14" rx="27" ry="6" fill="none" stroke="#6f6359" stroke-width="2" vector-effect="non-scaling-stroke"/>
+    <ellipse cx="50" cy="14" rx="11" ry="2.6" fill="none" stroke="#6f6359" stroke-width="2" vector-effect="non-scaling-stroke"/>
+</svg>`;
+
 const FROG_SVG = `
 <svg class="fg-frog" viewBox="0 0 1986 1876" aria-hidden="true">
     <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath></defs>
@@ -510,17 +565,18 @@ export function mountFrogGame(stage, opts = {}) {
     const touch = !!(window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches);
     stage.classList.add('fg-stage');
     stage.innerHTML = `
+        ${BEACH_SVG}
+        ${POLE_SVG}
         ${FROG_SVG}
         <canvas class="fg-canvas"></canvas>
         <div class="fg-hud">
-            <div class="fg-pill"><span class="fg-label">Survived</span><b class="fg-score">0.0</b></div>
-            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
-            <div class="fg-pill fg-right"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
-            <div class="fg-pill fg-best-pill"><span class="fg-label">Best</span><b class="fg-best">0</b></div>
+            <div class="fg-pill fg-mini"><span class="fg-label">Survived</span><b class="fg-score">0.0</b></div>
+            <div class="fg-pill fg-mini fg-best-pill"><span class="fg-label">Best</span><b class="fg-best">0</b></div>
         </div>
-        <div class="fg-grade" data-g="C">
-            <b class="fg-grade-letter">C</b>
-            <span class="fg-grade-body"><span class="fg-grade-name">Croaker</span><span class="fg-grade-bonus">+0% time</span><i><s></s></i></span>
+        <div class="fg-center">
+            <div class="fg-pill fg-time"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
+            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
+            <div class="fg-grade" data-g="0"><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
         <div class="fg-count" hidden></div>
         <div class="fg-overlay">
@@ -530,7 +586,7 @@ export function mountFrogGame(stage, opts = {}) {
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
-                        <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash.</span></div></div>
+                        <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash; a tiny twitch is not a slash and costs nothing.</span></div></div>
                         <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
@@ -543,7 +599,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
                         <div class="fg-fruits"></div>
-                        <p class="fg-tip-combo"><b>Style grade:</b> keep slashing without a pause to climb ${GRADES.map(g => `<b>${g.g}</b>`).join(' &rarr; ')}. Every grade adds 10% more time per slashed fruit, up to +40% as ${GRADES[GRADES.length - 1].name} (fire: half the bonus and half the grade points). The grade never drops during slow motion.</p>
+                        <p class="fg-tip-combo"><b>Combo:</b> keep slashing without a pause to climb from <b>${GRADES[1].name}</b> to <b>${GRADES[GRADES.length - 1].name}</b> Every step adds 5% more time per fruit, up to +${Math.round(GRADES[GRADES.length - 1].bonus * 100)}%. Power-ups never cost you the combo.</p>
                     </div>
                     <div class="fg-tip" data-page="3" hidden>
                         <p class="fg-tip-lead">Precision pays. Aim for the middle of the fruit.</p>
@@ -572,7 +628,7 @@ export function mountFrogGame(stage, opts = {}) {
         bladeL: $('#fg-armL .fg-blade'), bladeR: $('#fg-armR .fg-blade'),
         glints: stage.querySelectorAll('.fg-held .fg-glint'),
         score: $('.fg-score'), best: $('.fg-best'), clock: $('.fg-clock'),
-        grade: $('.fg-grade'), gradeLetter: $('.fg-grade-letter'), gradeName: $('.fg-grade-name'), gradeBonus: $('.fg-grade-bonus'), gradeBar: $('.fg-grade s'),
+        grade: $('.fg-grade'), gradeName: $('.fg-grade-name'), gradeBonus: $('.fg-grade-bonus'), gradeBar: $('.fg-grade s'),
         save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start'),
         stamina: $('.fg-stamina'), bars: [...stage.querySelectorAll('.fg-stamina b')],
         tips: $('.fg-tips'), pages: [...stage.querySelectorAll('.fg-tip')], skip: $('.fg-skip:not(.fg-board-link)'), boardLink: $('.fg-board-link'), count: $('.fg-count')
@@ -952,7 +1008,7 @@ export function mountFrogGame(stage, opts = {}) {
         slashes.push({ x: hx, y: hy, a: Math.atan2(dy, dx), r: f.r * 0.9, t: 0 });
         for (let i = 0; i < 4; i++) drops.push({ x: hx, y: hy, vx: dx * v * 0.2 + rand(-60, 60), vy: dy * v * 0.2 + rand(-60, 60), c: f.type.skin, t: 0, s: rand(1.5, 3) });
     }
-    // the style grade: C .. SS from the meter; announce a climb, never a fall
+    // the combo step from the meter; announce a climb, never a fall
     function updateGrade(announce) {
         let ix = 0;
         GRADES.forEach((g, i) => { if (style >= g.at) ix = i; });
@@ -960,10 +1016,10 @@ export function mountFrogGame(stage, opts = {}) {
             const up = ix > gradeIx;
             gradeIx = ix;
             const G = GRADES[ix];
-            el.grade.dataset.g = G.g; el.gradeLetter.textContent = G.g;
-            el.gradeName.textContent = G.name; el.gradeBonus.textContent = '+' + Math.round(G.bonus * 100) + '% time';
+            el.grade.dataset.g = G.g;
+            el.gradeName.textContent = G.name; el.gradeBonus.textContent = ix ? '+' + Math.round(G.bonus * 100) + '%' : '';
             if (up && announce) {
-                floats.push({ x: W / 2, y: H * 0.3, text: G.g + ': ' + G.name + '! +' + Math.round(G.bonus * 100) + '%', t: 0, hot: true });
+                floats.push({ x: W / 2, y: H * 0.3, text: G.name + ' +' + Math.round(G.bonus * 100) + '%', t: 0, hot: true });
                 el.grade.classList.remove('fg-grade-up'); void el.grade.offsetWidth; el.grade.classList.add('fg-grade-up');
             }
         }
@@ -1146,16 +1202,19 @@ export function mountFrogGame(stage, opts = {}) {
     // one way to measure every pointer position (offsetX rounds, clientX does not)
     const pos = e => { const b = canvas.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
     // pays for a cut (one stamina bar unless sake is on); false = can't cut now
-    function payCut(loud) {
-        if (phase !== 'play' || sakeLeft > 0) return true;
-        if (stamina < 1) { if (loud) emptyFlash = 0.5; return false; }
-        stamina -= 1;
-        return true;
+    const freeCut = () => phase !== 'play' || sakeLeft > 0;
+    const minCut = () => Math.max(MIN_CUT_PX, Math.min(W, H) * MIN_CUT);
+    function canCut(loud) {
+        if (freeCut() || stamina >= 1) return true;
+        if (loud) emptyFlash = 0.5;
+        return false;
     }
+    // A cut starts unpaid: it costs nothing and cuts nothing until it is minCut() long. Then
+    // it takes its stamina bar and cuts everything it has crossed so far (pend).
     function startCut(x, y, loud) {
-        if (!payCut(loud)) return false;
+        if (!canCut(loud)) return false;
         dullId = 0;
-        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0, t0: performance.now() };
+        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0, t0: performance.now(), paid: freeCut(), pend: [] };
         trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
         return true;
     }
@@ -1261,7 +1320,16 @@ export function mountFrogGame(stage, opts = {}) {
         const seg = Math.hypot(x - lx, y - ly), left = cutMax() - cut.len;
         let ex = x, ey = y, done = false;
         if (seg >= left) { const k = seg > 0 ? left / seg : 0; ex = lx + (x - lx) * k; ey = ly + (y - ly) * k; done = true; }
-        hitTest(lx, ly, ex, ey, cut.hx, cut.hy);
+        if (cut.paid) hitTest(lx, ly, ex, ey, cut.hx, cut.hy);
+        else {
+            cut.pend.push([lx, ly, ex, ey]);
+            if (cut.len + (done ? left : seg) >= minCut()) {
+                if (!freeCut()) stamina = Math.max(0, stamina - 1);
+                cut.paid = true;
+                const mine = cut;
+                mine.pend.forEach(q => { if (cut === mine) hitTest(q[0], q[1], q[2], q[3], mine.hx, mine.hy); });
+            }
+        }
         cut.len += done ? left : seg;
         trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len });
         // capped mid-move: the rest of the move carries on as the next cut
