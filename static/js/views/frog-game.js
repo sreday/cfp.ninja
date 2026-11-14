@@ -771,7 +771,7 @@ export function mountFrogGame(stage, opts = {}) {
     let freezeLeft = 0, fireLeft = 0, fireEmit = 0;
     // time freeze: the blades rest; fruit the cursor passes over is marked, in order, and
     // when time flows again every marked fruit is cut clean through the middle, in that order
-    let markSeq = 0, wasFrozen = false, markQueue = [], markT = 0, markFrom = null;
+    let markSeq = 0, wasFrozen = false, markQueue = [], markT = 0, markFrom = null, markCut = null;
     let stamina = STAMINA_BARS, sakeLeft = 0, emptyFlash = 0, stunT = 0, stunFor = 0;
     let tongue = null;            // { tx, ty, t, out, back, caught: { kind, obj } }
 
@@ -904,7 +904,7 @@ export function mountFrogGame(stage, opts = {}) {
         crates.push({ x, y: H + hw, vx: (W / 2 - x) * rand(0.15, 0.4), vy: -Math.sqrt(2 * g * rand(0.6, 0.78) * H), g, hw, rot: rand(-0.3, 0.3), spin: rand(-1.2, 1.2) });
     }
     // slashed open: the planks fly apart (they stay behind the fruit) and the fruit bursts out
-    function breakCrate(c, dx, dy, hx, hy) {
+    function breakCrate(c, dx, dy, hx, hy, mult = 1) {
         const cs = Math.cos(c.rot), sn = Math.sin(c.rot), drag = Math.min(bladeSpeed, H * 3) * 0.12;
         cratePlanks(c.hw).forEach(pl => {
             if (pl.col === WOOD.inside) return;
@@ -926,7 +926,7 @@ export function mountFrogGame(stage, opts = {}) {
         const ux = ((hx - c.x) * ic - (hy - c.y) * is) / c.hw, uy = ((hx - c.x) * is + (hy - c.y) * ic) / (c.hw * 0.7);
         const omni = Math.hypot(ux, uy) < 0.38, outA = Math.atan2(hy - c.y, hx - c.x);
         // breaking a crate is worth an apple
-        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus);
+        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult;
         timeLeft += gain; slices++; lastSlice = performance.now();
         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
         for (let i = 0; i < CRATE_FRUIT; i++) {
@@ -1296,8 +1296,16 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
         const [px, py] = pos(e);
-        if (freezeLeft > 0 && phase === 'play') { aim = { x: px, y: py }; movePoint(px, py); }   // a touch marks fruit too
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
+        if (freezeLeft > 0 && phase === 'play') {
+            // time freeze: a tap (or click) marks what is under it, a drag marks along the way.
+            // It is never the tongue here, and a finger gets a more forgiving target.
+            if (e.button !== 0 && e.pointerType === 'mouse') return;
+            markAlong(px, py, px, py, e.pointerType === 'mouse' ? 4 : 18);
+            aim = { x: px, y: py }; down = true; pointer = { x: px, y: py }; cut = null; press = null;
+            canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+            return;
+        }
         if (e.button !== 0 && e.pointerType === 'mouse') return;
         if (phase === 'play' && stunT > 0) return;                 // dizzy: no slashing
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
@@ -1314,18 +1322,22 @@ export function mountFrogGame(stage, opts = {}) {
     }
     let autoCut = false;                                       // a sake slash running without a press
     let bladeSpeed = 0, bladeAt = 0, bladeX = 0, bladeY = 0;   // px/s, smoothed, from the pointer's own timestamps
+    // time freeze: mark whatever lies along a move (or under a tap; `slack` px more forgiving)
+    function markAlong(x0, y0, x1, y1, slack) {
+        fruits.forEach(f => {
+            if (!f.mark && f.entered && segDist(f.x, f.y, x0, y0, x1, y1) < Math.max(f.r, MIN_HIT) + slack) f.mark = ++markSeq;
+        });
+        crates.forEach(c => { if (!c.mark && segDist(c.x, c.y, x0, y0, x1, y1) < c.hw * 0.9 + slack) c.mark = ++markSeq; });
+        // power-ups can be marked as well: cut on release, each one pays like an apple
+        pickups.forEach(b => { if (!b.mark && segDist(b.x, b.y, x0, y0, x1, y1) < b.r * 1.2 + slack) b.mark = ++markSeq; });
+        flies.forEach(f => { if (!f.mark && segDist(f.x, f.y, x0, y0, x1, y1) < f.s * 1.6 + 8 + slack) f.mark = ++markSeq; });
+    }
     function movePoint(x, y, ts) {
         const from = aim || { x, y };
         aim = { x, y };                                   // the fire breath follows the cursor
         if (freezeLeft > 0 && phase === 'play') {
             // frozen time: no slashing; whatever the cursor (or finger) passes over is marked
-            fruits.forEach(f => {
-                if (!f.mark && f.entered && segDist(f.x, f.y, from.x, from.y, x, y) < Math.max(f.r, MIN_HIT)) f.mark = ++markSeq;
-            });
-            crates.forEach(c => { if (!c.mark && segDist(c.x, c.y, from.x, from.y, x, y) < c.hw * 0.9) c.mark = ++markSeq; });
-            // power-ups can be marked as well: cut on release, each one pays like an apple
-            pickups.forEach(b => { if (!b.mark && segDist(b.x, b.y, from.x, from.y, x, y) < b.r * 1.2) b.mark = ++markSeq; });
-            flies.forEach(f => { if (!f.mark && segDist(f.x, f.y, from.x, from.y, x, y) < f.s * 1.6 + 8) f.mark = ++markSeq; });
+            markAlong(from.x, from.y, x, y, 0);
             cut = null; autoCut = false;
             if (press && Math.hypot(x - press.x, y - press.y) >= PRESS_DRAG) press = null;   // a drag is not a tap
             if (down) pointer = { x, y };
@@ -1639,6 +1651,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             if (wasFrozen && freezeLeft <= 0) {
                 markQueue = allMarked();
+                markCut = { id: ++cutId, hits: 0 };   // the release is one slash: each thing it cuts is worth more than the last
                 markT = 0; markFrom = null;
             }
             wasFrozen = freezeLeft > 0;
@@ -1650,8 +1663,10 @@ export function mountFrogGame(stage, opts = {}) {
                     const f = markQueue.shift(), ix = fruits.indexOf(f), cx = crates.indexOf(f);
                     if (cx >= 0) {   // a marked crate: opened with a perfect cut through its middle, fruit all round
                         const o = markFrom || frogPoint(993, 300), d = Math.hypot(f.x - o.x, f.y - o.y) || 1;
-                        crates.splice(cx, 1); cut = null;
-                        breakCrate(f, (f.x - o.x) / d, (f.y - o.y) / d, f.x, f.y);
+                        crates.splice(cx, 1);
+                        const mine = cut; cut = markCut;
+                        breakCrate(f, (f.x - o.x) / d, (f.y - o.y) / d, f.x, f.y, 1 + Math.min(MULTI * markCut.hits++, MULTI_MAX));
+                        cut = mine;
                         markFrom = { x: f.x, y: f.y };
                         continue;
                     }
@@ -1660,10 +1675,11 @@ export function mountFrogGame(stage, opts = {}) {
                         const o = markFrom || frogPoint(993, 300), ang = Math.atan2(f.y - o.y, f.x - o.x);
                         if (px >= 0) { pickups.splice(px, 1); breakPickup(f, ang); } else { flies.splice(fx, 1); breakFly(f, ang); }
                         hurtFlash = 0;                                 // not a wasted power-up: no red flash
-                        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus);
+                        const chain = markCut.hits++;
+                        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX));
                         timeLeft += gain; slices++; lastSlice = performance.now();
                         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
-                        floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+                        floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: true });
                         slashes.push({ x: f.x, y: f.y, a: ang, r: 34, t: 0 });
                         markFrom = { x: f.x, y: f.y };
                         continue;
@@ -1677,8 +1693,10 @@ export function mountFrogGame(stage, opts = {}) {
                     const d = Math.hypot(dx, dy);
                     if (d > 1) { dx /= d; dy /= d; } else { dx = 1; dy = 0; }
                     const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
-                    cut = null;
-                    if (cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) fruits.splice(ix, 1);
+                    const mine = cut; cut = markCut;
+                    const done = cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y);
+                    cut = mine;
+                    if (done) fruits.splice(ix, 1);
                     // the stroke that links it to the one before
                     if (markFrom && d > 1) slashes.push({ x: (o.x + f.x) / 2, y: (o.y + f.y) / 2, a: Math.atan2(dy, dx), r: d / 2 + f.r, t: 0 });
                     markFrom = { x: f.x, y: f.y };
