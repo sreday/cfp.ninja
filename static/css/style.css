@@ -1493,6 +1493,7 @@ a:hover {
 #game-stage { height: calc(100vh - var(--game-nav-h, 53px)); height: calc(100dvh - var(--game-nav-h, 53px)); min-height: 380px; border-bottom: 1px solid var(--border);
     background: radial-gradient(120% 80% at 50% 110%, rgba(152, 183, 75, .22), transparent 60%), color-mix(in srgb, var(--surface) 60%, transparent); }
 #app:has(.game-page) footer, #app:has(.game-page) #nav-container { display: none; }
+.game-page { background: var(--background); color: var(--text); }
 /* no navbar here: a small notch at the top left (home + GitHub login), the HUD starts beside it */
 .game-notch { position: fixed; z-index: 40; top: 12px; left: 12px; width: 84px; height: 38px; padding: 0 10px; align-items: center; justify-content: space-between; gap: 8px; }
 .game-notch-home { display: inline-flex; border-radius: 50%; }

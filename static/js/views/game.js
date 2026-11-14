@@ -101,10 +101,12 @@ async function submitRound(round, slot) {
     }
 }
 
+// The game has one look, the dark one, whatever the site's theme is set to: the page
+// carries its own data-theme, so the rest of the site keeps the user's choice.
 export function GameView() {
     const main = document.getElementById('main-content');
     main.innerHTML = `
-        <div class="game-page">
+        <div class="game-page" data-theme="dark" data-bs-theme="dark">
             <h1 class="visually-hidden">Frog Ninja</h1>
             <div class="fg-pill game-notch">
                 <a href="/" class="game-notch-home" title="CFP.ninja" aria-label="CFP.ninja home"><img src="/img/cfpninja-logo.png" alt="" width="26" height="26"></a>
