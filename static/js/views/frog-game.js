@@ -17,6 +17,7 @@ const SLOWMO = 0.1;                             // ...until the time is up or th
 const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
+const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
 // Drunk vision: every fruit drags two echoes behind it (where it was ECHO_GAP and
 // 2 x ECHO_GAP seconds ago, swaying), and all three are smeared along their flight.
@@ -142,26 +143,51 @@ const FROG_SVG = `
 </svg>`;
 
 // ---------- fruit ----------
+// Sizes are true to life against each other: the watermelon (about 25 cm) is as big as
+// the frog's head, and everything else is scaled from it (pineapple 14 x 20 cm,
+// orange and apple 8 cm, kiwi 6 cm, plum 5 cm).
 const FRUITS = [
-    { kind: 'watermelon', r: 1.35, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
-    { kind: 'orange', r: 1.0, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
-    { kind: 'apple', r: 1.0, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 3 },
-    { kind: 'kiwi', r: 0.85, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
-    { kind: 'lemon', r: 0.9, skin: '#fdd835', flesh: '#fff59d', ring: '#fffde7', juice: '#fff176', w: 2 },
-    { kind: 'plum', r: 0.85, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
+    { kind: 'watermelon', r: 1.62, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
+    { kind: 'orange', r: 0.52, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
+    { kind: 'pineapple', r: 1.05, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
+    { kind: 'kiwi', r: 0.4, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
+    { kind: 'apple', r: 0.52, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
+    { kind: 'plum', r: 0.33, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
 ];
+const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUITS.map(f => f.r));
+const sizeK = type => clamp((type.r - SIZE_MIN) / (SIZE_MAX - SIZE_MIN), 0, 1);   // 0 = smallest fruit, 1 = biggest
+const PINE_X = 0.8, PINE_Y = 1.16;               // the pineapple is taller than wide
+const MIN_HIT = 15;                              // px: the smallest fruit still has a fair target
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
 
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
+    lw = Math.min(lw, Math.max(1.2, r * 0.2));
+    if (t.kind === 'pineapple') {   // the crown sits behind the body: a fan of leaves, the middle one last
+        ctx.fillStyle = '#689f38'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.min(lw, Math.max(1, r * 0.09)); ctx.lineJoin = 'round';
+        [-58, 58, -30, 30, 0].forEach(deg => {
+            const a = deg * Math.PI / 180, len = r * (deg ? 0.85 : 1.05), hw = r * 0.2;
+            const dx = Math.sin(a), dy = -Math.cos(a), by = -r * 0.95;
+            ctx.beginPath(); ctx.moveTo(-hw, by);
+            ctx.quadraticCurveTo(dx * len * 0.5 - hw * 1.1, by + dy * len * 0.5, dx * len, by + dy * len);
+            ctx.quadraticCurveTo(dx * len * 0.5 + hw * 1.1, by + dy * len * 0.5, hw, by);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+        });
+    }
     ctx.save();
-    if (t.kind === 'lemon') ctx.scale(1.18, 0.92);
+    if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = t.skin; ctx.fill();
     ctx.save(); ctx.clip();
     if (t.kind === 'watermelon') {
         ctx.strokeStyle = '#1b5e20'; ctx.lineWidth = r * 0.16;
         for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * r * 0.42, -r); ctx.quadraticCurveTo(i * r * 0.55, 0, i * r * 0.42, r); ctx.stroke(); }
+    } else if (t.kind === 'pineapple') {
+        ctx.strokeStyle = '#e65100'; ctx.lineWidth = Math.max(1, r * 0.05);
+        for (let i = -4; i <= 4; i++) {
+            ctx.beginPath(); ctx.moveTo(i * r * 0.5 - r, -r); ctx.lineTo(i * r * 0.5 + r, r); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(i * r * 0.5 + r, -r); ctx.lineTo(i * r * 0.5 - r, r); ctx.stroke();
+        }
     } else if (t.kind === 'kiwi') {
         ctx.fillStyle = '#6d4c41';
         for (let i = 0; i < 14; i++) { const a = i * 2.4, d = r * ((i * 37) % 10) / 11; ctx.fillRect(Math.cos(a) * d, Math.sin(a) * d, r * 0.07, r * 0.07); }
@@ -188,8 +214,9 @@ function drawWhole(ctx, f, r, lw) {
 function drawHalf(ctx, f, r, lw) {
     // local frame: the cut runs along the x axis, this half is y >= 0
     const t = f.type;
+    lw = Math.min(lw, Math.max(1.2, r * 0.2));
     ctx.save();
-    if (t.kind === 'lemon') ctx.scale(1.18, 0.92);
+    if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.beginPath(); ctx.rect(-r * 2, 0, r * 4, r * 2); ctx.clip();
     const disc = (rad, col) => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
     disc(r, t.skin);
@@ -202,7 +229,11 @@ function drawHalf(ctx, f, r, lw) {
         disc(r * 0.3, '#f1f8e9');
         ctx.fillStyle = '#000';
         for (let i = 0; i < 10; i++) { const a = 0.15 + i * 0.3; ctx.beginPath(); ctx.arc(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42, r * 0.04, 0, 7); ctx.fill(); }
-    } else if (t.kind === 'orange' || t.kind === 'lemon') {
+    } else if (t.kind === 'pineapple') {
+        disc(r * 0.22, '#fff9c4');
+        ctx.strokeStyle = '#fbc02d'; ctx.lineWidth = r * 0.045;
+        for (let i = 0; i <= 8; i++) { const a = i * Math.PI / 8; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r * 0.28, Math.sin(a) * r * 0.28); ctx.lineTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76); ctx.stroke(); }
+    } else if (t.kind === 'orange') {
         ctx.strokeStyle = t.ring; ctx.lineWidth = r * 0.06;
         for (let i = 0; i <= 4; i++) { const a = i * Math.PI / 4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8); ctx.stroke(); }
     } else if (t.kind === 'plum') {
@@ -214,7 +245,7 @@ function drawHalf(ctx, f, r, lw) {
     }
     ctx.restore();
     ctx.save();
-    if (t.kind === 'lemon') ctx.scale(1.18, 0.92);
+    if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.closePath(); ctx.stroke();
     ctx.restore();
@@ -320,7 +351,7 @@ function drawGear(ctx, r, lw) {
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 // seconds a fruit buys: kiwi/plum 0.5 s down to watermelon 0.1 s
-const fruitTime = type => Math.round(lerp(TIME_SMALL, TIME_BIG, clamp((type.r - 0.85) / (1.35 - 0.85), 0, 1)) * 20) / 20;
+const fruitTime = type => Math.round(lerp(TIME_SMALL, TIME_BIG, sizeK(type)) * 20) / 20;
 // 65.3 s -> "1:05.3", 12.4 s -> "12.4"
 export function formatSurvival(sec) {
     sec = Math.max(0, sec);
@@ -429,7 +460,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (seen.has(t.kind)) return; seen.add(t.kind);
             const cell = document.createElement('div'); cell.className = 'fg-fruit';
             const c = document.createElement('canvas'); const x = prep(c);
-            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, 15 * Math.min(1.2, t.r), 2);
+            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, t.kind === 'pineapple' ? 11 : lerp(7, 15, Math.sqrt(sizeK(t))), 2);
             const g = fruitTime(t);
             cell.appendChild(c); cell.insertAdjacentHTML('beforeend', `<span>${t.kind}</span><b>+${g.toFixed(g * 10 % 1 ? 2 : 1)} s</b>`);
             box.appendChild(cell);
@@ -678,7 +709,7 @@ export function mountFrogGame(stage, opts = {}) {
         const ang = Math.atan2(by - ay, bx - ax);
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            if (segDist(f.x, f.y, ax, ay, bx, by) < f.r * 1.25) {
+            if (segDist(f.x, f.y, ax, ay, bx, by) < Math.max(f.r * 1.25, MIN_HIT)) {
                 fruits.splice(i, 1);
                 // the flash sits where the blade crossed the fruit, along the blade
                 const l2 = (bx - ax) ** 2 + (by - ay) ** 2 || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
@@ -857,14 +888,23 @@ export function mountFrogGame(stage, opts = {}) {
         }
         expireCut();
         if (!cut) {
-            // the blade lifts for a few px between cuts, then the next cut starts here
-            gapLeft -= Math.hypot(x - lx, y - ly);
-            if (gapLeft <= 0 && !startCut(x, y, false)) {
+            // The blade lifts for a few px between cuts. The next cut starts at the exact
+            // point where that gap ends, on the way to (x, y), and the rest of this move
+            // already belongs to it: a fast slash has samples 100s of px apart, and
+            // starting at the next sample left holes in the trace (and missed fruit).
+            const seg = Math.hypot(x - lx, y - ly);
+            if (gapLeft > seg) { gapLeft -= seg; lx = x; ly = y; return; }
+            const k = seg > 0 ? Math.max(gapLeft, 0) / seg : 0;
+            const sx = lx + (x - lx) * k, sy = ly + (y - ly) * k;
+            gapLeft = 0;
+            if (!startCut(sx, sy, false)) {
                 // no stamina: show where the blade is, thin and red, cutting nothing
-                if (!dullId) dullId = ++cutId;
-                trail.push({ x, y, t: performance.now(), cut: dullId, d: 0, dull: true });
+                const now = performance.now();
+                if (!dullId) { dullId = ++cutId; trail.push({ x: sx, y: sy, t: now, cut: dullId, d: 0, dull: true }); }
+                trail.push({ x, y, t: now, cut: dullId, d: 0, dull: true });
+                lx = x; ly = y; return;
             }
-            lx = x; ly = y; return;
+            lx = sx; ly = sy;
         }
         // sake: no limits, one continuous slash for as long as you hold
         const free = sakeLeft > 0;
@@ -880,9 +920,10 @@ export function mountFrogGame(stage, opts = {}) {
             const hx = ddx / dd, hy = ddy / dd;
             if ((cut.hx || cut.hy) && hx * cut.hx + hy * cut.hy < TURN_COS) {
                 // the turn was at the anchor: drop the bit drawn past it so the trace ends clean
-                const id = cut.id, ad = cut.ad;
+                // and start the next cut from that corner, towards where the blade is now
+                const id = cut.id, ad = cut.ad, cx = cut.ax, cy = cut.ay;
                 trail = trail.filter(p => p.cut !== id || p.d <= ad + 0.5);
-                endCut(); gapLeft -= dd; lx = x; ly = y; return;
+                endCut(); lx = cx; ly = cy; movePoint(x, y); return;
             }
             cut.hx = hx; cut.hy = hy; cut.ax = x; cut.ay = y; cut.ad = cut.len + Math.hypot(x - lx, y - ly);
         }
@@ -893,7 +934,8 @@ export function mountFrogGame(stage, opts = {}) {
         hitTest(lx, ly, ex, ey);
         cut.len += done ? left : seg;
         trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len });
-        if (done) endCut();
+        // capped mid-move: the rest of the move carries on as the next cut
+        if (done) { endCut(); lx = ex; ly = ey; if (seg - left > 0.5) movePoint(x, y); return; }
         lx = x; ly = y;
     }
     function onUp(e) {
@@ -948,7 +990,7 @@ export function mountFrogGame(stage, opts = {}) {
             hopT = 0.5;
         } else {
             // the fruit smashes on the frog's head: the bigger, the longer the stun
-            const f = c.obj, k = clamp((f.type.r - 0.85) / (1.35 - 0.85), 0, 1);
+            const f = c.obj, k = sizeK(f.type);
             stunT = stunFor = lerp(STUN_MIN, STUN_MAX, k);
             for (let i = 0; i < 18; i++) {
                 const a = rand(3.4, 6.0), v = rand(0.15, 0.5) * H;
@@ -1108,7 +1150,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (spawnT <= 0) {
                 const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
                 for (let i = 0; i < volley; i++) spawn(difficulty);
-                spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2);
+                spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2) / FRUIT_RATE;
             }
             flyT -= wdt;
             if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
