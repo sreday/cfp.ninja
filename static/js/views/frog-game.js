@@ -408,6 +408,12 @@ function drawPiece(ctx, p, lw) {
     pathPoly(ctx, p.poly); ctx.clip();
     ctx.translate(p.ox, p.oy); drawFace(ctx, p.type, p.r);
     ctx.restore();
+    if (p.ash) {   // charred by the flame blade: ash grey, darker with every cut
+        ctx.save(); ctx.globalAlpha = Math.min(0.3 * p.ash, 0.85); ctx.fillStyle = '#5b5752';
+        pathPoly(ctx, p.poly); ctx.fill();
+        if (p.crown) p.crown.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); });
+        ctx.restore();
+    }
     pathPoly(ctx, p.poly); ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
 }
 
@@ -1016,13 +1022,15 @@ export function mountFrogGame(stage, opts = {}) {
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
+        // the flame blade chars what it cuts: every cut with it leaves the pieces ashier
+        const ash = (f.ash || 0) + (bladeFx.fire && sakeLeft > 0 ? 1 : 0);
         const nwx = -dy, nwy = dx, whole = polyArea(bodyA) + polyArea(bodyB);
         const drag = Math.min(bladeSpeed, H * 3) * 0.1, live = f.fam.cuts < MAX_CUTS;
         [[bodyA, leavesA, 1], [bodyB, leavesB, -1]].forEach(([body, leaves, side]) => {
             const share = polyArea(body) / whole, kick = H * 0.11 * clamp(0.5 / Math.max(share, 0.12), 0.7, 2.2);
             pieces.push(makePiece(f, body, leaves, {
                 vx: f.vx * 0.6 + nwx * kick * side + dx * drag, vy: f.vy * 0.5 + nwy * kick * side + dy * drag - H * 0.12,
-                spin: f.spin * 0.5 + side * rand(2, 5) + (dx * nwy - dy * nwx) * 0, live, noCut: id, cutAt: now
+                spin: f.spin * 0.5 + side * rand(2, 5), live, noCut: id, cutAt: now, ash
             }));
         });
         for (let i = 0; i < 14; i++) {
