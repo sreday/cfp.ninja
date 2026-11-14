@@ -19,9 +19,9 @@ const BURN_TIME = 0.3;                          // seconds a fruit must stay in 
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
-// Drunk vision: every fruit drags two echoes behind it (where it was ECHO_GAP and
-// 2 x ECHO_GAP seconds ago, swaying), and all three are smeared along their flight.
-const ECHO_GAP = 0.14, ECHO_ALPHA = [0.55, 0.3], BLUR_TIME = 0.011, BLUR_STEPS = 3;
+// Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
+// seconds ago, swaying), and all three are smeared along their flight.
+const ECHO_GAP = 0.032, ECHO_ALPHA = [0.6, 0.48, 0.37, 0.27, 0.17], BLUR_TIME = 0.011, BLUR_STEPS = 3;
 // A cut is at most CUT_MAX of the screen's longer side (no limits while sake is on) and a sharp turn starts
 // a new one, so circling or scrubbing can't slice for free. Between cuts the blade
 // lifts for CUT_GAP px of travel: a distance, not a time, so the gap stays small
@@ -143,16 +143,16 @@ const FROG_SVG = `
 </svg>`;
 
 // ---------- fruit ----------
-// Sizes are true to life against each other: the watermelon (about 25 cm) is as big as
-// the frog's head, and everything else is scaled from it (pineapple 14 x 20 cm,
-// orange and apple 8 cm, kiwi 6 cm, plum 5 cm).
+// The watermelon is as big as the frog's head and the pineapple is true to life against it.
+// The small fruit (orange, apple, kiwi, plum) is three times its real size, so it can be
+// seen and aimed at; it keeps its order, plum smallest.
 const FRUITS = [
     { kind: 'watermelon', r: 1.62, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
-    { kind: 'orange', r: 0.52, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
+    { kind: 'orange', r: 1.56, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
     { kind: 'pineapple', r: 1.05, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
-    { kind: 'kiwi', r: 0.4, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
-    { kind: 'apple', r: 0.52, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
-    { kind: 'plum', r: 0.33, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
+    { kind: 'kiwi', r: 1.2, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
+    { kind: 'apple', r: 1.56, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
+    { kind: 'plum', r: 0.99, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
 ];
 const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUITS.map(f => f.r));
 const sizeK = type => clamp((type.r - SIZE_MIN) / (SIZE_MAX - SIZE_MIN), 0, 1);   // 0 = smallest fruit, 1 = biggest
@@ -163,7 +163,7 @@ const MIN_HIT = 15;                              // px: the smallest fruit still
 // the middle third of the rest is a clean cut (full time), the two bands between are
 // off-centre cuts (OFF_CUT of the time). A fruit can be cut MAX_CUTS times in all, pieces
 // included, and every cut after the first is worth RECUT of the one before.
-const EDGE_BAND = 0.1, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
+const EDGE_BAND = 0.03, OFF_CUT = 0.7, MAX_CUTS = 3, RECUT = 0.5;
 
 // ---------- polygons (fruit and its pieces, in the fruit's own frame) ----------
 const polyOval = (rx, ry, n = 28) => Array.from({ length: n }, (_, i) => { const a = i / n * Math.PI * 2; return [Math.cos(a) * rx, Math.sin(a) * ry]; });
@@ -522,7 +522,7 @@ export function mountFrogGame(stage, opts = {}) {
                 </div>
                 <button type="button" class="btn btn-primary fg-start">Next</button>
                 <button type="button" class="btn btn-link btn-sm fg-skip">Skip the tips</button>
-                ${opts.onScoreboard ? '<button type="button" class="btn btn-link btn-sm fg-skip fg-board-link">Scoreboard</button>' : ''}
+                ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
                 <div class="fg-save"></div>
             </div>
         </div>`;
@@ -785,7 +785,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (f.crown && f.crown.some(leaf => segHitsPoly(leaf, a[0], a[1], b[0], b[1]))) return { kind: 'crown', px: a[0], py: a[1], nx, ny };
         // a near miss still clips the fruit
-        if (f.poly && segPolyGap(f.poly, a[0], a[1], b[0], b[1]) < Math.max(f.r * 0.18, 4) / k) {
+        if (f.poly && segPolyGap(f.poly, a[0], a[1], b[0], b[1]) < Math.max(f.r * EDGE_BAND, 2) / k) {
             return { kind: 'edge', side: (0 - a[0]) * nx + (0 - a[1]) * ny > 0 ? 1 : -1 };
         }
         return null;
@@ -1403,6 +1403,10 @@ export function mountFrogGame(stage, opts = {}) {
         const tn = performance.now();
         trail = trail.filter(p => tn - p.t < 140);
         // the style meter drains once you stop slashing; it only goes up during fire breath and slow motion
+        // A power-up never costs the grade: while one runs the meter holds, and when it ends
+        // the player gets the full STYLE_HOLD to start slashing again (fire allows no slashing,
+        // so without this the meter drained the instant the flame went out).
+        if (fireLeft > 0 || freezeLeft > 0 || sakeLeft > 0) lastSlice = tn;
         if (phase === 'play' && fireLeft <= 0 && freezeLeft <= 0 && style > 0 && tn - lastSlice > STYLE_HOLD * 1000) {
             style = Math.max(0, style - STYLE_DRAIN * dt); updateGrade(false);
         }
@@ -1412,8 +1416,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     // one fruit image smeared back along its flight: faint copies first, the sharpest one last
-    function drawSmeared(f, x, y, rot, alpha, lw, k) {
-        for (let i = BLUR_STEPS; i >= 1; i--) {
+    function drawSmeared(f, x, y, rot, alpha, lw, k, steps = BLUR_STEPS) {
+        for (let i = steps; i >= 1; i--) {
             const tau = BLUR_TIME * k * i;
             ctx.save(); ctx.globalAlpha = alpha * 0.34 * (1 - (i - 1) / (BLUR_STEPS + 1));
             ctx.translate(x - f.vx * tau, y - f.vy * tau); ctx.rotate(rot - f.spin * tau);
@@ -1426,10 +1430,10 @@ export function mountFrogGame(stage, opts = {}) {
         for (let n = ECHO_ALPHA.length; n >= 1; n--) {
             const tau = ECHO_GAP * n * k;
             // where it was tau seconds ago on its arc, plus a drunken sway
-            const sway = reduced ? 0 : Math.sin(tn / 1000 * 5 + n * 1.9 + f.born) * f.r * 0.3 * n * k;
+            const sway = reduced ? 0 : Math.sin(tn / 1000 * 5 + n * 1.9 + f.born) * f.r * 0.07 * n * k;
             const ex = f.x - f.vx * tau + sway, ey = f.y - f.vy * tau + 0.5 * f.g * tau * tau;
             const rot = f.rot - f.spin * tau, a = ECHO_ALPHA[n - 1] * k;
-            drawSmeared(f, ex, ey, rot, a, lw, k);
+            drawSmeared(f, ex, ey, rot, a, lw, k, 1);
             ctx.save(); ctx.globalAlpha = a; ctx.translate(ex, ey); ctx.rotate(rot); drawWhole(ctx, f, f.r, lw); ctx.restore();
         }
         drawSmeared(f, f.x, f.y, f.rot, 1, lw, k);

@@ -31,19 +31,31 @@ function loginButton(label) {
     return `<button type="button" class="btn btn-dark d-inline-flex align-items-center gap-2 game-login">${GITHUB_ICON}${escapeHtml(label)}</button>`;
 }
 
+const row = s => `
+    <li class="game-row${s.is_me ? ' game-row-me' : ''}">
+        <span class="game-rank">${s.rank}</span>
+        <span class="game-name">${escapeHtml(s.name)}</span>
+        <b class="game-points">${fmt(s.score)}</b>
+    </li>`;
+
+// the top three stand on a podium, everyone else is listed below
 function renderBoard(data) {
+    const podium = document.getElementById('game-podium');
     const list = document.getElementById('game-board');
     const mine = document.getElementById('game-board-me');
     if (!list) return;
     const scores = (data && data.scores) || [];
+    podium.innerHTML = scores.slice(0, 3).map(s => `
+        <li class="game-step game-step-${s.rank}${s.is_me ? ' game-step-me' : ''}">
+            <span class="game-step-rank">${s.rank}</span>
+            <span class="game-step-name">${escapeHtml(s.name)}</span>
+            <b class="game-step-time">${fmt(s.score)}</b>
+        </li>`).join('');
+    podium.hidden = !scores.length;
     list.innerHTML = scores.length
-        ? scores.map(s => `
-            <li class="game-row${s.is_me ? ' game-row-me' : ''}">
-                <span class="game-rank">${s.rank}</span>
-                <span class="game-name">${escapeHtml(s.name)}</span>
-                <b class="game-points">${fmt(s.score)}</b>
-            </li>`).join('')
+        ? scores.slice(3).map(row).join('')
         : '<li class="game-empty text-muted">No scores yet. Be the first ninja on the board.</li>';
+    list.hidden = scores.length > 0 && scores.length <= 3;
 
     if (Auth.isLoggedIn()) {
         mine.innerHTML = data && data.me
@@ -62,7 +74,7 @@ async function loadBoard() {
         renderBoard(await API.getGameScores());
     } catch (e) {
         const list = document.getElementById('game-board');
-        if (list) list.innerHTML = '<li class="game-empty text-muted">The scoreboard is resting. Try again in a moment.</li>';
+        if (list) { list.hidden = false; list.innerHTML = '<li class="game-empty text-muted">The scoreboard is resting. Try again in a moment.</li>'; }
     }
 }
 
@@ -87,17 +99,19 @@ export function GameView() {
         <div class="game-page">
             <h1 class="visually-hidden">Frog Ninja</h1>
             <div id="game-stage"></div>
-            <div class="container game-below">
-            <div class="card game-board-card" id="game-board-card">
-                <div class="card-body">
+            <div class="game-board-screen" id="game-board-screen" hidden>
+                <div class="game-board-inner">
                     <div class="game-board-head">
-                        <h2 class="h5 mb-0">Scoreboard</h2>
-                        <span class="text-muted small">Longest run per player</span>
+                        <div>
+                            <h2 class="game-board-title">Scoreboard</h2>
+                            <span class="text-muted">Longest run per player</span>
+                        </div>
+                        <button type="button" class="btn btn-primary game-board-close">Back to the game</button>
                     </div>
+                    <ol class="game-podium" id="game-podium" hidden></ol>
                     <ol class="game-board" id="game-board"><li class="game-empty text-muted">Loading...</li></ol>
                     <div class="game-board-me" id="game-board-me"></div>
                 </div>
-            </div>
             </div>
         </div>`;
 
@@ -109,13 +123,18 @@ export function GameView() {
     });
     fit.observe(nav);
 
+    // the scoreboard is its own full screen under the navbar, opened from the start / game-over panel
+    const screen = document.getElementById('game-board-screen');
+    const showBoard = (on) => { screen.hidden = !on; if (on) { loadBoard(); screen.querySelector('.game-board-close').focus(); } };
     main.querySelector('.game-page').addEventListener('click', (e) => {
         if (e.target.closest('.game-login')) Auth.login('github');
+        if (e.target.closest('.game-board-close')) showBoard(false);
     });
+    screen.addEventListener('keydown', (e) => { if (e.key === 'Escape') showBoard(false); });
 
     mountFrogGame(document.getElementById('game-stage'), {
         onScoreboard() {
-            document.getElementById('game-board-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            showBoard(true);
         },
         onGameOver(round, slot) {
             if (Auth.isLoggedIn()) {
