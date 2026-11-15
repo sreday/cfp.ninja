@@ -247,7 +247,12 @@ const FROG_SVG = `
                 <path d="M650 -60 Q1050 -150 1440 -90" stroke="${C.redHi}" stroke-width="34" fill="none"/>
                 <path d="M800 250 Q1160 330 1520 130 L1600 420 L700 440 Z" fill="${C.belly}"/>
             </g>
-            <path d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>
+            <path id="fg-side-smile" d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>
+            <!-- breathing fire, in profile: the jaws apart at the front -->
+            <g id="fg-side-mouth-open" opacity="0">
+                <path d="M1090 262 Q1300 232 1502 128 Q1492 214 1410 268 Q1260 334 1090 262 Z" fill="#5a1010" stroke="#000" stroke-width="20"/>
+                <path d="M1180 280 Q1300 290 1400 250 Q1300 306 1180 280 Z" fill="#e57373"/>
+            </g>
             <ellipse cx="1440" cy="70" rx="16" ry="23" fill="#000" transform="rotate(25 1440 70)"/>
             <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="none" stroke="#000" stroke-width="26"/>
             </g>
@@ -343,7 +348,12 @@ const FROG_SVG = `
                 <path d="M605 296 Q993 268 1381 296" stroke="${C.redHi}" stroke-width="34" fill="none"/>
                 <path d="M597 642 Q993 770 1389 642 Q1376 724 1290 772 Q1150 840 993 846 Q836 840 696 772 Q610 724 597 642 Z" fill="${C.belly}"/>
             </g>
-            <path d="M610 632 Q993 772 1376 632" stroke="#000" stroke-width="22" fill="none"/>
+            <path id="fg-smile" d="M610 632 Q993 772 1376 632" stroke="#000" stroke-width="22" fill="none"/>
+            <!-- breathing fire: the mouth wide open, the nostrils above it -->
+            <g id="fg-mouth-open" opacity="0">
+                <path d="M640 668 Q993 640 1346 668 Q1300 772 993 780 Q686 772 640 668 Z" fill="#5a1010" stroke="#000" stroke-width="22"/>
+                <ellipse cx="993" cy="742" rx="190" ry="30" fill="#e57373"/>
+            </g>
             <ellipse cx="945" cy="640" rx="17" ry="24" fill="#000" transform="rotate(-35 945 640)"/>
             <ellipse cx="1041" cy="640" rx="17" ry="24" fill="#000" transform="rotate(35 1041 640)"/>
             <path d="${HEAD}" fill="none" stroke="#000" stroke-width="26"/>
@@ -504,13 +514,23 @@ function crownLeaves(r) {
         return out;
     });
 }
+// the top of a bunch of grapes: its leaf and its stem, as outlines the blade can take off (like a
+// pineapple's leaves: no time for it, the bunch flies on)
+function grapeTop(r) {
+    const leaf = [], c = Math.cos(0.5), sn = Math.sin(0.5);
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, x = Math.cos(a) * r * 0.34, y = Math.sin(a) * r * 0.17; leaf.push([-r * 0.3 + x * c - y * sn, -r * 1.02 + x * sn + y * c]); }
+    const w = r * 0.05, stem = [[-w, -r * 0.8], [r * 0.02 - w, -r * 1.05], [r * 0.26, -r * 1.3], [r * 0.3, -r * 1.2], [r * 0.08 + w, -r * 1.02], [w, -r * 0.8]];
+    return [stem, leaf];
+}
+const topOf = (type, r) => type.kind === 'pineapple' ? crownLeaves(r) : type.kind === 'grapes' ? grapeTop(r) : null;
+const TOP_COL = { grapes: '#558b2f' };
 function pathPoly(ctx, poly) {
     ctx.beginPath(); ctx.moveTo(poly[0][0], poly[0][1]);
     for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
     ctx.closePath();
 }
-function drawCrown(ctx, leaves, r, lw) {
-    ctx.fillStyle = '#689f38'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.min(lw, Math.max(1, r * 0.09)); ctx.lineJoin = 'round';
+function drawCrown(ctx, leaves, r, lw, col) {
+    ctx.fillStyle = col || '#689f38'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.min(lw, Math.max(1, r * 0.09)); ctx.lineJoin = 'round';
     leaves.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); ctx.stroke(); });
 }
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
@@ -520,9 +540,9 @@ function drawWhole(ctx, f, r, lw) {
     const t = f.type;
     lw = Math.min(lw, Math.max(1.2, r * 0.2));
     if (t.kind === 'grapes') {
-        ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#5d4037';
-        ctx.beginPath(); ctx.moveTo(0, -r * 0.8); ctx.quadraticCurveTo(r * 0.05, -r * 1.15, r * 0.28, -r * 1.25); ctx.stroke();   // the stalk
-        ctx.fillStyle = '#558b2f'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 1.02, r * 0.34, r * 0.17, 0.5, 0, 7); ctx.fill(); ctx.stroke();   // a leaf
+        // the stem and the leaf: whatever the blade has left of them (f.crown), or all of them on an icon
+        const top = f.poly ? f.crown : grapeTop(r);           // (an icon has no outline of its own: it gets the full top)
+        if (top) drawCrown(ctx, top, r, lw, TOP_COL.grapes);
         drawGrapes(ctx, r, lw);
         return;
     }
@@ -695,7 +715,7 @@ function drawPiece(ctx, p, lw) {
     }
 }
 function drawPieceBody(ctx, p, lw) {
-    if (p.crown) drawCrown(ctx, p.crown, p.r, lw);
+    if (p.crown) drawCrown(ctx, p.crown, p.r, lw, TOP_COL[p.type.kind]);
     if (!p.poly) return;
     if (p.type.kind === 'grapes') {
         // part of a bunch: its grapes, whole. No outline round it and no cut face.
@@ -1097,6 +1117,7 @@ export function mountFrogGame(stage, opts = {}) {
     const svg = $('.fg-frog');
     const el = {
         all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
+        smile: $('#fg-smile'), mouthOpen: $('#fg-mouth-open'), sideSmile: $('#fg-side-smile'), sideMouthOpen: $('#fg-side-mouth-open'),
         headUp: $('#fg-headup'), headP: $('#fg-side-headP'), headQ: $('#fg-side-headQ'), sideLegs: $('#fg-side-legs'),
         side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
         sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck'), lunge: $('#fg-sl-lunge'), leap: $('#fg-sl-leap') },
@@ -1262,6 +1283,10 @@ export function mountFrogGame(stage, opts = {}) {
         const hx = (pose.up > 0.5 ? pose.face : 0) * 150;
         // (breathing fire straight up: the head-thrown-back drawing takes the head's place)
         setA(el.head, 'opacity', pose.headUp ? 0 : 1); setA(el.headUp, 'opacity', pose.headUp ? 1 : 0);
+        // breathing fire: the mouth is open in every view (front, profile; head thrown back is drawn open already)
+        const agape = pose.mouthOpen ? 1 : 0;
+        setA(el.mouthOpen, 'opacity', agape); setA(el.smile, 'opacity', 1 - agape);
+        setA(el.sideMouthOpen, 'opacity', agape); setA(el.sideSmile, 'opacity', 1 - agape);
         setA(el.headUp, 'transform', `translate(0 ${n2(-pose.breath * 9 + (pose.headUp ? Math.sin(performance.now() / 33) * 4 : 0))})`);
         setA(el.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)`);
         setA(el.tail, 'transform', `translate(${n2(hx - (pose.up > 0.5 ? pose.face : 0) * 60)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
@@ -1356,7 +1381,7 @@ export function mountFrogGame(stage, opts = {}) {
             const half = Math.ceil((f.R || f.r) * 1.2 + lw * 2 + 2), cv = document.createElement('canvas');
             cv.width = cv.height = Math.ceil(half * 2 * dpr);
             const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr);
-            drawWhole(c, { type: f.type, crown: f.type.kind === 'pineapple' ? crownLeaves(f.r) : null }, f.r, lw);
+            drawWhole(c, { type: f.type, crown: topOf(f.type, f.r) }, f.r, lw);
             sp = { cv, half }; wholeSprites.set(key, sp);
             if (wholeSprites.size > 40) wholeSprites.delete(wholeSprites.keys().next().value);
         }
@@ -1968,7 +1993,7 @@ export function mountFrogGame(stage, opts = {}) {
         return Object.assign({
             type, r, x, y, vx, vy, g, rot: rand(0, 6.28), spin: rand(-3, 3), entered: false, born: performance.now(),
             // its outline for the blade, and the cuts its family (the fruit and all its pieces) has taken
-            poly: fruitPoly(type, r), crown: pine ? crownLeaves(r) : null,
+            poly: fruitPoly(type, r), crown: topOf(type, r),
             R: fruitReach(type, r), ox: 0, oy: 0, fam: { cuts: 0 }, noCut: 0, cutAt: 0
         }, o);
     }
@@ -3597,7 +3622,7 @@ export function mountFrogGame(stage, opts = {}) {
         const page = stage.closest('.game-page') || stage, sb = canvas.getBoundingClientRect();
         page.querySelectorAll('.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-debug-pill, .fg-sound-pill, .fg-full-pill, .game-notch, .fg-debug-tray, .fg-debug-title').forEach(n => {
             const r = n.getBoundingClientRect();
-            if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: false });
+            if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: n.classList.contains('fg-dim') });      // (the list is rebuilt now and then: a part that is dimmed stays known as dimmed, or it would never come back)
         });
     }
     // The interface gets out of the way as one: when anything in play covers any one of its
@@ -3838,7 +3863,8 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
             pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0; pose.sTurn = 1; pose.headUp = false;
-            stepDemo(dt);                                       // debug: an animation being played back drives the state below
+            stepDemo(dt);
+            pose.mouthOpen = fireLeft > 0 && (phase === 'play' || dbg);                                       // debug: an animation being played back drives the state below
             // breathing fire, the katanas are stuck in the post at its sides, out of the way
             pose.stuck = fireLeft > 0 && phase === 'play'; breathT = pose.stuck ? breathT + dt : 0;
             // at rest it half-turns toward the cursor

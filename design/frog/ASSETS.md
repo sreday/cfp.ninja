@@ -19,7 +19,7 @@ Status key: `placeholder` = drawn in code, needs art. `none` = doesn't exist yet
 | 1.6 | Swallow a power-up | gulp, a hop | placeholder (hop only) |
 | 1.7 | Fruit on the head | stunned: crossed eyes, stars, pulp | placeholder (stars) |
 | 1.8 | Tired | out of stamina: sweat drop, drooping blades | placeholder (sweat drop) |
-| 1.9 | Fire breath | cheeks puffed, head tracks the cursor | none (flame comes from the mouth point) |
+| 1.9 | Fire breath | mouth wide open in every view (front, profile, head thrown back), head tracks the cursor | placeholder |
 | 1.10 | Drunk | sway, half-lidded eyes, flushed | none |
 | 1.11 | Time freeze | calm pose, blue glow | none |
 | 1.12 | Release after a freeze | a flurry: the frog blurs through the marked cuts | none (flashes only) |
@@ -39,6 +39,10 @@ berry is never cut: a slash parts the bunch the way a chocolate bar breaks along
 each grape going whole with the side its middle is on. A banana is a fat crescent with a stalk
 at one end; it sits between apple and kiwi because it is thin (long, but hard to cut). Across
 it gives two shorter bananas with flesh at the cut end, along it two long halves.
+
+A bunch of grapes has a leaf and a stem on top. Like a pineapple's leaves they can be cut off on
+their own: that buys no time and the bunch flies on. A banana's stalk is part of the banana: cutting
+it off is a cut like any other (off-centre, so it pays less).
 
 Fire: the breath melts fruit (it shrinks and drips juice, keeping its colour) and then it
 bursts into juice. A fire blade cuts as usual and leaves the cut edge burnt black with an
