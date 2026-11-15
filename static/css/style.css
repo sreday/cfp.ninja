@@ -1697,3 +1697,8 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-stam-lock[aria-pressed="true"] { border-color: #98b74b; color: #b6d36a; }
 .fg-stamina.locked { background: linear-gradient(#b6d36a, #98b74b); border-color: #c9e27f; box-shadow: 0 0 18px 5px rgba(152,183,75,.85); }
 .fg-stamina.locked i { visibility: hidden; }
+
+/* debug: the small "100" button on each tray item */
+.fg-debug-cell { position: relative; display: inline-flex; }
+.fg-debug-100 { position: absolute; right: 0; bottom: 0; min-width: 26px; height: 18px; padding: 0 4px; border: 1px solid var(--border); border-radius: 9px; background: color-mix(in srgb, var(--surface) 96%, transparent); color: var(--text-secondary); font-size: .6rem; font-weight: 700; line-height: 1; cursor: pointer; pointer-events: auto; transition: background .15s ease, color .15s ease; }
+.fg-debug-100:hover { background: var(--border-light); color: var(--text); }

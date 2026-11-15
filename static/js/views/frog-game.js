@@ -1894,9 +1894,9 @@ export function mountFrogGame(stage, opts = {}) {
             // for the instant of the cut, then driven apart toward the ground, the frog sunk into a crouch.
             const smear = s.t < SMEAR;
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
-            pose.lRot = smear ? 24 : 60; pose.rRot = smear ? -24 : -60;      // the arms end out to the sides, the blades pointing down from the hands
+            pose.lRot = smear ? 24 : 30; pose.rRot = smear ? -24 : -30;      // the arms come down; the blades end level, out to the sides (a blade never points at the ground)
             pose.lStretch = pose.rStretch = smear ? 2.3 : 1.7;
-            pose.lK = smear ? 154 : 190; pose.rK = smear ? -154 : -190;      // (the same grip, pointing down)
+            pose.lK = smear ? 290 : 275; pose.rK = smear ? -290 : -275;      // (the same grip, pointing down)
             pose.squash = smear ? 0.4 : 0.9;
             pose.bob += smear ? 0 : 6;
             pose.tilt = 0; pose.lookY = 22;
@@ -1942,7 +1942,16 @@ export function mountFrogGame(stage, opts = {}) {
             // the blade on the other. Aimed level or upward the blade is above the arm; aimed downward,
             // below it. The other blade is carried behind, raised, at the same sort of angle.
             const GRIP = smear ? 90 : 50;
-            const hold = (th2, grip) => { const sgn = th2 > 30 ? -1 : 1; return { rot: th2 + sgn * grip / 2 - 90 - pose.sRot, k: th2 - sgn * grip / 2 + 90 - pose.sRot }; };
+            // And a blade never points at the ground, whatever the cut: on a downward stroke the arm goes
+            // down and the blade stays level or better (LEVEL: just above the horizontal).
+            const LEVEL = -6;
+            const hold = (th2, grip) => {
+                let bladeDir = th2 - grip / 2, armDir = th2 + grip / 2;       // the blade above the arm, the heading between them
+                if (bladeDir > LEVEL) { bladeDir = LEVEL; armDir = Math.min(Math.max(th2, LEVEL + grip), 100); }      // a downward cut: the arm takes the heading, the blade stays up
+                return { rot: armDir - 90 - pose.sRot, k: bladeDir + 90 - pose.sRot };
+            };
+            // (the blade carried behind: raised, never hanging down)
+            const behind = (armDir, off) => { let d = ((armDir + off + 540) % 360) - 180; if (d > LEVEL && d < 180) d = d > 90 ? -174 : LEVEL; return d + 90 - pose.sRot; };
             pose.sF = Object.assign(hold(aimTh, GRIP), { stretch: smear ? 2.4 : 1.6 });
             if (s.thrust) {
                 // Four thrusts (up-left, up-right, down-left, down-right), each its own drawing of the
@@ -1954,9 +1963,9 @@ export function mountFrogGame(stage, opts = {}) {
                 pose.sLegs = up ? 'leap' : 'lunge'; pose.sHop = up ? JUMP_UP * 5 : 0; pose.sDrop = up ? 0 : 160;
                 pose.sRot = up ? -6 : 34; pose.sShift = up ? 220 : 0;      // (the low one keeps both feet on the post and leans out over the edge)
                 pose.sF = Object.assign(hold(aim2, GRIP), { stretch: smear ? 2.8 : 2.1 });
-                pose.sB = { rot: aim2 + 90 - pose.sRot, k: aim2 + 340 - pose.sRot, stretch: 1.2 };
+                pose.sB = { rot: aim2 + 90 - pose.sRot, k: behind(aim2 + 180, 70), stretch: 1.2 };
             }
-            if (!s.thrust) pose.sB = { rot: th + 80 - pose.sRot, k: th + 330 - pose.sRot, stretch: 1.1 };     // the other arm swept back for balance, its blade raised behind (70 degrees off the arm)
+            if (!s.thrust) pose.sB = { rot: th + 80 - pose.sRot, k: behind(th + 170, 70), stretch: 1.1 };     // the other arm swept back for balance, its blade raised behind (70 degrees off the arm)
         }
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
         pose.lean = facing * (16 + cy * 24 + (Math.abs(cx) < 0.3 ? cy * 0 : 0) - (cy < 0 ? 4 : 0)) * k; pose.shift = (cx * 90 + facing * 30 * Math.max(cy, 0)) * k;
@@ -2049,7 +2058,8 @@ export function mountFrogGame(stage, opts = {}) {
             g.state = 'faint'; g.hacked = false; g.burnt = roast; g.vx = g.dir * g.speed * 0.4; g.vy = -H * 0.35; g.spin = g.dir * rand(3, 6); g.mark = 0;
             snd('gull_faint');
         } else {
-            g.vy = Math.min(g.vy, -H * 0.22); if (roast) g.burnt = true;     // knocked up again on its way down
+            g.vy = Math.min(g.vy, -FH() * 0.34); g.vx = clamp(g.vx * 0.6 + rand(-0.08, 0.08) * W, -W * 0.2, W * 0.2); if (roast) g.burnt = true;     // knocked up again on its way down
+            if (g.x < g.r * 2) g.vx = Math.abs(g.vx); else if (g.x > W - g.r * 2) g.vx = -Math.abs(g.vx);      // (and kept on the screen)
             if (g.hits === 2) floats.push({ x: g.x, y: g.y - g.r - 30, text: 'Got damn seagulls!', t: 0, hot: true });     // the second hit on one that is already out
         }
         feathers(g.x, g.y, g.r, 6, '#fafafa');
@@ -2386,9 +2396,10 @@ export function mountFrogGame(stage, opts = {}) {
             if (segDist(g.x, g.y, ax, ay, bx, by) > g.r * 0.85) return;
             if (g.noCut === id && now - (g.cutAt || 0) < 250) return;
             const boost = fxOn() || cut === warpCut || !!g.hacked;
-            if (!boost && g.state !== 'fly') return;
             g.noCut = id; g.cutAt = now;
-            gullHit(g, boost ? 'boost' : 'plain');
+            // One that is already out (on its back, or a roast chicken) can be kept in the air for as long
+            // as the blade keeps finding it, boosted or not: every hit knocks it back up and pays half the last.
+            gullHit(g, boost ? 'boost' : g.state !== 'fly' ? 'juggle' : 'plain');
         });
         // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
         const wrecked = flies.length + pickups.length; let spared = 0;
@@ -3786,10 +3797,10 @@ export function mountFrogGame(stage, opts = {}) {
         el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Play'; showTips(-1); timeLeft = START_SECONDS; hud();
         el.overlay.hidden = false;
     }
-    function spawnDebug(what, x, y) {
+    function spawnDebug(what, x, y, quiet) {
         const base = clamp(S() * 0.055, 16, 60), toss = Math.sqrt(2 * G() * 0.2 * FH());     // thrown up first, then it falls
         const [kind, name] = what.split(':');
-        log('place', what, Math.round(x), Math.round(y)); snd('place');
+        if (!quiet) { log('place', what, Math.round(x), Math.round(y)); snd('place'); }
         if (kind === 'fruit') {
             const type = FRUITS.find(f => f.kind === name);
             fruits.push(newFruit(type, base * type.r, x, y, 0, -toss, G(), { entered: true }));
@@ -3808,6 +3819,19 @@ export function mountFrogGame(stage, opts = {}) {
     }
     (function debugTray() {
         const k = Math.min(window.devicePixelRatio || 1, 2) * 2, S = 44;     // drawn at twice the size of the tips icons
+        // every item has a small "100" button at its bottom right corner: a hundred of it, all over the field
+        dbgEl.querySelectorAll('.fg-debug-item').forEach(c => {
+            const cell = document.createElement('span'); cell.className = 'fg-debug-cell';
+            c.parentNode.insertBefore(cell, c); cell.appendChild(c);
+            const b = document.createElement('button'); b.type = 'button'; b.className = 'fg-debug-100'; b.textContent = '100'; b.title = '100 x ' + (c.title || c.dataset.spawn);
+            b.addEventListener('pointerdown', ev => ev.stopPropagation());
+            b.addEventListener('click', ev => {
+                ev.stopPropagation(); dbgFrozen = false;
+                for (let i = 0; i < 100; i++) spawnDebug(c.dataset.spawn, rand(W * 0.06, W * 0.94), rand(H * 0.12, H * 0.62), true);
+                log('place', c.dataset.spawn + ' x100'); snd('place');
+            });
+            cell.appendChild(b);
+        });
         dbgEl.querySelectorAll('.fg-debug-item').forEach(c => {
             c.width = S * k; c.height = S * k;
             const x = c.getContext('2d'); x.scale(k, k);

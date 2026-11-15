@@ -127,6 +127,8 @@ degrees to the arm's own line at the end of a cut (the wrist snaps the blade for
 not straighten). So the line of a cut lies between the arm and the blade. The second katana
 is carried behind, raised, at the same sort of angle. In the engine this is `hold()` and
 `GRIP` in `poseSwing`; any new pose with a blade in it keeps to 50-90 degrees.
+A blade never points at the ground in a held pose. On a downward cut the arm goes down and the
+blade stays level or better; the blade carried behind is raised, never hanging.
 
 **Grounded** means: weight is real (things arc, land and settle), the frog stays on its
 post, and an effect lasts only as long as the thing that caused it.
