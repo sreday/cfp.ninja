@@ -214,6 +214,11 @@ const FROG_SVG = `
         <path d="M1046 860 L1270 860 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
         <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
         </g>
+        <!-- in the air: each leg bent its own amount (the outlines are written afresh for every jump, see airLegs) -->
+        <g id="fg-jumplegs" opacity="0" stroke-linecap="round">
+            <ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="196"/><path fill="none" stroke="${C.red}" stroke-width="152"/>
+            <ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="196"/><path fill="none" stroke="${C.red}" stroke-width="152"/>
+        </g>
     </g>
 
     <!-- The frog in profile, facing right (mirrored for left): its own drawing, used while it cuts.
@@ -1135,6 +1140,7 @@ export function mountFrogGame(stage, opts = {}) {
         score: $('.fg-score'), best: $('.fg-best'), clock: $('.fg-clock'),
         grade: $('.fg-grade'), gradeName: $('.fg-grade-name'), gradeBonus: $('.fg-grade-bonus'), gradeBar: $('.fg-grade s'),
         save: $('.fg-save'), overlay: $('.fg-overlay'), title: $('.fg-title'), sub: $('.fg-sub'), start: $('.fg-start'),
+        jumpLegs: $('#fg-jumplegs'),
         stamina: $('.fg-stamina'), bars: [...stage.querySelectorAll('.fg-stamina b')],
         tips: $('.fg-tips'), pages: [...stage.querySelectorAll('.fg-tip')], skip: $('.fg-skip:not(.fg-board-link)'), boardLink: $('.fg-board-link'), count: $('.fg-count')
     };
@@ -1211,6 +1217,29 @@ export function mountFrogGame(stage, opts = {}) {
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const RISE = 400;                                          // logo px the body rises when the frog stands
+    // A leg in two straight halves from the hip, its foot `k` of a full leg's length away (1 = straight),
+    // the knee out to the side given. Returns the path and where the foot is.
+    function bentLeg(hx, hy, k, knee, lean) {
+        const L = 770, D = clamp(k, 0.12, 0.98) * L, fx = hx + Math.sin(lean) * D, fy = hy + Math.cos(lean) * D;
+        const h = Math.sqrt(Math.max(0, L * L / 4 - D * D / 4)), mx = (hx + fx) / 2, my = (hy + fy) / 2;
+        const kx = mx + Math.cos(lean) * h * knee, ky = my - Math.sin(lean) * h * knee;
+        return { d: `M${Math.round(hx)} ${Math.round(hy)} L${Math.round(kx)} ${Math.round(ky)} L${Math.round(fx)} ${Math.round(fy)}`, fx, fy };
+    }
+    function airLegs() {
+        const pair = Math.random() < 0.5 ? [rand(0.42, 0.6), rand(0.14, 0.28)] : [rand(0.14, 0.28), rand(0.42, 0.6)];      // one about 50% stretched, one about 20%
+        const put = (nodes, at, leg, footDx) => {
+            nodes[at].setAttribute('cx', Math.round(leg.fx + footDx)); nodes[at].setAttribute('cy', Math.round(leg.fy + 40));
+            nodes[at + 1].setAttribute('d', leg.d); nodes[at + 2].setAttribute('d', leg.d);
+        };
+        // facing us: the knees go out to the sides
+        const f = el.jumpLegs.children;
+        put(f, 0, bentLeg(828, 900, pair[0], -1, rand(-0.25, 0.05)), 0);
+        put(f, 3, bentLeg(1158, 900, pair[1], 1, rand(-0.05, 0.25)), 0);
+        // in profile: the knees come forward
+        const t = el.sLegs.tuck.children;
+        put(t, 0, bentLeg(980, 900, pair[0], 1, rand(-0.5, 0.1)), 30);
+        put(t, 3, bentLeg(1020, 900, pair[1], 1, rand(-0.2, 0.4)), 30);
+    }
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
     // write an SVG attribute only when its (rounded) value changed: fewer style/paint invalidations
@@ -1280,7 +1309,15 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.stand, 'opacity', pose.up > 0.5 && !sideOn ? 1 : 0);
         // the legs stay planted and slant so their tops stay under the hips
         // (falling: the legs go with the body)
-        setA(el.stand, 'transform', pose.jump > 1 ? `translate(0 ${n2(-pose.jump)}) translate(0 860) scale(1 ${n2(1 - Math.min(0.34, pose.jump / 1800))}) translate(0 -860)` : pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
+        // In the air the legs are never a matching pair: for every jump each one is drawn bent its own
+        // amount, one about half stretched, the other pulled well up (which is which, and how far,
+        // is drawn by lot). New outlines, not the standing legs squeezed.
+        const air = upNow && (pose.jump > 1 || (sideOn && pose.sHop > 60 && pose.sLegs === 'tuck'));
+        if (air && !pose.wasAir) airLegs();
+        pose.wasAir = air;
+        const jumping = pose.jump > 1 && !sideOn;
+        setA(el.jumpLegs, 'opacity', jumping ? 1 : 0); setA(el.legL, 'opacity', jumping ? 0 : 1); setA(el.legR, 'opacity', jumping ? 0 : 1);
+        setA(el.stand, 'transform', pose.jump > 1 ? `translate(0 ${n2(-pose.jump)})` : pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
         // breathing: the robe swells a little from the floor up; the head rides on it
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
