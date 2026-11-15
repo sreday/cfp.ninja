@@ -49,92 +49,219 @@ function noise(ctx, out, t, { dur = 0.15, gain = 0.3, filter = 'bandpass', f = 1
 }
 
 // ---------- the effects: id -> (ctx, out, t, options) ----------
+const jit = (v, amt = 0.08) => v * (1 + (Math.random() * 2 - 1) * amt);     // no two plays quite alike
+// the ring of a blade leaving its rest: two thin, slightly detuned high partials
+function shing(c, o, t, f, gain, dur) {
+    tone(c, o, t, { f, f1: f * 1.03, dur, gain, attack: 0.002 });
+    tone(c, o, t, { f: f * 1.34, f1: f * 1.3, dur: dur * 0.8, gain: gain * 0.6, attack: 0.002 });
+}
 export const SYNTH = {
-    // a paid slash: a quick airy swish
-    slash(c, o, t) { noise(c, o, t, { dur: 0.13, gain: 0.8, f: 900, f1: 3400, q: 1.4 }); },
-    // out of stamina: a dull tap
-    empty(c, o, t) { tone(c, o, t, { type: 'square', f: 120, f1: 90, dur: 0.07, gain: 0.12 }); },
-    // a fruit cut: a wet pluck, higher for each fruit in the same slash, a bell on a clean cut
-    cut(c, o, t, { clean = false, chain = 0, n = 1 } = {}) {
-        const f = 400 * Math.pow(1.06, Math.min(chain, 12)) / Math.pow(1.12, Math.min(n - 1, 6));
-        tone(c, o, t, { type: 'triangle', f: f * 1.5, f1: f * 0.7, dur: 0.11, gain: 0.26 });
-        noise(c, o, t, { dur: 0.09, gain: 0.16, filter: 'lowpass', f: 2600, f1: 500 });
-        if (clean) tone(c, o, t + 0.01, { f: f * 3, dur: 0.22, gain: 0.1 });
+    // ----- the blade -----
+    // a slash that counts: a fast swish of air with a steel ring on top. kind: '' | 'sake' | 'fire' | 'frost'
+    slash(c, o, t, { kind = '', power = 0.5 } = {}) {
+        const k = jit(1);
+        noise(c, o, t, { dur: 0.14, gain: 0.75, f: 1100 * k, f1: 5200 * k, q: 1.1, attack: 0.012 });
+        noise(c, o, t + 0.02, { dur: 0.1, gain: 0.25, filter: 'highpass', f: 5000 });
+        shing(c, o, t + 0.015, 3300 * k, 0.045 + 0.04 * power, 0.22);
+        if (kind === 'sake') tone(c, o, t + 0.03, { f: 1760 * k, f1: 2640 * k, dur: 0.16, gain: 0.05 });            // a tipsy sparkle
+        if (kind === 'fire') { noise(c, o, t, { dur: 0.3, gain: 0.5, filter: 'lowpass', f: 1400, f1: 300, attack: 0.02 }); }   // a whoosh of flame
+        if (kind === 'frost') tone(c, o, t, { type: 'triangle', f: 2400, f1: 600, dur: 0.3, gain: 0.07 });              // time bending
     },
-    // the edge of a fruit clipped: it bounces away
-    bounce(c, o, t) { tone(c, o, t, { f: 210, f1: 95, dur: 0.11, gain: 0.26 }); },
-    // the tongue shoots out
-    tongue(c, o, t) { tone(c, o, t, { type: 'triangle', f: 260, f1: 980, dur: 0.09, gain: 0.2 }); },
-    // fruit swallowed by mistake: bonk
+    // out of stamina: a dull, breathless swipe that cuts nothing
+    empty(c, o, t) {
+        noise(c, o, t, { dur: 0.12, gain: 0.35, filter: 'lowpass', f: 500, f1: 220, attack: 0.02 });
+        tone(c, o, t, { type: 'square', f: 110, f1: 80, dur: 0.07, gain: 0.08 });
+    },
+    // a fruit or a piece cut. size 0 (plum) .. 1 (watermelon); clean = through the middle;
+    // chain = how many fruit this slash had already cut; n = which cut of this fruit; hacked
+    cut(c, o, t, { clean = false, chain = 0, n = 1, size = 0.5, hacked = false } = {}) {
+        const body = jit(260 - 150 * size) / Math.pow(1.1, Math.min(n - 1, 6));
+        noise(c, o, t, { dur: 0.02, gain: 0.3, filter: 'highpass', f: 3500 });                                         // the blade biting the skin
+        tone(c, o, t, { f: body * 1.9, f1: body * 0.75, dur: 0.07 + 0.09 * size, gain: 0.3 });                         // the thock of the flesh, deeper for big fruit
+        noise(c, o, t + 0.01, { dur: 0.1 + 0.1 * size, gain: 0.3, filter: 'lowpass', f: 2400, f1: 420, q: 2 });        // the wet part
+        noise(c, o, t + 0.05, { dur: 0.09, gain: 0.08, filter: 'bandpass', f: jit(900, 0.3), q: 4 });                  // a drip
+        if (clean) shing(c, o, t + 0.01, 1900 * Math.pow(1.06, Math.min(chain, 12)), 0.07, 0.3);                       // the ring of a perfect cut, climbing with a chain
+        if (hacked) [1760, 1320].forEach((f, i) => tone(c, o, t + i * 0.03, { type: 'square', f, dur: 0.035, gain: 0.05 }));
+    },
+    // only the edge clipped: a rubbery knock and the fruit flies off
+    bounce(c, o, t) { tone(c, o, t, { f: jit(230), f1: 100, dur: 0.12, gain: 0.26 }); noise(c, o, t, { dur: 0.03, gain: 0.12, f: 1500, q: 2 }); },
+
+    // ----- the tongue -----
+    tongue(c, o, t) { tone(c, o, t, { type: 'triangle', f: 240, f1: 1050, dur: 0.09, gain: 0.18 }); noise(c, o, t, { dur: 0.08, gain: 0.12, f: 2000, f1: 4000, q: 2 }); },
+    // it stuck to something: a wet smack. heavy = a crate
+    catch(c, o, t, { heavy = false } = {}) {
+        noise(c, o, t, { dur: 0.05, gain: 0.3, filter: 'lowpass', f: heavy ? 900 : 2200 });
+        tone(c, o, t, { f: heavy ? 150 : 420, f1: heavy ? 80 : 260, dur: 0.08, gain: 0.2 });
+    },
+    // down the hatch: a gulp
+    gulp(c, o, t) { tone(c, o, t, { f: 320, f1: 130, dur: 0.1, gain: 0.24 }); tone(c, o, t + 0.09, { f: 150, f1: 260, dur: 0.08, gain: 0.16 }); },
+    // a fruit swallowed by mistake: bonk on the head (the dizzy loop follows, see LOOPS)
     stun(c, o, t) {
-        tone(c, o, t, { type: 'square', f: 150, f1: 62, dur: 0.22, gain: 0.2 });
-        noise(c, o, t, { dur: 0.08, gain: 0.14, filter: 'lowpass', f: 900 });
+        tone(c, o, t, { f: 190, f1: 70, dur: 0.2, gain: 0.34 });
+        tone(c, o, t, { type: 'square', f: 95, f1: 60, dur: 0.12, gain: 0.12 });
+        noise(c, o, t, { dur: 0.06, gain: 0.25, filter: 'lowpass', f: 1100 });
+        tone(c, o, t + 0.05, { f: 1500, f1: 700, dur: 0.5, gain: 0.07, attack: 0.02 });                                // the head ringing
     },
-    // firefly swallowed: the breath ignites
+    // shaking it off
+    stun_end(c, o, t) { tone(c, o, t, { type: 'triangle', f: 500, f1: 900, dur: 0.12, gain: 0.1 }); },
+
+    // ----- fire (firefly) -----
+    // the breath lights: a deep whoomph (the roar itself is a loop, see LOOPS)
     power_fire(c, o, t) {
-        noise(c, o, t, { dur: 0.55, gain: 0.7, filter: 'lowpass', f: 260, f1: 2600, attack: 0.08 });
-        tone(c, o, t, { type: 'sawtooth', f: 82, f1: 164, dur: 0.5, gain: 0.1, attack: 0.05 });
+        noise(c, o, t, { dur: 0.5, gain: 0.8, filter: 'lowpass', f: 180, f1: 1800, attack: 0.06 });
+        tone(c, o, t, { f: 70, f1: 140, dur: 0.45, gain: 0.3, attack: 0.04 });
+        noise(c, o, t + 0.1, { dur: 0.4, gain: 0.12, filter: 'highpass', f: 3000 });
     },
-    // while breathing fire: a low roar, repeated
-    breath(c, o, t) { noise(c, o, t, { dur: 0.3, gain: 0.5, filter: 'lowpass', f: 700, f1: 380, attack: 0.05 }); },
-    // sake swallowed: three glassy notes going up
-    power_sake(c, o, t) { [660, 880, 1175].forEach((f, i) => tone(c, o, t + i * 0.07, { f, dur: 0.3, gain: 0.16 })); },
-    // clock swallowed: tick, tock, and time winds down
+    // a fruit goes up in the flame: a sharp sizzle and a small pop
+    burn(c, o, t) {
+        noise(c, o, t, { dur: 0.22, gain: 0.2, filter: 'highpass', f: jit(2800), f1: 6000 });
+        tone(c, o, t, { f: jit(380), f1: 120, dur: 0.07, gain: 0.14 });
+    },
+    // the flame dies: a last puff
+    fire_end(c, o, t) { noise(c, o, t, { dur: 0.35, gain: 0.4, filter: 'lowpass', f: 900, f1: 120, attack: 0.02 }); },
+    // the breath feeds on a sake (wider) or a clock (hacking)
+    fire_feed(c, o, t) { tone(c, o, t, { type: 'sawtooth', f: 110, f1: 330, dur: 0.3, gain: 0.1, attack: 0.03 }); noise(c, o, t, { dur: 0.3, gain: 0.3, filter: 'lowpass', f: 400, f1: 2400 }); },
+
+    // ----- sake -----
+    // a pour, then a hiccup
+    power_sake(c, o, t) {
+        [0, 0.06, 0.12, 0.18].forEach((d, i) => tone(c, o, t + d, { f: 420 + i * 90, f1: 300 + i * 90, dur: 0.07, gain: 0.12 }));   // glug glug
+        tone(c, o, t + 0.34, { type: 'triangle', f: 520, f1: 1040, dur: 0.07, gain: 0.16 });                                            // hic
+    },
+    sake_end(c, o, t) { tone(c, o, t, { type: 'triangle', f: 700, f1: 350, dur: 0.25, gain: 0.1 }); },
+
+    // ----- the clock -----
+    // tick, tock, and time winds down
     power_clock(c, o, t) {
         tone(c, o, t, { type: 'square', f: 1900, dur: 0.03, gain: 0.14 });
         tone(c, o, t + 0.12, { type: 'square', f: 1500, dur: 0.03, gain: 0.14 });
-        tone(c, o, t + 0.2, { type: 'triangle', f: 880, f1: 150, dur: 0.7, gain: 0.18, attack: 0.02 });
+        tone(c, o, t + 0.2, { type: 'triangle', f: 880, f1: 110, dur: 0.8, gain: 0.18, attack: 0.02 });
     },
-    // fireworks caught or set off: a rising whistle
-    power_fireworks(c, o, t) { tone(c, o, t, { f: 620, f1: 2100, dur: 0.36, gain: 0.14, attack: 0.03 }); },
-    // a fireworks blast
+    // one more thing marked, each a step higher
+    mark(c, o, t, { n = 1 } = {}) { tone(c, o, t, { f: 700 * Math.pow(1.05, Math.min(n, 14)), dur: 0.09, gain: 0.12 }); tone(c, o, t, { f: 1400 * Math.pow(1.05, Math.min(n, 14)), dur: 0.05, gain: 0.04 }); },
+    // time flows again: everything rushes back up
+    resume(c, o, t) { tone(c, o, t, { type: 'triangle', f: 110, f1: 880, dur: 0.45, gain: 0.16, attack: 0.05 }); noise(c, o, t, { dur: 0.45, gain: 0.3, f: 400, f1: 4000, q: 1, attack: 0.1 }); },
+
+    // ----- fireworks -----
+    power_fireworks(c, o, t) { tone(c, o, t, { f: jit(640), f1: 2100, dur: 0.34, gain: 0.12, attack: 0.03 }); noise(c, o, t, { dur: 0.3, gain: 0.08, filter: 'highpass', f: 4000 }); },
+    // the frog spits a rocket: a pop
+    spit(c, o, t) { tone(c, o, t, { f: 300, f1: 900, dur: 0.06, gain: 0.2 }); noise(c, o, t, { dur: 0.05, gain: 0.25, f: 1200, q: 1 }); },
     boom(c, o, t, { big = false } = {}) {
-        noise(c, o, t, { dur: big ? 0.7 : 0.45, gain: big ? 0.4 : 0.28, filter: 'lowpass', f: 1400, f1: 90 });
+        noise(c, o, t, { dur: big ? 0.7 : 0.45, gain: big ? 0.9 : 0.6, filter: 'lowpass', f: 1400, f1: 90 });
         tone(c, o, t, { f: big ? 80 : 110, f1: 38, dur: big ? 0.6 : 0.4, gain: big ? 0.4 : 0.28 });
-        noise(c, o, t + 0.05, { dur: 0.5, gain: 0.07, filter: 'highpass', f: 4000 });      // the crackle
+        [0.08, 0.16, 0.25, 0.33].forEach(d => noise(c, o, t + d + Math.random() * 0.04, { dur: 0.05, gain: 0.1, filter: 'highpass', f: 5000 }));   // the crackle
     },
-    // fruit melting or burned up
-    burn(c, o, t) { noise(c, o, t, { dur: 0.2, gain: 0.14, filter: 'highpass', f: 2600, f1: 5200 }); },
-    // a power-up wrecked by the blade: glass and metal
-    wreck(c, o, t) {
-        noise(c, o, t, { dur: 0.16, gain: 0.2, filter: 'highpass', f: 3200 });
-        tone(c, o, t, { type: 'triangle', f: 1300, f1: 420, dur: 0.16, gain: 0.12 });
-    },
-    // a crate bursting: a crack of wood and a thud
+
+    // ----- crates -----
     crate(c, o, t) {
-        noise(c, o, t, { dur: 0.12, gain: 0.34, f: 1800, q: 0.7 });
+        noise(c, o, t, { dur: 0.1, gain: 0.7, f: 1900, q: 0.8 });                                                      // the crack
         tone(c, o, t, { f: 130, f1: 48, dur: 0.26, gain: 0.34 });
-        noise(c, o, t + 0.04, { dur: 0.22, gain: 0.12, f: 700, q: 0.6 });
+        [0.05, 0.11, 0.18, 0.27].forEach(d => noise(c, o, t + d, { dur: 0.05, gain: 0.22, f: jit(800, 0.4), q: 3 }));    // planks clattering
     },
-    // the frog's fist on a crate
-    punch(c, o, t) { tone(c, o, t, { f: 170, f1: 55, dur: 0.16, gain: 0.36 }); noise(c, o, t, { dur: 0.05, gain: 0.2, filter: 'lowpass', f: 1200 }); },
-    // fruit hacked by a clock-fed breath: three quick digital blips
+    punch(c, o, t) { tone(c, o, t, { f: 170, f1: 55, dur: 0.16, gain: 0.4 }); noise(c, o, t, { dur: 0.05, gain: 0.4, filter: 'lowpass', f: 1200 }); },
+
+    // ----- power-ups arriving and being wrecked -----
+    // something useful has appeared. kind: fly (a buzz) | sake | clock | fireworks | crate
+    spawn(c, o, t, { kind = '' } = {}) {
+        if (kind === 'fly') { tone(c, o, t, { type: 'sawtooth', f: 190, f1: 230, dur: 0.3, gain: 0.05, attack: 0.05 }); return; }
+        if (kind === 'crate') { tone(c, o, t, { type: 'sawtooth', f: 90, f1: 130, dur: 0.18, gain: 0.07 }); return; }                 // a creak
+        const f = { sake: 990, clock: 1320, fireworks: 1480 }[kind] || 1100;
+        tone(c, o, t, { f, dur: 0.18, gain: 0.07 }); tone(c, o, t + 0.07, { f: f * 1.5, dur: 0.2, gain: 0.06 });
+    },
+    // slashed by mistake. kind: fly (a squish) | sake (glass) | clock (spring and gears)
+    wreck(c, o, t, { kind = '' } = {}) {
+        if (kind === 'fly') { noise(c, o, t, { dur: 0.08, gain: 0.3, filter: 'lowpass', f: 1500, f1: 300 }); tone(c, o, t, { f: 300, f1: 120, dur: 0.08, gain: 0.14 }); return; }
+        if (kind === 'clock') {
+            tone(c, o, t, { type: 'triangle', f: 320, f1: 1500, dur: 0.22, gain: 0.14 });                              // boing
+            [0.05, 0.1, 0.16].forEach(d => tone(c, o, t + d, { type: 'square', f: jit(2200, 0.3), dur: 0.03, gain: 0.07 }));
+            return;
+        }
+        noise(c, o, t, { dur: 0.18, gain: 0.3, filter: 'highpass', f: 3400 });                                         // glass
+        [0, 0.04, 0.09].forEach(d => tone(c, o, t + d, { f: jit(2600, 0.3), dur: 0.08, gain: 0.07 }));
+    },
+    // fruit hacked by a clock-fed breath
     hack(c, o, t) { [1320, 990, 1760].forEach((f, i) => tone(c, o, t + i * 0.035, { type: 'square', f, dur: 0.04, gain: 0.07 })); },
-    // one more thing marked during a time freeze
-    mark(c, o, t, { n = 1 } = {}) { tone(c, o, t, { f: 700 * Math.pow(1.05, Math.min(n, 14)), dur: 0.08, gain: 0.12 }); },
-    // a step up the combo ladder: two notes, higher each step
+
+    // ----- the run -----
     combo(c, o, t, { step = 1 } = {}) {
         const f = 392 * Math.pow(2, Math.min(step, 10) / 6);
         tone(c, o, t, { type: 'triangle', f, dur: 0.16, gain: 0.18 });
         tone(c, o, t + 0.08, { type: 'triangle', f: f * 1.5, dur: 0.24, gain: 0.18 });
     },
-    // 3, 2, 1 (a wooden clack each) and Go (a higher, longer one)
+    // the combo slips a step
+    combo_lost(c, o, t) { tone(c, o, t, { type: 'triangle', f: 330, f1: 196, dur: 0.22, gain: 0.1 }); },
+    // under five seconds: a heartbeat every second
+    lowtime(c, o, t) { tone(c, o, t, { f: 110, f1: 70, dur: 0.1, gain: 0.3 }); tone(c, o, t + 0.16, { f: 95, f1: 60, dur: 0.1, gain: 0.2 }); },
     count(c, o, t, { go = false } = {}) {
         tone(c, o, t, { type: 'square', f: go ? 1250 : 820, dur: go ? 0.22 : 0.07, gain: 0.12 });
-        noise(c, o, t, { dur: 0.03, gain: 0.14, f: 2400, q: 3 });
+        noise(c, o, t, { dur: 0.03, gain: 0.3, f: 2400, q: 3 });
     },
-    // time is up: a gong
     over(c, o, t) {
         [98, 147.5, 196.6, 293].forEach((f, i) => tone(c, o, t, { f, f1: f * 0.985, dur: 2.2 - i * 0.3, gain: 0.2 / (i + 1), attack: 0.01 }));
-        noise(c, o, t, { dur: 0.5, gain: 0.08, f: 600, q: 0.5 });
+        noise(c, o, t, { dur: 0.5, gain: 0.2, f: 600, q: 0.5 });
     },
-    // a new best: a short rising flourish
-    best(c, o, t) { [293.7, 392, 440, 587.3].forEach((f, i) => tone(c, o, t + i * 0.1, { type: 'triangle', f, dur: 0.4, gain: 0.18 })); },
-    // a button
-    ui(c, o, t) { tone(c, o, t, { type: 'triangle', f: 700, dur: 0.05, gain: 0.1 }); }
+    best(c, o, t) { [293.7, 370, 440, 587.3].forEach((f, i) => tone(c, o, t + i * 0.1, { type: 'triangle', f, dur: 0.4, gain: 0.18 })); },
+
+    // ----- interface -----
+    ui(c, o, t) { tone(c, o, t, { type: 'triangle', f: 700, dur: 0.05, gain: 0.1 }); },
+    ui_play(c, o, t) { tone(c, o, t, { type: 'triangle', f: 523, dur: 0.09, gain: 0.14 }); tone(c, o, t + 0.07, { type: 'triangle', f: 784, dur: 0.16, gain: 0.14 }); },
+    // debug mode: an item dropped on the field
+    place(c, o, t) { tone(c, o, t, { f: 600, f1: 300, dur: 0.07, gain: 0.12 }); }
 };
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
-const MIN_GAP = { slash: 0.07, cut: 0.03, burn: 0.06, breath: 0.24, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05 };
+const MIN_GAP = { slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
+
+// ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
+function sustained(ctx, out, level, build) {
+    const g = ctx.createGain(), t = ctx.currentTime, nodes = [];
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(level, t + 0.15); g.connect(out);
+    build(g, n => { nodes.push(n); return n; });
+    nodes.forEach(n => n.start && n.start(t));
+    return () => {
+        const e = ctx.currentTime;
+        g.gain.cancelScheduledValues(e); g.gain.setValueAtTime(g.gain.value, e); g.gain.linearRampToValueAtTime(0.0001, e + 0.2);
+        nodes.forEach(n => n.stop && n.stop(e + 0.25));
+    };
+}
+function loopNoise(ctx, keep, type, f, q) {
+    const s = keep(ctx.createBufferSource()); s.buffer = noiseBuffer(ctx); s.loop = true;
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    s.connect(fl); return fl;
+}
+export const LOOPS = {
+    // the fire breath: a steady roar with a flutter and a crackle on top
+    fire: (ctx, out) => sustained(ctx, out, 0.55, (g, keep) => {
+        const roar = loopNoise(ctx, keep, 'lowpass', 620, 0.7), flutter = ctx.createGain(); flutter.gain.value = 0.8;
+        const lfo = keep(ctx.createOscillator()), depth = ctx.createGain(); lfo.frequency.value = 13; depth.gain.value = 0.2;
+        lfo.connect(depth); depth.connect(flutter.gain); roar.connect(flutter); flutter.connect(g);
+        const crackle = loopNoise(ctx, keep, 'bandpass', 2600, 3), cg = ctx.createGain(); cg.gain.value = 0;
+        const cl = keep(ctx.createOscillator()), cd = ctx.createGain(); cl.type = 'square'; cl.frequency.value = 23; cd.gain.value = 0.12;
+        cl.connect(cd); cd.connect(cg.gain); crackle.connect(cg); cg.connect(g);
+        const rumble = keep(ctx.createOscillator()), rg = ctx.createGain(); rumble.type = 'sawtooth'; rumble.frequency.value = 58; rg.gain.value = 0.12;
+        rumble.connect(rg); rg.connect(g);
+    }),
+    // dizzy: little birds circling the head, two warbling whistles a semitone apart
+    dizzy: (ctx, out) => sustained(ctx, out, 0.07, (g, keep) => {
+        [[1180, 6.5], [1250, 5.1]].forEach(([f, rate]) => {
+            const o = keep(ctx.createOscillator()); o.frequency.value = f;
+            const lfo = keep(ctx.createOscillator()), d = ctx.createGain(); lfo.frequency.value = rate; d.gain.value = 90; lfo.connect(d); d.connect(o.frequency);
+            const trem = ctx.createGain(); trem.gain.value = 0.5;
+            const tl = keep(ctx.createOscillator()), td = ctx.createGain(); tl.frequency.value = rate / 2; td.gain.value = 0.5; tl.connect(td); td.connect(trem.gain);
+            o.connect(trem); trem.connect(g);
+        });
+    }),
+    // frozen time: a low, hollow hum with a faint shimmer
+    freeze: (ctx, out) => sustained(ctx, out, 0.12, (g, keep) => {
+        [55, 82.6, 110.4].forEach((f, i) => { const o = keep(ctx.createOscillator()); o.frequency.value = f; const og = ctx.createGain(); og.gain.value = 1 / (i + 1); o.connect(og); og.connect(g); });
+        const sh = loopNoise(ctx, keep, 'highpass', 6000, 0.5), sg = ctx.createGain(); sg.gain.value = 0.12; sh.connect(sg); sg.connect(g);
+    }),
+    // drunk: a slow, wobbling drone under everything
+    drunk: (ctx, out) => sustained(ctx, out, 0.05, (g, keep) => {
+        const o = keep(ctx.createOscillator()); o.type = 'triangle'; o.frequency.value = 196;
+        const lfo = keep(ctx.createOscillator()), d = ctx.createGain(); lfo.frequency.value = 1.3; d.gain.value = 14; lfo.connect(d); d.connect(o.frequency);
+        o.connect(g);
+    })
+};
 
 // ---------- the music: old samurai film meets a pop beach party ----------
 // A bright, bouncy loop. From the samurai film: a plucked koto-style tune in the sunny
@@ -216,7 +343,8 @@ export const MUSIC_BAR_SECONDS = BAR;
 // ---------- the player ----------
 export function createAudio() {
     let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0;
-    const lastAt = {}, samples = {};
+    const lastAt = {}, samples = {}, loops = {};
+    const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });
     function ensure() {
         if (!ctx) {
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -254,7 +382,7 @@ export function createAudio() {
                 barNo = 0; nextBar = 0;
                 clearInterval(timer); timer = setInterval(tick, 120); tick();
             } else {
-                clearInterval(timer);
+                clearInterval(timer); stopLoops();
                 if (musicBus) { musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.05); }
                 if (ctx) setTimeout(() => { if (!on && ctx) ctx.suspend().catch(() => {}); }, 300);
             }
@@ -271,6 +399,12 @@ export function createAudio() {
             if (SOUND_FILES[id] && sample(id, t)) return;
             const fn = SYNTH[id];
             if (fn) fn(ctx, sfxBus, t, o || {});
+        },
+        // a sound that lasts while something is true (fire, dizzy, freeze, drunk): call every frame
+        loop(id, want) {
+            const ok = on && ctx && ctx.state === 'running';
+            if (want && ok && !loops[id] && LOOPS[id]) loops[id] = LOOPS[id](ctx, sfxBus);
+            else if ((!want || !ok) && loops[id]) { loops[id](); delete loops[id]; }
         },
         // the tab went away or came back
         pause(hidden) { if (!ctx) return; if (hidden) ctx.suspend().catch(() => {}); else if (on) ctx.resume().catch(() => {}); },

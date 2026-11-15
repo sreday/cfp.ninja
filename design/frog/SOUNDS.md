@@ -20,33 +20,128 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 - The same sound can't retrigger faster than a set gap (`MIN_GAP`), so fast action doesn't
   turn into noise.
 
-## Effects
+## Every action and its sound
 
-| id | Plays when | Now (synth) | A real recording would be |
+The rule: every action the player takes, and every thing that happens to them, has its own
+sound, as close as a synth can get to the real thing. "Layers" says how the placeholder is
+built, so whoever records the replacement knows what it is imitating.
+
+### The blade
+
+| id | Plays when | Layers now | A real recording would be |
 |---|---|---|---|
-| `slash` | a slash becomes long enough to count | airy noise sweep up, 0.13 s | a katana swish |
-| `empty` | a slash is refused, no stamina | dull low square tap | a tired grunt or a dull thud |
-| `cut` | a fruit or piece is cut | wet triangle pluck plus a soft squish; pitch rises with each fruit in the same slash and drops for re-cuts; a bell on top for a clean middle cut | a juicy slice, 3-4 variants; a separate "perfect" ting |
-| `bounce` | a fruit is only clipped and bounces | short falling sine thud | a rubbery boing or thump |
-| `tongue` | the tongue shoots out | quick rising triangle | a wet slurp-whip |
-| `stun` | a fruit is swallowed by mistake | bonk: falling square plus a thud | a comedy bonk and a dizzy warble |
-| `power_fire` | a firefly is swallowed | rising filtered noise with a low saw | a fire igniting, whoomph |
-| `breath` | repeated while breathing fire | low noise roar, every 0.24 s | a flamethrower loop |
-| `power_sake` | sake is swallowed | three glassy rising notes | a cork pop and a pour, a hiccup |
-| `power_clock` | a clock is swallowed | tick, tock, then a pitch winding down | a clock ticking that slows and stops |
-| `power_fireworks` | fireworks are caught or set off | rising sine whistle | a rocket whistle |
-| `boom` | a fireworks blast (small or big) | filtered noise burst, a falling low sine, a crackle | a firework bang with crackle; a bigger one for aimed rockets |
-| `burn` | a fruit burns up (breath, fire blade, blast) | short high hiss | a sizzle |
-| `wreck` | a power-up is slashed | glassy noise and a falling triangle | glass breaking (sake), a spring and gears (clock), a squish (firefly) |
-| `crate` | a crate bursts open | wood crack, thud, a rattle | wood splintering and fruit tumbling |
-| `punch` | the frog's fist lands on a crate | low thud with a click | a meaty punch |
-| `hack` | a fruit is hacked by a clock-fed breath | three quick square blips | a digital glitch |
-| `mark` | something is marked in a time freeze | short sine blip, rising with each mark | a soft sonar ping, rising |
-| `combo` | a step up the combo ladder | two rising triangle notes, higher each step | a taiko hit with a rising shout per tier ("Good!" ... "No Way!") |
-| `count` | 3, 2, 1 and Go | a wooden clack; higher and longer for Go | hyoshigi (wooden clappers), a shout for Go |
-| `over` | time is up | a gong: four detuned low sines | a real gong |
-| `best` | game over with a new best | four rising notes | a short triumphant shamisen or flute phrase |
-| `ui` | the sound pill is turned on | tiny click | a soft tap |
+| `slash` | a slash becomes long enough to count | a fast swish of air sweeping up, a hiss on top, and a thin two-note steel ring; a little different every time, louder ring for a faster blade | a katana swish, 4-5 variants |
+| `slash` (sake) | a free slash starts while drunk | the same, with a tipsy rising sparkle | a looser, wetter swish |
+| `slash` (fire) | a slash with the fire blade | the same, under a whoosh of flame | a torch swung through the air |
+| `slash` (frost) | a slash with the chronoblade | the same, with a pitch falling away | a swish with a reversed tail |
+| `empty` | a slash is refused, no stamina | a dull, low, breathless swipe | a tired grunt and a weak swipe |
+| `cut` | a fruit or piece is cut | four layers: the blade biting the skin (a tick), the thock of the flesh (deeper and longer for bigger fruit), a wet squelch, a drip. Lower for each re-cut of the same fruit | a juicy slice per fruit kind: watermelon crunch, pineapple crackle, citrus spray, apple snap, soft kiwi, small plum pop |
+| `cut` (clean) | the cut went through the middle | adds a steel ring, climbing in pitch with each fruit in the same slash | a bright "shing" |
+| `cut` (hacked) | a hacked fruit is cut | adds two digital blips | a glitchy slice |
+| `bounce` | a fruit is only clipped and flies off | a rubbery knock | a boing or thump |
+
+### The tongue and the mouth
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `tongue` | the tongue shoots out | a rising whip with a breath of air | a wet whip crack |
+| `catch` | the tongue sticks to something | a wet smack; lower and heavier for a crate | a splat; a thunk on wood |
+| `gulp` | anything is swallowed | a falling then rising gulp | a cartoon gulp |
+| `stun` | a fruit is swallowed by mistake | a bonk on the head with a ringing tail | a coconut bonk |
+| `dizzy` (loop) | for as long as the frog is stunned | two warbling whistles a semitone apart, like birds circling | cartoon tweeting birds |
+| `stun_end` | the frog shakes it off | a quick rising chirp | a head shake |
+
+### Fire (firefly)
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `power_fire` | a firefly is swallowed | a deep whoomph opening up, with a hiss | a gas flame igniting |
+| `fire` (loop) | for as long as the breath lasts | a steady roar with a flutter, a crackle on top and a low rumble | a flamethrower or blowtorch, loopable |
+| `burn` | a fruit burns up (breath, fire blade or blast) | a sharp sizzle and a small pop | fruit hitting a hot pan |
+| `fire_feed` | the breath burns a sake or a clock | a surge rising in pitch | a flare-up |
+| `fire_end` | the breath runs out | a last falling puff | a flame snuffed |
+
+### Sake
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `power_sake` | sake is swallowed | glug, glug, glug, glug, then a hiccup | a pour and a hiccup |
+| `drunk` (loop) | for as long as the sake lasts | a quiet, slowly wobbling drone | a woozy tone, or nothing if the music changes instead |
+| `sake_end` | the sake wears off | a falling sigh | a sobering "phew" |
+
+### The clock
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `power_clock` | a clock is swallowed | tick, tock, then a pitch winding all the way down | a clock slowing to a stop |
+| `freeze` (loop) | during the freeze and its release | a low, hollow hum with a faint shimmer | a held, muffled room tone |
+| `mark` | something is marked | a ping with an overtone, a step higher for each mark | a sonar ping |
+| `resume` | time starts flowing again | a pitch and a rush of air sweeping back up | a tape spinning back up to speed |
+
+The cuts made on release use `cut` (clean), so the chain is heard climbing.
+
+### Fireworks
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `power_fireworks` | the bundle is slashed or swallowed, and for each rocket that leaves a slashed bundle | a rising whistle with a hiss | a rocket whistle |
+| `spit` | the frog spits a rocket | a pop | a party popper |
+| `boom` | a blast, small or big | a low thump, a burst of noise, and a scatter of crackles | a firework bang; a bigger one for aimed rockets |
+
+### Crates
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `crate` | a crate bursts open, however it was opened | a crack of wood, a thud, planks clattering | wood splintering, fruit tumbling out |
+| `punch` | the frog's fist lands on it | a low meaty thud | a punch |
+
+### Things arriving and being wrecked
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `spawn` (fly) | a firefly flies in | a short soft buzz | a firefly buzz |
+| `spawn` (sake, clock, fireworks) | one is thrown in | two soft rising notes, a different pitch for each | a glass clink; a tick; a fuse being lit |
+| `spawn` (crate) | a crate is thrown in | a creak | a wooden creak |
+| `wreck` (fly) | a firefly is slashed | a squish | a squelch |
+| `wreck` (sake) | a sake bottle is slashed | breaking glass with three tinkles | a bottle smashing |
+| `wreck` (clock) | a clock is slashed | a spring boing and gears ticking away | a clock falling apart |
+| `hack` | a fruit is hacked by a clock-fed breath | three quick digital blips | a digital glitch |
+
+### The run
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `combo` | a step up the combo ladder | two rising notes, higher each step | a taiko hit and a shout per tier ("Good!" ... "No Way!") |
+| `combo_lost` | the combo slips a step | a falling note | a deflating "aww" |
+| `lowtime` | each second under five seconds | a heartbeat | a heartbeat, or a tense drum |
+| `count` | 3, 2, 1 and Go | a wooden clack; higher and longer for Go | hyoshigi clappers; a shout for Go |
+| `over` | time is up | a gong | a real gong |
+| `best` | game over with a new best | four rising notes | a short triumphant phrase |
+
+### Interface
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `ui_play` | Play or Play again is pressed | two bright notes | a wooden block and a "hai!" |
+| `ui` | tips are paged, sound is turned on | a tiny click | a soft tap |
+| `place` | debug: an item is dropped on the field | a short falling blip | a pop |
+
+### Still silent, on purpose or not yet
+
+- Fruit being thrown in, and pieces falling away: left silent so the action stays readable.
+- The frog's intro (laptop toss, katanas drawn): needs a swish and two steel rings.
+- Scoreboard opening and closing; the debug pill.
+- The bubbly blade has no sound of its own yet (it uses the sake slash).
+- A fruit turning hacked plays `hack`, but hacked fruit floating has no ambience.
+
+### About borrowing sounds from other media
+
+The placeholders stay synthesised for now. Sounds lifted from other games or films can't go
+into this repository or onto the live site: the repository is public and the site serves
+them to everyone, so that would be redistributing someone else's work, placeholder or not.
+What can be used are sounds released for free reuse (CC0 or public domain), for example the
+Kenney audio packs or CC0 uploads on Freesound. `SOUND_FILES` is ready for them; each file
+added should be listed here with its source and licence.
 
 ## Music
 

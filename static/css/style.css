@@ -1500,17 +1500,23 @@ a:hover {
 /* stamina: one bar per slash, green; red glow when empty; gold on sake */
 .fg-stamina { display: flex; gap: 8px; padding: 10px 14px; border-radius: 999px;
     background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s; }
-.fg-stamina i { display: block; width: 52px; height: 24px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid #000; overflow: hidden; }
+.fg-stamina i { display: block; width: 52px; height: 24px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid #000; overflow: hidden; transition: border-radius .35s ease, margin .35s ease, border-color .35s ease; }
 .fg-stamina b { display: block; height: 100%; width: 100%; background: linear-gradient(#b6d36a, #98b74b); }
 .fg-stamina.empty { border-color: #e53935; box-shadow: 0 0 14px 3px rgba(229,57,53,.75); animation: fg-empty 0.9s ease-in-out infinite; }
 .fg-stamina.flash { animation: fg-flash .25s linear 2; }   /* out of stamina: it flashes red, it never moves */
 .fg-stamina.gold { border-color: #f5c542; box-shadow: 0 0 16px 4px rgba(245,197,66,.8); }
 .fg-stamina.gold b { background: linear-gradient(#ffe082, #f5c542); }
+/* sake: the five bars slide together into one glowing bar (and apart again when it ends) */
+.fg-stamina.gold i { border-radius: 0; margin: 0 -5px; border-color: #f5c542; border-left-color: transparent; border-right-color: transparent; }
+.fg-stamina.gold i:first-child { border-radius: 7px 0 0 7px; margin-left: 0; border-left-color: #f5c542; }
+.fg-stamina.gold i:last-child { border-radius: 0 7px 7px 0; margin-right: 0; border-right-color: #f5c542; }
+.fg-stamina.gold b { animation: fg-gold 1.1s ease-in-out infinite; }
+@keyframes fg-gold { 50% { filter: brightness(1.35); } }
 .fg-stamina.stunned { opacity: .55; }
 @keyframes fg-empty { 50% { box-shadow: 0 0 22px 6px rgba(229,57,53,.95); } }
 @keyframes fg-flash { 50% { border-color: #e53935; box-shadow: 0 0 18px 5px rgba(229,57,53,.9); } }
 @media (max-width: 575px) { .fg-stamina { gap: 4px; padding: 6px 8px; } .fg-stamina i { width: 27px; height: 18px; } }
-@media (prefers-reduced-motion: reduce) { .fg-stamina.empty, .fg-stamina.flash, .fg-count.pop, .fg-grade.fg-grade-up .fg-grade-name { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .fg-stamina.gold b, .fg-stamina.empty, .fg-stamina.flash, .fg-count.pop, .fg-grade.fg-grade-up .fg-grade-name { animation: none; } }
 
 /* the stage fills the screen under the navbar; the scoreboard sits below the fold */
 #main-content:has(> .game-page) { max-width: none; padding: 0 !important; }
