@@ -59,6 +59,12 @@ def check(run):
                 out.append(("negative time left", e))
             if frames < 30:
                 out.append(("under 30 frames in a second", e))
+            # since 2026-11-15 the line also carries: longest frame gap (ms), the game's own work per
+            # frame (ms), canvases made, flames, firework bits, juice drops
+            if len(e) >= 14 and frames < 50 and not debug:
+                gap, js, made, flames, fw, drops = e[8:14]
+                why = "the game's own work" if js > 8 else "drawing (the graphics chip), not the game's own work"
+                out.append((f"slow second ({frames} frames): {why}; gap {gap} ms, work {js} ms/frame, canvases {made}, flames {flames}, fireworks {fw}, drops {drops}", e))
             if fruit > 80 or pieces > 400:
                 out.append(("flood of fruit or pieces", e))
         elif what in ("cut", "burn"):

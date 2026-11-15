@@ -639,12 +639,6 @@ function digitTile(i) {
     }
     return DIGIT_TILES[((i % 4) + 4) % 4];
 }
-// what a hacked thing looks like right now: which digits, whether a band is torn, whether it jumps
-function hackLook(o, tn) {
-    const seed = (o.born || o.area || 1) % 97, tick = Math.floor(tn / 90 + seed), slow = Math.floor(tn / 220 + seed);
-    const rnd = n => { const v = Math.sin((tick + n) * 12.9898 + seed) * 43758.5453; return v - Math.floor(v); };
-    return { jump: rnd(1) < 0.22 ? (rnd(2) - 0.5) * 10 : 0, key: slow + (rnd(40) < 0.3 ? '|' + tick : '') };
-}
 // still: without the jump (the caller moves the finished picture instead)
 function drawHacked(ctx, o, tn, still) {
     const seed = (o.born || o.area || 1) % 97, tick = Math.floor(tn / 90 + seed);
@@ -1305,7 +1299,11 @@ export function mountFrogGame(stage, opts = {}) {
     function traceTick(dt) {
         traceFrames++; traceSec += dt;
         if (traceSec < 1) return;
-        log('s', fruits.length, pieces.length, pickups.length + flies.length + crates.length, r2(stamina), r2(timeLeft), traceFrames);
+        // ... then where the time went: the longest gap between two frames (ms), the game's own work per
+        // frame (ms), canvases made, and how many flames, firework bits and juice drops were on screen
+        log('s', fruits.length, pieces.length, pickups.length + flies.length + crates.length, r2(stamina), r2(timeLeft), traceFrames,
+            Math.round(frameGap), r2(frameJs / Math.max(1, traceFrames)), sprMade, flames.length, sparks.length + blasts.length + rockets.length, drops.length);
+        frameGap = 0; frameJs = 0; sprMade = 0;
         if (traceFrames < 30) log('bug', 'slow-frames', traceFrames);
         govern(traceFrames);
         logAudio();
@@ -1363,10 +1361,11 @@ export function mountFrogGame(stage, opts = {}) {
     // and throwing away hundreds of them; and only so many new pictures are painted per frame.
     const sprPool = new Map();
     let sprBuilt = 0;                                          // pictures painted this frame
-    const SPR_PER_FRAME = 8;
+    const SPR_PER_FRAME = 6;
+    let sprMade = 0;                                           // canvases created (not reused) since the last log line
     function sprGet(half) {
         const px = Math.max(32, Math.ceil(half * 2 * dpr / 32) * 32), list = sprPool.get(px);
-        const cv = list && list.length ? list.pop() : document.createElement('canvas');
+        const cv = list && list.length ? list.pop() : (sprMade++, document.createElement('canvas'));
         if (cv.width !== px) { cv.width = cv.height = px; }
         const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.clearRect(0, 0, px, px);
         const size = px / dpr; c.setTransform(dpr, 0, 0, dpr, px / 2, px / 2);
@@ -1392,19 +1391,6 @@ export function mountFrogGame(stage, opts = {}) {
         const mk = q.burn ? clamp(q.burn / BURN_TIME, 0, 1) : 0, k = 1 - 0.4 * mk, h = q.spr.half * k;
         ctx.drawImage(q.spr.cv, -h, -h, h * 2, h * 2);
         if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.scale(k, k); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
-    }
-    // A hacked thing changes its look a few times a second, not sixty: its picture is painted when
-    // the look changes (the clip, the digits, the two outlines) and stamped on the frames between.
-    function stampHacked(o, tn) {
-        const look = hackLook(o, tn);
-        let sp = o.hspr;
-        if (!sp || sp.dpr !== dpr || (sp.key !== look.key && sprBuilt < SPR_PER_FRAME)) {
-            sprBuilt++;
-            if (sp && sp.dpr === dpr) { sp.c.save(); sp.c.setTransform(1, 0, 0, 1, 0, 0); sp.c.clearRect(0, 0, sp.px, sp.px); sp.c.restore(); }
-            else sp = o.hspr = sprGet((o.R || o.r) * 1.2 + 10);
-            drawHacked(sp.c, o, tn, true); sp.key = look.key;
-        }
-        ctx.drawImage(sp.cv, -sp.half + look.jump, -sp.half, sp.half * 2, sp.half * 2);
     }
     // Quality governor. The game starts at full sharpness; if the device can't hold 50 frames a
     // second for two seconds running it drops the canvas resolution a step (2x -> 1.5x -> 1x), and
@@ -3282,6 +3268,11 @@ export function mountFrogGame(stage, opts = {}) {
             on(() => { const r = Math.min(base * t.r, 60), poly = fruitPoly(t, r); drawPiece(c, { type: t, r, poly, ox: 0, oy: 0, char: [[-r, 0, r, 0]] }, lw); drawHacked(c, { type: t, r, R: r, poly, x: 0, y: 0 }, 0); });
         });
         on(() => digitTile(0));
+        // piece pictures need small canvases, and making one is slow on a phone: a stock of them is made now
+        [96, 128, 160, 192, 224, 256].forEach(px => on(() => {
+            let list = sprPool.get(px); if (!list) sprPool.set(px, list = []);
+            while (list.length < 10) { const cv = document.createElement('canvas'); cv.width = cv.height = px; cv.getContext('2d'); list.push(cv); }
+        }));
         ['clock', 'sake', 'fireworks', 'laptop'].forEach(kind => on(() => drawPickup(c, { kind, x: 0, y: 0, r: 30, rot: 0, t: 0 }, lw)));
         on(() => drawFly(c, { x: 0, y: 0, dir: 1, phase: 0 }, 9, 0.2));
         on(() => drawCrate(c, 40, lw));
@@ -3697,10 +3688,14 @@ export function mountFrogGame(stage, opts = {}) {
     function frame(now) {
         if (warmQ.length) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }     // one piece of warm-up a frame
         if (dead) return;
+        const t0 = performance.now();
+        if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         try { frameBody(now); }
         catch (err) { crashed(err); if (crashes > 30) { dead = true; return; } }
+        frameJs += performance.now() - t0;
         if (!dead) raf = requestAnimationFrame(frame);
     }
+    let frameAt = 0, frameGap = 0, frameJs = 0;
     function frameBody(now) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
@@ -4173,7 +4168,7 @@ export function mountFrogGame(stage, opts = {}) {
             else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air
             ctx.restore();
         });
-        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) stampHacked(q, tn); else stampPiece(q, lw); ctx.restore(); });
+        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
@@ -4189,7 +4184,7 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.fillStyle = f.type.juice;
                 [-0.5, 0.05, 0.55].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(f.r * o, f.r * (0.85 + 0.45 * mk * (1 + i % 2)), f.r * 0.13, f.r * (0.18 + 0.6 * mk), 0, 0, 7); ctx.fill(); });
             }
-            ctx.rotate(f.rot); if (f.hacked) stampHacked(f, tn); else stampWhole(f, lw);
+            ctx.rotate(f.rot); if (f.hacked) drawHacked(ctx, f, tn); else stampWhole(f, lw);
             if (mk) {
                 // a glow of heat over it (it keeps its colour: melting is juice, not ash)
                 if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
