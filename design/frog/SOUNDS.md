@@ -26,6 +26,18 @@ The rule: every action the player takes, and every thing that happens to them, h
 sound, as close as a synth can get to the real thing. "Layers" says how the placeholder is
 built, so whoever records the replacement knows what it is imitating.
 
+### What makes them hit
+
+Slashes, fire and explosions are built to slap: each starts with a crack (a few milliseconds
+of bright noise and a click), has a thump under it (a sine that drops fast, like a drum),
+and only then the body of the sound. A recording should have the same shape: a hard front,
+weight, then a short tail.
+
+**Drunk filter.** While the sake lasts, every effect is routed through a woozy path: a
+low-pass filter that swims up and down and a slapback echo, with the music pulled back a
+little. It switches off when the sake ends. Recordings get the same treatment for free,
+because it sits on the effects bus, not in each sound.
+
 ### The blade
 
 | id | Plays when | Layers now | A real recording would be |
@@ -99,9 +111,11 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 
 | id | Plays when | Layers now | A real recording would be |
 |---|---|---|---|
-| `spawn` (fly) | a firefly flies in | a short soft buzz | a firefly buzz |
-| `spawn` (sake, clock, fireworks) | one is thrown in | two soft rising notes, a different pitch for each | a glass clink; a tick; a fuse being lit |
-| `spawn` (crate) | a crate is thrown in | a creak | a wooden creak |
+| `spawn` (fly) | a firefly flies in, once | a wavering buzz in three pulses | a firefly buzz |
+| `spawn` (sake) | a bottle is thrown in, once | liquid sloshing: five rising blips over a soft wash | sake sloshing in a bottle |
+| `spawn` (clock) | a clock is thrown in, once | tick, tock, tick, tock | an alarm clock ticking |
+| `spawn` (fireworks) | a bundle is thrown in, once | a fizzing hiss | a fuse burning |
+| `spawn` (crate) | a crate is thrown in, once | a creak | a wooden creak |
 | `wreck` (fly) | a firefly is slashed | a squish | a squelch |
 | `wreck` (sake) | a sake bottle is slashed | breaking glass with three tinkles | a bottle smashing |
 | `wreck` (clock) | a clock is slashed | a spring boing and gears ticking away | a clock falling apart |
@@ -155,10 +169,10 @@ in the sunny Japanese "yo" scale (D, E, F#, A, B).
 | Answer | samurai film | a breathy flute phrase at the end of each half | shakuhachi |
 | Accent | samurai film | one big taiko hit opening each phrase | taiko |
 | Turnaround | samurai film | wooden clacks speeding up through the last bar | hyoshigi |
-| Kick | beach party | four on the floor | a soft dance kick |
+| Kick | beach party | four on the floor, heavy | a dance kick |
 | Claps | beach party | on beats 2 and 4 | hand claps |
 | Hats | beach party | on the offbeats | shaker or hi-hat |
-| Bass | beach party | a bouncing five-note pattern, D, B, G, A two bars each | a round synth or upright bass |
+| Bass | beach party | up front in the mix: a bouncing pattern (root, root, root, fifth, octave) with a sub an octave below and a little buzz so small speakers still carry it | a fat synth bass |
 | Chords | beach party | steel-pan-style stabs on the offbeats | steel pans or a marimba |
 
 Not done yet: the music does not react to the game (it could tighten when time is short,

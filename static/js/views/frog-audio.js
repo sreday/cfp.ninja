@@ -49,6 +49,13 @@ function noise(ctx, out, t, { dur = 0.15, gain = 0.3, filter = 'bandpass', f = 1
 }
 
 // ---------- the effects: id -> (ctx, out, t, options) ----------
+// the crack at the very front of a sound: a few milliseconds of bright noise and a click
+function crack(c, o, t, gain = 0.5, f = 3000) {
+    noise(c, o, t, { dur: 0.018, gain, filter: 'highpass', f, attack: 0.0008 });
+    tone(c, o, t, { type: 'square', f: 220, f1: 60, dur: 0.02, gain: gain * 0.5, attack: 0.0008 });
+}
+// the weight under it: a sine that drops fast, like a drum
+function thump(c, o, t, f, gain, dur) { tone(c, o, t, { f, f1: f * 0.3, dur, gain, attack: 0.0015, bend: dur * 0.6 }); }
 const jit = (v, amt = 0.08) => v * (1 + (Math.random() * 2 - 1) * amt);     // no two plays quite alike
 // the ring of a blade leaving its rest: two thin, slightly detuned high partials
 function shing(c, o, t, f, gain, dur) {
@@ -60,9 +67,11 @@ export const SYNTH = {
     // a slash that counts: a fast swish of air with a steel ring on top. kind: '' | 'sake' | 'fire' | 'frost'
     slash(c, o, t, { kind = '', power = 0.5 } = {}) {
         const k = jit(1);
-        noise(c, o, t, { dur: 0.14, gain: 0.75, f: 1100 * k, f1: 5200 * k, q: 1.1, attack: 0.012 });
-        noise(c, o, t + 0.02, { dur: 0.1, gain: 0.25, filter: 'highpass', f: 5000 });
-        shing(c, o, t + 0.015, 3300 * k, 0.045 + 0.04 * power, 0.22);
+        crack(c, o, t, 0.35, 4500);                                                                                     // the snap as the blade leaves
+        noise(c, o, t, { dur: 0.13, gain: 1.1, f: 1300 * k, f1: 6000 * k, q: 1.4, attack: 0.004 });                    // the air, fast and tight
+        noise(c, o, t + 0.015, { dur: 0.1, gain: 0.4, filter: 'highpass', f: 5000 });
+        thump(c, o, t, 180 * k, 0.16, 0.06);                                                                            // a little weight
+        shing(c, o, t + 0.01, 3300 * k, 0.07 + 0.06 * power, 0.26);
         if (kind === 'sake') tone(c, o, t + 0.03, { f: 1760 * k, f1: 2640 * k, dur: 0.16, gain: 0.05 });            // a tipsy sparkle
         if (kind === 'fire') { noise(c, o, t, { dur: 0.3, gain: 0.5, filter: 'lowpass', f: 1400, f1: 300, attack: 0.02 }); }   // a whoosh of flame
         if (kind === 'frost') tone(c, o, t, { type: 'triangle', f: 2400, f1: 600, dur: 0.3, gain: 0.07 });              // time bending
@@ -108,14 +117,17 @@ export const SYNTH = {
     // ----- fire (firefly) -----
     // the breath lights: a deep whoomph (the roar itself is a loop, see LOOPS)
     power_fire(c, o, t) {
-        noise(c, o, t, { dur: 0.5, gain: 0.8, filter: 'lowpass', f: 180, f1: 1800, attack: 0.06 });
-        tone(c, o, t, { f: 70, f1: 140, dur: 0.45, gain: 0.3, attack: 0.04 });
+        crack(c, o, t, 0.4, 2500);
+        thump(c, o, t, 150, 0.5, 0.35);                                                                                 // the whoomph hits first
+        noise(c, o, t, { dur: 0.55, gain: 1.1, filter: 'lowpass', f: 220, f1: 2400, attack: 0.02 });
+        tone(c, o, t, { type: 'sawtooth', f: 60, f1: 120, dur: 0.45, gain: 0.16, attack: 0.02 });
         noise(c, o, t + 0.1, { dur: 0.4, gain: 0.12, filter: 'highpass', f: 3000 });
     },
     // a fruit goes up in the flame: a sharp sizzle and a small pop
     burn(c, o, t) {
-        noise(c, o, t, { dur: 0.22, gain: 0.2, filter: 'highpass', f: jit(2800), f1: 6000 });
-        tone(c, o, t, { f: jit(380), f1: 120, dur: 0.07, gain: 0.14 });
+        crack(c, o, t, 0.25, 3500);
+        noise(c, o, t, { dur: 0.22, gain: 0.3, filter: 'highpass', f: jit(2800), f1: 6000 });
+        thump(c, o, t, jit(300), 0.22, 0.08);
     },
     // the flame dies: a last puff
     fire_end(c, o, t) { noise(c, o, t, { dur: 0.35, gain: 0.4, filter: 'lowpass', f: 900, f1: 120, attack: 0.02 }); },
@@ -147,8 +159,10 @@ export const SYNTH = {
     // the frog spits a rocket: a pop
     spit(c, o, t) { tone(c, o, t, { f: 300, f1: 900, dur: 0.06, gain: 0.2 }); noise(c, o, t, { dur: 0.05, gain: 0.25, f: 1200, q: 1 }); },
     boom(c, o, t, { big = false } = {}) {
-        noise(c, o, t, { dur: big ? 0.7 : 0.45, gain: big ? 0.9 : 0.6, filter: 'lowpass', f: 1400, f1: 90 });
-        tone(c, o, t, { f: big ? 80 : 110, f1: 38, dur: big ? 0.6 : 0.4, gain: big ? 0.4 : 0.28 });
+        crack(c, o, t, big ? 0.8 : 0.6, 2000);                                                                          // the bang
+        thump(c, o, t, big ? 150 : 190, big ? 0.7 : 0.5, big ? 0.6 : 0.4);                                             // the punch in the chest
+        noise(c, o, t, { dur: big ? 0.7 : 0.45, gain: big ? 1.0 : 0.7, filter: 'lowpass', f: 2600, f1: 90, attack: 0.001 });
+        tone(c, o, t, { type: 'square', f: big ? 55 : 70, f1: 30, dur: big ? 0.5 : 0.3, gain: 0.12, attack: 0.002 });
         [0.08, 0.16, 0.25, 0.33].forEach(d => noise(c, o, t + d + Math.random() * 0.04, { dur: 0.05, gain: 0.1, filter: 'highpass', f: 5000 }));   // the crackle
     },
 
@@ -161,12 +175,26 @@ export const SYNTH = {
     punch(c, o, t) { tone(c, o, t, { f: 170, f1: 55, dur: 0.16, gain: 0.4 }); noise(c, o, t, { dur: 0.05, gain: 0.4, filter: 'lowpass', f: 1200 }); },
 
     // ----- power-ups arriving and being wrecked -----
-    // something useful has appeared. kind: fly (a buzz) | sake | clock | fireworks | crate
+    // a hint, once, that something has arrived. kind: fly | sake | clock | fireworks | crate
     spawn(c, o, t, { kind = '' } = {}) {
-        if (kind === 'fly') { tone(c, o, t, { type: 'sawtooth', f: 190, f1: 230, dur: 0.3, gain: 0.05, attack: 0.05 }); return; }
-        if (kind === 'crate') { tone(c, o, t, { type: 'sawtooth', f: 90, f1: 130, dur: 0.18, gain: 0.07 }); return; }                 // a creak
-        const f = { sake: 990, clock: 1320, fireworks: 1480 }[kind] || 1100;
-        tone(c, o, t, { f, dur: 0.18, gain: 0.07 }); tone(c, o, t + 0.07, { f: f * 1.5, dur: 0.2, gain: 0.06 });
+        if (kind === 'fly') {                              // a firefly's buzz, wavering
+            [0, 0.16, 0.3].forEach((d, i) => tone(c, o, t + d, { type: 'sawtooth', f: 170 + i * 14, f1: 205 + i * 10, dur: 0.14, gain: 0.07, attack: 0.02 }));
+            return;
+        }
+        if (kind === 'sake') {                             // liquid sloshing in a bottle
+            [0, 0.07, 0.16, 0.22, 0.31].forEach((d, i) => tone(c, o, t + d, { f: jit(380 + i * 55, 0.15), f1: jit(620 + i * 60, 0.15), dur: 0.06, gain: 0.1, attack: 0.01 }));
+            noise(c, o, t, { dur: 0.35, gain: 0.08, filter: 'lowpass', f: 900, f1: 500, attack: 0.05 });
+            return;
+        }
+        if (kind === 'clock') {                            // tick, tock, tick, tock
+            [0, 0.18, 0.36, 0.54].forEach((d, i) => { tone(c, o, t + d, { type: 'square', f: i % 2 ? 1500 : 1900, dur: 0.025, gain: 0.1 }); noise(c, o, t + d, { dur: 0.015, gain: 0.2, f: 3000, q: 4 }); });
+            return;
+        }
+        if (kind === 'fireworks') {                        // a fuse fizzing
+            noise(c, o, t, { dur: 0.45, gain: 0.14, filter: 'highpass', f: 5500, attack: 0.05 });
+            return;
+        }
+        tone(c, o, t, { type: 'sawtooth', f: 90, f1: 130, dur: 0.18, gain: 0.08 });                                     // a crate: wood creaking
     },
     // slashed by mistake. kind: fly (a squish) | sake (glass) | clock (spring and gears)
     wreck(c, o, t, { kind = '' } = {}) {
@@ -230,7 +258,7 @@ function loopNoise(ctx, keep, type, f, q) {
 }
 export const LOOPS = {
     // the fire breath: a steady roar with a flutter and a crackle on top
-    fire: (ctx, out) => sustained(ctx, out, 0.55, (g, keep) => {
+    fire: (ctx, out) => sustained(ctx, out, 0.8, (g, keep) => {
         const roar = loopNoise(ctx, keep, 'lowpass', 620, 0.7), flutter = ctx.createGain(); flutter.gain.value = 0.8;
         const lfo = keep(ctx.createOscillator()), depth = ctx.createGain(); lfo.frequency.value = 13; depth.gain.value = 0.2;
         lfo.connect(depth); depth.connect(flutter.gain); roar.connect(flutter); flutter.connect(g);
@@ -285,14 +313,19 @@ const TUNE = [                                 // per bar: [beat, note of SCALE]
 const FLUTE = { 3: [[2.5, 1.5, 10]], 7: [[1, 1, 9], [2, 2, 10]] };           // bar: [beat, beats long, note]
 const BASS_BEATS = [0, 0.75, 1.5, 2.5, 3.25];
 const CLACKS = [2, 2.5, 2.9, 3.2, 3.42, 3.6, 3.74, 3.85, 3.93];              // bar 8: speeding up
-function kick(ctx, out, t) { tone(ctx, out, t, { f: 130, f1: 46, dur: 0.2, gain: 0.34, attack: 0.002 }); }
+function kick(ctx, out, t) { tone(ctx, out, t, { f: 150, f1: 42, dur: 0.26, gain: 0.5, attack: 0.002 }); noise(ctx, out, t, { dur: 0.012, gain: 0.12, filter: 'highpass', f: 2500, attack: 0.001 }); }
 function clap(ctx, out, t) { noise(ctx, out, t, { dur: 0.09, gain: 0.3, f: 1700, q: 1.2 }); noise(ctx, out, t + 0.012, { dur: 0.07, gain: 0.2, f: 2100, q: 1.2 }); }
 function hat(ctx, out, t) { noise(ctx, out, t, { dur: 0.04, gain: 0.07, filter: 'highpass', f: 6500 }); }
 function taiko(ctx, out, t) {
     tone(ctx, out, t, { f: 96, f1: 44, dur: 0.55, gain: 0.34, attack: 0.003 });
     noise(ctx, out, t, { dur: 0.05, gain: 0.14, filter: 'lowpass', f: 900 });
 }
-function bass(ctx, out, t, f) { tone(ctx, out, t, { type: 'triangle', f, dur: 0.22, gain: 0.26, attack: 0.004 }); }
+// the bass carries the tune now: a round low note, a sub under it, and a bit of buzz so small speakers still hear it
+function bass(ctx, out, t, f, len = 0.3) {
+    tone(ctx, out, t, { type: 'triangle', f, dur: len, gain: 0.42, attack: 0.004 });
+    tone(ctx, out, t, { f: f / 2, dur: len, gain: 0.3, attack: 0.004 });
+    tone(ctx, out, t, { type: 'sawtooth', f: f * 2, dur: len * 0.6, gain: 0.05, attack: 0.004 });
+}
 // a koto-like pluck: bright at the start, gone quickly
 function pluck(ctx, out, t, f) {
     tone(ctx, out, t, { type: 'triangle', f, dur: 0.42, gain: 0.17, attack: 0.002 });
@@ -331,7 +364,7 @@ export function scheduleBar(ctx, out, t, bar) {
     [0, 1, 2, 3].forEach(beat => kick(ctx, out, at(beat)));
     [1, 3].forEach(beat => clap(ctx, out, at(beat)));
     [0.5, 1.5, 2.5, 3.5].forEach(beat => hat(ctx, out, at(beat)));
-    BASS_BEATS.forEach(beat => bass(ctx, out, at(beat), BASS[b]));
+    BASS_BEATS.forEach((beat, i) => bass(ctx, out, at(beat), BASS[b] * (i === 3 ? 1.5 : i === 4 ? 2 : 1), i === 0 ? 0.42 : 0.26));     // root, root, root, fifth, octave
     [1.5, 3.5].forEach(beat => pan(ctx, out, at(beat), CHORD[b]));
     if (b % 4 === 0) taiko(ctx, out, t);                                                                // the big drum opens each phrase
     TUNE[b].forEach(([beat, n]) => pluck(ctx, out, at(beat), SCALE[n]));
@@ -342,6 +375,7 @@ export const MUSIC_BAR_SECONDS = BAR;
 
 // ---------- the player ----------
 export function createAudio() {
+    let dry = null, wet = null, drunk = false;
     let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0;
     const lastAt = {}, samples = {}, loops = {};
     const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });
@@ -351,7 +385,15 @@ export function createAudio() {
             if (!AC) return false;
             ctx = new AC();
             const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
-            sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9; sfxBus.connect(comp);
+            // every effect goes through sfxBus. Sober, it goes straight out (dry). Drunk, most of it
+            // goes through a woozy path instead: a low-pass that swims up and down, and a slapback echo.
+            sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9;
+            dry = ctx.createGain(); dry.gain.value = 1; sfxBus.connect(dry); dry.connect(comp);
+            wet = ctx.createGain(); wet.gain.value = 0;
+            const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; lp.Q.value = 4;
+            const lfo = ctx.createOscillator(), depth = ctx.createGain(); lfo.frequency.value = 1.4; depth.gain.value = 800; lfo.connect(depth); depth.connect(lp.frequency); lfo.start();
+            const echo = ctx.createDelay(0.5), fb = ctx.createGain(); echo.delayTime.value = 0.13; fb.gain.value = 0.38;
+            sfxBus.connect(lp); lp.connect(wet); lp.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(comp);
             musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(comp);
         }
         if (ctx.state === 'suspended') ctx.resume().catch(() => {});
@@ -399,6 +441,14 @@ export function createAudio() {
             if (SOUND_FILES[id] && sample(id, t)) return;
             const fn = SYNTH[id];
             if (fn) fn(ctx, sfxBus, t, o || {});
+        },
+        // sake: every effect from now on sounds woozy, until it wears off
+        setDrunk(v) {
+            drunk = !!v;
+            if (!ctx) return;
+            const t = ctx.currentTime;
+            dry.gain.setTargetAtTime(drunk ? 0.3 : 1, t, 0.12); wet.gain.setTargetAtTime(drunk ? 0.95 : 0, t, 0.12);
+            if (musicBus) musicBus.gain.setTargetAtTime(on ? (drunk ? 0.38 : 0.5) : 0, t, 0.2);
         },
         // a sound that lasts while something is true (fire, dizzy, freeze, drunk): call every frame
         loop(id, want) {
