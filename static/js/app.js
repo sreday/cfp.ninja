@@ -231,6 +231,11 @@ export const API = {
 
     submitGameScore(round) {
         return this.request('POST', '/game/scores', round);
+    },
+
+    // the event log of a finished run (anonymous), kept to find bugs
+    submitGameTrace(trace) {
+        return this.request('POST', '/game/traces', trace);
     }
 };
 

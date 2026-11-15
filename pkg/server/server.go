@@ -39,6 +39,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 			&models.Proposal{},
 			&models.SavedTalk{},
 			&models.GameScore{},
+			&models.GameTrace{},
 		); err != nil {
 			return nil, nil, err
 		}
@@ -50,6 +51,7 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 
 	EnsureStatusChangedByColumn(db, cfg.Logger)
 	EnsureGameScoresTable(db, cfg.Logger)
+	EnsureGameTracesTable(db, cfg.Logger)
 
 	// Set Stripe API key once at startup (not per-request) to avoid data races
 	if cfg.StripeSecretKey != "" {
@@ -157,6 +159,10 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v0/game/scores", api.CorsHandler(cfg, readLimiter.Middleware(api.OptionalAuthHandler(cfg, api.ListGameScoresHandler(cfg)))))
 	mux.HandleFunc("POST /api/v0/game/scores", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.SubmitGameScoreHandler(cfg))))
 	mux.HandleFunc("OPTIONS /api/v0/game/scores", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	// Frog Ninja run traces: anonymous event logs of finished runs, for finding bugs
+	mux.HandleFunc("GET /api/v0/game/traces", api.CorsHandler(cfg, readLimiter.Middleware(api.ListGameTracesHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/game/traces", api.CorsHandler(cfg, writeLimiter.Middleware(api.SubmitGameTraceHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/game/traces", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 
 	mux.HandleFunc("POST /api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 
@@ -252,4 +258,19 @@ func EnsureGameScoresTable(db *gorm.DB, logger *slog.Logger) {
 		return
 	}
 	logger.Info("created game_scores")
+}
+
+// EnsureGameTracesTable creates the game_traces table (Frog Ninja run logs) when
+// it is missing, the same additive way as EnsureGameScoresTable. Errors are
+// logged, not fatal: without the table only run recording fails.
+func EnsureGameTracesTable(db *gorm.DB, logger *slog.Logger) {
+	m := db.Migrator()
+	if m.HasTable(&models.GameTrace{}) {
+		return
+	}
+	if err := m.CreateTable(&models.GameTrace{}); err != nil {
+		logger.Error("failed to create game_traces", "error", err)
+		return
+	}
+	logger.Info("created game_traces")
 }

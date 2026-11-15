@@ -816,6 +816,32 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- state ----------
     let phase = 'idle';           // idle | intro | play | over
+    // The run's event log: [ms since the start, what, details...]. Small on purpose (no frames,
+    // no pointer path), posted when the run ends so odd behaviour can be found afterwards.
+    const TRACE_MAX = 1500;
+    let trace = [], traceT0 = 0, traceInput = 'mouse', traceSec = 0, traceFrames = 0;
+    function log(what, ...a) {
+        if (dbg || phase === 'idle' || trace.length >= TRACE_MAX) return;
+        trace.push([Math.round(performance.now() - traceT0), what, ...a]);
+    }
+    const r2 = v => Math.round(v * 100) / 100;
+    // once a second: the state of the run, and anything that should never happen
+    function traceTick(dt) {
+        traceFrames++; traceSec += dt;
+        if (traceSec < 1) return;
+        log('s', fruits.length, pieces.length, pickups.length + flies.length + crates.length, r2(stamina), r2(timeLeft), traceFrames);
+        if (traceFrames < 30) log('bug', 'slow-frames', traceFrames);
+        traceSec = 0; traceFrames = 0;
+        if (fruits.concat(pieces).some(f => !isFinite(f.x) || !isFinite(f.y))) log('bug', 'nan-position');
+        if (!isFinite(timeLeft) || !isFinite(stamina) || !isFinite(style)) log('bug', 'nan-state');
+        if (stamina < -0.01 || stamina > STAMINA_BARS + 0.01) log('bug', 'stamina-range', r2(stamina));
+        if (fruits.length > 80 || pieces.length > 400) log('bug', 'flood', fruits.length, pieces.length);
+        if (fruits.some(f => f.entered && (f.y < -H * 2 || Math.abs(f.x) > W * 4))) log('bug', 'fruit-far-away');
+        if (sakeLeft > SAKE_SECONDS + POWER_BONUS_MAX + 0.1 || fireLeft > FIRE_SECONDS + POWER_BONUS_MAX + 0.1) log('bug', 'power-too-long', r2(sakeLeft), r2(fireLeft));
+        if (markQueue.length > 200) log('bug', 'mark-queue', markQueue.length);
+    }
+    function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
+    window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let dbg = false, dbgFrozen = false;                        // debug mode, and its stand-still before the first touch
     let phaseT = 0, clockT = 0, spawnT = 0, combo = 0, lastSlice = -1;
     let timeLeft = START_SECONDS;     // clockT = seconds survived
@@ -1071,6 +1097,7 @@ export function mountFrogGame(stage, opts = {}) {
         const ic = Math.cos(-c.rot), is = Math.sin(-c.rot);
         const ux = ((hx - c.x) * ic - (hy - c.y) * is) / c.hw, uy = ((hx - c.x) * is + (hy - c.y) * ic) / (c.hw * CRATE_TALL);
         const omni = Math.hypot(ux, uy) < 0.38, outA = Math.atan2(hy - c.y, hx - c.x);
+        log('crate', omni ? 1 : 0, cone ? 1 : 0);
         // breaking a crate is worth an apple
         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult;
         timeLeft += gain; slices++; lastSlice = performance.now();
@@ -1151,6 +1178,7 @@ export function mountFrogGame(stage, opts = {}) {
         f.fam.cuts++;
         lastSlice = now;
         timeLeft += gain; slices++;
+        log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
@@ -1212,7 +1240,7 @@ export function mountFrogGame(stage, opts = {}) {
         GRADES.forEach((g, i) => { if (style >= g.at) ix = i; });
         if (ix !== gradeIx) {
             const up = ix > gradeIx;
-            gradeIx = ix;
+            gradeIx = ix; log('grade', ix);
             const G = GRADES[ix];
             el.grade.dataset.g = G.g;
             el.gradeName.textContent = G.name; el.gradeBonus.textContent = ix ? '+' + Math.round(G.bonus * 100) + '%' : '';
@@ -1298,6 +1326,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     function breakFly(f, ang) {
+        log('wreck', 'fly', sakeLeft > 0 ? 1 : 0);
         if (sakeLeft <= 0) hurtFlash = 0.35;                // you just wasted a power-up (free of charge on sake: no flash)
         setBladeFx('fire', f.x, f.y);
         // cut in half: the halves fly apart, then drop
@@ -1309,6 +1338,7 @@ export function mountFrogGame(stage, opts = {}) {
         splash(f.x, f.y, '#eeff41', 8, 3);
     }
     function breakPickup(b, ang) {
+        log('wreck', b.kind, sakeLeft > 0 ? 1 : 0);
         if (b.kind === 'fireworks') {   // slashing is how you set these off: no penalty
             fwLeft = FW_SECONDS; fwT = 0;
             floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks!', t: 0, hot: true });
@@ -1340,6 +1370,7 @@ export function mountFrogGame(stage, opts = {}) {
     function burnFruit(f, mult = 1) {
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult, 0.01);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
+        log('burn', f.type.kind, r2(gain));
         style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);   // and half a style point
         // what's left: a puddle of molten fruit dripping down
         const r = f.r, col = f.type.flesh, skin = f.type.skin;
@@ -1472,6 +1503,7 @@ export function mountFrogGame(stage, opts = {}) {
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
+        traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
         if (fireLeft > 0 || fwBusy()) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
@@ -1671,6 +1703,7 @@ export function mountFrogGame(stage, opts = {}) {
         return null;
     }
     function swallow(c) {
+        log('eat', c.kind);
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
             flyCatches++;
@@ -1794,7 +1827,7 @@ export function mountFrogGame(stage, opts = {}) {
     const fwBusy = () => fwShots > 0 || rockets.length > 0;       // spitting rockets: no slashing, no tongue
     // a blast at (x, y): everything inside burns at once, crates break open
     function explode(x, y, R) {
-        blasts.push({ x, y, R, t: 0 });
+        blasts.push({ x, y, R, t: 0 }); log('boom', Math.round(R));
         for (let i = 0; i < 46; i++) {
             const a = rand(0, 6.28), v = rand(0.25, 1) * R * 2.6;
             sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: RAINBOW[i % 6], t: 0, life: rand(0.5, 0.95), s: rand(2, 4.5) });
@@ -1892,7 +1925,8 @@ export function mountFrogGame(stage, opts = {}) {
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
-        phase = 'count'; countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
+        phase = 'count';
+        trace = []; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
     function stepCount(dt) {
         countT -= dt;
@@ -1919,6 +1953,8 @@ export function mountFrogGame(stage, opts = {}) {
         el.tips.hidden = true; el.skip.hidden = true; el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
+        log('over', ms, slices, gradeIx);
+        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, events: trace });
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms }, el.save);
         el.overlay.hidden = false;
     }
@@ -2075,7 +2111,7 @@ export function mountFrogGame(stage, opts = {}) {
                 freezeLeft = 0;
             }
             if (wasFrozen && freezeLeft <= 0) {
-                markQueue = allMarked();
+                markQueue = allMarked(); log('release', markQueue.length);
                 markCut = { id: ++cutId, hits: 0 };   // the release is one slash: each thing it cuts is worth more than the last
                 markT = 0; markFrom = null;
             }
@@ -2175,6 +2211,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
             if (stunT > 0) stunT = Math.max(0, stunT - dt);
+            if (!dbg) traceTick(dt);
             if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
             hud();
         }
@@ -2503,6 +2540,7 @@ export function mountFrogGame(stage, opts = {}) {
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('blur', onBlur);
+        window.removeEventListener('error', onErr); window.removeEventListener('unhandledrejection', onErr);
         window.removeEventListener('pointercancel', onUp);
         canvas.removeEventListener('contextmenu', noMenu);
         document.removeEventListener('visibilitychange', onVis);

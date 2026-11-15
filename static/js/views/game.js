@@ -148,6 +148,8 @@ export function GameView() {
 
     mountFrogGame(document.getElementById('game-stage'), {
         busy: () => !screen.hidden,
+        // every finished run sends its event log (anonymous) so bugs can be found; a failure is nobody's problem
+        onTrace(t) { API.submitGameTrace(t).catch(() => {}); },
         onScoreboard() {
             showBoard(true);
         },
