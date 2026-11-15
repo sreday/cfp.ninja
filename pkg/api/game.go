@@ -71,13 +71,19 @@ type gameScoreRow struct {
 	Score  int
 }
 
-func loadScoreboard(cfg *config.Config, me *models.User) (map[string]interface{}, error) {
+// loadScoreboard returns one of the two boards: the players' (runs that looked
+// human) or the AI agents' (runs that looked automated, see looksAutomated).
+func loadScoreboard(cfg *config.Config, me *models.User, agents bool) (map[string]interface{}, error) {
+	col := "score"
+	if agents {
+		col = "agent_score"
+	}
 	var rows []gameScoreRow
 	err := cfg.DB.Table("game_scores").
-		Select("game_scores.user_id, users.name, game_scores.score").
+		Select("game_scores.user_id, users.name, game_scores."+col+" AS score").
 		Joins("JOIN users ON users.id = game_scores.user_id AND users.deleted_at IS NULL").
-		Where("game_scores.deleted_at IS NULL AND game_scores.score > 0").
-		Order("game_scores.score DESC, game_scores.updated_at ASC").
+		Where("game_scores.deleted_at IS NULL AND game_scores."+col+" > 0").
+		Order("game_scores."+col+" DESC, game_scores.updated_at ASC").
 		Limit(GameScoreboardSize).
 		Scan(&rows).Error
 	if err != nil {
@@ -92,14 +98,21 @@ func loadScoreboard(cfg *config.Config, me *models.User) (map[string]interface{}
 			IsMe:  me != nil && row.UserID == me.ID,
 		})
 	}
-	resp := map[string]interface{}{"scores": entries}
+	board := "players"
+	if agents {
+		board = "agents"
+	}
+	resp := map[string]interface{}{"scores": entries, "board": board}
 	if me != nil {
 		var mine models.GameScore
 		err := cfg.DB.Where("user_id = ?", me.ID).First(&mine).Error
 		if err == nil {
 			var better int64
 			cfg.DB.Model(&models.GameScore{}).Where("score > ?", mine.Score).Count(&better)
-			resp["me"] = map[string]int{"rank": int(better) + 1, "score": mine.Score, "plays": mine.Plays}
+			resp["me"] = map[string]interface{}{
+				"rank": int(better) + 1, "score": mine.Score, "plays": mine.Plays,
+				"agent_score": mine.AgentScore, "appeal": mine.Appeal,
+			}
 		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
@@ -111,7 +124,7 @@ func loadScoreboard(cfg *config.Config, me *models.User) (map[string]interface{}
 // caller's own rank when they are logged in.
 func ListGameScoresHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resp, err := loadScoreboard(cfg, GetUserFromContext(r.Context()))
+		resp, err := loadScoreboard(cfg, GetUserFromContext(r.Context()), r.URL.Query().Get("board") == "agents")
 		if err != nil {
 			cfg.Logger.Error("failed to load game scoreboard", "error", err)
 			encodeError(w, "Failed to load scoreboard", http.StatusInternalServerError)
@@ -133,9 +146,10 @@ func SubmitGameScoreHandler(cfg *config.Config) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, 4<<10)
 		defer r.Body.Close()
 		var body struct {
-			Score      int `json:"score"`
-			Slices     int `json:"slices"`
-			DurationMs int `json:"duration_ms"`
+			Score      int         `json:"score"`
+			Slices     int         `json:"slices"`
+			DurationMs int         `json:"duration_ms"`
+			Signals    GameSignals `json:"signals"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			encodeError(w, "Invalid request body", http.StatusBadRequest)
@@ -146,15 +160,25 @@ func SubmitGameScoreHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
+		// A run that looks automated goes on the AI agents board, not the players' one.
+		// A player cleared on appeal (GameHumans) is always taken at their word.
+		automated, reason := looksAutomated(body.Signals)
+		if GameHumans[user.ID] {
+			automated = false
+		}
 		row := models.GameScore{UserID: user.ID, Score: body.Score, Slices: body.Slices, Plays: 1}
+		if automated {
+			row.Score, row.AgentScore = 0, body.Score
+		}
 		err := cfg.DB.Clauses(clause.OnConflict{
 			Columns: []clause.Column{{Name: "user_id"}},
 			DoUpdates: clause.Assignments(map[string]interface{}{
-				"plays":      gorm.Expr("game_scores.plays + 1"),
-				"slices":     gorm.Expr("CASE WHEN EXCLUDED.score > game_scores.score THEN EXCLUDED.slices ELSE game_scores.slices END"),
-				"score":      gorm.Expr("GREATEST(game_scores.score, EXCLUDED.score)"),
-				"updated_at": gorm.Expr("CASE WHEN EXCLUDED.score > game_scores.score THEN EXCLUDED.updated_at ELSE game_scores.updated_at END"),
-				"deleted_at": nil,
+				"plays":       gorm.Expr("game_scores.plays + 1"),
+				"slices":      gorm.Expr("CASE WHEN EXCLUDED.score > game_scores.score THEN EXCLUDED.slices ELSE game_scores.slices END"),
+				"score":       gorm.Expr("GREATEST(game_scores.score, EXCLUDED.score)"),
+				"agent_score": gorm.Expr("GREATEST(game_scores.agent_score, EXCLUDED.agent_score)"),
+				"updated_at":  gorm.Expr("CASE WHEN EXCLUDED.score > game_scores.score OR EXCLUDED.agent_score > game_scores.agent_score THEN EXCLUDED.updated_at ELSE game_scores.updated_at END"),
+				"deleted_at":  nil,
 			}),
 		}).Create(&row).Error
 		if err != nil {
@@ -163,11 +187,15 @@ func SubmitGameScoreHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 
-		resp, err := loadScoreboard(cfg, user)
+		resp, err := loadScoreboard(cfg, user, false)
 		if err != nil {
 			cfg.Logger.Error("failed to load game scoreboard", "error", err)
 			encodeError(w, "Failed to load scoreboard", http.StatusInternalServerError)
 			return
+		}
+		if automated {
+			resp["automated"] = true
+			resp["reason"] = reason
 		}
 		encodeResponse(w, r, resp)
 	}

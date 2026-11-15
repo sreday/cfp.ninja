@@ -20,7 +20,11 @@ Read this first when picking the work up. Everything needed is in this repo.
   Heroku login. Pushing to GitHub alone deploys nothing.
 - **Testing:** the Debug pill at the top right of `/game` (drag items onto the field, no
   clock or score), plus `tools/mockserver.py` and `tools/cdp.py` for headless runs.
-- **Run recorder:** every run (and debug session) posts an anonymous event log to
+- **Two scoreboards:** players and AI agents (`pkg/api/game_agent.go`); appeals are judged by
+  the trace review and applied by adding the player id to `GameHumans`.
+- **Terms:** the game has its own section in `static/js/views/terms.js`. Keep it in step
+  with what the game records and does; bump the "Last updated" date when it changes.
+- **Run recorder:** every run (and debug session) posts an event log, tied to the player when logged in, to
   `/api/v0/game/traces`; see `log()` in `static/js/views/frog-game.js`.
 
 The sections below are the 2026-11-10 handoff and are partly out of date: the game is

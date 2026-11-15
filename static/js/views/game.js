@@ -60,15 +60,31 @@ function renderBoard(data) {
             <b class="game-step-time">${fmt(s.score)}</b>
         </li>`).join('');
     podium.hidden = !scores.length;
+    const agents = data && data.board === 'agents';
+    document.querySelectorAll('.game-tab').forEach(t => {
+        const on = (t.dataset.board === 'agents') === agents;
+        t.classList.toggle('btn-primary', on); t.classList.toggle('btn-outline-secondary', !on); t.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    const sub = document.getElementById('game-board-sub');
+    if (sub) sub.textContent = agents ? 'Runs that looked automated: scripts and AI agents' : 'Longest run per player';
     list.innerHTML = scores.length
         ? scores.slice(3).map(row).join('')
-        : '<li class="game-empty text-muted">No scores yet. Be the first ninja on the board.</li>';
+        : `<li class="game-empty text-muted">${agents ? 'No AI agents on the board yet.' : 'No scores yet. Be the first ninja on the board.'}</li>`;
     list.hidden = scores.length > 0 && scores.length <= 3;
 
     if (Auth.isLoggedIn()) {
-        mine.innerHTML = data && data.me
-            ? `Your best: <b>${fmt(data.me.score)}</b>, rank <b>#${data.me.rank}</b> after ${data.me.plays} ${data.me.plays === 1 ? 'run' : 'runs'}.`
+        const me = data && data.me;
+        let html = me && me.score > 0
+            ? `Your best: <b>${fmt(me.score)}</b>, rank <b>#${me.rank}</b> after ${me.plays} ${me.plays === 1 ? 'run' : 'runs'}.`
             : 'Finish a run to get on the board.';
+        // a run of theirs was judged automated: say so, and let them say it was them
+        if (me && me.agent_score > 0) {
+            html += `<p class="small text-muted mt-3 mb-2">A run of yours (<b>${fmt(me.agent_score)}</b>) looked automated, so it is on the AI agents board.</p>`
+                + (me.appeal
+                    ? '<p class="small mb-0">Your appeal is in. The run will be looked at again.</p>'
+                    : '<button type="button" class="btn btn-outline-secondary btn-sm game-appeal">It was me: appeal</button>');
+        }
+        mine.innerHTML = html;
     } else if (githubEnabled()) {
         mine.innerHTML = `<p class="mb-2">Log in to put your score on the board.</p>${loginButton('Log in with GitHub')}
             <p class="small text-muted mt-2 mb-0">By logging in you accept the <a href="/terms">Terms &amp; Conditions</a>.</p>`;
@@ -77,9 +93,11 @@ function renderBoard(data) {
     }
 }
 
-async function loadBoard() {
+let boardShown = 'players';
+async function loadBoard(board) {
+    if (board) boardShown = board;
     try {
-        renderBoard(await API.getGameScores());
+        renderBoard(await API.getGameScores(boardShown));
     } catch (e) {
         const list = document.getElementById('game-board');
         if (list) { list.hidden = false; list.innerHTML = '<li class="game-empty text-muted">The scoreboard is resting. Try again in a moment.</li>'; }
@@ -92,7 +110,10 @@ async function submitRound(round, slot) {
         writePending(null);
         renderBoard(data);
         const me = data && data.me;
-        const msg = me ? `Saved. Your best is ${fmt(me.score)}, rank #${me.rank}.` : 'Saved.';
+        // a run that looked automated is saved on the AI agents board, and the player is told why
+        const msg = data && data.automated
+            ? `This run looked automated (${data.reason}), so it is on the AI agents board. If it was you, appeal from the scoreboard.`
+            : me ? `Saved. Your best is ${fmt(me.score)}, rank #${me.rank}.` : 'Saved.';
         if (slot) slot.innerHTML = `<p class="fg-saved mb-0 mt-3">${escapeHtml(msg)}</p>`;
         else toast.success(msg);
     } catch (e) {
@@ -118,7 +139,11 @@ export function GameView() {
                     <div class="game-board-head">
                         <div>
                             <h2 class="game-board-title">Scoreboard</h2>
-                            <span class="text-muted">Longest run per player</span>
+                            <span class="text-muted" id="game-board-sub">Longest run per player</span>
+                            <div class="game-tabs">
+                                <button type="button" class="btn btn-sm btn-primary game-tab" data-board="players" aria-pressed="true">Players</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary game-tab" data-board="agents" aria-pressed="false">AI agents</button>
+                            </div>
                         </div>
                         <button type="button" class="btn btn-primary game-board-close">Back to the game</button>
                     </div>
@@ -139,9 +164,15 @@ export function GameView() {
 
     // the scoreboard is a panel over the game (70% of the screen), opened from the start / game-over panel
     const screen = document.getElementById('game-board-screen');
-    const showBoard = (on) => { screen.hidden = !on; if (on) { loadBoard(); screen.querySelector('.game-board-close').focus(); } };
+    const showBoard = (on) => { screen.hidden = !on; if (on) { loadBoard('players'); screen.querySelector('.game-board-close').focus(); } };
     main.querySelector('.game-page').addEventListener('click', (e) => {
         if (e.target.closest('.game-login')) Auth.login('github');
+        const tab = e.target.closest('.game-tab');
+        if (tab) loadBoard(tab.dataset.board);
+        if (e.target.closest('.game-appeal')) {
+            API.appealGameScore().then(() => { toast.success('Appeal sent. The run will be looked at again.'); loadBoard(); })
+                .catch(err => toast.error(err.message || 'Could not send the appeal.'));
+        }
         if (e.target.closest('.game-board-close') || e.target === screen) showBoard(false);   // the button, or a click away from the panel
     });
     screen.addEventListener('keydown', (e) => { if (e.key === 'Escape') showBoard(false); });

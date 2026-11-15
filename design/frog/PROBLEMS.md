@@ -10,8 +10,11 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Needs a decision from Marek
 
-- 2026-11-15 | setup | The Terms don't mention that runs are recorded (anonymous event
-  logs, no user data). Add a sentence or leave as is? | open
+- 2026-11-15 | setup | The time curve and the bowl size were set from a model with guessed
+  skill levels, not from data. Expect to retune once there are 100 real runs. | waiting for data
+- 2026-11-15 | setup | The AI-agent verdict relies on signals from the browser, so a
+  determined cheat can fake being human. Fine for agents that play openly; say if the
+  scoreboard needs to be cheat-proof. | open
 - 2026-11-15 | setup | Balance has never been checked against data. See the open questions
   in `PRINCIPLES.md`; first numbers after enough runs are in. | waiting for data
 
@@ -40,6 +43,23 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 - 2026-11-15 | design | All art is placeholder. See `STYLE.md` and `ASSETS.md`.
 - 2026-11-15 | handoff | The frog is still the hand-drawn SVG, not traced from the logo
   (see `HANDOFF.md` and `SPEC.md`).
+
+## Appeals
+
+Players who say an "AI agent" verdict was wrong (`GET /api/v0/game/appeals`). The review
+reads their flagged runs and writes a verdict here; a human applies an upheld one by adding
+the player id to `GameHumans` in `pkg/api/game_agent.go`.
+
+| Date | Player id | Trace ids | Verdict | Why | Applied |
+|---|---|---|---|---|---|
+
+## The shape of a run
+
+How real runs compare with the targets in `PRINCIPLES.md` section 3a. Filled in by the
+trace review once there are at least 100 real runs.
+
+| Date | Runs | Reach 60 s | Reach 120 s | Reach 180 s | Reach 240 s | All 10 bowls | Note |
+|---|---|---|---|---|---|---|---|
 
 ## Balance watch
 

@@ -28,7 +28,7 @@ const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops,
 // and can't slash or use the tongue meanwhile. The breath lights them, a clock can mark
 // them, and one blast sets off any other bundle it reaches. A blast burns fruit outright for FW_BONUS more
 // time than a normal burn, and breaks crates open.
-const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 10, FW_SHOT_GAP = 0.12, FW_BONUS = 1.5;
+const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 10, FW_SHOT_GAP = 0.04, FW_BONUS = 1.5;
 const FW_FIRST = [26, 40], FW_NEXT = [42, 65];
 // The fruit crate: rare, thrown like fruit; slash it open and CRATE_FRUIT fruit burst out.
 const CRATE_TALL = 1;                            // the crate's height against its width: square
@@ -883,6 +883,12 @@ export function mountFrogGame(stage, opts = {}) {
     function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false;
+    // How the run was played, reported with the score so runs played by a script or an AI
+    // agent go on their own board (see looksAutomated in pkg/api/game_agent.go).
+    let sig = { webdriver: false, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 };
+    const noteInput = e => { if (e && e.isTrusted === false) sig.untrusted++; };
+    // a slash that counted has ended: was there any pointer path, or did it jump?
+    function closeCut() { if (cut && cut.paid && phase === 'play' && cut.len > 160 && (cut.samples || 0) <= 2) sig.teleports++; }
     // The fruit salad: everything that gets cut, grilled or blown apart lands in bowls stacked
     // around the frog. A bowl takes BOWL_HOLDS pieces to fill; there are BOWLS of them. Filling
     // them all is cosmetic, and meant to be something only the very best runs manage.
@@ -1035,7 +1041,7 @@ export function mountFrogGame(stage, opts = {}) {
     let freezeLeft = 0, fireLeft = 0, fireEmit = 0;
     // time freeze: the blades rest; fruit the cursor passes over is marked, in order, and
     // when time flows again every marked fruit is cut clean through the middle, in that order
-    let slowTail = 0;
+    let slowTail = 0, slowNow = false;
     let markAgain = [];                                        // the second pass of a release
     // the look of a sequence cut once the sword is enchanted: coloured, wider, and fire sheds flames
     function seqFlash(x, y, dx, dy, r) {
@@ -1284,6 +1290,7 @@ export function mountFrogGame(stage, opts = {}) {
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
             * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
         f.fam.cuts++;
+        if (f.fam.cuts === 1 && cut && cut !== markCut && cut !== warpCut) { sig.cuts++; if (hit.clean) sig.clean++; }
         lastSlice = now;
         timeLeft += gain; slices++;
         val(cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
@@ -1650,11 +1657,12 @@ export function mountFrogGame(stage, opts = {}) {
         trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
         return true;
     }
-    function endCut() { cut = null; gapLeft = CUT_GAP; }
+    function endCut() { closeCut(); cut = null; gapLeft = CUT_GAP; }
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
+        noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
         if (fireLeft > 0 || fwBusy()) return;                // breathing fire or spitting fireworks: no slashing, no tongue
@@ -1683,6 +1691,7 @@ export function mountFrogGame(stage, opts = {}) {
         touchDown = { x: px, y: py, t: performance.now(), far: 0, finger: e.pointerType !== 'mouse' };
     }
     function onMove(e) {
+        noteInput(e);
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
         const b = canvas.getBoundingClientRect();
@@ -1795,13 +1804,14 @@ export function mountFrogGame(stage, opts = {}) {
             cut.pend.push([lx, ly, ex, ey]);
             if (cut.len + (done ? left : seg) >= minCut()) {
                 if (!freeCut()) stamina = Math.max(0, stamina - 1);
+                sig.slashes++;
                 snd('slash', { kind: sakeLeft > 0 || fxLeft > 0 ? (bladeFx.fire ? 'fire' : bladeFx.frost ? 'frost' : 'sake') : '', power: clamp(bladeSpeed / (H * 3), 0, 1) });
                 cut.paid = true;
                 const mine = cut;
                 mine.pend.forEach(q => { if (cut === mine) hitTest(q[0], q[1], q[2], q[3], mine.hx, mine.hy); });
             }
         }
-        cut.len += done ? left : seg;
+        cut.len += done ? left : seg; cut.samples = (cut.samples || 0) + 1;
         const enchanted = fxLeft > 0 && cut.paid;          // the sword still carries a power-up's effect
         if (enchanted) {
             shedBladeFx(lx, ly, ex, ey);
@@ -1814,6 +1824,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function onUp(e) {
         // a press released where it landed (a tap, or a left click with no drag) is the tongue
+        noteInput(e); closeCut();
         let tap = down && e.type === 'pointerup' ? press : null;
         // A finger is not a mouse: a quick touch that slid a little is still a tap, as long as
         // it never became a real slash (nothing paid for, nothing cut).
@@ -1881,7 +1892,7 @@ export function mountFrogGame(stage, opts = {}) {
             hopT = 0.5;
         } else if (c.kind === 'fireworks') {
             // the frog spits the rockets out, one after another, at wherever the cursor is
-            fwShots = FW_SHOTS; fwShotT = 0.15;
+            fwShots = FW_SHOTS; fwShotT = 0.02;
             down = false; cut = null; press = null;
             floats.push({ x: m.x, y: m.y - 40, text: 'Fireworks!', t: 0, hot: true });
             hopT = 0.5;
@@ -2107,7 +2118,8 @@ export function mountFrogGame(stage, opts = {}) {
         hud();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'count';
-        salad = []; trace = []; worth = {}; sndCount = {}; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
+        salad = []; trace = []; worth = {}; sndCount = {};
+        sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
     function stepCount(dt) {
         countT -= dt;
@@ -2135,9 +2147,9 @@ export function mountFrogGame(stage, opts = {}) {
         showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
-        logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('over', ms, slices, gradeIx);
-        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, events: trace });
-        if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms }, el.save);
+        logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('signals', sig); log('over', ms, slices, gradeIx);
+        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: trace });
+        if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         el.overlay.hidden = false;
     }
     el.start.addEventListener('click', () => {
@@ -2310,6 +2322,7 @@ export function mountFrogGame(stage, opts = {}) {
 
         // game; the alarm clock slows the world to SLOWMO (wdt) and stops the countdown, not the frog
         // (the slashes that follow a freeze are made while the world is still slow; then time resumes)
+        slowNow = freezeLeft > 0 || markQueue.length > 0 || slowTail > 0;
         const frozen = freezeLeft > 0 || markQueue.length > 0;
         // and when it is all over the world takes SLOW_TAIL s to pick up speed, the countdown still held
         if (!frozen && slowTail === SLOW_TAIL) snd('resume');
@@ -2425,7 +2438,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (!markQueue.length && fxPending) { fxPending = false; fxLeft = FX_SECONDS; }
             }
             if (fxLeft > 0 && !markQueue.length) { fxLeft = Math.max(0, fxLeft - dt); if (fxLeft <= 0 && sakeLeft <= 0) clearBladeFx(); }
-            if (!dbg) spawnT -= wdt;
+            if (!dbg) spawnT -= dt;                              // real time: slow motion doesn't hold the fruit back
             if (spawnT <= 0) {
                 const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
                 for (let i = 0; i < volley; i++) spawn(difficulty);
@@ -2500,7 +2513,9 @@ export function mountFrogGame(stage, opts = {}) {
                 continue;
             }
             if (f.hacked && f.hackT >= HACK_FLOAT) { f.hacked = false; f.vx = 0; f.vy = 0; }   // the hack wears off
-            const ft = wdt;
+            // fruit thrown in during slow motion comes in at full speed until it is properly on screen
+            if (!f.inPlay && f.x > f.r && f.x < W - f.r && f.y < H - f.r * 1.5) f.inPlay = true;
+            const ft = slowNow && !f.inPlay ? dt : wdt;
             f.vy += f.g * ft; f.x += f.vx * ft; f.y += f.vy * ft; f.rot += f.spin * ft;
             if (!f.entered && f.x > -f.r && f.x < W + f.r && f.y < H) f.entered = true;
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);

@@ -10,4 +10,8 @@ type GameScore struct {
 	Score  int  `gorm:"index" json:"score"`
 	Slices int  `json:"slices"`
 	Plays  int  `json:"plays"`
+	// AgentScore is the best run that looked automated (the AI agents board);
+	// Appeal is set when the player says that verdict was wrong.
+	AgentScore int  `gorm:"index;not null;default:0" json:"agent_score"`
+	Appeal     bool `gorm:"not null;default:false" json:"appeal"`
 }

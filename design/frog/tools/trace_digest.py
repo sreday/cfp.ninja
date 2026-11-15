@@ -111,6 +111,30 @@ def main():
         d = sorted(r.get("duration_ms", 0) for r in real)
         print(f"time survived, real runs: median {d[len(d) // 2] / 1000:.1f} s, best {d[-1] / 1000:.1f} s")
 
+    # the shape of a run: how far real runs get, and the bowls (targets: PRINCIPLES.md 3a)
+    if real:
+        n = len(real)
+        reach = lambda sec: sum(1 for r in real if r.get("duration_ms", 0) >= sec * 1000)
+        bowls = 0
+        for r in real:
+            for e in r.get("events") or []:
+                if isinstance(e, list) and len(e) >= 4 and e[1] == "salad" and e[3] >= 10:
+                    bowls += 1
+        print("shape of a run: " + ", ".join(f"reach {s_} s {reach(s_)}/{n} ({100 * reach(s_) / n:.0f}%)" for s_ in (60, 120, 180, 240))
+              + f", all 10 bowls {bowls}/{n}")
+        print("  enough data for a shape row: " + ("yes" if n >= 100 else "no (need 100 real runs)"))
+    agents = [r for r in runs if r.get("agent")]
+    print(f"runs judged automated: {len(agents)} of {len(runs)}" + (f" (trace ids {', '.join(str(r['id']) for r in agents[:10])})" if agents else ""))
+    if not a.file:
+        try:
+            with urllib.request.urlopen(a.base.rsplit("/", 1)[0] + "/appeals", timeout=30) as resp:
+                appeals = json.load(resp).get("appeals", [])
+            print(f"open appeals: {len(appeals)}")
+            for ap in appeals[:10]:
+                print(f"  player {ap.get('player')}: agent score {ap.get('agent_score', 0) / 1000:.1f} s, flagged traces {ap.get('traces')}")
+        except Exception as ex:  # the endpoint may not be deployed yet
+            print(f"open appeals: could not be read ({ex})")
+
     flagged = [(r, check(r)) for r in runs]
     flagged = [(r, f) for r, f in flagged if f]
     reasons = {}

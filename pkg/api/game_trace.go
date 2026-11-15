@@ -10,8 +10,9 @@ import (
 	"github.com/sreday/cfp.ninja/pkg/models"
 )
 
-// Frog Ninja run traces: every finished run posts its event log (anonymous), the
-// newest MaxGameTraces are kept, and anyone may read them back in pages.
+// Frog Ninja run traces: every finished run posts its event log, the newest
+// MaxGameTraces are kept, and they can be read back in pages. A logged-in
+// player's runs carry their player id (a number, never a name).
 const (
 	MaxGameTraceBytes = 32 << 10
 	MaxGameTraces     = 2000
@@ -25,6 +26,8 @@ type GameTraceEntry struct {
 	Score      int             `json:"score"`
 	DurationMs int             `json:"duration_ms"`
 	Input      string          `json:"input"`
+	Player     uint            `json:"player"` // the player's id (no name), 0 when not logged in
+	Agent      bool            `json:"agent"`  // the run looked automated
 	Events     json.RawMessage `json:"events"`
 }
 
@@ -39,7 +42,8 @@ func validateGameTrace(score, durationMs int, events json.RawMessage) string {
 	return ""
 }
 
-// SubmitGameTraceHandler stores the event log of a finished run. No login needed.
+// SubmitGameTraceHandler stores the event log of a finished run. No login is
+// needed; when the player is logged in the run is tied to their account.
 func SubmitGameTraceHandler(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, MaxGameTraceBytes)
@@ -48,6 +52,7 @@ func SubmitGameTraceHandler(cfg *config.Config) http.HandlerFunc {
 			Score      int             `json:"score"`
 			DurationMs int             `json:"duration_ms"`
 			Input      string          `json:"input"`
+			Signals    GameSignals     `json:"signals"`
 			Events     json.RawMessage `json:"events"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -63,6 +68,10 @@ func SubmitGameTraceHandler(cfg *config.Config) http.HandlerFunc {
 			input = body.Input
 		}
 		row := models.GameTrace{Score: body.Score, DurationMs: body.DurationMs, Input: input, Data: string(body.Events)}
+		if user := GetUserFromContext(r.Context()); user != nil {
+			row.UserID = user.ID
+		}
+		row.Agent, _ = looksAutomated(body.Signals)
 		if err := cfg.DB.Create(&row).Error; err != nil {
 			cfg.Logger.Error("failed to save game trace", "error", err)
 			encodeError(w, "Failed to save the run", http.StatusInternalServerError)
@@ -91,7 +100,7 @@ func ListGameTracesHandler(cfg *config.Config) http.HandlerFunc {
 		for _, row := range rows {
 			out = append(out, GameTraceEntry{
 				ID: row.ID, CreatedAt: row.CreatedAt, Score: row.Score, DurationMs: row.DurationMs,
-				Input: row.Input, Events: json.RawMessage(row.Data),
+				Input: row.Input, Player: row.UserID, Agent: row.Agent, Events: json.RawMessage(row.Data),
 			})
 		}
 		encodeResponse(w, r, map[string]interface{}{"traces": out})

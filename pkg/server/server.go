@@ -52,6 +52,8 @@ func SetupServer(staticHandler http.Handler) (*config.Config, http.Handler, erro
 	EnsureStatusChangedByColumn(db, cfg.Logger)
 	EnsureGameScoresTable(db, cfg.Logger)
 	EnsureGameTracesTable(db, cfg.Logger)
+	EnsureGameColumns(db, cfg.Logger)
+	ApplyGameHumans(db, cfg.Logger)
 
 	// Set Stripe API key once at startup (not per-request) to avoid data races
 	if cfg.StripeSecretKey != "" {
@@ -161,8 +163,12 @@ func RegisterRoutes(cfg *config.Config, mux *http.ServeMux) {
 	mux.HandleFunc("OPTIONS /api/v0/game/scores", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 	// Frog Ninja run traces: anonymous event logs of finished runs, for finding bugs
 	mux.HandleFunc("GET /api/v0/game/traces", api.CorsHandler(cfg, readLimiter.Middleware(api.ListGameTracesHandler(cfg))))
-	mux.HandleFunc("POST /api/v0/game/traces", api.CorsHandler(cfg, writeLimiter.Middleware(api.SubmitGameTraceHandler(cfg))))
+	mux.HandleFunc("POST /api/v0/game/traces", api.CorsHandler(cfg, writeLimiter.Middleware(api.OptionalAuthHandler(cfg, api.SubmitGameTraceHandler(cfg)))))
 	mux.HandleFunc("OPTIONS /api/v0/game/traces", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
+	// Frog Ninja appeals: "that automated verdict was wrong, it was me"
+	mux.HandleFunc("POST /api/v0/game/appeal", api.AuthCorsHandler(cfg, writeLimiter.Middleware(api.AppealGameScoreHandler(cfg))))
+	mux.HandleFunc("GET /api/v0/game/appeals", api.CorsHandler(cfg, readLimiter.Middleware(api.ListGameAppealsHandler(cfg))))
+	mux.HandleFunc("OPTIONS /api/v0/game/appeal", api.CorsHandler(cfg, func(w http.ResponseWriter, r *http.Request) {}))
 
 	mux.HandleFunc("POST /api/v0/webhooks/stripe", writeLimiter.Middleware(api.StripeWebhookHandler(cfg)))
 
@@ -273,4 +279,48 @@ func EnsureGameTracesTable(db *gorm.DB, logger *slog.Logger) {
 		return
 	}
 	logger.Info("created game_traces")
+}
+
+// EnsureGameColumns adds the columns the Frog Ninja tables have gained since
+// they were first created (the AI agents board, appeals, runs tied to players).
+// Additive only, like the rest of the startup steps; errors are logged, not fatal.
+func EnsureGameColumns(db *gorm.DB, logger *slog.Logger) {
+	m := db.Migrator()
+	add := func(model interface{}, table string, fields ...string) {
+		if !m.HasTable(model) {
+			return
+		}
+		for _, f := range fields {
+			if m.HasColumn(model, f) {
+				continue
+			}
+			if err := m.AddColumn(model, f); err != nil {
+				logger.Error("failed to add game column", "table", table, "field", f, "error", err)
+				continue
+			}
+			logger.Info("added game column", "table", table, "field", f)
+		}
+	}
+	add(&models.GameScore{}, "game_scores", "AgentScore", "Appeal")
+	add(&models.GameTrace{}, "game_traces", "UserID", "Agent")
+}
+
+// ApplyGameHumans moves the agent score of every player cleared on appeal
+// (api.GameHumans) onto the players' board and closes their appeal.
+func ApplyGameHumans(db *gorm.DB, logger *slog.Logger) {
+	if len(api.GameHumans) == 0 || !db.Migrator().HasColumn(&models.GameScore{}, "AgentScore") {
+		return
+	}
+	ids := make([]uint, 0, len(api.GameHumans))
+	for id := range api.GameHumans {
+		ids = append(ids, id)
+	}
+	err := db.Model(&models.GameScore{}).Where("user_id IN ? AND agent_score > 0", ids).Updates(map[string]interface{}{
+		"score":       gorm.Expr("GREATEST(score, agent_score)"),
+		"agent_score": 0,
+		"appeal":      false,
+	}).Error
+	if err != nil {
+		logger.Error("failed to apply game appeals", "error", err)
+	}
 }

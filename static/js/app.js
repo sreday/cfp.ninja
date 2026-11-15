@@ -225,8 +225,13 @@ export const API = {
     },
 
     // Frog Ninja scoreboard (/game)
-    getGameScores() {
-        return this.request('GET', '/game/scores');
+    getGameScores(board) {
+        return this.request('GET', '/game/scores' + (board === 'agents' ? '?board=agents' : ''));
+    },
+
+    // "that automated verdict was wrong, it was me"
+    appealGameScore() {
+        return this.request('POST', '/game/appeal');
     },
 
     submitGameScore(round) {
