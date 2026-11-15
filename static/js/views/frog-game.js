@@ -2659,10 +2659,11 @@ export function mountFrogGame(stage, opts = {}) {
             const q = pieces[i];
             if (!q.poly) continue;
             const br = on && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);
-            if (!inside) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
-            q.burn = (q.burn || 0) + dt * (br ? 1 : BLADE_HEAT);
+            // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
+            if (!inside && !q.lit) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
+            q.burn = (q.burn || 0) + dt * (br || q.lit ? 1 : BLADE_HEAT);
             if (Math.random() < 0.35) drops.push({ x: q.x + rand(-q.R, q.R) * 0.5, y: q.y + q.R * 0.4, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: q.type.juice, t: 0, s: rand(2, 4) });
-            if (q.burn >= burnTime()) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts)); }
+            if (q.burn >= burnTime()) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts) * (q.lit || 1)); }
         }
     }
 
@@ -3113,7 +3114,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (!turn) gulls.forEach(g => { if (g.state === 'fly' && g.x > 0 && g.x < W) gullHit(g, 'laptop'); });
         // crates: the first slash breaks them open; the fruit hangs there (time is stopped) and
         // the second slash cuts each of them once
-        if (summonFire) pieces.forEach(q => { if (!before.has(q)) q.burn = burnTime() * 0.85; });     // grilled, about to burst into juice
+        // A fire blade does what the frog's own does, and then some: what it cuts is set alight, cooks
+        // through and bursts, paying again as a burn (so fruit cut with fire is worth more than fruit
+        // cut plain). Two or three helpers carrying fire: that much more.
+        if (summonFire) pieces.forEach(q => { if (!before.has(q) && q.poly) { q.burn = Math.max(q.burn || 0, 0.001); q.lit = LAPTOP_PAY * count('fire'); } });     // grilled, about to burst into juice
         if (!turn) crates.slice().forEach(c => {
             if (c.y > H || c.x < 0 || c.x > W) return;
             crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY);
