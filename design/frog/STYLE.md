@@ -12,9 +12,10 @@ reads in a single frame, and the wildest effect never hides the fruit or the bla
 
 ## With thanks
 
-The animation target is *Absolum*, the hand-drawn beat-'em-up. The creator of the CFP.ninja
-game is a big fan, and its frog wizard, Brome, is the reason this frog wants to move the
-way it does. Thank you to everyone who made it: it is an awesome game, and studying how it
+The animation target is *Absolum*, the hand-drawn beat-'em-up developed by Guard Crush Games
+and Supamonks and published by Dotemu, with art direction by Maxime Mary. The creator of the
+CFP.ninja game is a big fan, and its frog wizard, Brome, is the reason this frog wants to
+move the way it does. Thank you to everyone who made it: it is an awesome game, and studying how it
 moves has been a pleasure. Nothing from *Absolum* is used in this game: no art, no
 characters, no frames. It is a reference for how good 2D animation feels, the way a painter
 studies another painter. If you draw for this game, study it the same way and then draw
@@ -62,10 +63,37 @@ same limited palette per object.
 
 ## How it should move
 
-What makes the reference animation feel the way it does, and what to carry over. These
-notes come from studying gameplay stills and slow-motion playback of two gameplay videos
-(listed at the end); exact frame counts were not measured and should be checked by
-stepping through the footage frame by frame before animating.
+What makes the reference animation feel the way it does, and what to carry over. The full
+study, with sources and frame counts measured at 60 fps, is in `ABSOLUM-STUDY.md`; the
+numbers below come from it.
+
+**The timing, measured**
+
+- **Whole drawings, held, never tweened.** Nothing slides, scales or rotates between
+  drawings. The makers say the characters are fully hand-drawn, with no puppets or 3D.
+- **A hold per drawing, not a global rate.** Idle: a new drawing about every 10 frames (6 a
+  second). Action: 2 to 4 frames per drawing (about 20 a second), a single frame at the
+  fastest instant, 4 to 12 frames on key poses.
+- **Few drawings per move.** A staff strike is 3 drawings in about 10 frames: 4 frames of
+  wind-up with a sparkle on the weapon for the last 2, then straight to the finished pose
+  in one frame with no in-between, and a drawn crescent arc that lives 3 to 4 frames. A
+  dash is about 3 drawings; a tongue whip about 6 in 21 frames (three single frames out, a
+  long hold on contact, 6 frames back); a big spell about 8 in 44 frames.
+- **The hold after contact is longer than the strike.** 5 to 12 frames of follow-through
+  against a 1 to 3 frame strike. A big move freezes dead still at its peak for about 6
+  frames.
+- **A hit is sold by freeze, flash and burst.** The thing hit turns into a flat coloured
+  silhouette for 2 frames, then flat white for 4, with everything frozen (4 to 6 frames of
+  hit-stop). The impact star: 1 frame as a dot, 4 white, 4 as a yellow outline. No screen
+  shake on ordinary hits in the footage studied.
+- **Effects move faster than the character.** While a pose holds, the effect drawing changes
+  every 2 to 4 frames. Arcs last 3 to 4 frames, bursts about 9; only dust lingers.
+
+For this game: a slice is a wind-up pose, a one-frame cut to the finished pose, and a
+crescent arc for 3 to 4 frames. A cut fruit is the thing hit: flash it flat white for about
+4 frames with a short freeze, then split it. Keep the idle slow so the action feels sharp.
+
+**The principles**
 
 1. **Poses first.** Each action is two or three strong key poses with very few frames
    between them. Hold the keys, hurry the in-betweens. A slash is: wind-up (short hold),
@@ -141,6 +169,8 @@ fleece, the platypus's olive hoodie and grey bill, the corgi's orange-and-white 
 
 Studied for motion only. Do not copy frames or designs.
 
+- The official Brome character trailer, `https://www.youtube.com/watch?v=hsbi-iWR39w`:
+  the cleanest footage, and the source of most of the frame counts.
 - *Absolum: Parenthood Quest (Brome's Quest and children locations)*,
   `https://www.youtube.com/watch?v=W8C9VgWZIIc`. The frog is played at about 1:47-2:40
   and 14:54-15:25. Worth stepping through: run with staff (1:47), dash lunge (2:15),
