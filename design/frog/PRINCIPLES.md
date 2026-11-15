@@ -1,0 +1,113 @@
+# Frog Ninja: core game principles
+
+This is the yardstick for every gameplay change. Before adding or tuning anything, check it
+against the principles below, and question the current balance with the data described in
+"Balance". When a principle and the game disagree, either fix the game or change the
+principle here, on purpose, with the reason.
+
+Numbers quoted here are the constants at the top of `static/js/views/frog-game.js`; that
+file is the source of truth, this document explains the intent.
+
+## 1. What the game is
+
+- **Fun to click around.** Every input does something satisfying at once: a slash cuts, a
+  tap grabs. Nothing the player does by instinct should feel punished.
+- **Low barrier of entry.** Two verbs: slash (drag) and tongue (tap or click). A new player
+  needs nothing else to enjoy a run. The how-to-play pages are optional reading.
+- **Hard to master.** Depth comes from combining things: which power-up to take with the
+  tongue and which to slash, what to burn, when to mark, how to open a crate, how to use
+  fireworks. Mastery is knowledge and timing, not hidden rules.
+- **The player is a badass.** Effects are loud, generous and over the top. When in doubt,
+  give the benefit of the doubt to the player (a sloppy tap on a power-up is a tongue shot,
+  a twitch is not a slash).
+- **Survival, not score.** Time is the only currency: the clock runs down, fruit buys
+  seconds, the score is how long you lasted.
+
+## 2. Rules that keep it fair
+
+1. **Power-ups never penalise.** Picking one up, or having one end, must never leave the
+   player worse off than before (the combo meter holds while one runs; inputs held when
+   sake ends don't carry over as paid slashes).
+2. **Precision is rewarded, not required.** The middle cut pays in full, off-centre cuts pay
+   less, only the outer 1% of a fruit bounces. A miss costs an opportunity, never a penalty
+   beyond the stamina bar a slash already costs.
+3. **Every interaction has an answer.** Any two things on screen that can meet should do
+   something sensible and readable (breath meets crate: it bursts; clock meets power-up: it
+   can be marked). "Nothing happens" is a bug unless written down here as intended.
+4. **One slash, one price.** A slash costs one stamina bar once it is long enough to count.
+   Jitter and tiny moves are free.
+5. **Readable at speed.** However wild the effects, the player must always be able to tell
+   fruit from power-up from debris, and see where the blade is.
+6. **No dominant strategy.** See "Balance".
+
+## 3. The pieces
+
+| Thing | How often | What it does |
+|---|---|---|
+| Fruit (6 kinds) | constantly, faster over time | buys 0.1 s (watermelon) to 0.5 s (plum); smaller pays more |
+| Firefly | every 8-13 s | tongue: 3 s fire breath; slashed on sake: fire blade |
+| Golden sake | every 14-20 s | tongue: 5 s free, button-less slashing |
+| Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |
+| Fruit crate | every 38-60 s (rare) | slash, punch (tongue), burn, blast or mark: 10 fruit burst out |
+| Fireworks | every 42-65 s (rare) | slash: 3 s of blasts; tongue: 5 aimed big blasts |
+
+Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
+breath + sake (wide), breath + clock (hacks fruit), sake + firefly / clock / sake (fire
+blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
+
+## 4. Balance
+
+**The rule.** For a player who does everything as well as it can be done:
+
+- Items of the same rarity are worth about the same time. Firefly, sake and clock should
+  land within roughly 25% of each other per use; crate and fireworks likewise.
+- A rarer item is worth clearly more per use than a common one, about in proportion to how
+  much rarer it is.
+- The two ways of using an item (tongue or slash, where both exist) should both be worth
+  choosing in some situation. Neither should be always better.
+- It must never be the best strategy to ignore one power-up while waiting for another, or
+  to ignore fruit while waiting for power-ups.
+
+**The data.** Every run ends with `val` events in its trace (see `log()` and `logWorth()`
+in the engine): for each source of time, how many times it was used and how many seconds
+it produced.
+
+| Source | Counts as |
+|---|---|
+| `base` | plain slashing |
+| `fire` | fruit and power-ups burned by the breath |
+| `sake` | cuts made while drunk (and burns from a sake fire blade) |
+| `clock` | cuts on release, plus the seconds the countdown stood still |
+| `sword` | the enchanted sword after a clock |
+| `fireworks` | fruit burned by blasts |
+| `crate` | the crate's own reward and every cut or burn of its fruit |
+
+Seconds per use = seconds / uses. Compare them **on the top quarter of runs by time
+survived** (the players who are doing it right), not on all runs. Debug sessions
+(`input: "debug"`) are excluded from balance numbers.
+
+**How to act on it.** Only tune when there are enough runs to trust (at least 30 uses of
+each item in the top quarter). Change one number at a time, write the before and after in
+`PROBLEMS.md`, and look again after the next batch of runs. Prefer making a weak item more
+fun over making a strong item duller.
+
+**Open balance questions** (no data yet, recorded so they get checked first):
+
+- The clock's value includes held countdown time, which the others don't have. Is it the
+  strongest common power-up by a wide margin?
+- Cutting everything twice on release doubles the cut count but the second cut pays half.
+  Is the release worth more than a full sake?
+- A crate opened by a clock now has its fruit cut at once. Does that make clock + crate
+  much better than any other way of opening a crate?
+- Fireworks pay 50% more per fruit but depend on fruit being on screen. Is the tongue use
+  (5 aimed blasts) always better than the slash use (3 s of random blasts)?
+- The firefly comes twice as often as the others. Is its per-use value about half theirs?
+
+## 5. Checklist for a change
+
+- Which principle does it serve? Does it break another?
+- Can a first-time player still play with only slash and tongue?
+- Does every existing thing have a sensible reaction to the new thing (rule 3)?
+- Is it logged in the trace, with a `val` source if it produces time?
+- Does it need a line in the how-to-play pages, and do those still fit a phone screen?
+- Was it tried in debug mode?

@@ -1,6 +1,24 @@
-# Frog Ninja: handoff (state on 2026-11-10)
+# Frog Ninja: handoff
 
-Read this first when picking the work up on another machine. Everything needed is in this repo; nothing lives only on the old Mac.
+Read this first when picking the work up. Everything needed is in this repo.
+
+## Where things are (updated 2026-11-15)
+- **`PROBLEMS.md`: read it first.** The living log of what is problematic or missing. The
+  6-hourly trace review adds to it (on the `claude/trace-review` branch and its pull request).
+- **`PRINCIPLES.md`**: the core game principles and the balance rule. Check every gameplay
+  change against it.
+- **`STYLE.md`** and **`ASSETS.md`**: the visual style for whoever draws the game, and the
+  list of every element to create. All current art is placeholder.
+- **`SPEC.md`**: the measured anatomy of the logo frog.
+- **Deploy:** Heroku app `cfpninja`, by `git push heroku main` from a machine that has the
+  Heroku login. Pushing to GitHub alone deploys nothing.
+- **Testing:** the Debug pill at the top right of `/game` (drag items onto the field, no
+  clock or score), plus `tools/mockserver.py` and `tools/cdp.py` for headless runs.
+- **Run recorder:** every run (and debug session) posts an anonymous event log to
+  `/api/v0/game/traces`; see `log()` in `static/js/views/frog-game.js`.
+
+The sections below are the 2026-11-10 handoff and are partly out of date: the game is
+deployed, and it has grown a lot since (see the git log).
 
 ## What exists
 - **The game is shipped to `main` (commit 115b272), but not deployed.**
