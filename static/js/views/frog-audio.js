@@ -166,6 +166,14 @@ export const SYNTH = {
         [0.08, 0.16, 0.25, 0.33].forEach(d => noise(c, o, t + d + Math.random() * 0.04, { dur: 0.05, gain: 0.1, filter: 'highpass', f: 5000 }));   // the crackle
     },
 
+    // ----- the seagull -----
+    // its cry: two harsh, falling calls
+    gull(c, o, t) { [0, 0.2].forEach(d => { tone(c, o, t + d, { type: 'sawtooth', f: jit(1250, 0.06), f1: 780, dur: 0.15, gain: 0.13, attack: 0.01 }); tone(c, o, t + d, { type: 'square', f: jit(1900, 0.06), f1: 1150, dur: 0.12, gain: 0.05, attack: 0.01 }); }); },
+    // a beak on a skull
+    gull_peck(c, o, t) { tone(c, o, t, { type: 'square', f: 900, f1: 420, dur: 0.04, gain: 0.16, attack: 0.001 }); noise(c, o, t, { dur: 0.02, gain: 0.2, f: 2600, q: 3 }); },
+    // out cold: a cut-off squawk, then the long whistle down
+    gull_faint(c, o, t) { tone(c, o, t, { type: 'sawtooth', f: 1500, f1: 600, dur: 0.09, gain: 0.14 }); tone(c, o, t + 0.1, { f: 1700, f1: 240, dur: 0.6, gain: 0.12, attack: 0.02 }); },
+
     // ----- crates -----
     crate(c, o, t) {
         noise(c, o, t, { dur: 0.1, gain: 0.7, f: 1900, q: 0.8 });                                                      // the crack

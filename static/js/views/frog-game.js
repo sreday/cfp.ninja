@@ -40,6 +40,13 @@ const FRIENDS = ['monkey', 'llama', 'platypus', 'corgi'];
 // The fruit crate: rare, thrown like fruit; slash it open and CRATE_FRUIT fruit burst out.
 const CRATE_TALL = 1;                            // the crate's height against its width: square
 const CRATE_BURST = 0.7;                         // how fast the fruit leaves the crate (1 = as fast as thrown fruit)
+// The seagull: the one thing on screen that punishes a careless blade. It flies straight
+// across. Touched bare (a plain slash or the tongue) it comes for the frog and stuns it as
+// long as a watermelon on the head does. Hit with any boost on (fire, sake, clock, the
+// enchanted sword, fireworks, the laptop) it faints and drops into the sea, for an apple's
+// worth of time, less for each further hit. It never comes apart.
+const GULL_FIRST = [26, 40], GULL_EVERY = [40, 62];   // seconds
+const GULL_IN = 0.35, GULL_OUT = 0.6;           // the flight onto the frog, and away again
 const CRATE_FRUIT = 10, CRATE_FIRST = [22, 34], CRATE_EVERY = [38, 60];   // seconds
 const WOOD = { face: '#c9a36b', dark: '#a9834f', back: '#8d6b3f', inside: '#5d452a' };
 const HACK_FLOAT = 5;                            // seconds a hacked fruit floats; then it is a normal fruit again and falls
@@ -836,6 +843,51 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
+// A seagull, facing right, about r across the body. o: flap (-1..1), out (fainted), burnt
+// (sooty, wide-eyed), open (beak), t (for the blink).
+function drawGull(ctx, r, lw, o = {}) {
+    const body = o.burnt ? '#3b3632' : '#fafafa', wing = o.burnt ? '#26221f' : '#b0bec5';
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#000';
+    // tail
+    ctx.fillStyle = wing; ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.1); ctx.lineTo(-r * 1.25, -r * 0.24); ctx.lineTo(-r * 1.15, r * 0.14); ctx.lineTo(-r * 0.6, r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // feet
+    ctx.strokeStyle = '#ef6c00'; ctx.lineWidth = Math.max(2, lw * 1.3);
+    [[-0.15, -0.28], [0.18, 0.1]].forEach(([a, b]) => { ctx.beginPath(); ctx.moveTo(r * a, r * 0.38); ctx.lineTo(r * b, r * 0.66); ctx.lineTo(r * (b + 0.16), r * 0.66); ctx.stroke(); });
+    ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
+    // body and head
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(0, 0, r * 0.85, r * 0.48, 0, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(r * 0.62, -r * 0.32, r * 0.37, 0, 7); ctx.fill(); ctx.stroke();
+    if (o.burnt) { [-0.5, 0, 0.5].forEach(a => { ctx.beginPath(); ctx.moveTo(r * (0.62 + a * 0.3), -r * 0.66); ctx.lineTo(r * (0.62 + a * 0.55), -r * 0.92); ctx.stroke(); }); }   // frazzled feathers
+    // beak
+    ctx.fillStyle = '#fbc02d';
+    if (o.open) {
+        ctx.beginPath(); ctx.moveTo(r * 0.92, -r * 0.44); ctx.lineTo(r * 1.5, -r * 0.52); ctx.lineTo(r * 0.96, -r * 0.26); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(r * 0.94, -r * 0.2); ctx.lineTo(r * 1.4, -r * 0.02); ctx.lineTo(r * 0.86, -r * 0.06); ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else {
+        ctx.beginPath(); ctx.moveTo(r * 0.92, -r * 0.42); ctx.lineTo(r * 1.5, -r * 0.24); ctx.lineTo(r * 0.9, -r * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+    if (o.out) { ctx.fillStyle = '#f48fb1'; ctx.beginPath(); ctx.ellipse(r * 1.12, -r * 0.02, r * 0.09, r * 0.2, 0.3, 0, 7); ctx.fill(); ctx.stroke(); }   // tongue out
+    // the eye
+    const ex = r * 0.7, ey = -r * 0.4;
+    if (o.burnt && !o.out) {      // two wide white eyes in the soot, blinking
+        const shut = ((o.t || 0) * 1.3) % 1 > 0.85;
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.ellipse(ex, ey, r * 0.15, shut ? r * 0.02 : r * 0.15, 0, 0, 7); ctx.fill(); ctx.stroke();
+        if (!shut) { ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(ex + r * 0.03, ey, r * 0.05, 0, 7); ctx.fill(); }
+    } else if (o.out) {
+        ctx.strokeStyle = o.burnt ? '#fff' : '#000'; ctx.lineWidth = Math.max(1.5, lw * 0.8);
+        ctx.beginPath(); ctx.moveTo(ex - r * 0.1, ey - r * 0.1); ctx.lineTo(ex + r * 0.1, ey + r * 0.1); ctx.moveTo(ex + r * 0.1, ey - r * 0.1); ctx.lineTo(ex - r * 0.1, ey + r * 0.1); ctx.stroke();
+        ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
+    } else {
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(ex, ey, r * 0.07, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(ex - r * 0.2, ey - r * 0.2); ctx.lineTo(ex + r * 0.14, ey - r * 0.08); ctx.stroke();     // the brow: it means trouble
+    }
+    // the near wing, on top, hinged at the shoulder
+    ctx.save(); ctx.translate(r * 0.12, -r * 0.14); ctx.rotate((o.flap || 0) * 1.0);
+    ctx.fillStyle = wing; ctx.beginPath(); ctx.moveTo(r * 0.3, r * 0.02); ctx.quadraticCurveTo(-r * 0.25, -r * 0.55, -r * 1.1, -r * 0.3); ctx.quadraticCurveTo(-r * 0.35, r * 0.3, r * 0.3, r * 0.02); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#263238'; ctx.beginPath(); ctx.moveTo(-r * 1.1, -r * 0.3); ctx.quadraticCurveTo(-r * 0.9, -r * 0.4, -r * 0.75, -r * 0.36); ctx.lineTo(-r * 0.78, -r * 0.12); ctx.closePath(); ctx.fill(); ctx.stroke();   // black tip
+    ctx.restore();
+}
 function drawPickup(ctx, b, lw) {
     if (b.kind === 'clock') drawClock(ctx, b, lw);
     else if (b.kind === 'laptop') {
@@ -937,7 +989,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="gull" title="seagull"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -958,8 +1010,9 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="rare" hidden>
                         <p class="fg-tip-lead">Rare finds.</p>
                         <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts across the sky. Tongue them: the frog spits 10 big ones all over the sky. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts. Tongue them: the frog spits 10 big ones. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="gull"></canvas><div><b>Seagull (rare)</b><span>Leave it alone. Slash or tongue it bare and it attacks: you are stunned. With any boost on, it faints: an apple's worth.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
@@ -1027,6 +1080,7 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
             else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
+            else if (kind === 'gull') { x.translate(S / 2 - 2, S / 2 + 2); drawGull(x, 13, 1.6, { flap: -0.5 }); }
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
         });
@@ -1512,7 +1566,7 @@ export function mountFrogGame(stage, opts = {}) {
         floats.push({ x, y: y - 30, text: BLADE_FX[kind].text + (bladeFx[kind] > 1 ? ' x' + bladeFx[kind] : ''), t: 0, hot: true });
     }
     // everything marked during a time freeze, in the order it was marked
-    const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
+    const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), gulls.filter(g => g.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
     const clearBladeFx = () => { fxLeft = 0; fxPending = false; bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
     const FIRE_HALF = 14;                                      // px either side the fire blade also cuts, per stack
     const FX_STACKS = 10;                                      // fire, sake and chrono effects stack up to this many times
@@ -1539,6 +1593,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (bladeFx.frost && Math.random() < 0.6) drops.push({ x, y, vx: rand(-50, 50), vy: rand(-50, 50), c: '#b3e5fc', t: 0, s: rand(1.5, 3.5) });
         }
     }
+    let gulls = [], gullT = 30, gullOn = null, gullSeq = 0;      // seagulls in the air, the wait for the next, and the one on the frog
     let crates = [], planks = [], crateT = 30;                 // the rare fruit crate and its broken planks
     let bits = [], flames = [];                                // debris of slashed pickups; fire breath
     let freezeLeft = 0, fireLeft = 0, fireEmit = 0;
@@ -1795,6 +1850,102 @@ export function mountFrogGame(stage, opts = {}) {
             poly: fruitPoly(type, r), crown: pine ? crownLeaves(r) : null,
             R: fruitReach(type, r), ox: 0, oy: 0, fam: { cuts: 0 }, noCut: 0, cutAt: 0
         }, o);
+    }
+
+    // ---------- the seagull ----------
+    function spawnGull(x, y) {
+        snd('gull');
+        const r = clamp(S() * 0.055, 16, 60) * 1.04, dir = x !== undefined ? (x < W / 2 ? 1 : -1) : Math.random() < 0.5 ? 1 : -1;      // the size of the grapes
+        const g = { x: x !== undefined ? x : dir > 0 ? -r * 2 : W + r * 2, base: y !== undefined ? y : rand(H * 0.12, H * 0.42), dir, speed: Math.max(90, W * 0.13), r, t: 0, phase: rand(0, 6), state: 'fly', hits: 0, rot: 0 };
+        g.y = g.base; gulls.push(g); log('gull', 'in');
+    }
+    const feathers = (x, y, r, n, col) => {
+        for (let i = 0; i < n; i++) bit(x, y, ctx => { ctx.fillStyle = col; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.22, r * 0.07, 0, 0, 7); ctx.fill(); ctx.stroke(); }, { life: 1.1, g: G() * 0.25 });
+    };
+    // how: plain (a bare slash or the tongue) | boost (a boosted blade) | fire | clock | blast | laptop
+    function gullHit(g, how) {
+        if (how === 'plain') {
+            if (g.state !== 'fly' || gullOn || !gulls.includes(g)) return;
+            gulls.splice(gulls.indexOf(g), 1);
+            gullOn = { g, t: 0, v: gullSeq++ % 3, x0: g.x, y0: g.y, hit: false, sq: 0 };
+            snd('gull'); log('gull', 'attack', gullOn.v);
+            feathers(g.x, g.y, g.r, 3, '#fafafa');
+            floats.push({ x: g.x, y: g.y - g.r, text: 'Uh-oh...', t: 0 });
+            return;
+        }
+        const gain = Math.max(fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * Math.pow(RECUT, g.hits) * (how === 'laptop' ? LAPTOP_PAY : 1) * timeMult(), 0.01);
+        g.hits++;
+        timeLeft += gain; slices++; lastSlice = performance.now();
+        val(how === 'laptop' ? 'laptop' : how === 'blast' ? 'fireworks' : how === 'clock' ? 'clock' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword', gain);
+        style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+        floats.push({ x: g.x, y: g.y - g.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+        log('gull', how, r2(gain));
+        if (g.state === 'fly') {
+            // out cold: it drops, turning over, into the sea. Burnt by everything but the laptop's team.
+            g.state = 'faint'; g.burnt = how !== 'laptop'; g.vx = g.dir * g.speed * 0.4; g.vy = -H * 0.35; g.spin = g.dir * rand(3, 6); g.mark = 0;
+            snd('gull_faint');
+        } else { g.vy = Math.min(g.vy, -H * 0.22); if (how !== 'laptop') g.burnt = true; }     // knocked up again on its way down
+        feathers(g.x, g.y, g.r, 6, g.burnt ? '#3b3632' : '#fafafa');
+        hud();
+    }
+    function stepGulls(dt, wdt, floating) {
+        gulls.forEach(g => {
+            g.t += wdt;
+            if (g.state === 'fly') {
+                if (floating(g)) return;
+                g.x += g.dir * g.speed * wdt;
+                g.y = g.base + Math.sin(g.t * 2.3 + g.phase) * H * 0.025 + Math.sin(g.t * 17 + g.phase) * 2.5;     // a slight jitter
+            } else {
+                g.vy += G() * 0.8 * wdt; g.x += g.vx * wdt; g.y += g.vy * wdt; g.rot += g.spin * wdt;
+                if (g.burnt && Math.random() < 14 * wdt) bit(g.x, g.y - g.r * 0.4, ctx => { ctx.fillStyle = 'rgba(90,90,90,.55)'; ctx.beginPath(); ctx.arc(0, 0, g.r * 0.22, 0, 7); ctx.fill(); }, { vx: rand(-20, 20), vy: -H * 0.08, g: -H * 0.05, spin: 0, life: 0.7 });
+                if (g.y > seaY()) {
+                    g.gone = true; ripples.push({ x: g.x, y: seaY(), r: g.r, t: 0 }); snd('plop');
+                    for (let d = 0; d < 12; d++) seaDrops.push({ x: g.x + rand(-10, 10), y: seaY(), vx: rand(-90, 90), vy: -rand(0.14, 0.38) * H, t: 0, s: rand(1.5, 3.5) });
+                }
+            }
+        });
+        gulls = gulls.filter(g => !g.gone && g.x > -g.r * 4 && g.x < W + g.r * 4);
+        // the one that came for the frog: in, the harassing (as long as the stun), and away
+        if (gullOn) {
+            const a = gullOn; a.t += dt;
+            if (!a.hit && a.t >= GULL_IN) {
+                a.hit = true; stunT = stunFor = STUN_MAX; snd('stun'); down = false; slash = null; cut = null;      // a watermelon's worth of stun
+                const h = frogPoint(993, 150); floats.push({ x: h.x, y: h.y - 30, text: ['Peck! Peck!', 'Slap! Slap!', 'SQUAWK!'][a.v], t: 0, hot: true });
+            }
+            if (a.hit && a.t < GULL_IN + STUN_MAX) { a.sq -= dt; if (a.sq <= 0) { a.sq = a.v === 0 ? 0.17 : 0.45; snd(a.v === 0 ? 'gull_peck' : 'gull'); } }
+            if (a.t > GULL_IN + STUN_MAX + GULL_OUT || phase !== 'play') gullOn = null;
+        }
+    }
+    // The seagull on the frog. Three ways it makes a nuisance of itself, in turn:
+    // 0 pecks the top of its head like a woodpecker, 1 slaps it about the face with both wings,
+    // 2 stands on its head and screams into its face.
+    function drawGullOn(lw, tn) {
+        const a = gullOn, r = a.g.r, top = frogPoint(993, 40), face = frogPoint(993, 420), u = a.t - GULL_IN, end = GULL_IN + STUN_MAX;
+        const perch = a.v === 1 ? { x: face.x, y: face.y } : { x: top.x - a.g.dir * r * 0.1, y: top.y - r * 0.5 };
+        const flapNow = Math.round(Math.sin(tn / 45) * 2) / 2;
+        let x = perch.x, y = perch.y, dir = a.g.dir, rot = 0, o = { flap: 0, t: a.t };
+        if (a.t < GULL_IN) {                                   // the dive
+            const k = a.t / GULL_IN, e = k * k;
+            x = lerp(a.x0, perch.x, e); y = lerp(a.y0, perch.y, e) - Math.sin(k * Math.PI) * r; dir = perch.x >= a.x0 ? 1 : -1; o.flap = flapNow; o.open = true; rot = 0.3;
+        } else if (a.t > end) {                                // and off it goes, pleased with itself
+            const k = (a.t - end) / GULL_OUT;
+            x = perch.x + dir * k * W * 0.3; y = perch.y - k * k * H * 0.6; o.flap = flapNow; rot = -0.4;
+        } else if (a.v === 0) {                                // pecking
+            const beat = (u * 6) % 1, dn = beat < 0.4;
+            rot = dn ? 0.95 : -0.1; y += dn ? r * 0.12 : 0; o.flap = dn ? 0.15 : -0.25;
+            if (dn) { ctx.save(); ctx.translate(x + dir * r * 0.95, y + r * 0.75); ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = Math.max(2, lw); ctx.lineCap = 'round'; for (let i = 0; i < 5; i++) { const an = i * 1.256 + u * 9; ctx.beginPath(); ctx.moveTo(Math.cos(an) * r * 0.15, Math.sin(an) * r * 0.15); ctx.lineTo(Math.cos(an) * r * 0.36, Math.sin(an) * r * 0.36); ctx.stroke(); } ctx.restore(); }
+        } else if (a.v === 1) {                                // slapping: it hangs in front of the face, turning from side to side, wings going
+            dir = Math.sin(u * 20) > 0 ? 1 : -1; x += dir * r * 0.55; y += Math.sin(u * 13) * r * 0.12;
+            o.flap = Math.sin(u * 40) > 0 ? 0.9 : -0.7; o.open = true;
+        } else {                                               // screaming into its face from on top of its head
+            rot = 1.05; x += dir * r * 0.15 + Math.sin(u * 70) * 2; y += Math.sin(u * 55) * 2; o.open = true; o.flap = -0.5 + Math.sin(u * 30) * 0.3;
+            ctx.save(); ctx.translate(x + dir * r * 1.5, y - r * 1.1); ctx.rotate(dir * 0.2 + Math.sin(u * 30) * 0.08);
+            const sz = Math.round(r * (0.55 + 0.1 * Math.sin(u * 18)));
+            ctx.font = `900 ${sz}px Inter, Arial Black, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+            ctx.lineWidth = Math.max(3, sz * 0.22); ctx.strokeStyle = '#000'; ctx.strokeText('AAAA!', 0, 0); ctx.fillStyle = '#ffeb3b'; ctx.fillText('AAAA!', 0, 0);
+            ctx.restore();
+        }
+        ctx.save(); ctx.translate(x, y); ctx.scale(dir, 1); ctx.rotate(rot); drawGull(ctx, r, lw, o); ctx.restore();
     }
 
     // ---------- the fruit crate ----------
@@ -2054,6 +2205,15 @@ export function mountFrogGame(stage, opts = {}) {
                 crates.splice(i, 1); breakCrate(c, dx, dy, ax + (bx - ax) * k, ay + (by - ay) * k);
             }
         }
+        // the seagull: a bare blade only makes it angry; a boosted one knocks it out of the sky
+        gulls.slice().forEach(g => {
+            if (segDist(g.x, g.y, ax, ay, bx, by) > g.r * 0.85) return;
+            if (g.noCut === id && now - (g.cutAt || 0) < 250) return;
+            const boost = fxOn() || cut === warpCut;
+            if (!boost && g.state !== 'fly') return;
+            g.noCut = id; g.cutAt = now;
+            gullHit(g, boost ? 'boost' : 'plain');
+        });
         // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
         const wrecked = flies.length + pickups.length; let spared = 0;
         for (let i = flies.length - 1; i >= 0; i--) {
@@ -2258,6 +2418,7 @@ export function mountFrogGame(stage, opts = {}) {
                 }
             }
         };
+        gulls.forEach(g => { if (g.state === 'fly' && ((on && inFlame(g.x, g.y, g.r)) || inBlade(g.x, g.y, g.r))) gullHit(g, 'fire'); });     // singed: out cold
         burnExtras(pickups, b => b.r);
         burnExtras(flies, f => f.s * 1.6);
         // a crate in the flame bursts open as if cut clean through the middle: fruit all round
@@ -2381,6 +2542,7 @@ export function mountFrogGame(stage, opts = {}) {
         // pieces that can still be cut can be marked again
         pieces.forEach(q => { if (!q.mark && q.live && q.poly && segDist(q.x, q.y, x0, y0, x1, y1) < Math.max(q.R * 0.8, MIN_HIT) * MARK_REACH + slack) q.mark = ++markSeq; });
         crates.forEach(c => { if (!c.mark && segDist(c.x, c.y, x0, y0, x1, y1) < c.hw * 0.9 * MARK_REACH + slack) c.mark = ++markSeq; });
+        gulls.forEach(g => { if (!g.mark && segDist(g.x, g.y, x0, y0, x1, y1) < g.r * MARK_REACH + slack) g.mark = ++markSeq; });
         // power-ups can be marked as well: cut on release, each one pays like an apple
         pickups.forEach(b => { if (!b.mark && segDist(b.x, b.y, x0, y0, x1, y1) < b.r * 1.2 * MARK_REACH + slack) b.mark = ++markSeq; });
         flies.forEach(f => { if (!f.mark && segDist(f.x, f.y, x0, y0, x1, y1) < (f.s * 1.6 + 8) * MARK_REACH + slack) f.mark = ++markSeq; });
@@ -2523,6 +2685,9 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase !== 'play' || stunT > 0 || tongue || fwBusy() || summon) return;
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
+        // poking the seagull with the tongue is as bad an idea as slashing it bare
+        const poked = gulls.find(g => g.state === 'fly' && Math.hypot(g.x - x, g.y - y) < Math.max(18, S() * 0.035) * 1.2 + g.r);
+        if (poked) gullHit(poked, 'plain');
         snd('tongue');
         tongue = { tx: x, ty: y, t: 0, out: 0.04 + d / 5200, back: 0.08, caught: null, hit: false };
     }
@@ -2705,6 +2870,8 @@ export function mountFrogGame(stage, opts = {}) {
                 floats.push({ x: b.x, y: b.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
             });
         }
+        // the team is gentle with the seagull: it faints, unburnt
+        if (!turn) gulls.forEach(g => { if (g.state === 'fly' && g.x > 0 && g.x < W) gullHit(g, 'laptop'); });
         // crates: the first slash breaks them open; the fruit hangs there (time is stopped) and
         // the second slash cuts each of them once
         if (!turn) crates.slice().forEach(c => {
@@ -2866,6 +3033,7 @@ export function mountFrogGame(stage, opts = {}) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
             if (d < R + c.hw) { crates.splice(i, 1); breakCrate(c, d > 1 ? (c.x - x) / d : 1, d > 1 ? (c.y - y) / d : 0, c.x, c.y); }   // like a clean slice
         }
+        gulls.forEach(g => { if (Math.hypot(g.x - x, g.y - y) < R + g.r) gullHit(g, 'blast'); });
     }
     function stepFireworks(dt) {
         if (phase === 'play') {
@@ -2954,6 +3122,7 @@ export function mountFrogGame(stage, opts = {}) {
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
         laptopNext = rand(...LAPTOP_FIRST); summon = null;
         fwLeft = 0; fwShots = 0; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
+        gulls = []; gullOn = null; gullT = rand(...GULL_FIRST);
         crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
@@ -3178,7 +3347,7 @@ export function mountFrogGame(stage, opts = {}) {
     function exitDebug() {
         sendDebugTrace();
         dbg = false; dbgFrozen = false; phase = 'idle';
-        fruits = []; pieces = []; pickups = []; flies = []; crates = []; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
+        fruits = []; pieces = []; pickups = []; flies = []; crates = []; gulls = []; gullOn = null; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
         stage.classList.remove('fg-debugging'); dbgEl.hidden = true; $('.fg-debug-pill').textContent = 'Debug';
         el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Play'; showTips(-1); timeLeft = START_SECONDS; hud();
         el.overlay.hidden = false;
@@ -3193,6 +3362,8 @@ export function mountFrogGame(stage, opts = {}) {
         } else if (kind === 'fly') {
             const sz = clamp(S() * 0.018, 8.4, 13.2);
             flies.push({ x, y, base: y, dir: x < W / 2 ? 1 : -1, s: sz, speed: W * 0.04, phase: rand(0, 6), t: 0 });
+        } else if (kind === 'gull') {
+            spawnGull(x, y);
         } else if (kind === 'crate') {
             crates.push({ x, y, vx: 0, vy: -toss, g: G() * 0.8, hw: base * 1.8, rot: 0, spin: rand(-1, 1) });
         } else {
@@ -3213,6 +3384,7 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
             else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
+            else if (kind === 'gull') { x.translate(S / 2 - 2, S / 2 + 2); drawGull(x, 13, 1.6, { flap: -0.5 }); }
             else { x.translate(S / 2, S / 2 + 1); drawCrate(x, 15, 1.6); }
             // drag it out of the tray: a ghost follows the pointer, and it lands where you let go
             c.addEventListener('pointerdown', e => {
@@ -3412,6 +3584,11 @@ export function mountFrogGame(stage, opts = {}) {
                         markFrom = { x: f.x, y: f.y };
                         continue;
                     }
+                    if (gulls.includes(f)) {   // a marked seagull: struck, not cut
+                        f.mark = 0; markCut.hits++; gullHit(f, 'clock');
+                        slashes.push({ x: f.x, y: f.y, a: 0, r: 34, t: 0 }); markFrom = { x: f.x, y: f.y };
+                        continue;
+                    }
                     const px = pickups.indexOf(f), fx = flies.indexOf(f);
                     if (px >= 0 || fx >= 0) {   // a marked power-up: cut, and worth a cleanly cut apple
                         const o = markFrom || frogPoint(993, 300), ang = Math.atan2(f.y - o.y, f.x - o.x);
@@ -3510,6 +3687,8 @@ export function mountFrogGame(stage, opts = {}) {
             if (!dbg) { fwNext -= wdt; if (fwNext <= 0) { spawnPickup('fireworks'); fwNext = rand(...FW_NEXT); } }
             if (!dbg) crateT -= wdt;
             if (crateT <= 0) { spawnCrate(); crateT = rand(...CRATE_EVERY); }
+            if (!dbg) gullT -= wdt;
+            if (gullT <= 0) { spawnGull(); gullT = rand(...GULL_EVERY); }
             if (!dbg) for (const k in pickT) { pickT[k] -= wdt; if (pickT[k] <= 0) { spawnPickup(k); pickT[k] = rand(...PICK_EVERY[k]); } }
             if (sakeLeft > 0) {
                 sakeLeft = Math.max(0, sakeLeft - dt);
@@ -3575,6 +3754,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (bubbles.length > 300) bubbles.splice(0, bubbles.length - 300);
         crates.forEach(c => { if (floating(c)) { c.rot += c.spin * 0.25 * wdt; return; } c.vy += c.g * wdt; c.x += c.vx * wdt; c.y += c.vy * wdt; c.rot += c.spin * wdt; });
         crates = crates.filter(c => c.y < H + c.hw * 3);
+        stepGulls(dt, wdt, floating);
         planks.forEach(q => { q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.spin * dt; q.t += dt; });
         planks = planks.filter(q => q.y < H + 120 && q.x > -200 && q.x < W + 200);
         bits = bits.filter(b => b.t < b.life && b.y < H + 80);
@@ -3688,6 +3868,12 @@ export function mountFrogGame(stage, opts = {}) {
             else { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore(); }
         });
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
+        gulls.forEach(g => {
+            if (g.mark) glow(ctx, g.x, g.y, g.r * 2, '129,212,250', 0.75);
+            ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.dir, 1); ctx.rotate(g.rot);
+            drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8, t: g.t } : { out: true, burnt: g.burnt, flap: -0.9, t: g.t });
+            ctx.restore();
+        });
         pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
@@ -3804,6 +3990,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.quadraticCurveTo(sp.x + r * 1.1, sp.y, sp.x, sp.y + r); ctx.quadraticCurveTo(sp.x - r * 1.1, sp.y, sp.x, sp.y - r * 1.8);
             ctx.fill(); ctx.stroke(); ctx.restore();
         }
+        if (gullOn) drawGullOn(lw, tn);
         if (stunT > 0) {
             const h = frogPoint(993, 150), rr = S() * 0.07;
             ctx.save(); ctx.globalAlpha = Math.min(1, stunT / 0.25);

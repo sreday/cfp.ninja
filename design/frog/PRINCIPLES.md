@@ -34,6 +34,9 @@ file is the source of truth, this document explains the intent.
 
 ## 2. Rules that keep it fair
 
+0. **One hazard, clearly marked.** The seagull is the only thing that punishes a touch, and
+   it is there to make careless slashing cost something. It is not a power-up, it is easy to
+   tell from one, and any boost turns it into a reward.
 1. **Power-ups never penalise.** Picking one up, or having one end, must never leave the
    player worse off than before (the combo meter holds while one runs; inputs held when
    sake ends don't carry over as paid slashes).
@@ -59,6 +62,7 @@ file is the source of truth, this document explains the intent.
 | Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |
 | Fruit crate | every 38-60 s (rare) | slash, punch (tongue), burn, blast or mark: 10 fruit burst out |
 | Fireworks | every 42-65 s (rare) | slash: 3 s of blasts; tongue: 5 aimed big blasts |
+| Seagull | every 40-62 s (rare) | the one hazard. Touched bare (a plain slash or the tongue) it attacks the frog: a watermelon's stun (2 s). Hit with any boost on (fire, sake, clock, enchanted sword, fireworks, laptop) it faints into the sea for an apple's worth, half as much for each further hit. Never cut into pieces |
 | CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:

@@ -75,6 +75,7 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 | 3.3 | Alarm clock | tumbling, ringing; glow; broken into bells, gears, hands, spring | placeholder |
 | 3.4 | Fireworks bundle | five rockets, each a different rainbow colour, lit fuse | placeholder |
 | 3.5 | Fruit crate | square wooden crate; closed; breaking; individual planks and splinters | placeholder |
+| 3.7 | Seagull | flying loop (flap), angry brow; fainted (X eyes, tongue out), and the same comically burnt (sooty, wide white eyes, frazzled feathers, smoke); three harassing loops on the frog: pecking its head, slapping its face with both wings, screaming into its face from on top of its head; fly-in and fly-off. Never shown hurt beyond cartoon soot, never in pieces | placeholder |
 | 3.6 | Icons | a small icon of each of the five, for the tips pages and the debug tray | placeholder (same drawings, small) |
 
 ## 4. Effects
