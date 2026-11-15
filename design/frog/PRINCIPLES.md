@@ -63,7 +63,7 @@ file is the source of truth, this document explains the intent.
 | Fruit (8 kinds) | constantly, faster over time | buys 0.1 s (watermelon), then 0.1 s more for each smaller kind, up to 0.8 s (plum) |
 | Firefly | every 8-13 s | tongue: fire breath (it can't be stopped early); slashed on sake: fire blade |
 | Golden sake | every 14-20 s | tongue: 5 s free, button-less slashing |
-| Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |
+| Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release: fruit, pieces, power-ups (the second cut pays half and puts the element into the sword a second time) and seagulls |
 | Fruit crate | every 38-60 s (rare) | slash, punch (tongue), burn, blast or mark: 10 fruit burst out |
 | Fireworks | every 42-65 s (rare) | slash: 3 s of blasts; tongue: 5 aimed big blasts |
 | Seagull | every 20-31 s | the one hazard. Touched bare (a plain slash or the tongue) it attacks the frog: for 2 s (a watermelon's stun) slashes and tongue shots land mirrored, left for right. Only one at a time: another touched meanwhile just bolts. Hit with any boost on (fire, sake, clock, enchanted sword, fireworks, laptop) it faints into the sea (as a roast chicken if fire did it) for an apple's worth, half as much for each further hit. Never cut into pieces. One that is already out (on its back, or a roast chicken) can be kept in the air for as long as the blade keeps finding it, boosted or not: every hit knocks it back up and pays half the last |

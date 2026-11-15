@@ -4188,7 +4188,7 @@ export function mountFrogGame(stage, opts = {}) {
                         continue;
                     }
                     if (gulls.includes(f)) {   // a marked seagull: struck, not cut
-                        f.mark = 0; markCut.hits++; gullHit(f, 'clock');
+                        f.mark = 0; markCut.hits++; gullHit(f, 'clock'); markAgain.push({ again: true, gull: f });
                         slashes.push({ x: f.x, y: f.y, a: 0, r: 34, t: 0 }); markFrom = { x: f.x, y: f.y };
                         continue;
                     }
@@ -4214,6 +4214,24 @@ export function mountFrogGame(stage, opts = {}) {
                         floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: true });
                         slashes.push({ x: f.x, y: f.y, a: ang, r: 34, t: 0 });
                         markFrom = { x: f.x, y: f.y };
+                        // like fruit, a marked power-up is cut twice: the second cut comes with the second pass, crosswise
+                        markAgain.push({ again: true, power: fx >= 0 ? 'fire' : f.kind === 'sake' ? 'bubbles' : f.kind === 'clock' ? 'frost' : '', x: f.x, y: f.y, ang: ang + Math.PI / 2 });
+                        continue;
+                    }
+                    if (f.again && f.power !== undefined) {   // the second cut of a power-up: half as much again, and its element goes into the sword a second time
+                        if (f.power) { setBladeFx(f.power, f.x, f.y, true); fxPending = true; }
+                        const chain = markCut.hits++;
+                        const gain = fruitTime(APPLE) * RECUT * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
+                        timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
+                        style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);
+                        floats.push({ x: f.x, y: f.y + 6, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+                        slashes.push({ x: f.x, y: f.y, a: f.ang, r: 40, t: 0 });
+                        seqFlash(f.x, f.y, Math.cos(f.ang), Math.sin(f.ang), 46);
+                        splash(f.x, f.y, f.power === 'fire' ? '#ff8a65' : f.power === 'frost' ? '#b3e5fc' : '#fff3c4', 10, 4);
+                        continue;
+                    }
+                    if (f.again && f.gull) {   // ... and a marked seagull is struck a second time
+                        if (gulls.includes(f.gull)) { markCut.hits++; gullHit(f.gull, 'clock'); slashes.push({ x: f.gull.x, y: f.gull.y, a: Math.PI / 2, r: 34, t: 0 }); }
                         continue;
                     }
                     if (f.again && f.burst) {   // the second pass through an opened crate: its fruit, cut once each
