@@ -835,7 +835,12 @@ function drawLaptop(ctx, b, lw) {
 }
 function drawPickup(ctx, b, lw) {
     if (b.kind === 'clock') drawClock(ctx, b, lw);
-    else if (b.kind === 'laptop') drawLaptop(ctx, b, lw);
+    else if (b.kind === 'laptop') {
+        const hot = b.burn ? clamp(b.burn / BURN_TIME, 0, 1) : 0;
+        if (hot) glow(ctx, b.x, b.y, b.r * 2.4, '255,61,0', 0.75 * hot);       // in the flame: red hot, unharmed
+        drawLaptop(ctx, b, lw);
+        if (hot) { ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot); ctx.globalAlpha = 0.45 * hot; ctx.fillStyle = '#ff3d00'; ctx.beginPath(); ctx.moveTo(-b.r * 1.15, -b.r * 0.8); ctx.lineTo(b.r * 1.15, -b.r * 0.8); ctx.lineTo(b.r, b.r * 0.55); ctx.lineTo(-b.r, b.r * 0.55); ctx.closePath(); ctx.fill(); ctx.restore(); }
+    }
     else if (b.kind === 'fireworks') drawFireworks(ctx, b, lw);
     else drawSake(ctx, b, lw);
 }
@@ -2228,6 +2233,8 @@ export function mountFrogGame(stage, opts = {}) {
                 if (!b) continue;
                 const r = rad(b);
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
+                // the laptop is fireproof: it heats to a red glow and that is all, so it can still be taken with the tongue afterwards
+                if (b.kind === 'laptop') { b.burn = Math.min((b.burn || 0) + dt, BURN_TIME); continue; }
                 // a clock-fed breath hacks what it touches instead of burning it (fireworks excepted: they just go off)
                 if (fireSlow && on && b.kind !== 'fireworks' && inFlame(b.x, b.y, r)) { if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); feedFire(b, list === flies); b.hackFor = hackFor(); } continue; }
                 b.burn = (b.burn || 0) + dt;
