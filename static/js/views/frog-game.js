@@ -215,9 +215,9 @@ const FROG_SVG = `
         <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
         </g>
         <!-- in the air: each leg bent its own amount (the outlines are written afresh for every jump, see airLegs) -->
-        <g id="fg-jumplegs" opacity="0" stroke-linecap="round">
-            <ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="196"/><path fill="none" stroke="${C.red}" stroke-width="152"/>
-            <ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="196"/><path fill="none" stroke="${C.red}" stroke-width="152"/>
+        <g id="fg-jumplegs" opacity="0" stroke-linecap="round" stroke-linejoin="round">
+            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${C.red}" stroke-width="132"/><path fill="none" stroke="${C.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/>
+            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${C.red}" stroke-width="132"/><path fill="none" stroke="${C.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/>
         </g>
     </g>
 
@@ -227,7 +227,7 @@ const FROG_SVG = `
         <g id="fg-side-legs">
         <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
-        <g id="fg-sl-tuck" opacity="0"><ellipse cx="900" cy="1330" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1400" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-tuck" opacity="0" stroke-linecap="round" stroke-linejoin="round"><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/></g>
         <g id="fg-sl-lunge" opacity="0"><ellipse cx="520" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1350" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-leap" opacity="0"><ellipse cx="470" cy="1470" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(38 470 1470)"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1230" cy="1300" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-20 1230 1300)"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
@@ -1217,28 +1217,35 @@ export function mountFrogGame(stage, opts = {}) {
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const RISE = 400;                                          // logo px the body rises when the frog stands
-    // A leg in two straight halves from the hip, its foot `k` of a full leg's length away (1 = straight),
-    // the knee out to the side given. Returns the path and where the foot is.
-    function bentLeg(hx, hy, k, knee, lean) {
-        const L = 770, D = clamp(k, 0.12, 0.98) * L, fx = hx + Math.sin(lean) * D, fy = hy + Math.cos(lean) * D;
-        const h = Math.sqrt(Math.max(0, L * L / 4 - D * D / 4)), mx = (hx + fx) / 2, my = (hy + fy) / 2;
-        const kx = mx + Math.cos(lean) * h * knee, ky = my - Math.sin(lean) * h * knee;
-        return { d: `M${Math.round(hx)} ${Math.round(hy)} L${Math.round(kx)} ${Math.round(ky)} L${Math.round(fx)} ${Math.round(fy)}`, fx, fy };
+    // A leg in the air, drawn from its two joints: the thigh swung `thigh` degrees away from straight
+    // down (toward `side`: -1 left, 1 right), the shin hanging `shin` degrees from straight down.
+    // Returns the outline, the cuff across the ankle, and where the foot is and how it is turned
+    // (a foot always sits square on the end of its shin).
+    function bentLeg(hx, hy, thigh, shin, side) {
+        const T = 385, r = Math.PI / 180, kx = hx + Math.sin(thigh * r) * T * side, ky = hy + Math.cos(thigh * r) * T;
+        const ux = Math.sin(shin * r) * side, uy = Math.cos(shin * r), fx = kx + ux * T, fy = ky + uy * T, R = Math.round;
+        const cx = kx + ux * T * 0.82, cy = ky + uy * T * 0.82;
+        return { d: `M${R(hx)} ${R(hy)} L${R(kx)} ${R(ky)} L${R(fx)} ${R(fy)}`, cuff: `M${R(cx - uy * 70)} ${R(cy + ux * 70)} L${R(cx + uy * 70)} ${R(cy - ux * 70)}`,
+            fx: fx + ux * 34, fy: fy + uy * 34, turn: -shin * side };
     }
     function airLegs() {
-        const pair = Math.random() < 0.5 ? [rand(0.42, 0.6), rand(0.14, 0.28)] : [rand(0.14, 0.28), rand(0.42, 0.6)];      // one about 50% stretched, one about 20%
-        const put = (nodes, at, leg, footDx) => {
-            nodes[at].setAttribute('cx', Math.round(leg.fx + footDx)); nodes[at].setAttribute('cy', Math.round(leg.fy + 40));
-            nodes[at + 1].setAttribute('d', leg.d); nodes[at + 2].setAttribute('d', leg.d);
+        // one leg about half stretched (the knee a little out, the shin hanging), the other pulled well up
+        // (the knee high and wide, the shin folded back under): which is which, and how far, by lot
+        const long = () => ({ thigh: rand(22, 40), shin: rand(-12, 8) }), short = () => ({ thigh: rand(68, 88), shin: rand(-48, -28) });
+        const pair = Math.random() < 0.5 ? [long(), short()] : [short(), long()];
+        const put = (nodes, at, leg) => {
+            nodes[at].setAttribute('d', leg.d); nodes[at + 1].setAttribute('d', leg.d); nodes[at + 2].setAttribute('d', leg.cuff);
+            nodes[at + 3].setAttribute('transform', `translate(${Math.round(leg.fx)} ${Math.round(leg.fy)}) rotate(${Math.round(leg.turn)})`);
         };
-        // facing us: the knees go out to the sides
-        const f = el.jumpLegs.children;
-        put(f, 0, bentLeg(828, 900, pair[0], -1, rand(-0.25, 0.05)), 0);
-        put(f, 3, bentLeg(1158, 900, pair[1], 1, rand(-0.05, 0.25)), 0);
-        // in profile: the knees come forward
+        // facing us: the knees go out to the sides (the more folded leg is drawn first, behind)
+        const f = el.jumpLegs.children, order = pair[0].thigh > pair[1].thigh ? [0, 1] : [1, 0];
+        const front = [bentLeg(828, 900, pair[0].thigh, pair[0].shin, -1), bentLeg(1158, 900, pair[1].thigh, pair[1].shin, 1)];
+        put(f, 0, front[order[0]]); put(f, 4, front[order[1]]);
+        // in profile: the folded leg comes forward, knee up; the longer one trails behind
         const t = el.sLegs.tuck.children;
-        put(t, 0, bentLeg(980, 900, pair[0], 1, rand(-0.5, 0.1)), 30);
-        put(t, 3, bentLeg(1020, 900, pair[1], 1, rand(-0.2, 0.4)), 30);
+        // (each jump its own: sometimes a long stride, sometimes both knees up, the trailing leg anywhere from hanging to kicked right back)
+        put(t, 0, bentLeg(985, 900, rand(-48, 4), rand(-82, -24), 1));       // (negative: swung back, the shin further back still)
+        put(t, 4, bentLeg(1015, 900, rand(48, 92), rand(-34, 22), 1));
     }
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
