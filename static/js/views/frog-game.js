@@ -800,6 +800,7 @@ export function mountFrogGame(stage, opts = {}) {
     stage.classList.add('fg-stage');
     stage.innerHTML = `
         ${BEACH_SVG}
+        <canvas class="fg-canvas-back"></canvas>
         ${POLE_SVG}
         ${FROG_SVG}
         <canvas class="fg-canvas"></canvas>
@@ -814,6 +815,7 @@ export function mountFrogGame(stage, opts = {}) {
         </div>
         <div class="fg-count" hidden></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
+        <button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
@@ -831,7 +833,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue; double-tap to stop early.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                     </div>
@@ -865,6 +867,11 @@ export function mountFrogGame(stage, opts = {}) {
                 <p class="fg-anykey" hidden>or press any key</p>
                 <button type="button" class="btn btn-primary btn-sm fg-skip">Show tips</button>
                 ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
+                <div class="fg-replay">
+                    <button type="button" class="btn btn-outline-secondary btn-sm fg-rec" hidden>Record my next run</button>
+                    <button type="button" class="btn btn-primary btn-sm fg-rec-save" hidden>Save replay</button>
+                    <p class="fg-rec-note" hidden></p>
+                </div>
                 <div class="fg-save"></div>
             </div>
         </div>`;
@@ -917,6 +924,8 @@ export function mountFrogGame(stage, opts = {}) {
         });
     })();
 
+    // a second canvas behind the frog and its post: fruit on its way down into the sea is drawn there
+    const backCv = $('.fg-canvas-back'), bctx = backCv.getContext('2d');
     let W = 0, H = 0, dpr = 1, dprCap = 2;
     // Core truth: the same play area on a phone held upright and on a wide desktop window.
     // Everything is sized from S, a length taken from the AREA of the stage (not its width or
@@ -932,6 +941,7 @@ export function mountFrogGame(stage, opts = {}) {
         dpr = Math.min(window.devicePixelRatio || 1, dprCap);
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+        backCv.width = canvas.width; backCv.height = canvas.height; bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         glowCv.width = canvas.width; glowCv.height = canvas.height;
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
@@ -1082,18 +1092,24 @@ export function mountFrogGame(stage, opts = {}) {
         crashes++;
         const msg = String((err && (err.stack || err.message)) || err).split('\n').slice(0, 3).join(' | ').slice(0, 300);
         log('crash', msg);
+        if (crashes <= 3 && window.console) console.error('Frog Ninja:', err);
         if (crashes === 1 && opts.onTrace && trace.length) {
             opts.onTrace({ score: Math.round(clockT * 1000), duration_ms: Math.min(Math.round(performance.now() - traceT0), 6 * 3600 * 1000), input: 'crash', signals: sig, events: trace });
         }
     }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false, bladeLook = '';
+    let fireTap = 0;
     // Sprites. A whole fruit looks the same every frame, and so does a cut piece, so each is
     // painted once on its own small canvas and then stamped (turned, scaled) wherever it is.
     // Same pixels as before; a fraction of the work when the screen is full of pieces.
     const wholeSprites = new Map();
     function stampWhole(f, lw) {
         if (f.crownCut) { drawWhole(ctx, f, f.r, lw); return; }              // a pineapple that has lost leaves is its own drawing
+        const sp = wholeSprite(f, lw);
+        ctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2);
+    }
+    function wholeSprite(f, lw) {
         const key = f.type.kind + '|' + Math.round(f.r * 2) + '|' + dpr;
         let sp = wholeSprites.get(key);
         if (!sp) {
@@ -1104,8 +1120,10 @@ export function mountFrogGame(stage, opts = {}) {
             sp = { cv, half }; wholeSprites.set(key, sp);
             if (wholeSprites.size > 40) wholeSprites.delete(wholeSprites.keys().next().value);
         }
-        ctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2);
+        return sp;
     }
+    // far fruit that has passed the top of its arc is behind the frog from then on
+    const isBehind = f => f.far && f.vy > 0 && !f.hacked && !f.crownCut && !f.burn && !f.mark;
     function stampPiece(q, lw) {
         if (q.burn > 0) { q.spr = null; drawPiece(ctx, q, lw); return; }     // melting: it changes every frame
         if (!q.spr || q.spr.dpr !== dpr) {
@@ -1190,6 +1208,18 @@ export function mountFrogGame(stage, opts = {}) {
                 if (ch.g) { ctx.strokeStyle = '#2b2420'; ctx.lineWidth = 1; [-0.3, 0.2].forEach(o => { ctx.beginPath(); ctx.moveTo(r * o - r * 0.2, r * 0.2); ctx.lineTo(r * o + r * 0.2, -r * 0.4); ctx.stroke(); }); }   // grill marks
                 ctx.restore();
             });
+            // more than half of it grilled: the bowl steams
+            if (mine.filter(ch => ch.g).length * 2 > mine.length) {
+                ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = Math.max(1.5, bw * 0.035); ctx.lineCap = 'round';
+                [-0.22, 0, 0.22].forEach((o, i) => {
+                    const ph = tn / 520 + i * 2.1, rise = (tn / 1400 + i * 0.33) % 1;
+                    ctx.globalAlpha = 0.6 * (1 - rise);
+                    ctx.beginPath();
+                    for (let k = 0; k <= 8; k++) { const yy = -bh * (0.75 + rise * 0.5 + k * 0.09), xx = bw * o + Math.sin(ph + k * 0.9) * bw * 0.05; if (k) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy); }
+                    ctx.stroke();
+                });
+                ctx.restore();
+            }
             // the bowl in front of it: Japanese ceramics, each a different glaze and pattern
             const G = BOWL_GLAZES[b % BOWL_GLAZES.length];
             const bowlPath = () => { ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); ctx.lineTo(bw * 0.16, bh * 0.86); ctx.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); ctx.closePath(); };
@@ -1355,7 +1385,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (r) slashes.push({ x, y, a: Math.atan2(dy, dx), r, t: 0, c: fx.glow, w: bladeFx.fire ? 2.4 : 1.3 });
         else if (slashes.length) Object.assign(slashes[slashes.length - 1], { c: fx.glow, w: bladeFx.fire ? 2.4 : 1.3 });
         for (let i = 0; i < 5; i++) {
-            if (bladeFx.fire) flames.push({ x: x + rand(-14, 14), y: y + rand(-14, 14), vx: rand(-40, 40), vy: -H * rand(0.05, 0.25), t: 0, life: rand(0.35, 0.6), s: rand(5, 10), blade: true });
+            if (bladeFx.fire) flames.push({ x: x + rand(-14, 14), y: y + rand(-14, 14), vx: rand(-40, 40), vy: -H * rand(0.05, 0.25), t: 0, life: rand(0.35, 0.6), s: rand(5, 10) });   // (for show: these flames don't cook)
             if (bladeFx.bubbles) bubbles.push({ x: x + rand(-14, 14), y: y + rand(-14, 14), vx: rand(-25, 25), vy: -H * rand(0.04, 0.14), r: rand(3, 9), t: 0, life: rand(0.5, 1), ph: rand(0, 6.28) });
         }
     }
@@ -1883,7 +1913,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (b.kind === 'fireworks') {   // slashing is how you set these off: no penalty
             fwLeft = FW_SECONDS; fwT = 0; fwFrom = { x: b.x, y: b.y }; use('fireworks');
             floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks!', t: 0, hot: true });
-            explode(b.x, b.y, S() * 0.12);
+            if (!slowNow) explode(b.x, b.y, S() * 0.12);
             return;
         }
         if (sakeLeft <= 0) hurtFlash = 0.35;
@@ -2092,6 +2122,11 @@ export function mountFrogGame(stage, opts = {}) {
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
+        // breathing fire: a double tap (or double click) puts the flame out early
+        if (fireLeft > 0 && phase === 'play' && e.button !== 2) {
+            const t = performance.now();
+            if (t - fireTap < 350) { fireLeft = 0.01; fireTap = 0; log('fire-off'); } else fireTap = t;
+        }
         if (fireLeft > 0 || fwBusy() || summon) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
@@ -2612,7 +2647,7 @@ export function mountFrogGame(stage, opts = {}) {
     function stepFireworks(dt) {
         if (phase === 'play') {
             // slashed: they pop around the sky, half of them where there is fruit
-            if (fwLeft > 0) {
+            if (fwLeft > 0 && !slowNow) {                         // (set off during a time freeze, they wait for time to flow again)
                 fwLeft = Math.max(0, fwLeft - dt); fwT -= dt;
                 while (fwT <= 0) {
                     fwT += FW_EVERY;
@@ -2700,6 +2735,7 @@ export function mountFrogGame(stage, opts = {}) {
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
+        recStart();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'count';
         salad = []; trace = []; worth = {}; sndCount = {};
@@ -2745,6 +2781,7 @@ export function mountFrogGame(stage, opts = {}) {
             el.count.hidden = true; el.count.classList.remove('fg-final');
             overAt = performance.now() - 400;                    // any key works almost at once now: the wait is done
             el.overlay.hidden = false;
+            setTimeout(recStop, 600);                            // the replay ends on the result
         }
     }
     const bestSide = 1;
@@ -2805,6 +2842,87 @@ export function mountFrogGame(stage, opts = {}) {
             window.addEventListener('pointerdown', first, true); window.addEventListener('keydown', first, true);
         }
     })();
+
+    // ---------- full screen ----------
+    (function fullScreen() {
+        const pill = $('.fg-full-pill'), root = document.documentElement;
+        const can = root.requestFullscreen || root.webkitRequestFullscreen;
+        if (!can) return;                                      // iPhone Safari has no full screen for pages
+        pill.hidden = false;
+        const isOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+        const show = () => { pill.textContent = isOn() ? 'Exit full screen' : 'Full screen'; };
+        pill.addEventListener('click', () => {
+            if (isOn()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+            else { const p = can.call(root); if (p && p.catch) p.catch(() => {}); }
+        });
+        document.addEventListener('fullscreenchange', show); document.addEventListener('webkitfullscreenchange', show);
+    })();
+
+    // ---------- replays ----------
+    // A replay is a video of the game as it was played: this browser tab, recorded while a run
+    // is on. The browser asks for permission first (once), which is why it has to be switched on
+    // before the run. Up to 1080p at 60 frames a second, saved as MP4 where the browser can,
+    // WebM otherwise. Nothing is uploaded: the file goes to the player's own downloads.
+    const rec = { stream: null, recorder: null, chunks: [], blob: null, type: '' };
+    (function replays() {
+        const btn = $('.fg-rec'), save = $('.fg-rec-save'), note = $('.fg-rec-note');
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia && window.MediaRecorder)) return;   // phones and tablets can't
+        btn.hidden = false;
+        const say = t => { note.textContent = t; note.hidden = !t; };
+        btn.addEventListener('click', async () => {
+            if (rec.stream) { rec.stream.getTracks().forEach(t => t.stop()); rec.stream = null; btn.textContent = 'Record my next run'; say(''); return; }
+            try {
+                rec.stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { frameRate: { ideal: 60 }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: true,
+                    preferCurrentTab: true, selfBrowserSurface: 'include'
+                });
+                rec.stream.getVideoTracks()[0].addEventListener('ended', () => { rec.stream = null; btn.textContent = 'Record my next run'; say(''); });
+                btn.textContent = 'Stop recording runs';
+                say('Recording is on. Play a run, then save it from here.');
+            } catch (e) { say('Recording was not allowed.'); }
+        });
+        save.addEventListener('click', () => {
+            if (!rec.blob) return;
+            const a = document.createElement('a'), url = URL.createObjectURL(rec.blob);
+            a.href = url; a.download = 'frog-ninja-' + new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-') + (rec.type.includes('mp4') ? '.mp4' : '.webm');
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        });
+    })();
+    function recStart() {
+        if (!rec.stream || dbg) return;
+        rec.type = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+        try {
+            rec.chunks = []; rec.blob = null; $('.fg-rec-save').hidden = true;
+            rec.recorder = new MediaRecorder(rec.stream, { mimeType: rec.type || undefined, videoBitsPerSecond: 12e6 });
+            rec.recorder.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+            rec.recorder.onstop = () => { rec.blob = new Blob(rec.chunks, { type: rec.type || 'video/webm' }); $('.fg-rec-save').hidden = false; };
+            rec.recorder.start(1000);
+        } catch (e) { rec.recorder = null; }
+    }
+    function recStop() { if (rec.recorder && rec.recorder.state !== 'inactive') rec.recorder.stop(); rec.recorder = null; }
+
+    // ---------- the interface gets out of the way ----------
+    // Pills, bars and buttons fade while the blade (or the flame's aim) is working right next to
+    // them, so the action under them can be seen.
+    const dimEls = [];
+    function dimMeasure() {
+        dimEls.length = 0;
+        const page = stage.closest('.game-page') || stage, sb = canvas.getBoundingClientRect();
+        page.querySelectorAll('.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-debug-pill, .fg-sound-pill, .fg-full-pill, .game-notch, .fg-debug-tray, .fg-debug-title').forEach(n => {
+            const r = n.getBoundingClientRect();
+            if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: false });
+        });
+    }
+    let dimAt = 0;
+    function dimStep(tn) {
+        if (tn - dimAt > 1500) { dimAt = tn; dimMeasure(); }
+        const active = phase === 'play' && pointer && (down || autoCut || swing), p = pointer;
+        dimEls.forEach(d => {
+            const on = !!active && p.x > d.x0 && p.x < d.x1 && p.y > d.y0 && p.y < d.y1;
+            if (on !== d.dim) { d.dim = on; d.n.classList.toggle('fg-dim', on); }
+        });
+    }
 
     // ---------- debug mode ----------
     // A sandbox for trying things out: no clock, no spawns, no score. Drag fruit and power-ups
@@ -2963,6 +3081,7 @@ export function mountFrogGame(stage, opts = {}) {
         blinkAt -= dt;
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
         stepFall(dt);
+        dimStep(now);
         // The frog is drawn in held poses, not tweened: at rest a new "drawing" about 12 times a
         // second, during a cut, the intro or a fall up to 30 times a second.
         poseAcc += dt;
@@ -3055,7 +3174,11 @@ export function mountFrogGame(stage, opts = {}) {
                             const qi = pieces.indexOf(q);
                             if (qi < 0 || !q.live || !q.poly) return;
                             const c2 = Math.cos(-q.rot), s2 = Math.sin(-q.rot), ldx = f.dx * c2 - f.dy * s2, ldy = f.dx * s2 + f.dy * c2;
-                            if (cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, f.dx, f.dy, q.x, q.y)) pieces.splice(qi, 1);
+                            const n1 = pieces.length;
+                            if (cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, f.dx, f.dy, q.x, q.y)) {
+                                pieces.splice(qi, 1);
+                                if (bladeFx.fire) for (let k = n1 - 1; k < pieces.length; k++) pieces[k].burn = burnTime() * 0.85;   // still only nearly grilled
+                            }
                             seqFlash(q.x, q.y, f.dx, f.dy, q.R * 1.4);
                         });
                         cut = mine;
@@ -3079,6 +3202,12 @@ export function mountFrogGame(stage, opts = {}) {
                     if (done) {
                         const parts = pieces.slice(n0);            // (taken before f itself is removed from the list)
                         if (ix >= 0) fruits.splice(ix, 1); else pieces.splice(pcx, 1);
+                        // A fire-enhanced release leaves fruit nearly grilled, not grilled: one more touch of
+                        // flame finishes it. Fruit that was already in a flame before the clock is grilled outright.
+                        if (bladeFx.fire) {
+                            if (f.burn > 0) parts.forEach(q => { const k = pieces.indexOf(q); if (k >= 0) { pieces.splice(k, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts)); } });
+                            else parts.forEach(q => { q.burn = burnTime() * 0.85; });
+                        }
                         markAgain.push({ again: true, parts, dx: -dy, dy: dx });
                         seqFlash(f.x, f.y, dx, dy, 0);
                     }
@@ -3255,6 +3384,13 @@ export function mountFrogGame(stage, opts = {}) {
 
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
+        bctx.clearRect(0, 0, W, H);
+        fruits.forEach(f => {
+            if (!isBehind(f)) return;
+            const sp = wholeSprite(f, clamp(W / 260, 2.5, 4));
+            bctx.save(); bctx.translate(f.x, f.y); bctx.scale(f.ds || 1, f.ds || 1); bctx.rotate(f.rot);
+            bctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2); bctx.restore();
+        });
         const lw = clamp(W / 260, 2.5, 4);
         if (ripples.length) {   // fruit landing in the sea: a ring spreading on the water
             ctx.save(); ctx.strokeStyle = '#9fc3d3'; ctx.lineWidth = 2;
@@ -3276,6 +3412,7 @@ export function mountFrogGame(stage, opts = {}) {
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
+            if (isBehind(f)) return;                             // drawn on the canvas behind the frog
             if (f.mark) glow(ctx, f.x, f.y, f.R * 1.9 + 14, '129,212,250', 0.75);   // marked during a time freeze
             else if (f.slow) glow(ctx, f.x, f.y, f.R * 1.5 + 8, '79,195,247', 0.25 + 0.45 * f.slow);   // slowed by the flame
             if (drunk) drawEchoes(f, lw, drunk, tn);

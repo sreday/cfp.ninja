@@ -1411,6 +1411,7 @@ a:hover {
 
 /* Frog Ninja game (/game) */
 .fg-stage { position: relative; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+.fg-canvas-back { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .fg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
 .fg-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 /* drunk: the world sways */
@@ -1579,6 +1580,17 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* the sound pill: a megaphone, crossed out while sound is off */
 .fg-sound-pill { position: absolute; top: 12px; right: 136px; z-index: 6; width: 46px; height: 38px; padding: 0; align-items: center; justify-content: center; font-size: 1.05rem; line-height: 1; cursor: pointer; transition: background .15s ease; }
 .fg-sound-pill:hover { background: var(--border-light); }
+.fg-full-pill { position: absolute; top: 12px; right: 190px; z-index: 6; height: 38px; padding: 0 14px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
+.fg-full-pill[hidden] { display: none; }
+.fg-full-pill:hover { background: var(--border-light); }
+@media (max-width: 575px) { .fg-full-pill { top: auto; bottom: 8px; right: auto; left: 56px; height: 30px; font-size: .7rem; padding: 0 10px; } }
+/* the interface fades while the blade works next to it */
+.fg-pill, .fg-stamina, .fg-grade, .fg-debug-tray, .fg-debug-title { transition: opacity .15s ease; }
+.fg-dim { opacity: .18 !important; }
+/* replays */
+.fg-replay { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.fg-replay [hidden] { display: none; }
+.fg-rec-note { flex-basis: 100%; margin: 0; font-size: .78rem; color: var(--text-light); }
 .fg-sound-off { color: transparent; text-shadow: 0 0 0 rgba(255,255,255,.55); }
 .fg-sound-off::after { content: ''; position: absolute; left: 9px; right: 9px; top: 50%; height: 2.5px; border-radius: 2px; background: #e53935; transform: rotate(-38deg); }
 @media (max-width: 575px) { .fg-debug-pill { width: auto; top: auto; bottom: 8px; right: 8px; height: 30px; font-size: .7rem; } .fg-debugging .fg-debug-pill { bottom: auto; top: 56px; } }
