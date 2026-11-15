@@ -500,7 +500,9 @@ function drawCrate(ctx, hw, lw) {
 }
 
 // a soft glow without shadowBlur: one radial gradient disc
+let noGlow = false;                              // set while a thing is drawn for its outline: halos would blur the shape
 function glow(ctx, x, y, r, rgb, a) {
+    if (noGlow) return;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
@@ -713,7 +715,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: the flame gets three times as wide. Clock: it hacks fruit, which floats until you cut it. Both: a wide hacking breath. Each adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: the flame gets three times as wide. Clock: it hacks fruit, power-ups and crates, which then float for 5 s. Both: a wide hacking breath. Each adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. They stack, up to 3 each. Each adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
                     </div>
@@ -1578,6 +1580,8 @@ export function mountFrogGame(stage, opts = {}) {
             for (let i = list.length - 1; i >= 0; i--) {
                 const b = list[i], r = rad(b);
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
+                // a clock-fed breath hacks what it touches instead of burning it (fireworks excepted: they just go off)
+                if (fireSlow && on && b.kind !== 'fireworks' && inFlame(b.x, b.y, r)) { if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); } continue; }
                 b.burn = (b.burn || 0) + dt;
                 if (b.kind === 'fireworks') {   // not a power-up to burn: the flame lights the fuse and they go off
                     if (b.burn >= BURN_TIME) { list.splice(i, 1); breakPickup(b, 0); }
@@ -1601,6 +1605,7 @@ export function mountFrogGame(stage, opts = {}) {
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i];
             if (!((on && inFlame(c.x, c.y, c.hw)) || inBlade(c.x, c.y, c.hw))) { if (c.burn) c.burn = Math.max(0, c.burn - dt * BURN_COOL); continue; }
+            if (fireSlow && on && inFlame(c.x, c.y, c.hw)) { if (!c.hacked) { c.hacked = true; c.hackT = 0; c.burn = 0; snd('hack'); } continue; }
             c.burn = (c.burn || 0) + dt;
             if (Math.random() < 0.6) flames.push({ x: c.x + rand(-c.hw, c.hw) * 0.7, y: c.y - c.hw * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(5, 9) });
             if (c.burn >= BURN_TIME) { crates.splice(i, 1); breakCrate(c, 1, 0, c.x, c.y); }
@@ -1945,6 +1950,38 @@ export function mountFrogGame(stage, opts = {}) {
             hopT = 0.4;
         }
         if (punch.t >= PUNCH_END) punch = null;
+    }
+    // The digital outline of any drawn thing (a hacked power-up or crate): its silhouette as a
+    // glowing blue edge around a dark body full of flickering digits. `paint` draws the thing
+    // centred on (0, 0) of the context it is given; half is half the size of the box it needs.
+    const hackA = document.createElement('canvas'), hackB = document.createElement('canvas');
+    function drawOutline(x, y, half, tn, paint) {
+        const n = Math.ceil(half * 2 * dpr) + 4;
+        [hackA, hackB].forEach(cv => { if (cv.width !== n) { cv.width = n; cv.height = n; } });
+        const a = hackA.getContext('2d'), b = hackB.getContext('2d');
+        // A: the silhouette, in blue
+        a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over'; a.clearRect(0, 0, n, n);
+        a.setTransform(dpr, 0, 0, dpr, n / 2, n / 2); noGlow = true; paint(a); noGlow = false;
+        a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-in'; a.fillStyle = '#81d4fa'; a.fillRect(0, 0, n, n);
+        // B: the same shape, dark, with digits on it
+        b.setTransform(1, 0, 0, 1, 0, 0); b.globalCompositeOperation = 'source-over'; b.clearRect(0, 0, n, n);
+        b.drawImage(hackA, 0, 0);
+        b.globalCompositeOperation = 'source-in'; b.fillStyle = 'rgb(8,30,60)'; b.fillRect(0, 0, n, n);
+        b.globalCompositeOperation = 'source-atop';
+        b.font = `700 ${Math.round(10 * dpr)}px ui-monospace, Menlo, monospace`; b.textAlign = 'center'; b.textBaseline = 'middle';
+        const slow = Math.floor(tn / 220);
+        for (let gy = 6 * dpr; gy < n; gy += 11 * dpr) for (let gx = 5 * dpr; gx < n; gx += 8 * dpr) {
+            const v = Math.sin((slow + gx * 7.3 + gy * 3.1) * 78.233) * 43758.5453, bit = v - Math.floor(v);
+            b.fillStyle = bit > 0.82 ? '#e1f5fe' : 'rgba(79,195,247,.6)';
+            b.fillText(bit > 0.5 ? '1' : '0', gx, gy);
+        }
+        // onto the game: the blue shape nudged in eight directions makes the edge, the dark body goes on top
+        const glitch = Math.sin(Math.floor(tn / 90) * 12.9898 + x) * 43758.5453, jump = (glitch - Math.floor(glitch)) < 0.2 ? ((glitch * 7) % 1 - 0.5) * 10 : 0;
+        const w = n / dpr, ox = x - w / 2 + jump, oy = y - w / 2;
+        ctx.save(); ctx.globalAlpha = 0.85;
+        for (let i = 0; i < 8; i++) ctx.drawImage(hackA, ox + Math.cos(i * Math.PI / 4) * 2.2, oy + Math.sin(i * Math.PI / 4) * 2.2, w, w);
+        ctx.globalAlpha = 1; ctx.drawImage(hackB, ox, oy, w, w);
+        ctx.restore();
     }
     function drawPunch(lw) {
         const c = punch.c, r = c.hw * 0.42;
@@ -2485,16 +2522,28 @@ export function mountFrogGame(stage, opts = {}) {
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
-        flies.forEach(f => { f.t += wdt; f.x += f.dir * f.speed * wdt + Math.sin(f.t * 9 + f.phase) * 0.6 * (wdt / (dt || 1)); f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
+        const floating = o => {
+            if (!o.hacked) return false;
+            o.hackT += wdt;
+            if (o.hackT >= HACK_FLOAT) { o.hacked = false; if (o.vy !== undefined) { o.vx = 0; o.vy = 0; } return false; }
+            // adrift, like hacked fruit
+            const k = Math.min(1, 3 * wdt), seed = o.x * 0.01;
+            o.fx = (o.fx || 0) + (Math.sin(o.hackT * 0.9 + seed) * H * 0.035 - (o.fx || 0)) * k;
+            o.fy = (o.fy || 0) + (Math.sin(o.hackT * 1.7 + seed) * H * 0.02 - (o.fy || 0)) * k;
+            o.x = clamp(o.x + o.fx * wdt, 30, W - 30); o.y = clamp(o.y + o.fy * wdt, 80, H * 0.8);
+            if (o.base !== undefined) o.base = o.y;
+            return true;
+        };
+        flies.forEach(f => { if (floating(f)) { f.t += wdt; return; } f.t += wdt; f.x += f.dir * f.speed * wdt + Math.sin(f.t * 9 + f.phase) * 0.6 * (wdt / (dt || 1)); f.y = f.base + Math.sin(f.t * 3.1 + f.phase) * H * 0.04 + Math.sin(f.t * 13) * 3; });
         flies = flies.filter(f => f.x > -40 && f.x < W + 40);
-        pickups.forEach(b => { b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
+        pickups.forEach(b => { if (floating(b)) { b.t += wdt; b.rot += b.spin * 0.25 * wdt; return; } b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
         pickups = pickups.filter(b => b.y < H + b.r * 3);
         bits.forEach(b => { b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; b.t += dt; });
         stepWarps(dt);
         bubbles.forEach(q => { q.t += dt; q.x += (q.vx + Math.sin(q.t * 9 + q.ph) * 30) * dt; q.y += q.vy * dt; });
         bubbles = bubbles.filter(q => q.t < q.life);
         if (bubbles.length > 300) bubbles.splice(0, bubbles.length - 300);
-        crates.forEach(c => { c.vy += c.g * wdt; c.x += c.vx * wdt; c.y += c.vy * wdt; c.rot += c.spin * wdt; });
+        crates.forEach(c => { if (floating(c)) { c.rot += c.spin * 0.25 * wdt; return; } c.vy += c.g * wdt; c.x += c.vx * wdt; c.y += c.vy * wdt; c.rot += c.spin * wdt; });
         crates = crates.filter(c => c.y < H + c.hw * 3);
         planks.forEach(q => { q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.spin * dt; q.t += dt; });
         planks = planks.filter(q => q.y < H + 120 && q.x > -200 && q.x < W + 200);
@@ -2580,7 +2629,8 @@ export function mountFrogGame(stage, opts = {}) {
         planks.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw); ctx.restore(); });
         crates.forEach(c => {
             if (c.mark) glow(ctx, c.x, c.y, c.hw * 2.2, '129,212,250', 0.75);        // marked during a time freeze, like fruit
-            ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore();
+            if (c.hacked) drawOutline(c.x, c.y, c.hw * 1.6, tn, g => { g.rotate(c.rot); drawCrate(g, c.hw, lw); });
+            else { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore(); }
         });
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else drawPiece(ctx, q, lw); ctx.restore(); });
@@ -2633,7 +2683,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.translate(b.x, b.y); ctx.rotate(b.rot); b.draw(ctx, lw, b); ctx.restore();
         });
         // pickups and fireflies sit in front of the fruit
-        pickups.forEach(b => drawPickup(ctx, b, lw));
+        pickups.forEach(b => { if (b.hacked) drawOutline(b.x, b.y, b.r * 2.6, tn, g => drawPickup(g, Object.assign({}, b, { x: 0, y: 0 }), lw)); else drawPickup(ctx, b, lw); });
         // the marks of a time freeze: a dot in the middle of each marked fruit (and crate),
         // joined by a line in the order they will be cut
         const marked = allMarked();
@@ -2651,7 +2701,10 @@ export function mountFrogGame(stage, opts = {}) {
             });
             ctx.restore();
         }
-        flies.forEach(f => drawFly(ctx, f, f.s, freezeLeft > 0 || markQueue.length ? tn / 10000 : tn / 1000));
+        flies.forEach(f => {
+            const ft = freezeLeft > 0 || markQueue.length ? tn / 10000 : tn / 1000;
+            if (f.hacked) drawOutline(f.x, f.y, f.s * 4.5, tn, g => drawFly(g, Object.assign({}, f, { x: 0, y: 0 }), f.s, ft)); else drawFly(ctx, f, f.s, ft);
+        });
         if (flames.length) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter';
             const tint = FLAME[fireLeft > 0 ? fireTint : ''];
