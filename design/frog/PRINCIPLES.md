@@ -85,6 +85,11 @@ These are fixed. Tuning serves them; the trace review measures against them.
 5. **The bowls are a trophy.** Ten bowls of salad, 60 pieces each. Filling all ten is
    cosmetic and should be something only the very best runs do.
 
+6. **The same play area on every screen.** Everything in the game is sized from the area
+   of the window, not its width or height (`S()` in the engine), so the field holds the same
+   number of fruit whether it is a phone held upright (tall) or a desktop window (wide).
+   Balanced between 9:16 and 16:9; windows more extreme than that are not balanced for.
+
 Targets to measure against (real runs, not debug):
 
 | Measure | Target |
