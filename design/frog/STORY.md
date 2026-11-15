@@ -100,6 +100,13 @@ distract from the fruit.
 6. **Conference mode (later).** At an event, the stand's own mascot takes a bigger role and
    the scoreboard is the event's.
 
+## In the game so far
+
+- **The laptop (very rare item).** Caught with the tongue, the frog sits down with its laptop and
+  three of the four friends appear at the left, top and right of the screen and slash
+  everything twice. This is the first place the cast shows up, drawn from the brand art in
+  `static/img/game/` (placeholders until they are redrawn in the game's style).
+
 ## Not decided
 
 - Names for the animals (so far they are called by their species).

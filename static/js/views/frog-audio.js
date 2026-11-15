@@ -238,6 +238,11 @@ export const SYNTH = {
         [0.15, 0.3, 0.42].forEach(d => noise(c, o, t + d, { dur: 0.12, gain: 0.15, filter: 'bandpass', f: jit(1200, 0.4), q: 3 }));   // drops falling back
     },
 
+    // a far fruit lands in the sea
+    plop(c, o, t) { tone(c, o, t, { f: jit(520), f1: 180, dur: 0.09, gain: 0.14 }); noise(c, o, t + 0.03, { dur: 0.12, gain: 0.12, filter: 'lowpass', f: 1800, f1: 500 }); },
+    // the laptop: a start-up chime, and the team arrives
+    summon(c, o, t) { [392, 587.3, 784, 1174.7].forEach((f, i) => tone(c, o, t + i * 0.07, { type: 'triangle', f, dur: 0.5, gain: 0.16 })); thump(c, o, t + 0.3, 120, 0.4, 0.3); },
+
     // ----- interface -----
     ui(c, o, t) { tone(c, o, t, { type: 'triangle', f: 700, dur: 0.05, gain: 0.1 }); },
     ui_play(c, o, t) { tone(c, o, t, { type: 'triangle', f: 523, dur: 0.09, gain: 0.14 }); tone(c, o, t + 0.07, { type: 'triangle', f: 784, dur: 0.16, gain: 0.14 }); },
@@ -245,7 +250,7 @@ export const SYNTH = {
     place(c, o, t) { tone(c, o, t, { f: 600, f1: 300, dur: 0.07, gain: 0.12 }); }
 };
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
-const MIN_GAP = { slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
+const MIN_GAP = { plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
 function sustained(ctx, out, level, build) {

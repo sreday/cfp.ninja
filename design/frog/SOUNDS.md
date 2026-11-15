@@ -140,6 +140,14 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 | `ui` | tips are paged, sound is turned on | a tiny click | a soft tap |
 | `place` | debug: an item is dropped on the field | a short falling blip | a pop |
 
+### Added later
+
+| id | Plays when | Layers now | A real recording would be |
+|---|---|---|---|
+| `summon` | the laptop is caught | a rising four-note chime and a thump | a laptop start-up chime, then the team's battle cry |
+| `plop` | a far fruit lands in the sea | a falling blip and a small wash | a plop |
+| `splash` | the frog falls in at time-up | a crack, a thump, a wash and falling drops | a big splash |
+
 ### Still silent, on purpose or not yet
 
 - Fruit being thrown in, and pieces falling away: left silent so the action stays readable.

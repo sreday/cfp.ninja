@@ -59,6 +59,7 @@ file is the source of truth, this document explains the intent.
 | Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |
 | Fruit crate | every 38-60 s (rare) | slash, punch (tongue), burn, blast or mark: 10 fruit burst out |
 | Fireworks | every 42-65 s (rare) | slash: 3 s of blasts; tongue: 5 aimed big blasts |
+| CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
 breath + sake (wide), breath + clock (hacks fruit), sake + firefly / clock / sake (fire

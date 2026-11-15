@@ -1414,6 +1414,12 @@ a:hover {
 .fg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
 .fg-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 /* drunk: the world sways */
+/* the sea moves a little */
+.fg-waves { animation: fg-waves 5s ease-in-out infinite; }
+.fg-shore { animation: fg-shore 3.4s ease-in-out infinite; }
+@keyframes fg-waves { 0%, 100% { transform: translate(-14px, 0); } 50% { transform: translate(14px, 3px); } }
+@keyframes fg-shore { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-30px, 5px); } }
+@media (prefers-reduced-motion: reduce) { .fg-waves, .fg-shore { animation: none; } }
 /* time up: the frog goes into the water behind its post */
 .fg-fallen .fg-pole { z-index: 1; }
 .fg-fallen .fg-frog { z-index: 0; }

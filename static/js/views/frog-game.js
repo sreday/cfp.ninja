@@ -30,12 +30,20 @@ const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops,
 // time than a normal burn, and breaks crates open.
 const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 10, FW_SHOT_GAP = 0.04, FW_BONUS = 1.5;
 const FW_FIRST = [26, 40], FW_NEXT = [42, 65];
+// The CFP.ninja laptop: twice as rare as the crate and the fireworks. Slashed, it is wrecked like
+// any power-up. Caught with the tongue, time stops dead, the frog sits down with it and calls its
+// friends: three of the four (monkey, llama, platypus, corgi) appear at the left, the top and the
+// right, and slash twice. Each slash cuts everything on screen in half, pieces included, for
+// LAPTOP_PAY of what a clean cut by hand would pay.
+const LAPTOP_FIRST = [55, 80], LAPTOP_NEXT = [84, 130], LAPTOP_PAY = 0.75;
+const FRIENDS = ['monkey', 'llama', 'platypus', 'corgi'];
 // The fruit crate: rare, thrown like fruit; slash it open and CRATE_FRUIT fruit burst out.
 const CRATE_TALL = 1;                            // the crate's height against its width: square
 const CRATE_BURST = 0.7;                         // how fast the fruit leaves the crate (1 = as fast as thrown fruit)
 const CRATE_FRUIT = 10, CRATE_FIRST = [22, 34], CRATE_EVERY = [38, 60];   // seconds
 const WOOD = { face: '#c9a36b', dark: '#a9834f', back: '#8d6b3f', inside: '#5d452a' };
 const HACK_FLOAT = 5;                            // seconds a hacked fruit floats; then it is a normal fruit again and falls
+const FAR_SHARE = 0.3, DEPTH_SWING = 0.1, FAR_SIZE = 0.6;     // fruit that lands in the sea; how much near fruit grows and shrinks; how small far fruit gets
 const SLOW_ENTRY = 0.2;                          // how fast new fruit comes on screen during slow motion (1 = normal speed)
 const SLOW_TAIL = 0.5;                           // seconds the world takes to speed up again after a time freeze
 const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
@@ -141,12 +149,12 @@ const BEACH_SVG = `
     <g fill="#222f38"><ellipse cx="800" cy="500" rx="520" ry="40"/><ellipse cx="240" cy="530" rx="300" ry="30"/><ellipse cx="1400" cy="525" rx="320" ry="32"/></g>
     <rect x="-400" y="600" width="2400" height="130" fill="url(#fg-sea)"/>
     <path d="M-400 600 H2000" stroke="#2b3b45" stroke-width="3"/>
-    <g fill="none" stroke="#22323c" stroke-width="4" stroke-linecap="round">
+    <g class="fg-waves" fill="none" stroke="#22323c" stroke-width="4" stroke-linecap="round">
         <path d="M60 640 q60 -10 120 0 t120 0"/><path d="M520 628 q50 -8 100 0 t100 0"/><path d="M980 650 q60 -10 120 0 t120 0"/><path d="M1360 632 q45 -8 90 0 t90 0"/>
         <path d="M250 676 q70 -12 140 0 t140 0"/><path d="M820 684 q60 -10 120 0 t120 0"/><path d="M1240 690 q70 -12 140 0 t140 0"/>
     </g>
     <rect x="-400" y="718" width="2400" height="400" fill="url(#fg-sand)"/>
-    <path d="M-400 722 q100 -16 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0" fill="none" stroke="#3a4b55" stroke-width="6" stroke-linecap="round"/>
+    <path class="fg-shore" d="M-400 722 q100 -16 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0" fill="none" stroke="#3a4b55" stroke-width="6" stroke-linecap="round"/>
     <g fill="#322d26">
         <ellipse cx="140" cy="800" rx="16" ry="9"/><ellipse cx="330" cy="850" rx="22" ry="11"/><ellipse cx="520" cy="790" rx="12" ry="7"/><ellipse cx="1010" cy="840" rx="20" ry="10"/>
         <ellipse cx="1190" cy="792" rx="14" ry="8"/><ellipse cx="1420" cy="860" rx="24" ry="12"/><ellipse cx="1530" cy="800" rx="13" ry="7"/><ellipse cx="660" cy="870" rx="17" ry="9"/>
@@ -228,20 +236,22 @@ const FROG_SVG = `
             <!-- the three-quarter head, for cuts close to the frog: both eyes, the near one bigger -->
             <g id="fg-side-headQ" opacity="0">
             <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="${C.green}"/>
-            <circle cx="940" cy="56" r="116" fill="#fff"/>
-            <circle cx="1290" cy="66" r="134" fill="#fff"/>
-            <circle cx="976" cy="64" r="78" fill="#000"/>
-            <circle cx="1328" cy="74" r="90" fill="#000"/>
-            <circle cx="1002" cy="18" r="32" fill="#fff"/>
-            <circle cx="1358" cy="22" r="38" fill="#fff"/>
+            <circle cx="925" cy="20" r="128" fill="#fff"/>
+            <circle cx="1285" cy="24" r="142" fill="#fff"/>
+            <circle cx="962" cy="28" r="86" fill="#000"/>
+            <circle cx="1326" cy="32" r="96" fill="#000"/>
+            <circle cx="990" cy="-22" r="36" fill="#fff"/>
+            <circle cx="1358" cy="-22" r="40" fill="#fff"/>
             <g clip-path="url(#fg-side3clip)">
-                <path d="M460 -420 L1660 -420 L1660 -60 L1500 -40 Q1340 -30 1140 78 Q1000 0 800 -34 L610 14 L460 14 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
-                <path d="M620 -80 Q1040 -160 1470 -100" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+                <!-- the band sits on top of the eyes and dips between them, like the logo: that dip is the frown -->
+                <path d="M460 -420 L1660 -420 L1660 -118 L1470 -118 Q1300 -92 1168 8 Q1108 42 1048 8 Q930 -84 790 -118 L460 -118 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M640 -190 Q1050 -230 1460 -190" stroke="#000" stroke-width="16" fill="none"/>
+                <path d="M650 -158 Q1050 -196 1450 -158" stroke="${C.redHi}" stroke-width="34" fill="none"/>
                 <path d="M720 240 Q1140 340 1530 150 L1620 430 L640 450 Z" fill="${C.belly}"/>
             </g>
             <path d="M790 250 Q1170 320 1510 152" stroke="#000" stroke-width="22" fill="none"/>
-            <ellipse cx="1370" cy="96" rx="15" ry="22" fill="#000" transform="rotate(-20 1370 96)"/>
-            <ellipse cx="1448" cy="84" rx="15" ry="22" fill="#000" transform="rotate(25 1448 84)"/>
+            <ellipse cx="1150" cy="150" rx="15" ry="22" fill="#000" transform="rotate(-30 1150 150)"/>
+            <ellipse cx="1236" cy="150" rx="15" ry="22" fill="#000" transform="rotate(30 1236 150)"/>
             <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="none" stroke="#000" stroke-width="26"/>
             </g>
             <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${C.red}" stroke="#000" stroke-width="22"/>
@@ -686,8 +696,21 @@ function drawFireworks(ctx, b, lw) {
     ctx.fillStyle = '#fff59d'; ctx.beginPath(); ctx.arc(0, r * 1.25, r * 0.16 * sp + 1.5, 0, 7); ctx.fill();
     ctx.restore();
 }
+// the grey CFP.ninja laptop from the logo, open, seen from the front
+function drawLaptop(ctx, b, lw) {
+    const r = b.r;
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
+    ctx.fillStyle = C.laptop; ctx.beginPath(); ctx.moveTo(-r * 1.15, -r * 0.8); ctx.lineTo(r * 1.15, -r * 0.8); ctx.lineTo(r, r * 0.55); ctx.lineTo(-r, r * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = C.laptopHi; ctx.lineWidth = Math.max(1, lw * 0.5); ctx.strokeRect(-r * 0.98, -r * 0.68, r * 1.96, r * 1.1);
+    ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.round(r * 0.72)}px Inter, Arial Black, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('CFP', 0, -r * 0.1);
+    ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = C.laptopHi;
+    ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
+    ctx.restore();
+}
 function drawPickup(ctx, b, lw) {
     if (b.kind === 'clock') drawClock(ctx, b, lw);
+    else if (b.kind === 'laptop') drawLaptop(ctx, b, lw);
     else if (b.kind === 'fireworks') drawFireworks(ctx, b, lw);
     else drawSake(ctx, b, lw);
 }
@@ -749,7 +772,7 @@ export function mountFrogGame(stage, opts = {}) {
     const audio = createAudio();
     // Every sound is also noted in the run's log, whether or not the device is playing sound:
     // the rare ones as events, the constant ones (cuts, slashes...) as a count at the end.
-    const SND_COUNTED = { slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1 };
+    const SND_COUNTED = { plop: 1, slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1 };
     let sndCount = {};
     const snd = (id, o) => {
         sndCount[id] = (sndCount[id] || 0) + 1;
@@ -779,7 +802,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -799,6 +822,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="rare" hidden>
                         <p class="fg-tip-lead">Rare finds.</p>
+                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice.</span></div></div>
                         <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts across the sky. Tongue them: the frog spits 10 big ones all over the sky. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                     </div>
@@ -862,6 +886,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
             else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
+            else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
         });
@@ -975,9 +1000,10 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.legL, 'transform', `translate(${n2(turn < 0 ? turn * 150 : turn * 40)} 0)`);
         // (running out of time: it teeters on one foot, the other pulled up)
         setA(el.legR, 'transform', pose.oneFoot ? 'translate(120 -300) rotate(38 1166 1040)' : `translate(${n2(turn > 0 ? turn * 150 : turn * 40)} 0)`);
-        setA(el.stand, 'opacity', pose.up > 0.5 && !pose.fallY && !sideOn ? 1 : 0);
+        setA(el.stand, 'opacity', pose.up > 0.5 && !sideOn ? 1 : 0);
         // the legs stay planted and slant so their tops stay under the hips
-        setA(el.stand, 'transform', `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
+        // (falling: the legs go with the body)
+        setA(el.stand, 'transform', pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
         // breathing: the robe swells a little from the floor up; the head rides on it
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
@@ -1035,6 +1061,9 @@ export function mountFrogGame(stage, opts = {}) {
     function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false, bladeLook = '';
+    // where the sea is on screen (the backdrop is anchored to the bottom and scaled to cover)
+    const seaY = () => H - 215 * Math.max(W / 1600, H / 900);
+    let ripples = [];
     // How the run was played, reported with the score so runs played by a script or an AI
     // agent go on their own board (see looksAutomated in pkg/api/game_agent.go).
     let sig = { webdriver: false, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 };
@@ -1415,7 +1444,10 @@ export function mountFrogGame(stage, opts = {}) {
             vx = dir * W * rand(0.35, 0.6) * sp;
             vy = -Math.sqrt(2 * g * rand(0.15, Math.min(0.55, y / H - 0.1)) * H);
         }
-        fruits.push(newFruit(type, r, x, y, vx, vy, g));
+        // Depth: everything is thrown from where we stand, so it starts close. About a third of
+        // the fruit carries on away from us and comes down in the sea (far); the rest stays near
+        // and drifts a little closer and further as it flies (ds = how big it looks: 1 = as thrown).
+        fruits.push(newFruit(type, r, x, y, vx, vy, g, { far: Math.random() < FAR_SHARE, ds: 1.1, dph: rand(0, 6.28) }));
     }
     function newFruit(type, r, x, y, vx, vy, g, o) {
         const pine = type.kind === 'pineapple';
@@ -1487,10 +1519,11 @@ export function mountFrogGame(stage, opts = {}) {
     // What a blade stroke (a -> b, heading (dx, dy)) does to a fruit or a piece:
     // null, or { kind: 'cut' | 'crown' | 'edge', ... } with the cut line in the fruit's own frame.
     function strike(f, ax, ay, bx, by, dx, dy) {
-        const reach = f.R * Math.max(1, MIN_HIT / f.r) * 1.3 + 6;
+        const ds = f.ds || 1;                                // how big it looks (depth): its outline is scaled by this
+        const reach = f.R * ds * Math.max(1, MIN_HIT / (f.r * ds)) * 1.3 + 6;
         if (segDist(f.x, f.y, ax, ay, bx, by) > reach) return null;
         // into the fruit's frame; a tiny fruit is hit as if it were MIN_HIT big
-        const k = f.poly ? Math.max(1, MIN_HIT / f.r) : 1, c = Math.cos(-f.rot), sn = Math.sin(-f.rot);
+        const k = (f.poly ? Math.max(1, MIN_HIT / (f.r * ds)) : 1) * ds, c = Math.cos(-f.rot), sn = Math.sin(-f.rot);
         const loc = (x, y) => [((x - f.x) * c - (y - f.y) * sn) / k, ((x - f.x) * sn + (y - f.y) * c) / k];
         const a = loc(ax, ay), b = loc(bx, by);
         const ldx = dx * c - dy * sn, ldy = dx * sn + dy * c, nx = -ldy, ny = ldx;   // the heading and its normal, local
@@ -1520,7 +1553,7 @@ export function mountFrogGame(stage, opts = {}) {
         let R = 0;
         (body || []).concat(...(leaves || [])).forEach(v => { R = Math.max(R, Math.hypot(v[0], v[1])); });
         return Object.assign({
-            type: f.type, r: f.r, hacked: f.hacked, src: f.src, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
+            type: f.type, r: f.r, hacked: f.hacked, src: f.src, ds: f.ds || 1, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
             x: f.x + cen[0] * c - cen[1] * sn, y: f.y + cen[0] * sn + cen[1] * c, rot: f.rot, g: G(), fam: f.fam, t: 0,
             area: poly ? polyArea(poly) : 0
         }, o);
@@ -1536,12 +1569,12 @@ export function mountFrogGame(stage, opts = {}) {
         const chain = cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
         if (cut && f.fam.cuts === 0) cut.hits = chain + 1;
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
-            * (1 + Math.min(MULTI * chain, MULTI_MAX)) * (bladeFx.bubbles && fxOn() ? 1 + 0.1 * bladeFx.bubbles : 1) * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
+            * (1 + Math.min(MULTI * chain, MULTI_MAX)) * (bladeFx.bubbles && fxOn() ? 1 + 0.1 * bladeFx.bubbles : 1) * summonPay * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
         f.fam.cuts++;
         if (f.fam.cuts === 1 && cut && cut !== markCut && cut !== warpCut) { sig.cuts++; if (hit.clean) sig.clean++; }
         lastSlice = now;
         timeLeft += gain; slices++;
-        val(cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
+        val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
         addToSalad(f.type, f.ash > 0);
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
@@ -1712,7 +1745,7 @@ export function mountFrogGame(stage, opts = {}) {
             return;
         }
         if (sakeLeft <= 0) hurtFlash = 0.35;
-        setBladeFx(b.kind === 'clock' ? 'frost' : 'bubbles', b.x, b.y);
+        if (b.kind !== 'laptop') setBladeFx(b.kind === 'clock' ? 'frost' : 'bubbles', b.x, b.y);
         const r = b.r;
         if (b.kind === 'clock') {
             // cut clean in half along the blade: the two halves fall apart and the works spill out
@@ -1915,7 +1948,7 @@ export function mountFrogGame(stage, opts = {}) {
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
-        if (fireLeft > 0 || fwBusy()) return;                // breathing fire or spitting fireworks: no slashing, no tongue
+        if (fireLeft > 0 || fwBusy() || summon) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
         if (freezeLeft > 0 && phase === 'play') {
@@ -1987,7 +2020,7 @@ export function mountFrogGame(stage, opts = {}) {
         // sake: the blades never rest, the cursor slashes wherever it goes, no button needed
         const auto = !down && sakeLeft > 0 && phase === 'play' && fireLeft <= 0 && stunT <= 0;
         if (!down && !auto) { if (autoCut) { cut = null; autoCut = false; } return; }
-        if (fireLeft > 0 || fwBusy()) { down = false; cut = null; press = null; autoCut = false; return; }
+        if (fireLeft > 0 || fwBusy() || summon) { down = false; cut = null; press = null; autoCut = false; return; }
         pointer = { x, y };
         if (auto && dbg) dbgFrozen = false;
         if (auto && !cut) { autoCut = true; startCut(x, y, false); lx = x; ly = y; return; }
@@ -2099,7 +2132,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- the tongue ----------
     function shootTongue(x, y) {
-        if (phase !== 'play' || stunT > 0 || tongue || fwBusy()) return;
+        if (phase !== 'play' || stunT > 0 || tongue || fwBusy() || summon) return;
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
         snd('tongue');
@@ -2142,6 +2175,8 @@ export function mountFrogGame(stage, opts = {}) {
             sakeLeft = SAKE_SECONDS; stamina = STAMINA_BARS; clearBladeFx();
             floats.push({ x: m.x, y: m.y - 40, text: 'Sake! Free slashes', t: 0, hot: true });
             hopT = 0.5;
+        } else if (c.kind === 'laptop') {
+            startSummon();
         } else if (c.kind === 'fireworks') {
             // the frog spits the rockets out, one after another, at wherever the cursor is
             fwShots = FW_SHOTS; fwShotT = 0.02;
@@ -2179,6 +2214,65 @@ export function mountFrogGame(stage, opts = {}) {
             if (tongue.caught) swallow(tongue.caught);
             tongue = null;
         }
+    }
+    // ---------- the laptop: the frog calls its friends ----------
+    const friendImg = {};
+    FRIENDS.forEach(n => { const im = new Image(); im.src = `/img/game/${n}.png`; friendImg[n] = im; });
+    let laptopNext = 60, summon = null, summonPay = 1;
+    const SUMMON = { enter: 0.45, slash1: 0.85, slash2: 1.45, leave: 1.95, end: 2.4 };
+    function startSummon() {
+        const who = FRIENDS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+        const spots = [{ x: W * 0.1, y: H * 0.42, fx: -1, fy: 0 }, { x: W * 0.5, y: H * 0.12, fx: 0, fy: -1 }, { x: W * 0.9, y: H * 0.42, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
+        summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
+        use('laptop'); snd('summon'); log('summon', who.join('+'));
+        down = false; cut = null; press = null; autoCut = false; swing = null;
+        floats.push({ x: W / 2, y: H * 0.3, text: 'Calling the team!', t: 0, hot: true });
+    }
+    // one slash from every friend at once: everything with flesh on it is cut clean in half
+    function summonSlash(turn) {
+        const mine = cut; cut = summon.cutId; summonPay = LAPTOP_PAY;
+        [fruits, pieces].forEach(list => {
+            const todo = list.slice();
+            todo.forEach(f => {
+                if (!f.poly || (list === fruits && !f.entered) || f.y > H || f.x < 0 || f.x > W) return;
+                // the cut comes from whichever friend is nearest, at right angles on the second slash
+                const fr = summon.friends.reduce((a, b) => Math.hypot(b.x - f.x, b.y - f.y) < Math.hypot(a.x - f.x, a.y - f.y) ? b : a);
+                let dx = f.x - fr.x, dy = f.y - fr.y; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+                if (turn) [dx, dy] = [-dy, dx];
+                const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
+                const ix = list.indexOf(f);
+                if (ix >= 0 && cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) list.splice(list.indexOf(f), 1);
+            });
+        });
+        // what was just cut can be cut again by the next slash, whatever its count
+        pieces.forEach(q => { q.live = true; });
+        cut = mine; summonPay = 1;
+        summon.friends.forEach(fr => slashes.push({ x: W / 2, y: H / 2, a: Math.atan2(H / 2 - fr.y, W / 2 - fr.x) + (turn ? Math.PI / 2 : 0), r: Math.hypot(W, H) * 0.5, t: 0, c: '#98b74b', w: 2 }));
+        snd('slash', { power: 1 }); snd('crate');
+    }
+    function stepSummon(dt) {
+        if (!summon) return;
+        summon.t += dt;
+        if (summon.done < 1 && summon.t >= SUMMON.slash1) { summon.done = 1; summonSlash(false); }
+        if (summon.done < 2 && summon.t >= SUMMON.slash2) { summon.done = 2; summonSlash(true); }
+        if (summon.t >= SUMMON.end) { pieces.forEach(q => { q.live = q.fam.cuts < MAX_CUTS; }); summon = null; readyPose(); }
+    }
+    function drawSummon() {
+        const t = summon.t, inK = ease(clamp(t / SUMMON.enter, 0, 1)), outK = ease(clamp((t - SUMMON.leave) / (SUMMON.end - SUMMON.leave), 0, 1));
+        const k = inK * (1 - outK), size = S() * 0.3;
+        // the world holds its breath
+        ctx.save(); ctx.globalAlpha = 0.25 * k; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.restore();
+        summon.friends.forEach(fr => {
+            const im = friendImg[fr.n];
+            if (!im.complete || !im.naturalWidth) return;
+            const h = size, w = h * im.naturalWidth / im.naturalHeight, off = (1 - k) * size * 1.6;
+            // a lunge toward the middle on each slash
+            const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1) / 0.12, 1 - Math.abs(t - SUMMON.slash2) / 0.12) * size * 0.25;
+            const x = fr.x + fr.fx * off - fr.fx * hit, y = fr.y + fr.fy * off - fr.fy * hit;
+            ctx.save(); ctx.translate(x, y); if (fr.fx > 0) ctx.scale(-1, 1);
+            ctx.drawImage(im, -w / 2, -h / 2, w, h);
+            ctx.restore();
+        });
     }
     // the crate the tongue hauled in: lifted over the head (PUNCH_LIFT s), then the fist lands
     // and it bursts open, the fruit launched upwards
@@ -2278,7 +2372,7 @@ export function mountFrogGame(stage, opts = {}) {
         flies[flies.length - 1].base = flies[flies.length - 1].y;
     }
     // sizes follow the payoff: firefly smallest (fire), clock medium (freeze), sake biggest (free slashes)
-    const PICK_SIZE = { clock: 0.8, sake: 0.84, fireworks: 1.6 };
+    const PICK_SIZE = { clock: 0.8, sake: 0.84, fireworks: 1.6, laptop: 1.3 };
     // ---------- fireworks ----------
     let fwFrom = { x: 0, y: 0 };                               // where the slashed bundle was: its rockets start there
     let fwLeft = 0, fwT = 0, fwShots = 0, fwShotT = 0, fwNext = 30, rockets = [], sparks = [], blasts = [];
@@ -2396,6 +2490,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
+        laptopNext = rand(...LAPTOP_FIRST); summon = null;
         fwLeft = 0; fwShots = 0; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
         crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
@@ -2563,6 +2658,7 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
+            else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
             else { x.translate(S / 2, S / 2 + 1); drawCrate(x, 15, 1.6); }
             // drag it out of the tray: a ghost follows the pointer, and it lands where you let go
             c.addEventListener('pointerdown', e => {
@@ -2629,6 +2725,8 @@ export function mountFrogGame(stage, opts = {}) {
                 pose.squash = 0.8; pose.lK = READY.lK - 25; pose.rK = READY.rK + 25; pose.lRot = READY.l + 18; pose.rRot = READY.r - 18;
             }
         }
+        // the summon: the frog sits back down with its laptop while the friends work
+        if (summon) { pose.up = 0; pose.side = 0; pose.held = false; pose.laptop.gone = false; pose.laptop.x = 0; pose.laptop.y = 0; pose.laptop.rot = 0; pose.lRot = REST.l; pose.rRot = REST.r; pose.lean = 0; pose.shift = 0; pose.squash = 0; }
         // under five seconds: on one foot, wobbling more the closer it gets
         pose.oneFoot = phase === 'play' && !dbg && timeLeft < LOW_TIME && pose.up > 0.5;
         if (pose.oneFoot) { const w = 1 - timeLeft / LOW_TIME; pose.lean += Math.sin(idleT * 7) * (4 + 9 * w); pose.shift += Math.sin(idleT * 7) * 30 * w; }
@@ -2657,7 +2755,9 @@ export function mountFrogGame(stage, opts = {}) {
         // The frog is drawn in held poses, not tweened: at rest a new "drawing" about 12 times a
         // second, during a cut, the intro or a fall up to 30 times a second.
         poseAcc += dt;
-        if (poseAcc >= (swing || introOn || overT > 0 || tongue || punch ? 1 / 30 : 1 / 12) || reduced) { poseAcc = 0; applyPose(); }
+        // (stepped only during play, where it sits among smoothly moving fruit; the intro, the
+        // start screen and the summon are the only thing moving, so they run at the full frame rate)
+        if (phase !== 'play' || summon || reduced || poseAcc >= (swing || overT > 0 || tongue || punch ? 1 / 30 : 1 / 12)) { poseAcc = 0; applyPose(); }
 
         // game; the alarm clock slows the world to SLOWMO (wdt) and stops the countdown, not the frog
         // (the slashes that follow a freeze are made while the world is still slow; then time resumes)
@@ -2666,8 +2766,9 @@ export function mountFrogGame(stage, opts = {}) {
         // and when it is all over the world takes SLOW_TAIL s to pick up speed, the countdown still held
         if (!frozen && slowTail === SLOW_TAIL) snd('resume');
         if (frozen) slowTail = SLOW_TAIL; else if (slowTail > 0) slowTail = Math.max(0, slowTail - dt);
-        const slowed = frozen || slowTail > 0;
-        const wdt = dbg && dbgFrozen ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
+        stepSummon(dt);
+        const slowed = frozen || slowTail > 0 || !!summon;
+        const wdt = (dbg && dbgFrozen) || summon ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
             if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown
             // Core truth: the fruit comes at the same pace for the whole run, however long it lasts.
@@ -2737,6 +2838,7 @@ export function mountFrogGame(stage, opts = {}) {
                         continue;
                     }
                     if (f.again) {   // the second pass: what the first cut left is cut again, at right angles
+                        if (f.parts[0]) { swing = null; swingTo(f.dx, f.dy, f.parts[0].x); }
                         const mine = cut; cut = markCut;
                         f.parts.forEach(q => {
                             const qi = pieces.indexOf(q);
@@ -2757,6 +2859,7 @@ export function mountFrogGame(stage, opts = {}) {
                     let dx = f.x - o.x, dy = f.y - o.y;
                     const d = Math.hypot(dx, dy);
                     if (d > 1) { dx /= d; dy /= d; } else { dx = 1; dy = 0; }
+                    swing = null; swingTo(dx, dy, f.x);              // the frog strikes each one itself: a fresh pose per cut
                     const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
                     const mine = cut; cut = markCut;
                     const n0 = pieces.length;
@@ -2786,6 +2889,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             if (!dbg) flyT -= wdt;
             if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
+            if (!dbg) { laptopNext -= wdt; if (laptopNext <= 0) { spawnPickup('laptop'); laptopNext = rand(...LAPTOP_NEXT); } }
             if (!dbg) { fwNext -= wdt; if (fwNext <= 0) { spawnPickup('fireworks'); fwNext = rand(...FW_NEXT); } }
             if (!dbg) crateT -= wdt;
             if (crateT <= 0) { spawnCrate(); crateT = rand(...CRATE_EVERY); }
@@ -2877,6 +2981,16 @@ export function mountFrogGame(stage, opts = {}) {
             const ft = slowNow && !f.inPlay ? dt * SLOW_ENTRY : wdt;
             f.vy += f.g * ft; f.x += f.vx * ft; f.y += f.vy * ft; f.rot += f.spin * ft;
             if (!f.entered && f.x > -f.r && f.x < W + f.r && f.y < H) f.entered = true;
+            // depth: far fruit shrinks away from us all the way; near fruit breathes in and out a little
+            const age = (performance.now() - f.born) / 1000;
+            if (f.far) f.ds = Math.max(FAR_SIZE, f.ds - ft * 0.28);
+            else if (f.dph !== undefined) f.ds = 1 + DEPTH_SWING * Math.sin(f.dph + age * 1.6);
+            // far fruit comes down in the sea, not off the bottom of the screen
+            if (f.far && f.vy > 0 && f.y > seaY() && !f.hacked) {
+                fruits.splice(i, 1); ripples.push({ x: f.x, y: seaY(), r: f.r * f.ds, t: 0 }); snd('plop');
+                for (let d = 0; d < 7; d++) drops.push({ x: f.x + rand(-8, 8), y: seaY(), vx: rand(-70, 70), vy: -rand(0.1, 0.3) * H, c: '#9fc3d3', t: 0, s: rand(1.5, 3.5) });
+                continue;
+            }
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);
             if (out || f.y > H + H) fruits.splice(i, 1);
         }
@@ -2932,6 +3046,11 @@ export function mountFrogGame(stage, opts = {}) {
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
         const lw = clamp(W / 260, 2.5, 4);
+        if (ripples.length) {   // fruit landing in the sea: a ring spreading on the water
+            ctx.save(); ctx.strokeStyle = '#9fc3d3'; ctx.lineWidth = 2;
+            ripples.forEach(q => { q.t += 1 / 60; const k = q.t / 0.7; ctx.globalAlpha = 1 - k; ctx.beginPath(); ctx.ellipse(q.x, q.y, q.r * (0.8 + k * 1.6), q.r * 0.22 * (1 + k), 0, 0, 7); ctx.stroke(); });
+            ctx.restore(); ripples = ripples.filter(q => q.t < 0.7);
+        }
         drawSalad(lw, tn);
         drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
         ctx.globalAlpha = 1;
@@ -2943,14 +3062,14 @@ export function mountFrogGame(stage, opts = {}) {
             else { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore(); }
         });
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
-        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else drawPiece(ctx, q, lw); ctx.restore(); });
+        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else drawPiece(ctx, q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
             if (f.mark) glow(ctx, f.x, f.y, f.R * 1.9 + 14, '129,212,250', 0.75);   // marked during a time freeze
             else if (f.slow) glow(ctx, f.x, f.y, f.R * 1.5 + 8, '79,195,247', 0.25 + 0.45 * f.slow);   // slowed by the flame
             if (drunk) drawEchoes(f, lw, drunk, tn);
-            ctx.save(); ctx.translate(f.x, f.y);
+            ctx.save(); ctx.translate(f.x, f.y); if (f.ds && f.ds !== 1) ctx.scale(f.ds, f.ds);
             const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
             if (mk) {   // melting: it sags, spreads and glows, drips hang off the bottom
                 ctx.translate(0, f.r * 0.45 * mk); ctx.scale(1 + 0.45 * mk, 1 - 0.5 * mk);
@@ -3104,6 +3223,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.lineWidth = Math.max(2, lw * 0.8); ctx.strokeStyle = sakeLeft > 0 ? '#f5c542' : bladeFx.fire && fxOn() ? '#ff6d00' : bladeFx.frost && fxOn() ? '#4fc3f7' : '#98b74b'; ctx.stroke();
             ctx.restore();
         }
+        if (summon) drawSummon();
         drawFireworksFx();
         if (warps.length) {   // the chronoblade's traces: blue rips that shimmer and thin out
             ctx.save(); ctx.lineCap = 'round';
