@@ -50,6 +50,7 @@ const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone 
 // to the one that is running, which can never have more than its base time + POWER_BONUS_MAX left.
 const POWER_BONUS = 1, POWER_BONUS_MAX = 2;
 const FIRE_WIDE = 3, FIRE_SLOW = 0.3, FIRE_SLOW_MAX = 0.9;
+const FRUIT_PACE = 0.5;                          // how busy the sky is, 0 (calm) .. 1 (frantic): constant, start to finish
 const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
 // Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
@@ -713,7 +714,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: the flame gets three times as wide. Clock: it hacks fruit, which floats until you cut it. Both: a wide hacking breath. Each adds 1 s.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, three times as wide, melts fruit. Clock: chronoblade, its trace hangs and cuts. Sake: bubbles. Each adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. They stack, up to 3 each. Each adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
@@ -948,13 +949,17 @@ export function mountFrogGame(stage, opts = {}) {
         frost: { glow: '#4fc3f7', core: '#e1f5fe', wide: 1, spread: 5, alpha: 0.7, text: 'Chronoblade!' }
     };
     let bladeFx = { fire: false, bubbles: false, frost: false, last: '' }, bubbles = [];
-    // Chronoblade (a clock slashed on sake): the blade's trace hangs in the air for WARP_LIFE s,
-    // a rip in time, and cuts any fruit that flies through it (once per fruit and piece).
-    const WARP_LIFE = 1.6;
+    // Chronoblade (a clock slashed on sake): the blade's whole trace stays hanging in the air
+    // for as long as the chronoblade is active, a rip in time, and cuts any fruit that flies
+    // through it (once per fruit and piece). Stacks make the rips wider.
+    const WARP_LIFE = 0.7;                                     // seconds a rip takes to fade once the chronoblade is gone
     let warps = [], warpCut = { id: 0, hits: 0 };
     function stepWarps(dt) {
         warps.forEach(w => { w.t += dt; });
-        warps = warps.filter(w => w.t < WARP_LIFE);
+        // the rips stay for as long as the chronoblade does, and fade once it is gone
+        const chrono = bladeFx.frost && fxOn();
+        warps.forEach(w => { w.fade = chrono ? 0 : (w.fade || 0) + dt; });
+        warps = warps.filter(w => w.fade < WARP_LIFE);
         if (!warps.length || phase !== 'play') return;
         const mine = cut;
         warps.forEach(w => {
@@ -963,7 +968,7 @@ export function mountFrogGame(stage, opts = {}) {
                 for (let i = list.length - 1; i >= 0; i--) {
                     const f = list[i];
                     if ((list === pieces && !f.live) || (list === fruits && !f.entered) || f.noCut === warpCut.id) continue;
-                    const hit = strike(f, w.x0, w.y0, w.x1, w.y1, w.dx, w.dy);
+                    const hit = w.n > 1 ? bestStrike(f, w.x0, w.y0, w.x1, w.y1, w.dx, w.dy, 8 * (w.n - 1)) : strike(f, w.x0, w.y0, w.x1, w.y1, w.dx, w.dy);
                     if (!hit) continue;
                     if (hit.kind === 'cut') {
                         warpCut.hits = 0; cut = warpCut;
@@ -991,15 +996,30 @@ export function mountFrogGame(stage, opts = {}) {
     const fxOn = () => sakeLeft > 0 || fxLeft > 0 || markQueue.length > 0;
     function setBladeFx(kind, x, y, force) {
         if (sakeLeft <= 0 && !force) return;
-        bladeFx[kind] = true; bladeFx.last = kind;
+        // fire and chrono stack (each slashed firefly or clock makes the blade wider and stronger); bubbles don't
+        bladeFx[kind] = kind === 'bubbles' ? true : Math.min(FX_STACKS, (bladeFx[kind] || 0) + 1); bladeFx.last = kind;
         if (sakeLeft > 0) sakeLeft = Math.min(sakeLeft + POWER_BONUS, SAKE_SECONDS + POWER_BONUS_MAX);   // slashed on sake: the sake lasts longer
         if (kind === 'frost' && !warpCut.id) warpCut = { id: ++cutId, hits: 0 };
-        floats.push({ x, y: y - 30, text: BLADE_FX[kind].text, t: 0, hot: true });
+        floats.push({ x, y: y - 30, text: BLADE_FX[kind].text + (bladeFx[kind] > 1 ? ' x' + bladeFx[kind] : ''), t: 0, hot: true });
     }
     // everything marked during a time freeze, in the order it was marked
     const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
     const clearBladeFx = () => { fxLeft = 0; fxPending = false; bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
-    const FIRE_HALF = 14;                                      // px either side the fire blade also cuts
+    const FIRE_HALF = 14;                                      // px either side the fire blade also cuts, per stack
+    const FX_STACKS = 3;                                       // fire and chrono stack up to this many times
+    // A blade with width: try lines across it and keep the best result, so a cut that would be
+    // off-centre along the middle of the blade is a clean one if any part of the blade is on centre.
+    function bestStrike(f, ax, ay, bx, by, dx, dy, half) {
+        const rank = h => !h ? 0 : h.kind === 'cut' ? (h.clean ? 4 : 3) : h.kind === 'crown' ? 2 : 1;
+        let best = null;
+        for (const k of [0, 0.5, -0.5, 1, -1]) {
+            const ox = -dy * half * k, oy = dx * half * k;
+            const h = strike(f, ax + ox, ay + oy, bx + ox, by + oy, dx, dy);
+            if (rank(h) > rank(best)) best = h;
+            if (rank(best) === 4) break;
+        }
+        return best;
+    }
     // what the blade sheds along a stretch of a sake slash
     function shedBladeFx(x0, y0, x1, y1) {
         const n = Math.min(8, Math.floor(Math.hypot(x1 - x0, y1 - y0) / 16));
@@ -1365,11 +1385,8 @@ export function mountFrogGame(stage, opts = {}) {
                 if (list === pieces && !f.live) continue;
                 // one stroke cuts (or clips) a fruit once; its pieces wait for the next stroke
                 if (f.noCut && f.noCut === id && (sakeLeft <= 0 || now - f.cutAt < 180)) continue;
-                let hit = strike(f, ax, ay, bx, by, dx, dy);
-                if (!hit && bladeFx.fire && fxOn()) {     // the fire blade is wide: its two edges cut too
-                    const ox = -dy * FIRE_HALF, oy = dx * FIRE_HALF;
-                    hit = strike(f, ax + ox, ay + oy, bx + ox, by + oy, dx, dy) || strike(f, ax - ox, ay - oy, bx - ox, by - oy, dx, dy);
-                }
+                // a fire blade is wide (wider with each stack): the whole width cuts, and the best cut across it counts
+                const hit = bladeFx.fire && fxOn() ? bestStrike(f, ax, ay, bx, by, dx, dy, FIRE_HALF * bladeFx.fire) : strike(f, ax, ay, bx, by, dx, dy);
                 if (!hit) continue;
                 // the flash sits where the blade passed the fruit
                 const l2 = len * len || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
@@ -1751,7 +1768,7 @@ export function mountFrogGame(stage, opts = {}) {
             shedBladeFx(lx, ly, x, y);
             if (bladeFx.frost) {
                 const d = Math.hypot(x - lx, y - ly);
-                if (d > 2) { warps.push({ x0: lx, y0: ly, x1: x, y1: y, dx: (x - lx) / d, dy: (y - ly) / d, t: 0 }); if (warps.length > 500) warps.shift(); }
+                if (d > 2) { warps.push({ x0: lx, y0: ly, x1: x, y1: y, dx: (x - lx) / d, dy: (y - ly) / d, t: 0, fade: 0, n: bladeFx.frost }); if (warps.length > 900) warps.shift(); }
             }
             trail.push({ x, y, t: performance.now(), cut: cut.id, d: cut.len, free: true });
             lx = x; ly = y; return;
@@ -1788,7 +1805,7 @@ export function mountFrogGame(stage, opts = {}) {
         const enchanted = fxLeft > 0 && cut.paid;          // the sword still carries a power-up's effect
         if (enchanted) {
             shedBladeFx(lx, ly, ex, ey);
-            if (bladeFx.frost) { const d = Math.hypot(ex - lx, ey - ly); if (d > 2) warps.push({ x0: lx, y0: ly, x1: ex, y1: ey, dx: (ex - lx) / d, dy: (ey - ly) / d, t: 0 }); }
+            if (bladeFx.frost) { const d = Math.hypot(ex - lx, ey - ly); if (d > 2) warps.push({ x0: lx, y0: ly, x1: ex, y1: ey, dx: (ex - lx) / d, dy: (ey - ly) / d, t: 0, fade: 0, n: bladeFx.frost }); }
         }
         trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len, fx: enchanted });
         // capped mid-move: the rest of the move carries on as the next cut
@@ -2301,8 +2318,9 @@ export function mountFrogGame(stage, opts = {}) {
         const wdt = dbg && dbgFrozen ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
             if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown
-            // ramps over minutes and never quite tops out
-            const difficulty = 1 - Math.exp(-clockT / 150);
+            // Core truth: the fruit comes at the same pace for the whole run, however long it lasts.
+            // What changes over a run is what a second of earned time is worth (timeMult), never the fruit.
+            const difficulty = FRUIT_PACE;
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
             // every fruit on screen marked (or none left): time flows again
             if (freezeLeft > 0 && !fruits.some(f => f.entered && !f.mark) && !crates.some(c => !c.mark && c.y < H)
@@ -2688,10 +2706,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (warps.length) {   // the chronoblade's traces: blue rips that shimmer and thin out
             ctx.save(); ctx.lineCap = 'round';
             warps.forEach(w => {
-                const k = w.t / WARP_LIFE, flick = reduced ? 1 : 0.8 + 0.2 * Math.sin(tn / 60 + w.x0 * 0.05);
-                ctx.globalAlpha = (1 - k) * 0.45 * flick; ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 12 * (1 - k * 0.6);
+                const k = (w.fade || 0) / WARP_LIFE, flick = reduced ? 1 : 0.8 + 0.2 * Math.sin(tn / 60 + w.x0 * 0.05), wide = 1 + 0.7 * ((w.n || 1) - 1);
+                ctx.globalAlpha = (1 - k) * 0.45 * flick; ctx.strokeStyle = '#4fc3f7'; ctx.lineWidth = 12 * wide * (1 - k * 0.6);
                 ctx.beginPath(); ctx.moveTo(w.x0, w.y0); ctx.lineTo(w.x1, w.y1); ctx.stroke();
-                ctx.globalAlpha = (1 - k) * 0.95; ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2.5 * (1 - k * 0.5);
+                ctx.globalAlpha = (1 - k) * 0.95; ctx.strokeStyle = '#e1f5fe'; ctx.lineWidth = 2.5 * wide * (1 - k * 0.5);
                 ctx.beginPath(); ctx.moveTo(w.x0, w.y0); ctx.lineTo(w.x1, w.y1); ctx.stroke();
             });
             ctx.restore();
@@ -2717,7 +2735,7 @@ export function mountFrogGame(stage, opts = {}) {
                 return (3.5 * (1 - age) + 0.5) * taper;          // fades by thinning, not by alpha
             };
             const fx = fxOn() && bladeFx.last ? BLADE_FX[bladeFx.last] : null;
-            const fxWide = bladeFx.fire && fxOn() ? BLADE_FX.fire.wide : 1, fxSpread = fx ? fx.spread : 2.6;
+            const fxWide = (bladeFx.fire && fxOn() ? BLADE_FX.fire.wide + 1.5 * (bladeFx.fire - 1) : 1) * (bladeFx.frost && fxOn() ? 1 + 0.5 * (bladeFx.frost - 1) : 1), fxSpread = fx ? fx.spread : 2.6;
             // The pointer gives us corners; the blade draws a curve. Each sample is rounded off:
             // a quadratic from the middle of the stretch before it to the middle of the one
             // after, bent at the sample itself (the two ends of a cut stay straight).
