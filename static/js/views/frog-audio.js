@@ -136,56 +136,80 @@ export const SYNTH = {
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
 const MIN_GAP = { slash: 0.07, cut: 0.03, burn: 0.06, breath: 0.24, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05 };
 
-// ---------- the music: a loop in the mood of a samurai film ----------
-// A slow pulse of taiko, a breathy flute line in the Japanese "in" scale (D, Eb, G, A, Bb),
-// a few plucked strings, wooden clacks speeding up into the turnaround, over a low drone.
-const BPM = 72, BEAT = 60 / BPM, BAR = BEAT * 4;
-const SCALE = [146.83, 155.56, 196, 220, 233.08, 293.66, 311.13, 392, 440, 466.16, 587.33];
-const FLUTE = [                               // per bar: [beat, beats long, note of SCALE]
-    [[0, 3, 5]],
-    [[0, 1.5, 6], [1.5, 2.5, 5]],
-    [[0, 2, 7], [2, 1, 8], [3, 1, 7]],
-    [[0, 3.5, 6]],
-    [[0, 1, 8], [1, 1, 9], [2, 2, 8]],
-    [[0, 3, 10], [3, 1, 9]],
-    [[0, 1.5, 8], [1.5, 1.5, 7], [3, 1, 6]],
-    [[0, 3.5, 5]]
+// ---------- the music: old samurai film meets a pop beach party ----------
+// A bright, bouncy loop. From the samurai film: a plucked koto-style tune in the sunny
+// Japanese "yo" scale (D, E, F#, A, B), a breathy flute answering it, a taiko accent, and
+// wooden clacks speeding into the turnaround. From the beach party: a four-on-the-floor
+// kick, claps, offbeat hats, a bouncing bass and steel-pan chord stabs.
+const BPM = 108, BEAT = 60 / BPM, BAR = BEAT * 4;
+const SCALE = [146.83, 164.81, 185, 220, 246.94, 293.66, 329.63, 369.99, 440, 493.88, 587.33, 659.25];   // D3 .. E5
+const BASS = [73.42, 73.42, 61.74, 61.74, 98, 98, 110, 110];                // D D B B G G A A
+const CHORD = [[5, 7, 8], [5, 7, 8], [4, 5, 7], [4, 5, 7], [3, 4, 5], [3, 4, 5], [3, 6, 8], [3, 6, 8]];   // notes of SCALE
+const TUNE = [                                 // per bar: [beat, note of SCALE]
+    [[0, 8], [0.5, 9], [1, 10], [2, 9], [2.5, 8], [3.5, 7]],
+    [[0, 8], [1, 7], [1.5, 6], [2, 5], [3, 6], [3.5, 7]],
+    [[0, 9], [0.5, 10], [1, 11], [2, 10], [2.5, 9], [3.5, 8]],
+    [[0, 9], [1, 8], [1.5, 7], [2, 8]],
+    [[0, 7], [0.5, 8], [1, 10], [2, 8], [2.5, 7], [3.5, 6]],
+    [[0, 7], [1, 6], [1.5, 5], [2, 6], [3, 7], [3.5, 8]],
+    [[0, 8], [0.5, 9], [1, 10], [1.5, 11], [2, 10], [3, 9]],
+    [[0, 10]]
 ];
-const DRUMS = [[0, 2], [0, 1.5, 2, 3.5], [0, 2], [0, 1.5, 2, 3, 3.5], [0, 2], [0, 1.5, 2, 3.5], [0, 2, 2.5], [0, 1.5]];
-const CLACKS = [2, 2.5, 2.9, 3.2, 3.42, 3.6, 3.74, 3.85, 3.93];     // bar 8: speeding up
-function taiko(ctx, out, t, soft) {
-    tone(ctx, out, t, { f: 92, f1: 44, dur: 0.5, gain: soft ? 0.2 : 0.42, attack: 0.003 });
-    noise(ctx, out, t, { dur: 0.04, gain: soft ? 0.06 : 0.14, filter: 'lowpass', f: 900 });
+const FLUTE = { 3: [[2.5, 1.5, 10]], 7: [[1, 1, 9], [2, 2, 10]] };           // bar: [beat, beats long, note]
+const BASS_BEATS = [0, 0.75, 1.5, 2.5, 3.25];
+const CLACKS = [2, 2.5, 2.9, 3.2, 3.42, 3.6, 3.74, 3.85, 3.93];              // bar 8: speeding up
+function kick(ctx, out, t) { tone(ctx, out, t, { f: 130, f1: 46, dur: 0.2, gain: 0.34, attack: 0.002 }); }
+function clap(ctx, out, t) { noise(ctx, out, t, { dur: 0.09, gain: 0.3, f: 1700, q: 1.2 }); noise(ctx, out, t + 0.012, { dur: 0.07, gain: 0.2, f: 2100, q: 1.2 }); }
+function hat(ctx, out, t) { noise(ctx, out, t, { dur: 0.04, gain: 0.07, filter: 'highpass', f: 6500 }); }
+function taiko(ctx, out, t) {
+    tone(ctx, out, t, { f: 96, f1: 44, dur: 0.55, gain: 0.34, attack: 0.003 });
+    noise(ctx, out, t, { dur: 0.05, gain: 0.14, filter: 'lowpass', f: 900 });
+}
+function bass(ctx, out, t, f) { tone(ctx, out, t, { type: 'triangle', f, dur: 0.22, gain: 0.26, attack: 0.004 }); }
+// a koto-like pluck: bright at the start, gone quickly
+function pluck(ctx, out, t, f) {
+    tone(ctx, out, t, { type: 'triangle', f, dur: 0.42, gain: 0.17, attack: 0.002 });
+    tone(ctx, out, t, { type: 'square', f: f * 2, dur: 0.07, gain: 0.035, attack: 0.002 });
+    tone(ctx, out, t, { f: f * 3, dur: 0.12, gain: 0.03, attack: 0.002 });
+}
+// a steel-pan-like chord stab
+function pan(ctx, out, t, notes) {
+    notes.forEach(n => {
+        const f = SCALE[n];
+        tone(ctx, out, t, { f, dur: 0.32, gain: 0.055, attack: 0.003 });
+        tone(ctx, out, t, { f: f * 2, dur: 0.2, gain: 0.03, attack: 0.003 });
+        tone(ctx, out, t, { f: f * 4.02, dur: 0.1, gain: 0.012, attack: 0.003 });
+    });
 }
 function flute(ctx, out, t, f, dur) {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.linearRampToValueAtTime(0.16, t + 0.14);
-    g.gain.setValueAtTime(0.16, t + Math.max(0.15, dur - 0.25));
+    g.gain.linearRampToValueAtTime(0.11, t + 0.09);
+    g.gain.setValueAtTime(0.11, t + Math.max(0.1, dur - 0.2));
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     g.connect(out);
     const o = ctx.createOscillator(); o.type = 'sine';
-    o.frequency.setValueAtTime(f * 0.94, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.13);     // it bends up into the note
+    o.frequency.setValueAtTime(f * 0.95, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.09);     // it bends up into the note
     const lfo = ctx.createOscillator(), depth = ctx.createGain();
-    lfo.frequency.value = 5.2; depth.gain.setValueAtTime(0, t); depth.gain.linearRampToValueAtTime(f * 0.012, t + Math.min(0.6, dur * 0.6));   // vibrato comes in late
+    lfo.frequency.value = 5.5; depth.gain.setValueAtTime(0, t); depth.gain.linearRampToValueAtTime(f * 0.012, t + Math.min(0.4, dur * 0.6));   // vibrato comes in late
     lfo.connect(depth); depth.connect(o.frequency);
-    const o2 = ctx.createOscillator(), g2 = ctx.createGain(); o2.type = 'triangle'; o2.frequency.value = f * 2; g2.gain.value = 0.18;
+    const o2 = ctx.createOscillator(), g2 = ctx.createGain(); o2.type = 'triangle'; o2.frequency.value = f * 2; g2.gain.value = 0.16;
     o.connect(g); o2.connect(g2); g2.connect(g);
     [o, o2, lfo].forEach(x => { x.start(t); x.stop(t + dur + 0.05); });
-    noise(ctx, out, t, { dur, gain: 0.035, f: f * 2, q: 2.5, attack: 0.1 });                            // breath
-}
-function pluck(ctx, out, t, f) {
-    tone(ctx, out, t, { type: 'triangle', f, dur: 0.7, gain: 0.13, attack: 0.002 });
-    tone(ctx, out, t, { type: 'square', f: f * 2, dur: 0.09, gain: 0.03, attack: 0.002 });
+    noise(ctx, out, t, { dur, gain: 0.025, f: f * 2, q: 2.5, attack: 0.08 });                           // breath
 }
 // one bar of the loop, starting at time t
 export function scheduleBar(ctx, out, t, bar) {
-    const b = ((bar % 8) + 8) % 8;
-    tone(ctx, out, t, { f: 73.42, dur: BAR, gain: 0.07, attack: 0.4 });                                 // the drone
-    DRUMS[b].forEach((beat, i) => taiko(ctx, out, t + beat * BEAT, i > 1));
-    FLUTE[b].forEach(([beat, len, n]) => flute(ctx, out, t + beat * BEAT, SCALE[n], len * BEAT));
-    if (b === 2 || b === 3 || b === 6) [0.5, 1.5, 2.5, 3.5].forEach((beat, i) => pluck(ctx, out, t + beat * BEAT, SCALE[(b * 3 + i * 2) % 5 + (i % 2 ? 0 : 5)] ));
-    if (b === 7) CLACKS.forEach(beat => { tone(ctx, out, t + beat * BEAT, { type: 'square', f: 1700, dur: 0.035, gain: 0.07 }); noise(ctx, out, t + beat * BEAT, { dur: 0.03, gain: 0.09, f: 2600, q: 4 }); });
+    const b = ((bar % 8) + 8) % 8, at = beat => t + beat * BEAT;
+    [0, 1, 2, 3].forEach(beat => kick(ctx, out, at(beat)));
+    [1, 3].forEach(beat => clap(ctx, out, at(beat)));
+    [0.5, 1.5, 2.5, 3.5].forEach(beat => hat(ctx, out, at(beat)));
+    BASS_BEATS.forEach(beat => bass(ctx, out, at(beat), BASS[b]));
+    [1.5, 3.5].forEach(beat => pan(ctx, out, at(beat), CHORD[b]));
+    if (b % 4 === 0) taiko(ctx, out, t);                                                                // the big drum opens each phrase
+    TUNE[b].forEach(([beat, n]) => pluck(ctx, out, at(beat), SCALE[n]));
+    (FLUTE[b] || []).forEach(([beat, len, n]) => flute(ctx, out, at(beat), SCALE[n], len * BEAT));
+    if (b === 7) CLACKS.forEach(beat => { tone(ctx, out, at(beat), { type: 'square', f: 1700, dur: 0.035, gain: 0.06 }); noise(ctx, out, at(beat), { dur: 0.03, gain: 0.08, f: 2600, q: 4 }); });
 }
 export const MUSIC_BAR_SECONDS = BAR;
 

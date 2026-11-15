@@ -1362,7 +1362,7 @@ export function mountFrogGame(stage, opts = {}) {
     function breakPickup(b, ang) {
         log('wreck', b.kind, sakeLeft > 0 ? 1 : 0); snd(b.kind === 'fireworks' ? 'power_fireworks' : 'wreck');
         if (b.kind === 'fireworks') {   // slashing is how you set these off: no penalty
-            fwLeft = FW_SECONDS; fwT = 0; use('fireworks');
+            fwLeft = FW_SECONDS; fwT = 0; fwFrom = { x: b.x, y: b.y }; use('fireworks');
             floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks!', t: 0, hot: true });
             explode(b.x, b.y, Math.min(W, H) * 0.12);
             return;
@@ -1851,8 +1851,9 @@ export function mountFrogGame(stage, opts = {}) {
     // sizes follow the payoff: firefly smallest (fire), clock medium (freeze), sake biggest (free slashes)
     const PICK_SIZE = { clock: 0.8, sake: 0.84, fireworks: 0.8 };
     // ---------- fireworks ----------
+    let fwFrom = { x: 0, y: 0 };                               // where the slashed bundle was: its rockets start there
     let fwLeft = 0, fwT = 0, fwShots = 0, fwShotT = 0, fwNext = 30, rockets = [], sparks = [], blasts = [];
-    const fwBusy = () => fwShots > 0 || rockets.length > 0;       // spitting rockets: no slashing, no tongue
+    const fwBusy = () => fwShots > 0 || rockets.some(r => r.spit);       // spitting rockets: no slashing, no tongue
     // a blast at (x, y): everything inside burns at once, crates break open
     function explode(x, y, R) {
         blasts.push({ x, y, R, t: 0 }); log('boom', Math.round(R)); snd('boom', { big: R > Math.min(W, H) * 0.2 });
@@ -1885,7 +1886,11 @@ export function mountFrogGame(stage, opts = {}) {
                 while (fwT <= 0) {
                     fwT += FW_EVERY;
                     const on = fruits.filter(f => f.entered && f.y < H * 0.85), f = on.length && Math.random() < 0.5 ? pick(on) : null;
-                    explode(f ? f.x + rand(-20, 20) : rand(W * 0.08, W * 0.92), f ? f.y + rand(-20, 20) : rand(H * 0.1, H * 0.62), Math.min(W, H) * rand(0.09, 0.13));
+                    // each one is a rocket that flies from the bundle to where it bursts
+                    const tx = f ? f.x + f.vx * 0.2 + rand(-20, 20) : rand(W * 0.08, W * 0.92), ty = f ? f.y + f.vy * 0.2 + rand(-20, 20) : rand(H * 0.1, H * 0.62);
+                    rockets.push({ x0: fwFrom.x, y0: fwFrom.y, tx, ty, t: 0, dur: clamp(Math.hypot(tx - fwFrom.x, ty - fwFrom.y) / (H * 2.4), 0.1, 0.4),
+                        c: RAINBOW[Math.floor(rand(0, 6))], R: Math.min(W, H) * rand(0.09, 0.13) });
+                    snd('power_fireworks');
                 }
             }
             // tongued: the rockets leave the mouth one by one for the cursor
@@ -1894,12 +1899,12 @@ export function mountFrogGame(stage, opts = {}) {
                 if (fwShotT <= 0) {
                     fwShotT = FW_SHOT_GAP; fwShots--;
                     const m = frogPoint(993, MOUTH_Y), tx = aim ? aim.x : W / 2, ty = aim ? aim.y : H * 0.3;
-                    rockets.push({ x0: m.x, y0: m.y, tx, ty, t: 0, dur: clamp(Math.hypot(tx - m.x, ty - m.y) / (H * 2.2), 0.12, 0.45), c: RAINBOW[fwShots % 6] });
+                    rockets.push({ x0: m.x, y0: m.y, tx, ty, t: 0, dur: clamp(Math.hypot(tx - m.x, ty - m.y) / (H * 2.2), 0.12, 0.45), c: RAINBOW[fwShots % 6], R: Math.min(W, H) * 0.24, spit: true });
                 }
             }
         }
         rockets.forEach(r => { r.t += dt; });
-        rockets = rockets.filter(r => { if (r.t < r.dur) return true; explode(r.tx, r.ty, Math.min(W, H) * 0.24); return false; });
+        rockets = rockets.filter(r => { if (r.t < r.dur) return true; explode(r.tx, r.ty, r.R); return false; });
         sparks.forEach(p => { p.t += dt; const k = Math.pow(0.96, dt * 60); p.vx *= k; p.vy = p.vy * k + H * 0.5 * dt; p.x += p.vx * dt; p.y += p.vy * dt; });
         sparks = sparks.filter(p => p.t < p.life);
         blasts.forEach(b => { b.t += dt; }); blasts = blasts.filter(b => b.t < 0.3);
@@ -1915,6 +1920,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
         rockets.forEach(r => {
             const k = r.t / r.dur, x = lerp(r.x0, r.tx, k), y = lerp(r.y0, r.ty, k), k0 = Math.max(0, k - 0.25);
+            if (Math.random() < 0.7) sparks.push({ x, y, vx: rand(-30, 30), vy: rand(-10, 50), c: r.c, t: 0, life: 0.3, s: rand(1.5, 3) });
             ctx.save(); ctx.lineCap = 'round';
             ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 4;
             ctx.beginPath(); ctx.moveTo(lerp(r.x0, r.tx, k0), lerp(r.y0, r.ty, k0)); ctx.lineTo(x, y); ctx.stroke();
@@ -2076,7 +2082,7 @@ export function mountFrogGame(stage, opts = {}) {
         dbgFrozen = true;
     }
     (function debugTray() {
-        const k = Math.min(window.devicePixelRatio || 1, 2), S = 44;
+        const k = Math.min(window.devicePixelRatio || 1, 2) * 2, S = 44;     // drawn at twice the size of the tips icons
         dbgEl.querySelectorAll('.fg-debug-item').forEach(c => {
             c.width = S * k; c.height = S * k;
             const x = c.getContext('2d'); x.scale(k, k);
@@ -2094,12 +2100,16 @@ export function mountFrogGame(stage, opts = {}) {
                 ghost.width = c.width; ghost.height = c.height; ghost.getContext('2d').drawImage(c, 0, 0);
                 const at = ev => { ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px'; };
                 at(e); document.body.appendChild(ghost);
+                const x0 = e.clientX, y0 = e.clientY;
                 const up = ev => {
                     window.removeEventListener('pointermove', at); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
                     ghost.remove();
                     const b = canvas.getBoundingClientRect(), tray = dbgEl.getBoundingClientRect();
                     const px = ev.clientX - b.left, py = ev.clientY - b.top;
-                    if (dbg && ev.type === 'pointerup' && px > 0 && px < W && py > 0 && ev.clientY < tray.top) spawnDebug(c.dataset.spawn, px, py);
+                    if (!dbg || ev.type !== 'pointerup') return;
+                    // a tap (no drag) drops it somewhere at random; a drag drops it where you let go
+                    if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 10) spawnDebug(c.dataset.spawn, rand(W * 0.1, W * 0.9), rand(H * 0.14, H * 0.6));
+                    else if (px > 0 && px < W && py > 0 && ev.clientY < tray.top) spawnDebug(c.dataset.spawn, px, py);
                 };
                 window.addEventListener('pointermove', at); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
             });

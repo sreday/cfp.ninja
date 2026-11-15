@@ -50,16 +50,21 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 
 ## Music
 
-One loop, in the mood of a samurai film, generated note by note (`scheduleBar` in
-`frog-audio.js`): 72 beats a minute, eight bars, about 27 seconds.
+One loop: an old samurai film meets a pop beach party. Bright and bouncy, generated note by
+note (`scheduleBar` in `frog-audio.js`): 108 beats a minute, eight bars, about 18 seconds,
+in the sunny Japanese "yo" scale (D, E, F#, A, B).
 
-| Part | Now (synth) | A real recording would be |
-|---|---|---|
-| Pulse | taiko: a low sine drop with a soft click, sparse hits | taiko drums |
-| Lead | a breathy flute line in the Japanese "in" scale (D, Eb, G, A, Bb): sine with a late vibrato, a bend up into each note, and breath noise | shakuhachi |
-| Strings | a few plucks in bars 3, 4 and 7 | koto or shamisen |
-| Turnaround | wooden clacks speeding up through the last bar | hyoshigi |
-| Drone | a quiet low D throughout | a low string or tanpura-like drone |
+| Part | From | Now (synth) | A real recording would be |
+|---|---|---|---|
+| Tune | samurai film | a koto-style pluck playing a catchy two-bar riff | koto or shamisen |
+| Answer | samurai film | a breathy flute phrase at the end of each half | shakuhachi |
+| Accent | samurai film | one big taiko hit opening each phrase | taiko |
+| Turnaround | samurai film | wooden clacks speeding up through the last bar | hyoshigi |
+| Kick | beach party | four on the floor | a soft dance kick |
+| Claps | beach party | on beats 2 and 4 | hand claps |
+| Hats | beach party | on the offbeats | shaker or hi-hat |
+| Bass | beach party | a bouncing five-note pattern, D, B, G, A two bars each | a round synth or upright bass |
+| Chords | beach party | steel-pan-style stabs on the offbeats | steel pans or a marimba |
 
 Not done yet: the music does not react to the game (it could tighten when time is short,
 or lift during a power-up), and there is no separate title or game-over theme.
