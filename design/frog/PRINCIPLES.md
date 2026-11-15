@@ -47,6 +47,7 @@ file is the source of truth, this document explains the intent.
    something sensible and readable (breath meets crate: it bursts; clock meets power-up: it
    can be marked). "Nothing happens" is a bug unless written down here as intended.
 4. **One slash, one price.** A slash costs one stamina bar once it is long enough to count.
+   Cutting three whole fruit in one slash gives a bar back at once.
    Jitter and tiny moves are free.
 5. **Readable at speed.** However wild the effects, the player must always be able to tell
    fruit from power-up from debris, and see where the blade is.
@@ -66,7 +67,8 @@ file is the source of truth, this document explains the intent.
 | CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
-breath + sake (wide), breath + clock (hacks fruit), sake + firefly / clock / sake (fire
+breath + sake (wide), breath + clock (hacks fruit, and copies digital fruit held in it: one
+copy per 0.6 s of exposure, up to 36 fruit on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 
 ## 3a. The shape of a run (core truths)
