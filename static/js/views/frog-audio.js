@@ -230,6 +230,14 @@ export const SYNTH = {
     },
     best(c, o, t) { [293.7, 370, 440, 587.3].forEach((f, i) => tone(c, o, t + i * 0.1, { type: 'triangle', f, dur: 0.4, gain: 0.18 })); },
 
+    // time is up: the frog hits the water
+    splash(c, o, t) {
+        crack(c, o, t, 0.3, 1800);
+        thump(c, o, t, 140, 0.5, 0.3);
+        noise(c, o, t, { dur: 0.7, gain: 0.8, filter: 'lowpass', f: 3000, f1: 400, attack: 0.01 });
+        [0.15, 0.3, 0.42].forEach(d => noise(c, o, t + d, { dur: 0.12, gain: 0.15, filter: 'bandpass', f: jit(1200, 0.4), q: 3 }));   // drops falling back
+    },
+
     // ----- interface -----
     ui(c, o, t) { tone(c, o, t, { type: 'triangle', f: 700, dur: 0.05, gain: 0.1 }); },
     ui_play(c, o, t) { tone(c, o, t, { type: 'triangle', f: 523, dur: 0.09, gain: 0.14 }); tone(c, o, t + 0.07, { type: 'triangle', f: 784, dur: 0.16, gain: 0.14 }); },
