@@ -74,6 +74,27 @@ breath + sake (wide), breath + clock (hacks fruit, and copies digital fruit and 
 copy per 0.6 s of exposure, up to 36 fruit on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 
+**What meets what** (checked pair by pair on 2026-11-15; anything not listed does what a plain
+blade would do):
+
+- A fireworks blast burns fireflies, sake and clocks for an apple's worth, as the breath does.
+- A chronoblade's hanging trace hits everything a blade hits: crates open, power-ups are taken
+  into the sword, seagulls are knocked out or juggled.
+- A fire blade is as wide for crates, power-ups and seagulls as it is for fruit.
+- A seagull that is already out is knocked up again by anything: any blade, a flame, a blast,
+  a marked cut, the helpers. The tongue ignores it.
+- An ordinary breath burns the digits off hacked fruit (it is fruit again, and melts). A hacking
+  breath hacks and never burns: cut pieces in it are left alone.
+- The laptop is fireproof and can't be hacked: flames and blasts only make it glow.
+- Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
+  flow. A marked bundle is set off, not paid for.
+- Fireworks take on the element of whatever sets them off (fire, sake, time): looks only, so far.
+- A digital seagull can be taken with the tongue: the frog chops it out of the air with an open
+  hand, like a crate.
+- The sake blade's 10% is for fruit cuts only. The tongue passes through cut pieces. A hacked
+  fruit on the tongue is still a fruit on the head.
+- Planks are wood: nothing touches them.
+
 ## 3a. The shape of a run (core truths)
 
 These are fixed. Tuning serves them; the trace review measures against them.
