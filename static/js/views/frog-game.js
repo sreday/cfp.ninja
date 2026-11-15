@@ -329,7 +329,8 @@ const FROG_SVG = `
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
-            <text x="993" y="1290" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="330" fill="#fff">CFP</text>
+            <text x="993" y="1170" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="230" fill="#fff">CFP</text>
+            <text x="993" y="1335" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="170" fill="#fff">.NINJA</text>
             <rect x="575" y="1408" width="836" height="40" rx="20" fill="${C.laptopHi}" stroke="#000" stroke-width="16"/>
         </g>
     </g>
@@ -828,7 +829,9 @@ function drawLaptop(ctx, b, lw) {
     ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
     ctx.fillStyle = C.laptop; ctx.beginPath(); ctx.moveTo(-r * 1.15, -r * 0.8); ctx.lineTo(r * 1.15, -r * 0.8); ctx.lineTo(r, r * 0.55); ctx.lineTo(-r, r * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = C.laptopHi; ctx.lineWidth = Math.max(1, lw * 0.5); ctx.strokeRect(-r * 0.98, -r * 0.68, r * 1.96, r * 1.1);
-    ctx.fillStyle = '#fff'; ctx.font = `900 ${Math.round(r * 0.72)}px Inter, Arial Black, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('CFP', 0, -r * 0.1);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `900 ${Math.round(r * 0.56)}px Inter, Arial Black, sans-serif`; ctx.fillText('CFP', 0, -r * 0.36);          // the whole name, as on the logo
+    ctx.font = `900 ${Math.round(r * 0.42)}px Inter, Arial Black, sans-serif`; ctx.fillText('.NINJA', 0, r * 0.14);
     ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = C.laptopHi;
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
@@ -960,8 +963,8 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s. Firefly: fruit cooks faster. Each stacks up to 3 and adds 1 s.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. Sake: bubbles, cuts pay 10% more. Each stacks up to 3 and adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s. Firefly: fruit cooks faster. Each stacks up to 10 and adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. Sake: bubbles, cuts pay 10% more. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
@@ -1486,8 +1489,8 @@ export function mountFrogGame(stage, opts = {}) {
     //   sake: a wider cone (x2, x3, x4);  clock: it hacks, and the hack lasts 0.5 s longer per extra clock;
     //   firefly: fruit cooks 20% faster each.
     let fireFry = 0;
-    const fireSpread = () => FIRE_SPREAD * (1 + fireWide);
-    const burnTime = () => BURN_TIME * (1 - 0.2 * fireFry);
+    const fireSpread = () => Math.min(FIRE_SPREAD * (1 + fireWide), Math.PI * 0.95);     // at most nearly all the way round
+    const burnTime = () => BURN_TIME * (fireFry <= 3 ? 1 - 0.2 * fireFry : 0.4 * Math.pow(0.85, fireFry - 3));     // each firefly cooks faster, never instantly
     const hackFor = () => HACK_FLOAT + 0.5 * Math.max(0, fireSlow - 1);
     function feedFire(b, isFly) {
         const say = text => floats.push({ x: b.x, y: b.y - 34, text, t: 0, hot: true });
@@ -1512,7 +1515,7 @@ export function mountFrogGame(stage, opts = {}) {
     const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
     const clearBladeFx = () => { fxLeft = 0; fxPending = false; bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
     const FIRE_HALF = 14;                                      // px either side the fire blade also cuts, per stack
-    const FX_STACKS = 3;                                       // fire and chrono stack up to this many times
+    const FX_STACKS = 10;                                      // fire, sake and chrono effects stack up to this many times
     // A blade with width: try lines across it and keep the best result, so a cut that would be
     // off-centre along the middle of the blade is a clean one if any part of the blade is on centre.
     function bestStrike(f, ax, ay, bx, by, dx, dy, half) {
