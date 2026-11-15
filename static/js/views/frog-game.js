@@ -10,6 +10,14 @@ const C = {
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
 const TIME_SMALL = 0.5, TIME_BIG = 0.1;         // seconds a fruit buys: smallest .. biggest
+// What a second of earned time is really worth. Two smooth pressures, no cap anywhere:
+//  - it is worth more early and less the longer the run has lasted (TIME_EARLY at the start,
+//    1 at about a minute, 0.43 at two, 0.19 at three, 0.1 at four);
+//  - it is worth less the more time is already on the clock (half at TIME_BANK seconds), so
+//    time can't be hoarded: staying alive is about how you are playing now.
+// Tuned so most players last about a minute, strong ones two to three, and four is exceptional
+// (see design/frog/PRINCIPLES.md, "The shape of a run").
+const TIME_EARLY = 2, TIME_TAU = 70, TIME_POW = 2.4, TIME_BANK = 40;
 const LOW_TIME = 5;                             // the clock turns red below this
 // Stamina: every cut costs one bar; bars come back at a steady pace.
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
@@ -31,7 +39,7 @@ const HACK_FLOAT = 5;                            // seconds a hacked fruit float
 const SLOW_TAIL = 0.5;                           // seconds the world takes to speed up again after a time freeze
 const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
-const FIRE_SECONDS = 3;                         // firefly: fire breath burns every fruit
+const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
@@ -693,7 +701,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                     </div>
@@ -845,6 +853,8 @@ export function mountFrogGame(stage, opts = {}) {
         trace.push([Math.round(performance.now() - traceT0), what, ...a]);
     }
     const r2 = v => Math.round(v * 100) / 100;
+    // the multiplier on every second earned right now (see TIME_EARLY above)
+    const timeMult = () => TIME_EARLY / (1 + Math.pow(clockT / TIME_TAU, TIME_POW)) / (1 + Math.max(timeLeft, 0) / TIME_BANK);
     // What each source of time was worth in this run, for balancing: uses, and seconds gained
     // (for the clock, the seconds the countdown stood still count too).
     // base = plain slashing; fire, sake, clock, fireworks = while that power-up did the work;
@@ -872,28 +882,37 @@ export function mountFrogGame(stage, opts = {}) {
     function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false;
-    // The fruit salad: everything that gets cut or grilled lands in bowls around the frog.
-    // A bowl holds BOWL_HOLDS chunks; up to BOWLS bowls, then the salad is as big as it gets.
-    const BOWLS = 10, BOWL_HOLDS = 14;
+    // The fruit salad: everything that gets cut, grilled or blown apart lands in bowls stacked
+    // around the frog. A bowl takes BOWL_HOLDS pieces to fill; there are BOWLS of them. Filling
+    // them all is cosmetic, and meant to be something only the very best runs manage.
+    const BOWLS = 10, BOWL_HOLDS = 60, BOWL_SHOWN = 14;
     let salad = [];                                            // { c: flesh colour, k: skin colour, g: grilled }
     function addToSalad(type, grilled) {
         if (salad.length < BOWLS * BOWL_HOLDS) salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() });
     }
+    // where the bowls stand: a pyramid on each side of the post, three on the sand and two on
+    // top of them. Filled from the frog outwards, the two sides in turn, the bottom rows first.
+    const BOWL_SLOTS = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];     // [column, row]
     function drawSalad(lw, tn) {
         const n = Math.ceil(salad.length / BOWL_HOLDS);
         if (!n) return;
-        // five on each side of the post, filling outwards from the frog, alternating sides
-        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / 5.4, 30, 96), bh = bw * 0.5, y = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);   // sitting on the sand, whole (above the tray in debug)
-        for (let b = 0; b < n; b++) {
-            const k = Math.floor(b / 2), sd = b % 2 ? 1 : -1, x = W / 2 + sd * (post + bw * 0.6 + k * bw * 1.06);
-            const chunks = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
-            const pop = clamp((tn - chunks[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
+        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / 3.5, 34, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
+        // back to front: the top row is drawn after the row it stands on
+        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => BOWL_SLOTS[Math.floor(a / 2)][1] - BOWL_SLOTS[Math.floor(b / 2)][1]);
+        order.forEach(b => {
+            const [col, row] = BOWL_SLOTS[Math.floor(b / 2)], sd = b % 2 ? 1 : -1;
+            const x = W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), y = base - row * bh * 0.86;
+            const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
+            // the heap shows up to BOWL_SHOWN pieces, more of them as the bowl fills, picked across what went in
+            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * BOWL_SHOWN));
+            const chunks = Array.from({ length: shown }, (_, i) => mine[Math.min(mine.length - 1, Math.floor(i * mine.length / shown))]);
+            const pop = clamp((tn - mine[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
             ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
             // the heap of fruit, back to front
             chunks.forEach((ch, i) => {
                 const row = i < 5 ? 0 : i < 10 ? 1 : 2, col = i - (row === 0 ? 0 : row === 1 ? 5 : 10), per = row === 2 ? 4 : 5;
                 const cx = (col - (per - 1) / 2) * bw * 0.16 + (row % 2 ? bw * 0.04 : 0), cy = -bh * 0.08 - row * bh * 0.3, r = bw * 0.11;
-                const land = clamp((tn - ch.t) / 160, 0, 1);
+                const land = i === chunks.length - 1 ? clamp((tn - mine[mine.length - 1].t) / 160, 0, 1) : 1;      // the newest piece drops in
                 ctx.save(); ctx.translate(cx, cy - (1 - land) * bh * 0.8); ctx.rotate(i * 1.3);
                 ctx.beginPath(); ctx.moveTo(-r, r * 0.5); ctx.quadraticCurveTo(0, -r * 1.5, r, r * 0.5); ctx.closePath();     // a wedge
                 ctx.fillStyle = ch.g ? '#6d5a48' : ch.c; ctx.fill();
@@ -907,7 +926,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.fillStyle = '#eceff1'; ctx.fill(); ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
             ctx.beginPath(); ctx.moveTo(-bw * 0.3, bh * 0.45); ctx.quadraticCurveTo(0, bh * 0.7, bw * 0.3, bh * 0.45); ctx.lineWidth = Math.max(1.5, bh * 0.1); ctx.strokeStyle = '#a3211d'; ctx.stroke();   // a red band
             ctx.restore();
-        }
+        });
     }
     let dbg = false, dbgFrozen = false;                        // debug mode, and its stand-still before the first touch
     let phaseT = 0, clockT = 0, spawnT = 0, combo = 0, lastSlice = -1;
@@ -1167,7 +1186,7 @@ export function mountFrogGame(stage, opts = {}) {
         const omni = Math.hypot(ux, uy) < 0.38, outA = Math.atan2(hy - c.y, hx - c.x);
         log('crate', omni ? 1 : 0, cone ? 1 : 0); snd('crate');
         // breaking a crate is worth an apple
-        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult;
+        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult * timeMult();
         timeLeft += gain; slices++; lastSlice = performance.now();
         use('crate'); val('crate', gain);
         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
@@ -1243,7 +1262,7 @@ export function mountFrogGame(stage, opts = {}) {
         const chain = cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
         if (cut && f.fam.cuts === 0) cut.hits = chain + 1;
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
-            * (1 + Math.min(MULTI * chain, MULTI_MAX)), 0.01);   // the 10th cut of a fruit is still worth something
+            * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
         f.fam.cuts++;
         lastSlice = now;
         timeLeft += gain; slices++;
@@ -1462,7 +1481,7 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- fire breath (firefly) ----------
     // blast = blown apart by fireworks (an explosion): same pay rule, but nothing melts and nothing is grilled
     function burnFruit(f, mult = 1, blast = false) {
-        const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult, 0.01);   // fire gets half the grade bonus
+        const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult * timeMult(), 0.01);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
         log(blast ? 'blast' : 'burn', f.type.kind, r2(gain)); if (!blast) snd('burn'); addToSalad(f.type, !blast);
@@ -2099,7 +2118,7 @@ export function mountFrogGame(stage, opts = {}) {
         showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
-        logWorth(); log('over', ms, slices, gradeIx);
+        logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('over', ms, slices, gradeIx);
         if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, events: trace });
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms }, el.save);
         el.overlay.hidden = false;
@@ -2325,7 +2344,7 @@ export function mountFrogGame(stage, opts = {}) {
                         else if (f.kind === 'sake') { setBladeFx('bubbles', f.x, f.y, true); fxPending = true; }
                         hurtFlash = 0;                                 // not a wasted power-up: no red flash
                         const chain = markCut.hits++;
-                        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX));
+                        const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
                         timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
                         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
                         floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: true });
