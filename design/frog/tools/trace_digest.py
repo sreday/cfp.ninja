@@ -68,6 +68,10 @@ def check(run):
             if what == "cut" and len(e) > 4 and e[4] > 10:
                 out.append(("a fruit cut more than 10 times", e))
             last_action, downs_since = t, 0
+        elif what == "audio" and len(e) > 2 and e[2] not in ("off", "running") and t > 4000:
+            out.append(("sound on but the device is not playing it", e))
+        elif what == "loaded" and len(e) > 2 and e[2] >= 2900:
+            out.append(("loading ran to its limit (sound never started?)", e))
         elif what == "eat":
             last_action, downs_since = t, 0
         elif what == "d":

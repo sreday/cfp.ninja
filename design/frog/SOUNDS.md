@@ -17,6 +17,11 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 - On a phone the sound counts as media (like a video), set when it is turned on: it plays at
   the phone's media volume, the volume buttons control it, and the ring/silent switch does not
   mute it. After a call or the lock screen it wakes on the next touch.
+- A phone only starts sound from a finished touch or a click. The game wakes the sound on every
+  one of those, and a run waits for it: after Play there is a loading step (drawings warmed up,
+  sound really playing) with a bar if it takes more than a quarter of a second, never longer
+  than 3 s. Music always fades in over 1.5 s. Each run's log says whether the device was
+  playing sound (`audio` events) and how long loading took (`loaded`).
 - No volume control: the level is the device's own. On phones the hardware volume buttons
   and the silent switch apply.
 - Sound pauses when the tab is hidden.

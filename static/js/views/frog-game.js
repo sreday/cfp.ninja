@@ -1013,6 +1013,7 @@ export function mountFrogGame(stage, opts = {}) {
             <div class="fg-grade" data-g="0"><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
         <div class="fg-count" hidden></div>
+        <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
         <button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
@@ -1284,6 +1285,7 @@ export function mountFrogGame(stage, opts = {}) {
         log('s', fruits.length, pieces.length, pickups.length + flies.length + crates.length, r2(stamina), r2(timeLeft), traceFrames);
         if (traceFrames < 30) log('bug', 'slow-frames', traceFrames);
         govern(traceFrames);
+        logAudio();
         traceSec = 0; traceFrames = 0;
         if (fruits.concat(pieces).some(f => !isFinite(f.x) || !isFinite(f.y))) log('bug', 'nan-position');
         if (!isFinite(timeLeft) || !isFinite(stamina) || !isFinite(style)) log('bug', 'nan-state');
@@ -2562,7 +2564,7 @@ export function mountFrogGame(stage, opts = {}) {
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
-        if (phase === 'count' || phase === 'over') return;   // wait for 3, 2, 1; and nothing once time is up
+        if (phase === 'load' || phase === 'count' || phase === 'over') return;   // wait for 3, 2, 1; and nothing once time is up
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
@@ -3191,6 +3193,25 @@ export function mountFrogGame(stage, opts = {}) {
     // sprites are built), and on a phone that showed as a slow second at the start of the first
     // run. So during the 3-2-1 everything is drawn once, off screen, a little each frame.
     let warmQ = [], warmed = false;
+    // Loading: a run does not start until its drawings are warm and, if the sound is on, the
+    // phone has actually started playing it. A short bar instead of a first second that stutters
+    // and music that crashes in late. Never held for more than LOAD_MAX seconds.
+    const LOAD_MAX = 3, LOAD_SHOW = 0.25;
+    let loadT = 0, loadN = 1, audioWas = '';
+    const loadEl = $('.fg-load'), loadBar = loadEl.querySelector('b');
+    function logAudio() { const a = audio.state(); if (a !== audioWas) { audioWas = a; log('audio', a); } }
+    function stepLoad(dt) {
+        loadT += dt;
+        const t0 = performance.now();
+        while (warmQ.length && performance.now() - t0 < 8) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }
+        const soundOk = !audio.isOn() || audio.ready() || loadT > LOAD_MAX;
+        const k = Math.min(1 - warmQ.length / loadN, soundOk ? 1 : Math.min(0.9, loadT / LOAD_MAX));
+        if (loadT > LOAD_SHOW) { loadEl.hidden = false; loadBar.style.width = Math.round(k * 100) + '%'; }     // too quick to see: no bar at all
+        if (!warmQ.length && soundOk) {
+            loadEl.hidden = true; log('loaded', Math.round(loadT * 1000)); logAudio();
+            phase = 'count';
+        }
+    }
     function warmUp() {
         if (warmed) return; warmed = true;
         const cv = document.createElement('canvas'); cv.width = cv.height = 256;
@@ -3226,7 +3247,7 @@ export function mountFrogGame(stage, opts = {}) {
         hud();
         recStart();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
-        phase = 'count';
+        phase = 'load'; loadT = 0; loadN = Math.max(1, warmQ.length); audioWas = '';
         salad = []; trace = []; worth = {}; sndCount = {};
         sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
@@ -3333,12 +3354,15 @@ export function mountFrogGame(stage, opts = {}) {
             store.set(SOUND_KEY, on ? 1 : 0); show(on);
             if (on) snd('ui');
         });
-        window.addEventListener('pointerdown', () => audio.wake(), true);
+        // A phone only lets sound start from a finished touch or a click, not from the finger
+        // going down: so the sound is woken on those (and on the press, for desktops).
+        const ACT = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+        ACT.forEach(ev => window.addEventListener(ev, () => audio.wake(), true));
         // it was on last time: browsers only start sound from a click or a tap, so wait for the first one
         if (store.get(SOUND_KEY) === 1) {
             show(true);
-            const first = () => { window.removeEventListener('pointerdown', first, true); window.removeEventListener('keydown', first, true); audio.setOn(true); };
-            window.addEventListener('pointerdown', first, true); window.addEventListener('keydown', first, true);
+            const first = () => { ACT.forEach(ev => window.removeEventListener(ev, first, true)); audio.setOn(true); };
+            ACT.slice(1).forEach(ev => window.addEventListener(ev, first, true));
         }
     })();
 
@@ -3624,7 +3648,8 @@ export function mountFrogGame(stage, opts = {}) {
         idleT += dt;
 
         // frog
-        if (phase === 'count') stepCount(dt);
+        if (phase === 'load') stepLoad(dt);
+        else if (phase === 'count') stepCount(dt);
         if (phase === 'count' && introOn) {
             phaseT += dt; intro(Math.min(phaseT, INTRO));
             if (phaseT >= INTRO) { readyPose(); introOn = false; }

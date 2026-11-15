@@ -397,7 +397,7 @@ export const MUSIC_BAR_SECONDS = BAR;
 // ---------- the player ----------
 export function createAudio() {
     let dry = null, wet = null, drunk = false;
-    let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0;
+    let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0, fresh = false;
     const lastAt = {}, samples = {}, loops = {};
     const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });
     // On a phone, say what this sound is. Left alone, iOS treats a web page's synthesised sound
@@ -430,6 +430,12 @@ export function createAudio() {
     function tick() {
         if (!on || !ctx || ctx.state !== 'running') return;
         if (nextBar < ctx.currentTime) { nextBar = ctx.currentTime + 0.1; }
+        // the first bar since the sound came on (the phone may have taken its time to start it):
+        // the music comes up from silence over a second and a half, it never crashes in
+        if (fresh) {
+            fresh = false; const g = musicBus.gain, t = ctx.currentTime;
+            g.cancelScheduledValues(t); g.setValueAtTime(0.0001, t); g.linearRampToValueAtTime(drunk ? 0.38 : 0.5, t + 1.5);
+        }
         while (nextBar < ctx.currentTime + 0.6) { scheduleBar(ctx, musicBus, nextBar, barNo++); nextBar += BAR; }
     }
     function sample(id, t) {
@@ -444,20 +450,22 @@ export function createAudio() {
     }
     return {
         isOn: () => on,
+        // is the device really playing it? (on a phone the answer can be no for a while after it is turned on)
+        ready: () => on && !!ctx && ctx.state === 'running',
+        state: () => !on ? 'off' : ctx ? ctx.state : 'none',
         // call from a click or a tap (browsers only let sound start from one)
         setOn(v) {
             on = !!v;
             session(on);
             if (on) {
                 if (!ensure()) { on = false; return false; }
-                barNo = 0; nextBar = 0;
+                barNo = 0; nextBar = 0; fresh = true; musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
                 clearInterval(timer); timer = setInterval(tick, 120); tick();
             } else {
                 clearInterval(timer); stopLoops();
                 if (musicBus) { musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.05); }
                 if (ctx) setTimeout(() => { if (!on && ctx) ctx.suspend().catch(() => {}); }, 300);
             }
-            if (on && musicBus) { musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0.5, ctx.currentTime, 0.2); }
             return on;
         },
         // the first touch of the page after loading with sound already on

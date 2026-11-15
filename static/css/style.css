@@ -1507,6 +1507,10 @@ a:hover {
 .fg-count { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; pointer-events: none;
     font: 900 min(28vh, 180px)/1 Inter, sans-serif; color: #fff; -webkit-text-stroke: 6px #000; paint-order: stroke fill; }
 .fg-count.pop { animation: fg-pop .9s ease-out both; }
+.fg-load { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px; pointer-events: none; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; text-shadow: 0 2px 0 #000; }
+.fg-load[hidden] { display: none; }
+.fg-load i { display: block; width: min(52vw, 260px); height: 12px; border: 3px solid #000; border-radius: 8px; background: rgba(0, 0, 0, .45); overflow: hidden; }
+.fg-load b { display: block; height: 100%; width: 0; background: #98b74b; }
 /* time is up: the time survived, in full, while the frog is in the water */
 .fg-count.fg-final { font-size: min(20vh, 130px); align-items: flex-start; padding-top: 22vh; animation: fg-final .35s ease-out both; }
 @keyframes fg-final { 0% { transform: scale(1.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
