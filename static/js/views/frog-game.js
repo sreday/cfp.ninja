@@ -13,6 +13,12 @@ const LOW_TIME = 5;                             // the clock turns red below thi
 // Stamina: every cut costs one bar; bars come back at a steady pace.
 const STAMINA_BARS = 5, STAMINA_REGEN = 0.9;    // seconds per bar
 const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops, world at SLOWMO speed (98% slower)
+// Fireworks: rare. Slashed, they go off around the sky for FW_SECONDS (you keep cutting);
+// caught with the tongue, the frog spits FW_SHOTS rockets at the cursor, each a big blast,
+// and can't slash or use the tongue meanwhile. A blast burns fruit outright for FW_BONUS more
+// time than a normal burn, and breaks crates open.
+const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 5, FW_SHOT_GAP = 0.3, FW_BONUS = 1.5;
+const FW_FIRST = [26, 40], FW_NEXT = [42, 65];
 // The fruit crate: rare, thrown like fruit; slash it open and CRATE_FRUIT fruit burst out.
 const CRATE_TALL = 1;                            // the crate's height against its width: square
 const CRATE_BURST = 0.7;                         // how fast the fruit leaves the crate (1 = as fast as thrown fruit)
@@ -554,8 +560,32 @@ function drawClock(ctx, b, lw) {
     ctx.restore();
 }
 
+const RAINBOW = ['#ff5252', '#ff9800', '#ffeb3b', '#66bb6a', '#42a5f5', '#ab47bc'];
+// a bundle of fireworks: five rockets fanned out, every one a different colour, fuses lit
+function drawFireworks(ctx, b, lw) {
+    const r = b.r;
+    glow(ctx, b.x, b.y, r * 2.4, '255,255,255', 0.28);
+    ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    [-2, 2, -1, 1, 0].forEach(i => {
+        ctx.save(); ctx.rotate(i * 0.3);
+        const w = r * 0.34, h = r * 1.15, col = RAINBOW[i + 2], tip = RAINBOW[(i + 5) % 6];
+        ctx.strokeStyle = '#8d6e63'; ctx.lineWidth = Math.max(1.5, lw * 0.8);
+        ctx.beginPath(); ctx.moveTo(0, h * 0.3); ctx.lineTo(0, h * 1.05); ctx.stroke();                     // the stick
+        ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.8;
+        ctx.fillStyle = col; ctx.beginPath(); ctx.rect(-w / 2, -h * 0.55, w, h * 0.9); ctx.fill(); ctx.stroke();   // the body
+        ctx.fillStyle = '#fff'; ctx.fillRect(-w / 2 + 1, -h * 0.2, w - 2, h * 0.14);                          // a band
+        ctx.fillStyle = tip; ctx.beginPath(); ctx.moveTo(-w * 0.7, -h * 0.55); ctx.lineTo(0, -h * 1.0); ctx.lineTo(w * 0.7, -h * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+    });
+    // the lit fuse
+    const sp = 0.6 + 0.4 * Math.sin((b.t || 0) * 30);
+    ctx.fillStyle = '#fff59d'; ctx.beginPath(); ctx.arc(0, r * 1.25, r * 0.16 * sp + 1.5, 0, 7); ctx.fill();
+    ctx.restore();
+}
 function drawPickup(ctx, b, lw) {
     if (b.kind === 'clock') drawClock(ctx, b, lw);
+    else if (b.kind === 'fireworks') drawFireworks(ctx, b, lw);
     else drawSake(ctx, b, lw);
 }
 
@@ -632,7 +662,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -649,6 +679,10 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
+                    </div>
+                    <div class="fg-tip" data-page="rare" hidden>
+                        <p class="fg-tip-lead">Rare finds.</p>
+                        <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts across the sky. Tongue them: the frog spits 5 big ones at your cursor. Blasted fruit pays 50% more.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
@@ -703,6 +737,7 @@ export function mountFrogGame(stage, opts = {}) {
             const x = prep(c), kind = c.dataset.icon;
             if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
             else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
+            else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
         });
@@ -1238,16 +1273,16 @@ export function mountFrogGame(stage, opts = {}) {
             }
         }
         // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
-        const wrecked = flies.length + pickups.length;
+        const wrecked = flies.length + pickups.length; let spared = 0;
         for (let i = flies.length - 1; i >= 0; i--) {
             const f = flies[i];
             if (segDist(f.x, f.y, ax, ay, bx, by) < f.s * 1.6) breakFly(flies.splice(i, 1)[0], ang);
         }
         for (let i = pickups.length - 1; i >= 0; i--) {
             const b = pickups[i];
-            if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) breakPickup(pickups.splice(i, 1)[0], ang);
+            if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) { if (b.kind === 'fireworks') spared++; breakPickup(pickups.splice(i, 1)[0], ang); }
         }
-        const lost = wrecked - flies.length - pickups.length;
+        const lost = wrecked - flies.length - pickups.length - spared;
         if (lost && sakeLeft <= 0) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
     }
 
@@ -1274,6 +1309,12 @@ export function mountFrogGame(stage, opts = {}) {
         splash(f.x, f.y, '#eeff41', 8, 3);
     }
     function breakPickup(b, ang) {
+        if (b.kind === 'fireworks') {   // slashing is how you set these off: no penalty
+            fwLeft = FW_SECONDS; fwT = 0;
+            floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks!', t: 0, hot: true });
+            explode(b.x, b.y, Math.min(W, H) * 0.12);
+            return;
+        }
         if (sakeLeft <= 0) hurtFlash = 0.35;
         setBladeFx(b.kind === 'clock' ? 'frost' : 'bubbles', b.x, b.y);
         const r = b.r;
@@ -1431,7 +1472,7 @@ export function mountFrogGame(stage, opts = {}) {
     function onDown(e) {
         if (phase === 'count') return;                       // wait for 3, 2, 1
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
-        if (fireLeft > 0) return;                            // breathing fire: no slashing, no tongue
+        if (fireLeft > 0 || fwBusy()) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
         if (freezeLeft > 0 && phase === 'play') {
@@ -1500,7 +1541,7 @@ export function mountFrogGame(stage, opts = {}) {
         // sake: the blades never rest, the cursor slashes wherever it goes, no button needed
         const auto = !down && sakeLeft > 0 && phase === 'play' && fireLeft <= 0 && stunT <= 0;
         if (!down && !auto) { if (autoCut) { cut = null; autoCut = false; } return; }
-        if (fireLeft > 0) { down = false; cut = null; press = null; return; }
+        if (fireLeft > 0 || fwBusy()) { down = false; cut = null; press = null; autoCut = false; return; }
         pointer = { x, y };
         if (auto && !cut) { autoCut = true; startCut(x, y, false); lx = x; ly = y; return; }
         if (touchDown && down) touchDown.far = Math.max(touchDown.far, Math.hypot(x - touchDown.x, y - touchDown.y));
@@ -1606,7 +1647,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- the tongue ----------
     function shootTongue(x, y) {
-        if (phase !== 'play' || stunT > 0 || tongue) return;
+        if (phase !== 'play' || stunT > 0 || tongue || fwBusy()) return;
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
         tongue = { tx: x, ty: y, t: 0, out: 0.04 + d / 5200, back: 0.08, caught: null, hit: false };
@@ -1644,6 +1685,12 @@ export function mountFrogGame(stage, opts = {}) {
         } else if (c.kind === 'sake') {
             sakeLeft = SAKE_SECONDS; stamina = STAMINA_BARS; clearBladeFx();
             floats.push({ x: m.x, y: m.y - 40, text: 'Sake! Free slashes', t: 0, hot: true });
+            hopT = 0.5;
+        } else if (c.kind === 'fireworks') {
+            // the frog spits the rockets out, one after another, at wherever the cursor is
+            fwShots = FW_SHOTS; fwShotT = 0.15;
+            down = false; cut = null; press = null;
+            floats.push({ x: m.x, y: m.y - 40, text: 'Fireworks! Aim', t: 0, hot: true });
             hopT = 0.5;
         } else if (c.kind === 'clock') {
             freezeLeft = FREEZE_SECONDS; clockCatches++;   // the countdown stops too
@@ -1741,7 +1788,83 @@ export function mountFrogGame(stage, opts = {}) {
         flies[flies.length - 1].base = flies[flies.length - 1].y;
     }
     // sizes follow the payoff: firefly smallest (fire), clock medium (freeze), sake biggest (free slashes)
-    const PICK_SIZE = { clock: 0.8, sake: 0.84 };
+    const PICK_SIZE = { clock: 0.8, sake: 0.84, fireworks: 0.8 };
+    // ---------- fireworks ----------
+    let fwLeft = 0, fwT = 0, fwShots = 0, fwShotT = 0, fwNext = 30, rockets = [], sparks = [], blasts = [];
+    const fwBusy = () => fwShots > 0 || rockets.length > 0;       // spitting rockets: no slashing, no tongue
+    // a blast at (x, y): everything inside burns at once, crates break open
+    function explode(x, y, R) {
+        blasts.push({ x, y, R, t: 0 });
+        for (let i = 0; i < 46; i++) {
+            const a = rand(0, 6.28), v = rand(0.25, 1) * R * 2.6;
+            sparks.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: RAINBOW[i % 6], t: 0, life: rand(0.5, 0.95), s: rand(2, 4.5) });
+        }
+        if (sparks.length > 900) sparks.splice(0, sparks.length - 900);
+        if (phase !== 'play') return;
+        for (let i = fruits.length - 1; i >= 0; i--) {
+            const f = fruits[i];
+            if (f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r) { fruits.splice(i, 1); burnFruit(f, FW_BONUS); }
+        }
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const q = pieces[i];
+            if (q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6) { pieces.splice(i, 1); burnFruit(q, FW_BONUS * Math.pow(RECUT, q.fam.cuts)); }
+        }
+        for (let i = crates.length - 1; i >= 0; i--) {
+            const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
+            if (d < R + c.hw) { crates.splice(i, 1); breakCrate(c, d > 1 ? (c.x - x) / d : 1, d > 1 ? (c.y - y) / d : 0, c.x, c.y); }   // like a clean slice
+        }
+    }
+    function stepFireworks(dt) {
+        if (phase === 'play') {
+            // slashed: they pop around the sky, half of them where there is fruit
+            if (fwLeft > 0) {
+                fwLeft = Math.max(0, fwLeft - dt); fwT -= dt;
+                while (fwT <= 0) {
+                    fwT += FW_EVERY;
+                    const on = fruits.filter(f => f.entered && f.y < H * 0.85), f = on.length && Math.random() < 0.5 ? pick(on) : null;
+                    explode(f ? f.x + rand(-20, 20) : rand(W * 0.08, W * 0.92), f ? f.y + rand(-20, 20) : rand(H * 0.1, H * 0.62), Math.min(W, H) * rand(0.09, 0.13));
+                }
+            }
+            // tongued: the rockets leave the mouth one by one for the cursor
+            if (fwShots > 0) {
+                fwShotT -= dt;
+                if (fwShotT <= 0) {
+                    fwShotT = FW_SHOT_GAP; fwShots--;
+                    const m = frogPoint(993, MOUTH_Y), tx = aim ? aim.x : W / 2, ty = aim ? aim.y : H * 0.3;
+                    rockets.push({ x0: m.x, y0: m.y, tx, ty, t: 0, dur: clamp(Math.hypot(tx - m.x, ty - m.y) / (H * 2.2), 0.12, 0.45), c: RAINBOW[fwShots % 6] });
+                }
+            }
+        }
+        rockets.forEach(r => { r.t += dt; });
+        rockets = rockets.filter(r => { if (r.t < r.dur) return true; explode(r.tx, r.ty, Math.min(W, H) * 0.24); return false; });
+        sparks.forEach(p => { p.t += dt; p.vx *= 0.96; p.vy = p.vy * 0.96 + H * 0.5 * dt; p.x += p.vx * dt; p.y += p.vy * dt; });
+        sparks = sparks.filter(p => p.t < p.life);
+        blasts.forEach(b => { b.t += dt; }); blasts = blasts.filter(b => b.t < 0.3);
+    }
+    function drawFireworksFx() {
+        blasts.forEach(b => {
+            const k = b.t / 0.3;
+            ctx.save(); ctx.globalAlpha = (1 - k) * 0.5; ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.R * (0.35 + 0.65 * k), 0, 7); ctx.fill();
+            ctx.globalAlpha = 1 - k; ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(b.x, b.y, b.R * (0.5 + 0.5 * k), 0, 7); ctx.stroke();
+            ctx.restore();
+        });
+        rockets.forEach(r => {
+            const k = r.t / r.dur, x = lerp(r.x0, r.tx, k), y = lerp(r.y0, r.ty, k), k0 = Math.max(0, k - 0.25);
+            ctx.save(); ctx.lineCap = 'round';
+            ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.moveTo(lerp(r.x0, r.tx, k0), lerp(r.y0, r.ty, k0)); ctx.lineTo(x, y); ctx.stroke();
+            ctx.fillStyle = r.c; ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(x, y, 7, 0, 7); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        });
+        if (sparks.length) {
+            ctx.save(); ctx.globalCompositeOperation = 'lighter';
+            sparks.forEach(p => { ctx.globalAlpha = 1 - p.t / p.life; ctx.fillStyle = p.c; ctx.beginPath(); ctx.arc(p.x, p.y, p.s, 0, 7); ctx.fill(); });
+            ctx.restore();
+        }
+    }
     const PICK_EVERY = { sake: [14, 20], clock: [16, 24] };
     function spawnPickup(kind) {
         const r = clamp(Math.min(W, H) * 0.05, 20, 38) * PICK_SIZE[kind];
@@ -1763,6 +1886,7 @@ export function mountFrogGame(stage, opts = {}) {
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
+        fwLeft = 0; fwShots = 0; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
         crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
@@ -1861,6 +1985,7 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
+            else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
             else { x.translate(S / 2, S / 2 + 1); drawCrate(x, 15, 1.6); }
             // drag it out of the tray: a ghost follows the pointer, and it lands where you let go
             c.addEventListener('pointerdown', e => {
@@ -2038,6 +2163,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             if (!dbg) flyT -= wdt;
             if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
+            if (!dbg) { fwNext -= wdt; if (fwNext <= 0) { spawnPickup('fireworks'); fwNext = rand(...FW_NEXT); } }
             if (!dbg) crateT -= wdt;
             if (crateT <= 0) { spawnCrate(); crateT = rand(...CRATE_EVERY); }
             if (!dbg) for (const k in pickT) { pickT[k] -= wdt; if (pickT[k] <= 0) { spawnPickup(k); pickT[k] = rand(...PICK_EVERY[k]); } }
@@ -2055,6 +2181,7 @@ export function mountFrogGame(stage, opts = {}) {
         expireCut();
         stepTongue(dt);
         stepPunch(dt);
+        stepFireworks(dt);
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
@@ -2286,6 +2413,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.globalAlpha = 1 - k; ctx.lineWidth = 5 * (1 - k) + 1; ctx.stroke();
             ctx.restore();
         });
+        drawFireworksFx();
         if (warps.length) {   // the chronoblade's traces: blue rips that shimmer and thin out
             ctx.save(); ctx.lineCap = 'round';
             warps.forEach(w => {
