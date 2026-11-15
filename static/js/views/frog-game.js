@@ -1235,7 +1235,9 @@ export function mountFrogGame(stage, opts = {}) {
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
         setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
         // the profile drawing takes over while the frog cuts
-        const sideOn = pose.side !== 0 && upNow && !pose.fallY;
+        const sideOn = pose.side !== 0 && upNow && !pose.fallY && !pose.chop;
+        // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
+        setA(el.armR, 'opacity', pose.chop ? 0 : 1);
         setA(el.side, 'opacity', sideOn ? 1 : 0);
         setA(el.all, 'opacity', sideOn ? 0 : 1);
         if (sideOn) {
@@ -3124,7 +3126,7 @@ export function mountFrogGame(stage, opts = {}) {
         // they run in from the left, the top and the right and meet in the middle of the screen to slash
         const mid = fieldY(0.45), gap = Math.min(S() * 0.34, W * 0.3);
         const spots = [{ x: W / 2 - gap, y: mid, fx: -1, fy: 0 }, { x: W / 2, y: mid - S() * 0.2, fx: 0, fy: -1 }, { x: W / 2 + gap, y: mid, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
-        summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
+        summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n, jit: rand(-28, 28), late: rand(0, 0.07) }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
         use('laptop'); snd('summon'); log('summon', who.join('+'));
         down = false; cut = null; press = null; autoCut = false; swing = null;
         floats.push({ x: W / 2, y: H * 0.3, text: 'Calling the team!', t: 0, hot: true });
@@ -3137,13 +3139,17 @@ export function mountFrogGame(stage, opts = {}) {
         // helpers whose blades took an element (see below) use it from the second slash on:
         // sake pays 10% more per blade, fire grills what it cuts
         summonPay = LAPTOP_PAY * (turn ? 1 + 0.1 * count('bubbles') : 1); summonFire = turn && count('fire') > 0;
-        const diag = echo ? (echo % 2 ? 1 : -1) * Math.SQRT1_2 : 0, before = new Set(pieces);
+        // No two calls of the team cut alike: the first blow comes down at whatever angle it comes, the
+        // second crosses it more or less squarely, a chronoblade's extra cut goes wherever it likes.
+        if (!turn) summon.a1 = rand(0, Math.PI);
+        const cutA = echo ? rand(0, Math.PI) : turn ? summon.a1 + Math.PI / 2 + rand(-0.45, 0.45) : summon.a1;
+        const diag = 0, before = new Set(pieces);
         [fruits, pieces].forEach(list => {
             const todo = list.slice();
             todo.forEach(f => {
                 if (!f.poly || (list === fruits && !f.entered) || f.y > H || f.x < 0 || f.x > W) return;
                 // the first slash is vertical, the second horizontal: everything ends up in quarters
-                const dx = echo ? diag : turn ? 1 : 0, dy = echo ? Math.SQRT1_2 : turn ? 0 : 1;
+                const dx = Math.cos(cutA), dy = Math.sin(cutA);
                 const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
                 const ix = list.indexOf(f);
                 if (ix >= 0 && cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) list.splice(list.indexOf(f), 1);
@@ -3192,11 +3198,11 @@ export function mountFrogGame(stage, opts = {}) {
         // what was just cut can be cut again by the next slash, whatever its count
         pieces.forEach(q => { q.live = true; });
         cut = mine; summonPay = 1; summonFire = false;
-        if (echo) { slashes.push({ x: W / 2, y: H / 2, a: Math.atan2(Math.SQRT1_2, diag), r: Math.hypot(W, H) * 0.55, t: 0, c: BLADE_FX.frost.glow, w: 2 }); snd('slash', { kind: 'frost', power: 1 }); return; }
+        if (echo) { slashes.push({ x: W * rand(0.35, 0.65), y: H * rand(0.3, 0.6), a: cutA, r: Math.hypot(W, H) * 0.55, t: 0, c: BLADE_FX.frost.glow, w: 2 }); snd('slash', { kind: 'frost', power: 1 }); return; }
         // the strokes themselves: one from each friend, down the screen, then across it
-        summon.friends.forEach((fr, i) => slashes.push(turn
-            ? { x: W / 2, y: H * (0.25 + i * 0.2), a: 0, r: W * 0.55, t: 0, c: fr.el ? BLADE_FX[fr.el].glow : FRIEND[fr.n].hi, w: fr.el === 'fire' ? 3 : 2 }
-            : { x: W * (0.25 + i * 0.25), y: H / 2, a: Math.PI / 2, r: H * 0.55, t: 0, c: FRIEND[fr.n].hi, w: 2 }));
+        // (each helper's own stroke: near the angle of the cut, never parallel to the others, through its own part of the field)
+        summon.friends.forEach(fr => slashes.push({ x: W * rand(0.2, 0.8), y: fieldY(rand(0.2, 0.75)), a: cutA + rand(-0.4, 0.4), r: Math.max(W, H) * rand(0.45, 0.6), t: 0,
+            c: turn && fr.el ? BLADE_FX[fr.el].glow : FRIEND[fr.n].hi, w: turn && fr.el === 'fire' ? 3 : 2 }));
         snd('slash', { power: 1 }); snd('crate');
     }
     function stepSummon(dt) {
@@ -3216,7 +3222,8 @@ export function mountFrogGame(stage, opts = {}) {
         summon.friends.forEach(fr => {
             const off = (1 - k) * (fr.fx ? W / 2 + size : fr.y + size);      // from beyond the edge of the screen
             // held poses, snapped (no easing): sword raised, the vertical cut, sword drawn back, the horizontal cut
-            const arm = t < SUMMON.slash1 ? -100 : t < SUMMON.slash1 + 0.3 ? 70 : t < SUMMON.slash2 ? 170 : 0;
+            const tt = t - (fr.late || 0), j = fr.jit || 0;                 // none of them moves quite like the others
+            const arm = tt < SUMMON.slash1 ? -100 + j : tt < SUMMON.slash1 + 0.3 ? 70 + j * 0.6 : tt < SUMMON.slash2 ? 170 - j : j * 0.8;
             const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1 - 0.04) / 0.12, 1 - Math.abs(t - SUMMON.slash2 - 0.04) / 0.12) * size * 0.3;
             const x = fr.x + fr.fx * off - fr.fx * hit, y = fr.y + fr.fy * off - fr.fy * hit + size * 0.1;
             drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw, fr.el);
@@ -3228,7 +3235,7 @@ export function mountFrogGame(stage, opts = {}) {
     // in one frame, the edge of the hand first, the way a board is broken, and is held where it
     // landed (to PUNCH_END) while the thing bursts. A crate throws its fruit upwards.
     const PUNCH_CONE = 30 * Math.PI / 180;                     // the fruit a chopped crate throws: a 30 degree cone, straight up
-    const PUNCH_LIFT = 0.14, PUNCH_HIT = 0.5, PUNCH_END = 1.0;
+    const PUNCH_LIFT = 0.1, PUNCH_HIT = 0.28, PUNCH_END = 0.55;
     let punch = null;
     function stepPunch(dt) {
         if (!punch) return;
@@ -3263,6 +3270,7 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.beginPath(); ctx.ellipse(-r * 0.05, -r * 0.36, r * 0.46, r * 0.19, -0.18, 0, 7); ctx.fill(); ctx.stroke();                            // the thumb, folded along the top
     }
     function drawPunch(lw, tn) {
+        // (the arm drawn here IS the frog's right arm: the rig hides its own while this one is up, see pose.chop)
         const c = punch.c, r = Math.max(fbox.w * 0.17, 22), half = punch.half;
         if (!punch.done) {
             if (punch.gull) drawOutline(c.x, c.y, c.r * 2.2, tn, g2 => { g2.scale(c.dir, 1); drawGull(g2, c.r, lw, { flap: -0.3, t: c.t }); });
@@ -3273,7 +3281,7 @@ export function mountFrogGame(stage, opts = {}) {
         const up = { x: punch.x - r * 0.5, y: punch.y - half - r * 1.7 }, dn = { x: punch.x - r * 0.5, y: punch.y + half * 0.25 };
         const hit = punch.done, at = hit ? dn : up, since = punch.t - PUNCH_HIT;
         const wob = hit ? 0 : Math.sin(punch.t * 38) * r * 0.03;                                  // the wind-up trembles a little
-        const sh = frogPoint(1330, 880);                                                         // the shoulder it comes from
+        const sh = frogPoint(UP_ELBOW.R[0], UP_ELBOW.R[1]);                                      // the frog's own right arm: it starts where that arm does
         ctx.save();
         if (hit && since < 0.09) {                                                               // the stroke: a white crescent from where the hand was to where it is, for a few frames
             ctx.globalAlpha = 1 - since / 0.09; ctx.fillStyle = '#fff';
@@ -3290,7 +3298,7 @@ export function mountFrogGame(stage, opts = {}) {
         drawChopHand(r, lw);
         ctx.restore();
         if (!hit) {                                                                              // the glint on the raised hand, the last moments before it falls
-            const g = clamp((punch.t - (PUNCH_HIT - 0.2)) / 0.2, 0, 1);
+            const g = clamp((punch.t - (PUNCH_HIT - 0.12)) / 0.12, 0, 1);
             if (g > 0) { ctx.save(); ctx.translate(up.x + r * 1.5, up.y - r * 0.5); ctx.rotate(tn / 90); ctx.fillStyle = '#fff'; ctx.strokeStyle = C.ink; ctx.lineWidth = Math.max(1.5, lw * 0.5);
                 ctx.beginPath(); for (let i = 0; i < 8; i++) { const an = i * Math.PI / 4, rr = (i % 2 ? 0.16 : 0.5) * r * (0.6 + 0.4 * g); ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore(); }
         } else if (since < 0.3) {                                                                // the impact: a star where the edge of the hand landed
@@ -4061,7 +4069,8 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
             pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0; pose.sTurn = 1; pose.headUp = false;
             stepDemo(dt);
-            pose.mouthOpen = fireLeft > 0 && (phase === 'play' || dbg);                                       // debug: an animation being played back drives the state below
+            pose.mouthOpen = fireLeft > 0 && (phase === 'play' || dbg);
+            pose.chop = !!punch && punch.t >= PUNCH_LIFT;                                       // debug: an animation being played back drives the state below
             // breathing fire, the katanas are stuck in the post at its sides, out of the way
             pose.stuck = fireLeft > 0 && phase === 'play'; breathT = pose.stuck ? breathT + dt : 0;
             // at rest it half-turns toward the cursor
