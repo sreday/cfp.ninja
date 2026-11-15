@@ -176,7 +176,7 @@ const POLE_SVG = `
 
 const FROG_SVG = `
 <svg class="fg-frog" viewBox="0 0 1986 1876" aria-hidden="true">
-    <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath></defs>
+    <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath><clipPath id="fg-sideclip"><path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z"/></clipPath></defs>
     <ellipse id="fg-shadow" cx="993" cy="1700" rx="905" ry="80" fill="#000"/>
     <g id="fg-stand" opacity="0" stroke-linejoin="round">
         <g id="fg-legL">
@@ -188,6 +188,41 @@ const FROG_SVG = `
         <ellipse cx="1166" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
         <path d="M1046 860 L1270 860 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
         <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+        </g>
+    </g>
+
+    <!-- The frog in profile, facing right (mirrored for left): its own drawing, used while it cuts.
+         Three sets of legs (a lunge, a crouch, a stretch) and a top half that rotates at the hip. -->
+    <g id="fg-side" opacity="0" stroke-linejoin="round" stroke-linecap="round">
+        <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-side-top">
+            ${arm('fg-sarmB')}
+            <path id="fg-side-hem" d="M880 850 L1120 850 L1250 1090 Q1010 1150 790 1080 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <path d="M880 330 C846 500 872 700 896 890 L1112 890 C1150 700 1164 500 1104 330 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <path d="M1010 340 L1108 340 L1112 500 Z" fill="${C.belly}" stroke="#000" stroke-width="14"/>
+            <path d="M884 836 L1122 836 L1116 900 L892 900 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
+            <path d="M900 900 L850 1040 L920 1020 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
+            <path d="M900 460 Q884 620 900 780" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+            <g id="fg-side-tail">
+                <path d="M670 -50 L330 -120 L400 16 L620 24 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+                <path d="M660 20 L370 110 L490 196 L640 104 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+            </g>
+            <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="${C.green}"/>
+            <circle cx="1200" cy="70" r="135" fill="#fff"/>
+            <circle cx="1238" cy="78" r="90" fill="#000"/>
+            <circle cx="1268" cy="24" r="38" fill="#fff"/>
+            <g clip-path="url(#fg-sideclip)">
+                <path d="M500 -420 L1640 -420 L1640 -50 L1450 -30 Q1330 70 1200 30 Q1010 -10 620 50 L500 50 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M650 -60 Q1050 -150 1440 -90" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+                <path d="M800 250 Q1160 330 1520 130 L1600 420 L700 440 Z" fill="${C.belly}"/>
+            </g>
+            <path d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>
+            <ellipse cx="1440" cy="70" rx="16" ry="23" fill="#000" transform="rotate(25 1440 70)"/>
+            <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="none" stroke="#000" stroke-width="26"/>
+            <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${C.red}" stroke="#000" stroke-width="22"/>
+            ${arm('fg-sarmF')}
         </g>
     </g>
     <g id="fg-all" stroke-linejoin="round" stroke-linecap="round">
@@ -776,6 +811,10 @@ export function mountFrogGame(stage, opts = {}) {
     const svg = $('.fg-frog');
     const el = {
         all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
+        side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
+        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up') },
+        sF: { g: $('#fg-sarmF'), limb: $('#fg-sarmF .fg-limb'), held: $('#fg-sarmF .fg-held'), blade: $('#fg-sarmF .fg-blade') },
+        sB: { g: $('#fg-sarmB'), limb: $('#fg-sarmB .fg-limb'), held: $('#fg-sarmB .fg-held'), blade: $('#fg-sarmB .fg-blade') },
         robeSit: $('#fg-robe-sit'), robeUp: $('#fg-robe-up'), hem: $('#fg-hem'), sleevesSit: $('#fg-sleeves-sit'), sleevesUp: $('#fg-sleeves-up'), legL: $('#fg-legL'), legR: $('#fg-legR'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
         pupils: $('#fg-pupils'), tail: $('#fg-tail'), body: $('#fg-body'), head: $('#fg-head'),
         armL: $('#fg-armL'), armR: $('#fg-armR'),
@@ -841,7 +880,9 @@ export function mountFrogGame(stage, opts = {}) {
     const pose = { lRot: -30, rRot: 30, lStretch: 1, rStretch: 1, lK: -30, rK: 30, blade: 1, held: false, laptop: { x: 0, y: 0, rot: 0, gone: false },
         bob: 0, blink: 0, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0,
         // standing: up = 0 (seated) .. 1 (on its feet); lean and shift follow the blade; fall = dropping off the post
-        up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0 };   // face: -1 turned left .. 1 turned right
+        up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0,
+        // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
+        side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const RISE = 400;                                          // logo px the body rises when the frog stands
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
@@ -864,6 +905,20 @@ export function mountFrogGame(stage, opts = {}) {
         // turned: the near shoulder comes forward and the far one tucks in behind the body
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
         setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
+        // the profile drawing takes over while the frog cuts
+        const sideOn = pose.side !== 0 && upNow && !pose.fallY;
+        setA(el.side, 'opacity', sideOn ? 1 : 0);
+        setA(el.all, 'opacity', sideOn ? 0 : 1);
+        if (sideOn) {
+            setA(el.side, 'transform', pose.side < 0 ? 'translate(1986 0) scale(-1 1)' : '');
+            for (const k in el.sLegs) setA(el.sLegs[k], 'opacity', k === pose.sLegs ? 1 : 0);
+            const hipY = 900 + pose.sDrop;
+            setA(el.sideTop, 'transform', `translate(0 ${n2(pose.sDrop)}) rotate(${n2(pose.sRot)} 1000 ${900})`);
+            setArm(el.sB.g, el.sB.limb, el.sB.held, el.sB.blade, [1000, 470], pose.sB.rot, pose.sB.stretch, pose.sB.k);
+            setArm(el.sF.g, el.sF.limb, el.sF.held, el.sF.blade, [1000, 470], pose.sF.rot, pose.sF.stretch, pose.sF.k);
+            setA(el.sideTail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} 660 0)`);       // the tails lag the turn
+            setA(el.sideHem, 'transform', `translate(1000 850) skewX(${n2(pose.sRot * 0.5)}) translate(-1000 -850)`);
+        }
         setA(el.back, 'opacity', pose.held ? 0 : 1);
         const L = pose.laptop;
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
@@ -881,7 +936,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the feet: the front foot steps toward the cut, the back one braces
         setA(el.legL, 'transform', `translate(${n2(turn < 0 ? turn * 150 : turn * 40)} 0)`);
         setA(el.legR, 'transform', `translate(${n2(turn > 0 ? turn * 150 : turn * 40)} 0)`);
-        setA(el.stand, 'opacity', pose.up > 0.5 && !pose.fallY ? 1 : 0);
+        setA(el.stand, 'opacity', pose.up > 0.5 && !pose.fallY && !sideOn ? 1 : 0);
         // the legs stay planted and slant so their tops stay under the hips
         setA(el.stand, 'transform', `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
@@ -1224,7 +1279,7 @@ export function mountFrogGame(stage, opts = {}) {
         pose.laptop.gone = true; pose.held = true; pose.blade = 1; pose.glint = 0;
         pose.lRot = READY.l; pose.rRot = READY.r; pose.lK = READY.lK; pose.rK = READY.rK;
         pose.lStretch = pose.rStretch = 1;
-        pose.up = 1; pose.squash = 0; pose.fallY = 0; pose.fallRot = 0; pose.lean = 0; pose.shift = 0; pose.face = 0;
+        pose.up = 1; pose.squash = 0; pose.fallY = 0; pose.fallRot = 0; pose.lean = 0; pose.shift = 0; pose.face = 0; pose.side = 0;
     }
 
     // ---------- the frog's sword work ----------
@@ -1265,6 +1320,19 @@ export function mountFrogGame(stage, opts = {}) {
         // the body rotates toward the cut: well over for a sideways stroke, bowing into a downward one,
         // arching back for an upward one
         const facing = Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1;
+        // The cut is its own drawing: the frog in profile, turned to the side it is cutting on, with
+        // the whole top half (head included) rotated to the stroke: arched back for an upward cut,
+        // leaning in for a level one, bowed right over for a downward one. Legs: stretch, lunge, crouch.
+        if (!settling) {
+            const th = Math.atan2(cy, Math.abs(cx)) * 180 / Math.PI;      // the heading as the profile sees it: -90 up .. 90 down
+            pose.side = facing;
+            pose.sLegs = cy > 0.3 ? 'down' : cy < -0.3 ? 'up' : 'level';
+            pose.sDrop = cy > 0.3 ? 100 : 0;
+            pose.sRot = 14 + cy * (cy > 0 ? 32 : 30);
+            const smear = s.t < SMEAR;
+            pose.sF = { rot: th - 90 - pose.sRot, k: th + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
+            pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
+        }
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
         pose.lean = facing * (16 + cy * 24 + (Math.abs(cx) < 0.3 ? cy * 0 : 0) - (cy < 0 ? 4 : 0)) * k; pose.shift = (cx * 90 + facing * 30 * Math.max(cy, 0)) * k;
         pose.squash = s.t < SMEAR ? -0.6 : cy > 0.3 ? 0.55 * cy * k : cy < -0.3 ? 0.35 * cy * k : 0;
@@ -2341,7 +2409,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
-        overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
+        pose.side = 0; overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
         el.count.textContent = formatSurvival(clockT) + ' s'; el.count.hidden = false; el.count.classList.remove('pop'); el.count.classList.add('fg-final');
     }
     el.start.addEventListener('click', () => {
@@ -2483,7 +2551,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.bob = Math.sin(idleT * 3) * 1.5;
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
-            pose.lean = 0; pose.shift = 0; pose.squash = 0;
+            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0;
             // at rest it half-turns toward the cursor
             pose.face = aim && phase === 'play' ? clamp((aim.x - W / 2) / (W * 0.3), -1, 1) * 0.45 : 0;
             stepSwing(dt);

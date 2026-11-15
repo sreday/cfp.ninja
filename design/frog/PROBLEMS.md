@@ -37,9 +37,9 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 ## Missing
 
 - 2026-11-15 | animation | The frog now stands, swings in eight directions and falls at time-up,
-  on the placeholder rig: held poses and snaps as in `ABSOLUM-STUDY.md`, but the standing body
-  is the seated robe on two legs, and each direction is the same pose turned, not its own
-  drawing. Needs real art per `ASSETS.md` 1.2-1.4 and 1.16. | open
+  on the placeholder rig: held poses and snaps as in `ABSOLUM-STUDY.md`, but as placeholder
+  drawings: a front view at rest and one profile view (mirrored) for cuts, with three sets of
+  legs and the top half rotated to the stroke. No three-quarter or back views. Needs real art per `ASSETS.md` 1.2-1.4 and 1.16. | open
 - 2026-11-15 | sound | All sound is synthesised and was never listened to by a person: it was
   checked for level only. Needs a listen and a tuning pass, or real recordings (`SOUNDS.md`).
 - 2026-11-15 | story | Nothing from `STORY.md` is in the game yet: no cast on the beach, no
