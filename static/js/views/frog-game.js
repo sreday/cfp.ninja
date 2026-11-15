@@ -1848,7 +1848,15 @@ export function mountFrogGame(stage, opts = {}) {
         pose.tilt = facing * (6 + cy * 12) * k;                      // the head goes with it, a little further
     }
 
-    const G = () => H * 1.05;           // gravity in px/s^2 at speed 1
+    // The fruit's field. On a wide screen it is the whole height. On an upright one, fruit thrown
+    // the full height would cover more ground in the same time: it moves faster against its own
+    // size, and the same player lasts about 7% less (measured: design/frog/ASPECT.md). So the
+    // field is a little lower than the screen there (90% of it at 9:16), never more than 1.6 S
+    // on a taller phone, and it sits on the bottom edge: what is left over is sky above it.
+    // Every throw, gravity and the kick of a cut are measured in FH, not H.
+    const FH = () => { const s = S(), h = Math.min(H / s, 16 / 9); return Math.min(H, s * (h - 0.3 * (h - 1) * (h - 1))); };
+    const fieldY = k => H - FH() * (1 - k);       // k = 0 the top of the field .. 1 the bottom of the screen
+    const G = () => FH() * 1.05;        // gravity in px/s^2 at speed 1
     function spawn(difficulty) {
         const type = pick(FRUIT_BAG);
         const base = clamp(S() * 0.055, 16, 60);
@@ -1859,14 +1867,15 @@ export function mountFrogGame(stage, opts = {}) {
         let x, y, vx, vy;
         if (from === 'bottom') {
             x = rand(W * 0.12, W * 0.88); y = H + r;
-            const peak = rand(0.45, 0.85) * H;
+            const peak = rand(0.45, 0.85) * FH();
             vy = -Math.sqrt(2 * g * peak);
             vx = (W / 2 - x) * rand(0.15, 0.55) * sp;
         } else {
             const dir = from === 'left' ? 1 : -1;
-            x = dir > 0 ? -r : W + r; y = rand(H * 0.35, H * 0.8);
+            const yk = rand(0.35, 0.8);
+            x = dir > 0 ? -r : W + r; y = fieldY(yk);
             vx = dir * W * rand(0.35, 0.6) * sp;
-            vy = -Math.sqrt(2 * g * rand(0.15, Math.min(0.55, y / H - 0.1)) * H);
+            vy = -Math.sqrt(2 * g * rand(0.15, Math.min(0.55, yk - 0.1)) * FH());
         }
         // Depth: everything is thrown from where we stand, so it starts close. About a third of
         // the fruit carries on away from us and comes down in the sea (far); the rest stays near
@@ -1887,7 +1896,7 @@ export function mountFrogGame(stage, opts = {}) {
     function spawnGull(x, y) {
         snd('gull');
         const r = clamp(S() * 0.055, 16, 60) * 1.04, dir = x !== undefined ? (x < W / 2 ? 1 : -1) : Math.random() < 0.5 ? 1 : -1;      // the size of the grapes
-        const g = { x: x !== undefined ? x : dir > 0 ? -r * 2 : W + r * 2, base: y !== undefined ? y : rand(H * 0.12, H * 0.42), dir, speed: Math.max(90, W * 0.13), r, t: 0, phase: rand(0, 6), state: 'fly', hits: 0, rot: 0 };
+        const g = { x: x !== undefined ? x : dir > 0 ? -r * 2 : W + r * 2, base: y !== undefined ? y : fieldY(rand(0.12, 0.42)), dir, speed: Math.max(90, W * 0.13), r, t: 0, phase: rand(0, 6), state: 'fly', hits: 0, rot: 0 };
         g.y = g.base; gulls.push(g); log('gull', 'in');
     }
     const feathers = (x, y, r, n, col) => {
@@ -1992,7 +2001,7 @@ export function mountFrogGame(stage, opts = {}) {
         snd('spawn', { kind: 'crate' });
         const hw = clamp(S() * 0.055, 16, 60) * 1.8;
         const x = rand(W * 0.25, W * 0.75), g = G() * 0.8;
-        crates.push({ x, y: H + hw, vx: (W / 2 - x) * rand(0.15, 0.4), vy: -Math.sqrt(2 * g * rand(0.6, 0.78) * H), g, hw, rot: rand(-0.3, 0.3), spin: rand(-1.2, 1.2) });
+        crates.push({ x, y: H + hw, vx: (W / 2 - x) * rand(0.15, 0.4), vy: -Math.sqrt(2 * g * rand(0.6, 0.78) * FH()), g, hw, rot: rand(-0.3, 0.3), spin: rand(-1.2, 1.2) });
     }
     // slashed open: the planks fly apart (they stay behind the fruit) and the fruit bursts out
     // cone > 0: the fruit is launched straight up instead, inside a cone that wide (radians)
@@ -2031,7 +2040,7 @@ export function mountFrogGame(stage, opts = {}) {
             const a = cone ? -Math.PI / 2 + (i / (CRATE_FRUIT - 1) - 0.5) * cone
                 : (omni ? i / CRATE_FRUIT * Math.PI * 2 + rand(-0.15, 0.15) : outA + (i / (CRATE_FRUIT - 1) - 0.5) * 2 + rand(-0.1, 0.1));
             // in a narrow cone the fruit would fly as one clump: spread it out by speed instead
-            const v = cone ? Math.sqrt(2 * g * rand(0.25, 0.85) * H) : Math.sqrt(2 * g * rand(0.3, 0.6) * H) * CRATE_BURST;
+            const v = cone ? Math.sqrt(2 * g * rand(0.25, 0.85) * FH()) : Math.sqrt(2 * g * rand(0.3, 0.6) * FH()) * CRATE_BURST;
             fruits.push(newFruit(type, base * type.r, c.x + rand(-1, 1) * c.hw * 0.5, c.y + rand(-1, 1) * c.hw * 0.3,
                 Math.cos(a) * v * 0.9 + c.vx * 0.3, Math.sin(a) * v, g,
                 Object.assign({ entered: true, src: 'crate', noCut: cut ? cut.id : 0, cutAt: performance.now() },
@@ -2135,12 +2144,12 @@ export function mountFrogGame(stage, opts = {}) {
             return out;
         };
         const nwx = -dy, nwy = dx, whole = polyArea(bodyA) + polyArea(bodyB);
-        const drag = Math.min(bladeSpeed, H * 3) * 0.1, live = f.fam.cuts < MAX_CUTS;
+        const fh = FH(), drag = Math.min(bladeSpeed, fh * 3) * 0.1, live = f.fam.cuts < MAX_CUTS;
         [[bodyA, leavesA, 1], [bodyB, leavesB, -1]].forEach(([body, leaves, side]) => {
-            const share = polyArea(body) / whole, kick = H * 0.11 * clamp(0.5 / Math.max(share, 0.12), 0.7, 2.2);
+            const share = polyArea(body) / whole, kick = fh * 0.11 * clamp(0.5 / Math.max(share, 0.12), 0.7, 2.2);
             if (f.type.kind === 'grapes' && !grapesIn(body, f.r, f.ox || 0, f.oy || 0).length) return;     // a part of the bunch with no grape in it is nothing
             pieces.push(makePiece(f, body, leaves, {
-                vx: f.vx * 0.6 + nwx * kick * side + dx * drag, vy: f.vy * 0.5 + nwy * kick * side + dy * drag - H * 0.12,
+                vx: f.vx * 0.6 + nwx * kick * side + dx * drag, vy: f.vy * 0.5 + nwy * kick * side + dy * drag - fh * 0.12,
                 spin: f.spin * 0.5 + side * rand(2, 5), live, noCut: id, cutAt: now, char: charFor(body, side)
             }));
         });
@@ -2174,11 +2183,11 @@ export function mountFrogGame(stage, opts = {}) {
     // clipped on the edge: the fruit is knocked away, whole, by the blade's speed and direction
     function knockFruit(f, hit, dx, dy, hx, hy) {
         snd('bounce');
-        const v = clamp(bladeSpeed, H * 0.4, H * 3), light = clamp(1 / Math.sqrt(f.type.r), 0.75, 1.7);
+        const fh = FH(), v = clamp(bladeSpeed, fh * 0.4, fh * 3), light = clamp(1 / Math.sqrt(f.type.r), 0.75, 1.7);
         const nwx = -dy * hit.side, nwy = dx * hit.side;      // away from the blade's line
-        f.vx += (nwx * (H * 0.12 + v * 0.16) + dx * v * 0.22) * light;
-        f.vy += (nwy * (H * 0.12 + v * 0.16) + dy * v * 0.22) * light;
-        const sp = Math.hypot(f.vx, f.vy), top = H * 2.2;
+        f.vx += (nwx * (fh * 0.12 + v * 0.16) + dx * v * 0.22) * light;
+        f.vy += (nwy * (fh * 0.12 + v * 0.16) + dy * v * 0.22) * light;
+        const sp = Math.hypot(f.vx, f.vy), top = fh * 2.2;
         if (sp > top) { f.vx *= top / sp; f.vy *= top / sp; }
         // the blade drags the near edge along: spin, by which side of the centre it passed
         f.spin = clamp(f.spin - hit.side * v / Math.max(f.r, 12) * 0.35, -14, 14);
@@ -3063,7 +3072,7 @@ export function mountFrogGame(stage, opts = {}) {
         snd('spawn', { kind: 'fly' });
         const dir = Math.random() < 0.5 ? 1 : -1;
         const s = clamp(S() * 0.018, 8.4, 13.2);      // small: hard to catch
-        flies.push({ x: dir > 0 ? -20 : W + 20, y: rand(H * 0.12, H * 0.55), base: 0, dir, s, speed: W * rand(0.1, 0.18), phase: rand(0, 6), t: 0 });
+        flies.push({ x: dir > 0 ? -20 : W + 20, y: fieldY(rand(0.12, 0.55)), base: 0, dir, s, speed: W * rand(0.1, 0.18), phase: rand(0, 6), t: 0 });
         flies[flies.length - 1].base = flies[flies.length - 1].y;
     }
     // sizes follow the payoff: firefly smallest (fire), clock medium (freeze), sake biggest (free slashes)
@@ -3164,7 +3173,7 @@ export function mountFrogGame(stage, opts = {}) {
         snd('spawn', { kind });
         const r = clamp(S() * 0.05, 20, 38) * PICK_SIZE[kind];
         const x = rand(W * 0.2, W * 0.8), g = G() * 0.55;
-        pickups.push({ kind, x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * H), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
+        pickups.push({ kind, x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * FH()), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
     }
 
     // The panel: a big Play button, and the tips only for those who ask. "Show tips" opens
@@ -3512,7 +3521,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.overlay.hidden = false;
     }
     function spawnDebug(what, x, y) {
-        const base = clamp(S() * 0.055, 16, 60), toss = Math.sqrt(2 * G() * 0.2 * H);     // thrown up first, then it falls
+        const base = clamp(S() * 0.055, 16, 60), toss = Math.sqrt(2 * G() * 0.2 * FH());     // thrown up first, then it falls
         const [kind, name] = what.split(':');
         log('place', what, Math.round(x), Math.round(y)); snd('place');
         if (kind === 'fruit') {

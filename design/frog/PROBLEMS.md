@@ -20,6 +20,14 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-15 | aspect study (`ASPECT.md`) | Windows wider than 16:9 are unfair to the player: at
+  21:9 the model player lasts about 20% less, at 32:9 about 45% less, because side throws cross
+  a wider screen in the same time. Not fixed. The clean fix is to keep the stage at most 16:9
+  and centre it. | open
+- 2026-11-15 | aspect study (`ASPECT.md`) | The fairness rule between upright and wide screens
+  (`FH()`) comes from a model player with no power-ups, not from people. The fire breath still
+  covers more of an upright screen (about 50% of the fruit in view against 42% on a wide one).
+  Check real runs by screen shape once there are 100 on each. | waiting for data
 - 2026-11-15 | traces 30, 34 (iPhone, 430x739) | Frame rate fell to 23-46 for a few seconds with
   10-19 hacked fruit on screen, and to 33-41 with 56 cut pieces. Hacked things are now filled from
   pre-drawn digit tiles and fruit and pieces are stamped from sprites. Not yet confirmed on the

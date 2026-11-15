@@ -99,6 +99,19 @@ These are fixed. Tuning serves them; the trace review measures against them.
    number of fruit whether it is a phone held upright (tall) or a desktop window (wide).
    Balanced between 9:16 and 16:9; windows more extreme than that are not balanced for.
 
+6a. **The shape of the screen sets how the fruit flies, and that is what keeps it fair.**
+   When a run starts, the screen's aspect ratio decides the fruit's speed and its path:
+   where it comes in, how high it goes, how fast it crosses. A throw is never a fixed
+   path laid over whatever screen there is (fruit far out to the left or right of a wide
+   screen would be out of reach on an upright one). Every fruit thrown can be reached on
+   every shape, and the same player must have the same chances on 9:16 as on 16:9.
+   In practice (`FH()` in the engine, the numbers in `ASPECT.md`): the same area is not
+   enough, because on an upright screen fruit thrown the full height moves faster against
+   its own size. So the fruit's field is a little lower than an upright screen (90% of it
+   at 9:16, never more than 1.6 S on a taller phone) and sits on the bottom edge, with
+   sky above. Any change to throws, gravity or fruit size is checked with
+   `tools/aspect_sim.py` on both shapes before it ships.
+
 7. **It runs well on any recent phone or tablet, at full quality.** The target is 60 frames a
    second (more where the screen allows). Speed comes from doing the same drawing with less
    work (things that don't change are painted once and stamped), never from removing effects.
