@@ -179,11 +179,16 @@ const FROG_SVG = `
     <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath></defs>
     <ellipse id="fg-shadow" cx="993" cy="1700" rx="905" ry="80" fill="#000"/>
     <g id="fg-stand" opacity="0" stroke-linejoin="round">
-        <ellipse cx="640" cy="1668" rx="210" ry="62" fill="${C.green}" stroke="#000" stroke-width="24"/>
-        <ellipse cx="1346" cy="1668" rx="210" ry="62" fill="${C.green}" stroke="#000" stroke-width="24"/>
-        <path d="M560 1180 L880 1180 L850 1640 L590 1640 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-        <path d="M1106 1180 L1426 1180 L1396 1640 L1136 1640 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-        <path d="M585 1560 L855 1560 M1131 1560 L1401 1560" stroke="${C.redHi}" stroke-width="30" fill="none"/>
+        <g id="fg-legL">
+        <ellipse cx="820" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
+        <path d="M716 1040 L940 1040 L906 1630 L758 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
+        <path d="M756 1560 L910 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+        </g>
+        <g id="fg-legR">
+        <ellipse cx="1166" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
+        <path d="M1046 1040 L1270 1040 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
+        <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+        </g>
     </g>
     <g id="fg-all" stroke-linejoin="round" stroke-linecap="round">
         <g id="fg-back">
@@ -191,11 +196,25 @@ const FROG_SVG = `
             <g transform="translate(1711 488) rotate(-145)">${katana('fg-bk2', true, BACK_K)}</g>
         </g>
         <g id="fg-body">
-            <path d="M175 1260 C215 1030 380 870 575 790 L1411 790 C1606 870 1771 1030 1811 1260 L1811 1520 L175 1520 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <path id="fg-robe-sit" d="M175 1260 C215 1030 380 870 575 790 L1411 790 C1606 870 1771 1030 1811 1260 L1811 1520 L175 1520 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <g id="fg-robe-up" opacity="0">
+                <!-- standing: a slim tunic, narrow at the waist, with a short flared hem that swings -->
+                <path id="fg-hem" d="M720 1090 L1266 1090 L1392 1330 Q1200 1392 993 1350 Q786 1392 594 1330 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+                <path d="M712 1066 L1274 1066 L1266 1126 L720 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
+                <path d="M900 1126 L870 1250 L930 1236 Z M956 1126 L990 1262 L1030 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
+                <path d="M700 900 Q740 980 760 1050" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+            </g>
             <path d="M690 780 L860 915 L1126 915 L1296 780 Z" fill="${C.belly}" stroke="#000" stroke-width="18"/>
             <path d="M590 772 L652 920 M1396 772 L1334 920" stroke="#000" stroke-width="18" fill="none"/>
+            <g id="fg-sleeves-sit">
             <ellipse cx="380" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
             <ellipse cx="1606" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            </g>
+            <g id="fg-sleeves-up" opacity="0">
+            <ellipse cx="672" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
+            <ellipse cx="1314" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
+            </g>
             <g id="fg-sit">
             <ellipse cx="345" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
             <ellipse cx="1641" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
@@ -756,7 +775,8 @@ export function mountFrogGame(stage, opts = {}) {
     const canvas = $('.fg-canvas'), ctx = canvas.getContext('2d');
     const svg = $('.fg-frog');
     const el = {
-        all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
+        all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
+        robeSit: $('#fg-robe-sit'), robeUp: $('#fg-robe-up'), hem: $('#fg-hem'), sleevesSit: $('#fg-sleeves-sit'), sleevesUp: $('#fg-sleeves-up'), legL: $('#fg-legL'), legR: $('#fg-legR'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
         pupils: $('#fg-pupils'), tail: $('#fg-tail'), body: $('#fg-body'), head: $('#fg-head'),
         armL: $('#fg-armL'), armR: $('#fg-armR'),
         limbL: $('#fg-armL .fg-limb'), limbR: $('#fg-armR .fg-limb'),
@@ -821,8 +841,9 @@ export function mountFrogGame(stage, opts = {}) {
     const pose = { lRot: -30, rRot: 30, lStretch: 1, rStretch: 1, lK: -30, rK: 30, blade: 1, held: false, laptop: { x: 0, y: 0, rot: 0, gone: false },
         bob: 0, blink: 0, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0,
         // standing: up = 0 (seated) .. 1 (on its feet); lean and shift follow the blade; fall = dropping off the post
-        up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0 };
-    const RISE = 300;                                          // logo px the body rises when the frog stands
+        up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0 };   // face: -1 turned left .. 1 turned right
+    const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
+    const RISE = 400;                                          // logo px the body rises when the frog stands
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
     // write an SVG attribute only when its (rounded) value changed: fewer style/paint invalidations
@@ -839,8 +860,10 @@ export function mountFrogGame(stage, opts = {}) {
             setA(held, 'opacity', pose.held ? 1 : 0);
             setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
-        setArm(el.armL, el.limbL, el.heldL, el.bladeL, ELBOW.L, pose.lRot, pose.lStretch, pose.lK);
-        setArm(el.armR, el.limbR, el.heldR, el.bladeR, ELBOW.R, pose.rRot, pose.rStretch, pose.rK);
+        const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
+        // turned: the near shoulder comes forward and the far one tucks in behind the body
+        setArm(el.armL, el.limbL, el.heldL, el.bladeL, [EL.L[0] + turn * 60, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
+        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [EL.R[0] + turn * 60, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
         setA(el.back, 'opacity', pose.held ? 0 : 1);
         const L = pose.laptop;
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
@@ -849,6 +872,15 @@ export function mountFrogGame(stage, opts = {}) {
         const rise = pose.up * RISE;
         setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${1500 - (pose.fallRot ? 500 : 0)}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
         setA(el.sit, 'opacity', pose.up > 0.5 ? 0 : 1);
+        setA(el.robeSit, 'opacity', upNow ? 0 : 1); setA(el.sleevesSit, 'opacity', upNow ? 0 : 1);
+        setA(el.robeUp, 'opacity', upNow ? 1 : 0); setA(el.sleevesUp, 'opacity', upNow ? 1 : 0);
+        // the turn: the body narrows a touch and slides under the head, the hem swings out behind
+        setA(el.robeUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.12)} 1) translate(-993 0)`);
+        setA(el.sleevesUp, 'transform', `translate(${n2(turn * 60)} 0)`);
+        setA(el.hem, 'transform', `translate(993 1090) skewX(${n2(-turn * 16 - pose.lean * 1.2)}) translate(-993 -1090)`);
+        // the feet: the front foot steps toward the cut, the back one braces
+        setA(el.legL, 'transform', `translate(${n2(turn < 0 ? turn * 150 : turn * 40)} 0)`);
+        setA(el.legR, 'transform', `translate(${n2(turn > 0 ? turn * 150 : turn * 40)} 0)`);
         setA(el.stand, 'opacity', pose.up > 0.5 && !pose.fallY ? 1 : 0);
         setA(el.stand, 'transform', `translate(${n2(pose.shift * 0.25)} 0)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
@@ -856,10 +888,12 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
         // (drunk: the head lolls from side to side)
         const loll = stage.classList.contains('fg-drunk') ? Math.sin(performance.now() / 290) * 9 + Math.sin(performance.now() / 131) * 3 : 0;
-        setA(el.head, 'transform', `translate(0 ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)`);
-        setA(el.tail, 'transform', `translate(0 ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
+        // the head leads the turn (it goes further than the body); the bandana tails stream out behind it
+        const hx = (pose.up > 0.5 ? pose.face : 0) * 95;
+        setA(el.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)`);
+        setA(el.tail, 'transform', `translate(${n2(hx - (pose.up > 0.5 ? pose.face : 0) * 60)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
         setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
-        setA(el.pupils, 'transform', `translate(${n2(pose.lookX)} ${n2(pose.lookY)})`);
+        setA(el.pupils, 'transform', `translate(${n2(clamp(pose.lookX + (pose.up > 0.5 ? pose.face : 0) * 34, -46, 46))} ${n2(pose.lookY)})`);
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
     }
@@ -1189,7 +1223,7 @@ export function mountFrogGame(stage, opts = {}) {
         pose.laptop.gone = true; pose.held = true; pose.blade = 1; pose.glint = 0;
         pose.lRot = READY.l; pose.rRot = READY.r; pose.lK = READY.lK; pose.rK = READY.rK;
         pose.lStretch = pose.rStretch = 1;
-        pose.up = 1; pose.squash = 0; pose.fallY = 0; pose.fallRot = 0; pose.lean = 0; pose.shift = 0;
+        pose.up = 1; pose.squash = 0; pose.fallY = 0; pose.fallRot = 0; pose.lean = 0; pose.shift = 0; pose.face = 0;
     }
 
     // ---------- the frog's sword work ----------
@@ -1227,10 +1261,14 @@ export function mountFrogGame(stage, opts = {}) {
         pose[lead + 'Stretch'] = s.t < SMEAR ? 2.3 : lerp(1, 1.55, k);  // the smear: the arm stretches for two frames
         pose[off + 'Rot'] = lerp(READY[off], READY[off] - cx * 55 * (off === 'l' ? 1 : -1) * -1, k);
         pose[off + 'K'] = lerp(READY[off + 'K'], deg - 90, k * 0.6);
-        pose.lean = cx * 9 * k; pose.shift = cx * 55 * k;
+        // the body rotates toward the cut: well over for a sideways stroke, bowing into a downward one,
+        // arching back for an upward one
+        pose.lean = (cx * 20 + cx * cy * 8) * k; pose.shift = cx * 80 * k;
+        pose.squash = s.t < SMEAR ? -0.6 : cy > 0.3 ? 0.55 * cy * k : cy < -0.3 ? 0.35 * cy * k : 0;
+        // turned toward the cut: by the blade's heading, or for a straight up or down stroke by the side it is on
+        pose.face = (Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1) * k;
         pose.bob += cy * 4 * k;                                       // a down-stroke sinks into it, an up-stroke rises
-        pose.tilt = cx * 7 * k;
-        pose.squash = s.t < SMEAR ? -0.6 : 0;                         // stretched at the instant of the cut
+        pose.tilt = (cx * 10 + cx * cy * 6) * k;                      // the head goes with it, a little further
     }
 
     const G = () => H * 1.05;           // gravity in px/s^2 at speed 1
@@ -2443,6 +2481,8 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
             pose.lean = 0; pose.shift = 0; pose.squash = 0;
+            // at rest it half-turns toward the cursor
+            pose.face = aim && phase === 'play' ? clamp((aim.x - W / 2) / (W * 0.3), -1, 1) * 0.45 : 0;
             stepSwing(dt);
             if (swing) poseSwing();
             else if (windUp && phase === 'play') {               // pressed, not cutting yet: the held wind-up
