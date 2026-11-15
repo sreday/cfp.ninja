@@ -4,6 +4,8 @@ A living log. The 6-hourly trace review appends to it; whoever resumes work on t
 reads it first. Newest entries at the top of each section. When something is fixed, move it
 to "Fixed" with the commit, don't delete it.
 
+Last trace id reviewed: 0
+
 Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | what | status`
 
 ## Needs a decision from Marek
