@@ -81,3 +81,17 @@ Then port the result into `static/js/views/frog-game.js`; the mockup copy is the
 - **CSP.** The page has no inline `<script>` or `<style>`, and images may only come from the site itself or `data:`. That's why the scoreboard shows no GitHub avatars.
 - **Logo files.** Never edit `static/img/cfpninja*.png`. The frog is traced *from* them.
 - **Mockups first.** New visual directions start as clickable HTML mockups for Marek to pick from, before anything is built into the app.
+
+
+## Looking at every animation before shipping
+
+Rule (Marek, 2026-11-15): never turn, tilt or squeeze a drawing to fake a pose. Every pose is
+its own drawing. And look at the whole range before a change to the frog or a creature ships:
+
+- In the game: Debug, then the **Animations** button plays every pose in turn with its name.
+- From a script: `window.frogAnims.list()`, `.info()`, `.play(name)`, `.all()`.
+- As contact sheets: `python3 design/frog/tools/anim_sheet.py` (see its header). Read every
+  sheet; `--only <word>` narrows it to the poses being worked on.
+
+The list lives in `ANIMS` in `static/js/views/frog-game.js`. A new pose is not done until it
+has an entry there. Not yet in the list: the fall at time-up, the intro, the crate punch.

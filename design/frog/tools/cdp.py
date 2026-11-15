@@ -59,7 +59,7 @@ try:
         if 'wait' in st: time.sleep(st['wait'])
         if 'js' in st:
             r = ws.send("Runtime.evaluate", {"expression": st['js'], "returnByValue": True, "awaitPromise": True})
-            print('js:', json.dumps(r.get('result', {}).get('value'))[:400])
+            print('js:', json.dumps(r.get('result', {}).get('value'))[:st.get('max', 400)])
         if 'click' in st:
             x, y = st['click']
             for t in ("mousePressed", "mouseReleased"): ws.send("Input.dispatchMouseEvent", {"type": t, "x": x, "y": y, "button": "left", "clickCount": 1})
