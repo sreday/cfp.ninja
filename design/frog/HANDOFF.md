@@ -95,3 +95,21 @@ its own drawing. And look at the whole range before a change to the frog or a cr
 
 The list lives in `ANIMS` in `static/js/views/frog-game.js`. A new pose is not done until it
 has an entry there. Not yet in the list: the fall at time-up, the intro, the crate punch.
+
+
+## Playing the game without anyone's browser
+
+`tools/playtest.py` starts the mock server, opens the game in its own headless Chrome (a
+throwaway profile), plays a run with a simple hand, and saves a screenshot every few seconds
+plus a contact sheet. Use it to see how a change looks in play, on any screen size, before it
+ships:
+
+    python3 design/frog/tools/playtest.py                          # 40 s, wide screen
+    python3 design/frog/tools/playtest.py --size 430x739            # a phone held upright
+    python3 design/frog/tools/playtest.py --debug "sake@640,260 fly@400,300" --seconds 6
+
+The hand slashes through the fruit it sees, tongues power-ups, aims a breath, marks during a
+freeze, and leaves seagulls alone unless boosted. It reads the field from `window.frogPlay`,
+which the game only defines for a browser that says it is automated (such runs go to the AI
+agents' board on the real site). It is a way to look, not a judge of balance: for that use
+`aspect_sim.py` and real runs. `anim_sheet.py` is still the tool for single poses.

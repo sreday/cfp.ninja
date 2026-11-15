@@ -136,6 +136,8 @@ function arm(id) {
             <ellipse cx="0" cy="58" rx="18" ry="16" fill="${C.green}" stroke="#000" stroke-width="7"/>
         </g>
         <g class="fg-held" opacity="0">${katana(id + '-k', false, BACK_K / ARM_K)}</g>
+        <!-- the hand again, over the grip: green fingers closed round the katana -->
+        <g class="fg-hand"><ellipse cx="0" cy="0" rx="19" ry="15" fill="${C.green}" stroke="#000" stroke-width="7"/><path d="M-11 -5 L11 -5 M-12 3 L12 3" stroke="#000" stroke-width="3" stroke-linecap="round" opacity=".45"/></g>
     </g></g>`;
 }
 
@@ -1043,7 +1045,7 @@ export function mountFrogGame(stage, opts = {}) {
         </div>
         <div class="fg-center">
             <div class="fg-pill fg-time"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
-            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}</div>
+            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}<button type="button" class="fg-pill fg-stam-lock" aria-pressed="false">Lock</button></div>
             <div class="fg-grade" data-g="0"><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
         <div class="fg-count" hidden></div>
@@ -1223,6 +1225,9 @@ export function mountFrogGame(stage, opts = {}) {
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
             setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
             setA(held, 'opacity', pose.held && !pose.noBlades && !pose.stuck ? 1 : 0);
+            // the hand sits at the end of the arm, on top of whatever it holds, turned with the grip
+            const hand = g._hand || (g._hand = g.querySelector('.fg-hand'));
+            if (hand) setA(hand, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
             setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
         const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
@@ -1760,7 +1765,15 @@ export function mountFrogGame(stage, opts = {}) {
         el.stamina.classList.toggle('empty', !gold && !hot && stamina < 1);
         el.stamina.classList.toggle('flash', emptyFlash > 0);
         el.stamina.classList.toggle('stunned', stunT > 0);
+        el.stamina.classList.toggle('locked', dbg && stamLock && !gold && !hot);
     }
+    // debug: stamina can be locked, so slashing never uses it (the bar becomes one glowing green block)
+    let stamLock = false;
+    $('.fg-stam-lock').addEventListener('click', e => {
+        stamLock = !stamLock; e.currentTarget.textContent = stamLock ? 'Locked' : 'Lock'; e.currentTarget.setAttribute('aria-pressed', stamLock ? 'true' : 'false');
+        if (stamLock) stamina = STAMINA_BARS;
+        staminaHud();
+    });
     let hudS = '', hudC = '', hudLow = null;
     function hud() {
         // DOM writes only when the text changes (tenths), not every frame
@@ -2389,7 +2402,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) { if (b.kind === 'fireworks') spared++; breakPickup(pickups.splice(i, 1)[0], ang); }
         }
         const lost = wrecked - flies.length - pickups.length - spared;
-        if (lost && sakeLeft <= 0) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
+        if (lost && sakeLeft <= 0 && !(dbg && stamLock)) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
     }
 
     // ---------- debris ----------
@@ -2850,7 +2863,7 @@ export function mountFrogGame(stage, opts = {}) {
         else {
             cut.pend.push([lx, ly, ex, ey]);
             if (cut.len + (done ? left : seg) >= minCut()) {
-                if (!freeCut()) stamina = Math.max(0, stamina - 1);
+                if (!freeCut() && !(dbg && stamLock)) stamina = Math.max(0, stamina - 1);
                 sig.slashes++; swingTo(ex - cut.sx, ey - cut.sy, ex, ey);
                 snd('slash', { kind: sakeLeft > 0 || fxLeft > 0 ? (bladeFx.fire ? 'fire' : bladeFx.frost ? 'frost' : 'sake') : '', power: clamp(bladeSpeed / (H * 3), 0, 1) });
                 cut.paid = true;
@@ -3734,6 +3747,22 @@ export function mountFrogGame(stage, opts = {}) {
         gull('seagull roasted (fire)', () => { const g = fake(); g.state = 'faint'; g.burnt = true; g.vx = 0; g.vy = -H * 0.3; gulls.push(g); }, 0.8);
         return out;
     })();
+    // For the play-test tool (design/frog/tools/playtest.py): what is on the field right now, so a
+    // script can play the game in its own headless browser and look at it. Only there: a browser
+    // driven by automation says so (navigator.webdriver), and such runs go to the AI agents' board.
+    if (navigator.webdriver) window.frogPlay = {
+        state() {
+            const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
+            return {
+                phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
+                sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0,
+                fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked })),
+                pieces: pieces.length,
+                pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
+                crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r) }))
+            };
+        }
+    };
     function playAnim(name) {
         const a = ANIMS.find(q => q.name === name);
         if (!a) return false;

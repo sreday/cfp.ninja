@@ -59,10 +59,29 @@ try:
         if 'wait' in st: time.sleep(st['wait'])
         if 'js' in st:
             r = ws.send("Runtime.evaluate", {"expression": st['js'], "returnByValue": True, "awaitPromise": True})
-            print('js:', json.dumps(r.get('result', {}).get('value'))[:st.get('max', 400)])
+            print("js:", json.dumps(r.get("result", {}).get("value"))[:st.get("max", 1500)])
         if 'click' in st:
             x, y = st['click']
             for t in ("mousePressed", "mouseReleased"): ws.send("Input.dispatchMouseEvent", {"type": t, "x": x, "y": y, "button": "left", "clickCount": 1})
+        if 'move' in st:
+            for x, y in st['move']:
+                ws.send("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y, "button": "none", "buttons": 0}); time.sleep(st.get('gap', 0.008))
+            if st.get('shot_mid'):
+                d = ws.send("Page.captureScreenshot", {"format": "png"}); open(st['shot_mid'], 'wb').write(base64.b64decode(d['data']))
+        if 'touch' in st:
+            pts = st['touch']
+            ws.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": pts[0][0], "y": pts[0][1]}]})
+            for x, y in pts[1:]:
+                time.sleep(st.get('gap', 0.02)); ws.send("Input.dispatchTouchEvent", {"type": "touchMove", "touchPoints": [{"x": x, "y": y}]})
+            time.sleep(st.get('gap', 0.02)); ws.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})
+        if 'drag' in st:
+            pts = st['drag']; gap = st.get('gap', 0.008)
+            ws.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": pts[0][0], "y": pts[0][1], "button": "left", "buttons": 1, "clickCount": 1})
+            for x, y in pts[1:]:
+                ws.send("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y, "button": "left", "buttons": 1}); time.sleep(gap)
+            if st.get('shot_mid'):
+                d = ws.send("Page.captureScreenshot", {"format": "png"}); open(st['shot_mid'], 'wb').write(base64.b64decode(d['data']))
+            ws.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": pts[-1][0], "y": pts[-1][1], "button": "left", "clickCount": 1})
         if 'shot' in st:
             d = ws.send("Page.captureScreenshot", {"format": "png"})
             open(st['shot'], 'wb').write(base64.b64decode(d['data'])); print('shot', st['shot'])

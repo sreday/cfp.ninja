@@ -1688,3 +1688,12 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-paused .fg-skip { min-width: 240px; padding: 14px 28px; border: 2px solid #000; border-radius: 16px; background: #fff; color: #000; font-size: 1.25rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 4px 0 #000; }
 .fg-paused .fg-skip:hover { background: #ececec; color: #000; border-color: #000; }
 .fg-paused .fg-board-link, .fg-paused .fg-replay, .fg-paused .fg-anykey { display: none; }
+
+/* debug: the stamina lock, to the left of the bar; locked, the bar is one glowing green block */
+.fg-stamina { position: relative; }
+.fg-stam-lock { display: none; position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); height: 30px; padding: 0 12px; align-items: center; justify-content: center; font-size: .75rem; font-weight: 600; cursor: pointer; pointer-events: auto; white-space: nowrap; transition: background .15s ease; }
+.fg-stam-lock:hover { background: var(--border-light); }
+.fg-debugging .fg-stam-lock { display: inline-flex; }
+.fg-stam-lock[aria-pressed="true"] { border-color: #98b74b; color: #b6d36a; }
+.fg-stamina.locked { background: linear-gradient(#b6d36a, #98b74b); border-color: #c9e27f; box-shadow: 0 0 18px 5px rgba(152,183,75,.85); }
+.fg-stamina.locked i { visibility: hidden; }
