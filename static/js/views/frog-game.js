@@ -3404,14 +3404,28 @@ export function mountFrogGame(stage, opts = {}) {
             if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: false });
         });
     }
-    let dimAt = 0;
+    // The interface gets out of the way as one: when anything in play covers any one of its
+    // elements (the blade, a fruit, a piece, a power-up, a crate, a seagull), all of them fade
+    // together, and come back a moment after the last one is clear.
+    let dimAt = 0, dimUntil = 0, dimNow = false;
     function dimStep(tn) {
         if (tn - dimAt > 1500) { dimAt = tn; dimMeasure(); }
-        const active = phase === 'play' && pointer && (down || autoCut || swing), p = pointer;
-        dimEls.forEach(d => {
-            const on = !!active && p.x > d.x0 && p.x < d.x1 && p.y > d.y0 && p.y < d.y1;
-            if (on !== d.dim) { d.dim = on; d.n.classList.toggle('fg-dim', on); }
-        });
+        let hit = false;
+        if (phase === 'play') {
+            const PAD = 46, slashing = pointer && (down || autoCut || swing);
+            // (x0..y1 already reach PAD past the element, for the blade; things are tested against the element itself plus their own size)
+            const over = (d, x, y, r) => x > d.x0 + PAD - r && x < d.x1 - PAD + r && y > d.y0 + PAD - r && y < d.y1 - PAD + r;
+            for (const d of dimEls) {
+                if (slashing && pointer.x > d.x0 && pointer.x < d.x1 && pointer.y > d.y0 && pointer.y < d.y1) { hit = true; break; }
+                if (d.n.classList.contains('fg-debug-tray') || d.n.classList.contains('fg-debug-title')) continue;     // the debug tray is not hidden by what is dropped from it
+                if (fruits.some(f => f.entered && over(d, f.x, f.y, f.R || f.r)) || pieces.some(q => q.poly && over(d, q.x, q.y, q.R * 0.7))
+                    || pickups.some(b => over(d, b.x, b.y, b.r)) || flies.some(f => over(d, f.x, f.y, f.s * 1.5)) || crates.some(c => over(d, c.x, c.y, c.hw))
+                    || gulls.some(g => over(d, g.x, g.y, g.r))) { hit = true; break; }
+            }
+        }
+        if (hit) dimUntil = tn + 250;
+        const on = tn < dimUntil;
+        if (on !== dimNow) { dimNow = on; dimEls.forEach(d => { d.dim = on; d.n.classList.toggle('fg-dim', on); }); }
     }
 
     // ---------- debug mode ----------
