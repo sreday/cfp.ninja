@@ -181,12 +181,12 @@ const FROG_SVG = `
     <g id="fg-stand" opacity="0" stroke-linejoin="round">
         <g id="fg-legL">
         <ellipse cx="820" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
-        <path d="M716 1040 L940 1040 L906 1630 L758 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
+        <path d="M716 860 L940 860 L906 1630 L758 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
         <path d="M756 1560 L910 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
         </g>
         <g id="fg-legR">
         <ellipse cx="1166" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
-        <path d="M1046 1040 L1270 1040 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
+        <path d="M1046 860 L1270 860 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
         <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
         </g>
     </g>
@@ -862,34 +862,35 @@ export function mountFrogGame(stage, opts = {}) {
         };
         const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
         // turned: the near shoulder comes forward and the far one tucks in behind the body
-        setArm(el.armL, el.limbL, el.heldL, el.bladeL, [EL.L[0] + turn * 60, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
-        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [EL.R[0] + turn * 60, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
+        setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
+        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
         setA(el.back, 'opacity', pose.held ? 0 : 1);
         const L = pose.laptop;
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
         if (!L.gone) setA(el.laptop, 'transform', `translate(${n2(L.x * U)} ${n2(L.y * U)}) rotate(${n2(L.rot)} 993 1160)`);
         // the upper body: up on its feet, leaning into the cut, squashing before a move; or tumbling off the post
         const rise = pose.up * RISE;
-        setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${1500 - (pose.fallRot ? 500 : 0)}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
+        setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${pose.fallRot ? 1000 : 1300}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
         setA(el.sit, 'opacity', pose.up > 0.5 ? 0 : 1);
         setA(el.robeSit, 'opacity', upNow ? 0 : 1); setA(el.sleevesSit, 'opacity', upNow ? 0 : 1);
         setA(el.robeUp, 'opacity', upNow ? 1 : 0); setA(el.sleevesUp, 'opacity', upNow ? 1 : 0);
         // the turn: the body narrows a touch and slides under the head, the hem swings out behind
-        setA(el.robeUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.12)} 1) translate(-993 0)`);
-        setA(el.sleevesUp, 'transform', `translate(${n2(turn * 60)} 0)`);
+        setA(el.robeUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.38)} 1) translate(-993 0)`);
+        setA(el.sleevesUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.38)} 1) translate(-993 0)`);
         setA(el.hem, 'transform', `translate(993 1090) skewX(${n2(-turn * 16 - pose.lean * 1.2)}) translate(-993 -1090)`);
         // the feet: the front foot steps toward the cut, the back one braces
         setA(el.legL, 'transform', `translate(${n2(turn < 0 ? turn * 150 : turn * 40)} 0)`);
         setA(el.legR, 'transform', `translate(${n2(turn > 0 ? turn * 150 : turn * 40)} 0)`);
         setA(el.stand, 'opacity', pose.up > 0.5 && !pose.fallY ? 1 : 0);
-        setA(el.stand, 'transform', `translate(${n2(pose.shift * 0.25)} 0)`);
+        // the legs stay planted and slant so their tops stay under the hips
+        setA(el.stand, 'transform', `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
         // breathing: the robe swells a little from the floor up; the head rides on it
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
         // (drunk: the head lolls from side to side)
         const loll = stage.classList.contains('fg-drunk') ? Math.sin(performance.now() / 290) * 9 + Math.sin(performance.now() / 131) * 3 : 0;
         // the head leads the turn (it goes further than the body); the bandana tails stream out behind it
-        const hx = (pose.up > 0.5 ? pose.face : 0) * 95;
+        const hx = (pose.up > 0.5 ? pose.face : 0) * 150;
         setA(el.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)`);
         setA(el.tail, 'transform', `translate(${n2(hx - (pose.up > 0.5 ? pose.face : 0) * 60)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
         setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
@@ -1263,12 +1264,14 @@ export function mountFrogGame(stage, opts = {}) {
         pose[off + 'K'] = lerp(READY[off + 'K'], deg - 90, k * 0.6);
         // the body rotates toward the cut: well over for a sideways stroke, bowing into a downward one,
         // arching back for an upward one
-        pose.lean = (cx * 20 + cx * cy * 8) * k; pose.shift = cx * 80 * k;
+        const facing = Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1;
+        // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
+        pose.lean = facing * (16 + cy * 24 + (Math.abs(cx) < 0.3 ? cy * 0 : 0) - (cy < 0 ? 4 : 0)) * k; pose.shift = (cx * 90 + facing * 30 * Math.max(cy, 0)) * k;
         pose.squash = s.t < SMEAR ? -0.6 : cy > 0.3 ? 0.55 * cy * k : cy < -0.3 ? 0.35 * cy * k : 0;
         // turned toward the cut: by the blade's heading, or for a straight up or down stroke by the side it is on
-        pose.face = (Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1) * k;
+        pose.face = facing * k;
         pose.bob += cy * 4 * k;                                       // a down-stroke sinks into it, an up-stroke rises
-        pose.tilt = (cx * 10 + cx * cy * 6) * k;                      // the head goes with it, a little further
+        pose.tilt = facing * (6 + cy * 12) * k;                      // the head goes with it, a little further
     }
 
     const G = () => H * 1.05;           // gravity in px/s^2 at speed 1
