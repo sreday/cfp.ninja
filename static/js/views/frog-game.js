@@ -51,6 +51,7 @@ const MARK_STEP = 0.07;                          // seconds between the slashes 
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
+const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 // What the fire breath burns changes it for the rest of that breath, and it adds up:
@@ -336,62 +337,69 @@ const FROG_SVG = `
 
 // ---------- fruit ----------
 // The watermelon is as big as the frog's head; each fruit down the line is 20% smaller
-// than the one before: watermelon, pineapple, grapes, banana, orange, apple, kiwi, plum.
+// than the one before: watermelon, pineapple, grapes, orange, apple, banana, kiwi, plum.
 //
 // Two of them are not round, and are cut differently:
-//  - grapes: a bunch of separate berries. A blade parts the bunch along its line: the berries
-//    on each side stay whole and go with their half, and only the berries the blade actually
-//    passes through are halved. There is no single cut face; a piece is just fewer grapes.
-//  - banana: long and curved. Across it (the natural cut) it gives two shorter bananas with
-//    pale flesh at the cut end; along it, two long halves with flesh down the cut side. The
-//    precision bands are measured across whichever way the blade crosses it, so a clean cut
-//    lengthwise needs the blade right down the middle of a thin fruit: hard, and worth it.
+//  - grapes: a bunch of separate berries, and a berry is never cut. A blade parts the bunch
+//    along its line the way a bar of chocolate breaks along its squares: every grape stays
+//    whole and goes with the side its middle is on. A piece is just fewer grapes.
+//  - banana: long, curved, with a stalk at one end. It counts as a small fruit (between apple
+//    and kiwi) because it is thin: long to look at, hard to cut well. Across it gives two
+//    shorter bananas with pale flesh at the cut end; along it, two long halves with flesh
+//    down the cut side.
 const FRUITS = [
     { kind: 'watermelon', r: 1.62, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
-    { kind: 'orange', r: 0.66, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
+    { kind: 'orange', r: 0.83, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
     { kind: 'pineapple', r: 1.3, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
-    { kind: 'grapes', r: 1.04, skin: '#7cb342', flesh: '#dcedc8', ring: '#c5e1a5', juice: '#aed581', w: 2 },
-    { kind: 'banana', r: 0.83, skin: '#fdd835', flesh: '#fff8e1', ring: '#fff59d', juice: '#fff176', w: 2 },
+    { kind: 'grapes', r: 1.04, skin: '#d81b60', flesh: '#f48fb1', ring: '#f8bbd0', juice: '#f06292', w: 2 },
+    { kind: 'banana', r: 0.53, skin: '#fdd835', flesh: '#fff8e1', ring: '#fff59d', juice: '#fff176', w: 2 },
     { kind: 'kiwi', r: 0.42, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
-    { kind: 'apple', r: 0.53, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
+    { kind: 'apple', r: 0.66, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
     { kind: 'plum', r: 0.34, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
 ];
 // the bunch: where each grape sits (in units of r), and the outline the blade tests against
 const GRAPES = [[-0.6, -0.6], [-0.2, -0.62], [0.2, -0.62], [0.6, -0.6], [-0.4, -0.22], [0, -0.24], [0.4, -0.22], [-0.2, 0.16], [0.2, 0.16], [0, 0.54]];
 const GRAPE_R = 0.27;
 const grapesPoly = r => [[-0.92, -0.9], [0.92, -0.9], [0.98, -0.45], [0.34, 0.86], [-0.34, 0.86], [-0.98, -0.45]].map(p => [p[0] * r, p[1] * r]);
-// the banana: a crescent, thick in the middle and tapering to both tips
-function bananaPoly(r, inset = 0) {
-    const out = [], n = 9, pt = (t, outer) => {
-        const a = t * 0.78, k = Math.pow(Math.abs(t), 3);
-        const R = (outer ? 2.0 - 0.07 * k - inset : 1.52 + 0.4 * k + inset) * r;
-        return [Math.sin(a) * R, (-1.76 * r) + Math.cos(a) * R];
-    };
-    for (let i = 0; i <= n; i++) out.push(pt(-1 + 2 * i / n, true));
-    for (let i = n; i >= 0; i--) out.push(pt(-1 + 2 * i / n, false));
+// the banana: a fat crescent tapering to a blunt tip at one end and a stalk (the handle) at the other
+const BAN = { R: 2.6, A: 0.62, H: 0.5, STALK: 0.8, SW: 0.17 };     // arc radius, half its angle, half thickness, stalk length and half width (in r)
+const banPt = (r, t, off) => { const a = t * BAN.A, R = (BAN.R + off) * r; return [Math.sin(a) * R, Math.cos(a) * R - BAN.R * r * 0.94]; };
+const banHalf = t => BAN.H * (1 - 0.72 * Math.pow(Math.abs(t), 2.6));
+function bananaStalk(r) {
+    const a = BAN.A, tx = Math.cos(a), ty = -Math.sin(a), o = banPt(r, 1, BAN.SW), i = banPt(r, 1, -BAN.SW), L = BAN.STALK * r;
+    return [o, [o[0] + tx * L, o[1] + ty * L], [i[0] + tx * L, i[1] + ty * L], i];
+}
+function bananaPoly(r) {
+    const out = [], n = 9;
+    for (let i = 0; i <= n; i++) { const t = -1 + 2 * i / n; out.push(banPt(r, t, banHalf(t))); }
+    const st = bananaStalk(r); out.push(st[1], st[2]);
+    for (let i = n; i >= 0; i--) { const t = -1 + 2 * i / n; out.push(banPt(r, t, -banHalf(t))); }
     return out;
 }
 function fruitPoly(type, r) {
     return type.kind === 'pineapple' ? polyOval(r * PINE_X, r * PINE_Y) : type.kind === 'grapes' ? grapesPoly(r) : type.kind === 'banana' ? bananaPoly(r) : polyOval(r, r);
 }
-const ICON_K = kind => kind === 'pineapple' ? 0.85 : kind === 'banana' ? 0.72 : kind === 'grapes' ? 0.9 : 1;   // so the long ones fit an icon
-const fruitReach = (type, r) => type.kind === 'pineapple' ? r * 2.1 : type.kind === 'banana' ? r * 1.45 : type.kind === 'grapes' ? r * 1.25 : r;
+const ICON_K = kind => kind === 'pineapple' ? 0.85 : kind === 'banana' ? 0.62 : kind === 'grapes' ? 0.9 : 1;   // so the long ones fit an icon
+const fruitReach = (type, r) => type.kind === 'pineapple' ? r * 2.1 : type.kind === 'banana' ? r * 2.2 : type.kind === 'grapes' ? r * 1.25 : r;
 function drawBanana(ctx, t, r) {
     ctx.lineJoin = 'round';
     pathPoly(ctx, bananaPoly(r)); ctx.fillStyle = t.skin; ctx.fill();
     ctx.save(); pathPoly(ctx, bananaPoly(r)); ctx.clip();
-    ctx.strokeStyle = '#f9a825'; ctx.lineWidth = r * 0.07; ctx.beginPath(); ctx.arc(0, -1.76 * r, 1.82 * r, Math.PI / 2 - 0.7, Math.PI / 2 + 0.7); ctx.stroke();   // the ridge
-    ctx.fillStyle = '#6d4c41'; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.arc(Math.sin(sd * 0.78) * 1.93 * r, -1.76 * r + Math.cos(0.78) * 1.93 * r, r * 0.13, 0, 7); ctx.fill(); });   // the brown tips
+    const cy = -BAN.R * r * 0.94;
+    ctx.strokeStyle = '#f9a825'; ctx.lineWidth = r * 0.09; ctx.lineCap = 'round';
+    [0.12, -0.2].forEach(o => { ctx.beginPath(); ctx.arc(0, cy, (BAN.R + o) * r, Math.PI / 2 - BAN.A * 0.8, Math.PI / 2 + BAN.A * 0.8); ctx.stroke(); });   // the ridges
+    ctx.fillStyle = '#5d4037'; const tip = banPt(r, -1, 0); ctx.beginPath(); ctx.arc(tip[0], tip[1], r * 0.2, 0, 7); ctx.fill();                    // the dark tip
+    pathPoly(ctx, bananaStalk(r)); ctx.fillStyle = '#8a7a1e'; ctx.fill();                                                                           // the green stalk
+    const end = bananaStalk(r); ctx.strokeStyle = '#5d4037'; ctx.lineWidth = r * 0.16; ctx.beginPath(); ctx.moveTo(end[1][0], end[1][1]); ctx.lineTo(end[2][0], end[2][1]); ctx.stroke();
     ctx.restore();
 }
-function drawGrapes(ctx, r, lw, inside) {
+function drawGrapes(ctx, r, lw, list = GRAPES) {
     // back to front so the lower grapes sit over the upper ones
-    GRAPES.forEach(([x, y], i) => {
+    list.forEach(([x, y]) => {
         ctx.beginPath(); ctx.arc(x * r, y * r, GRAPE_R * r, 0, 7);
-        ctx.fillStyle = inside ? '#dcedc8' : '#8bc34a'; ctx.fill();
-        ctx.lineWidth = lw * 0.8; ctx.strokeStyle = inside ? '#7cb342' : '#000'; ctx.stroke();
-        if (!inside) { ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse((x - 0.08) * r, (y - 0.1) * r, GRAPE_R * r * 0.32, GRAPE_R * r * 0.2, -0.6, 0, 7); ctx.fill(); }
-        else { ctx.fillStyle = '#9ccc65'; ctx.beginPath(); ctx.arc(x * r, y * r, GRAPE_R * r * 0.22, 0, 7); ctx.fill(); }     // the pip
+        ctx.fillStyle = '#ec407a'; ctx.fill();
+        ctx.lineWidth = lw * 0.8; ctx.strokeStyle = '#000'; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse((x - 0.08) * r, (y - 0.1) * r, GRAPE_R * r * 0.32, GRAPE_R * r * 0.2, -0.6, 0, 7); ctx.fill();
     });
 }
 const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUITS.map(f => f.r));
@@ -490,7 +498,7 @@ function drawWhole(ctx, f, r, lw) {
         ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#5d4037';
         ctx.beginPath(); ctx.moveTo(0, -r * 0.8); ctx.quadraticCurveTo(r * 0.05, -r * 1.15, r * 0.28, -r * 1.25); ctx.stroke();   // the stalk
         ctx.fillStyle = '#558b2f'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 1.02, r * 0.34, r * 0.17, 0.5, 0, 7); ctx.fill(); ctx.stroke();   // a leaf
-        drawGrapes(ctx, r, lw, false);
+        drawGrapes(ctx, r, lw);
         return;
     }
     if (t.kind === 'banana') {
@@ -538,7 +546,7 @@ function drawWhole(ctx, f, r, lw) {
 
 // the cut face of a fruit, the whole of it, centred on the origin (pieces clip it)
 function drawFace(ctx, t, r) {
-    if (t.kind === 'grapes') { drawGrapes(ctx, r, Math.max(1.2, r * 0.06), false); return; }     // a piece of a bunch is whole grapes; the clip halves the ones on the line
+    if (t.kind === 'grapes') { drawGrapes(ctx, r, Math.max(1.2, r * 0.06)); return; }
     if (t.kind === 'banana') { drawBanana(ctx, t, r); return; }     // the peel; drawPiece adds the pale flesh along the cut
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
@@ -636,23 +644,36 @@ function drawHacked(ctx, o, tn) {
 }
 
 // a piece of cut fruit: its polygon filled with the cut face, plus what's left of the crown
+// The edges a fire blade made: burnt black, with a line of ember just inside. Only those edges:
+// the rest of the piece stays fruit.
+function drawChar(ctx, p) {
+    if (!p.char || !p.char.length) return;
+    ctx.save(); pathPoly(ctx, p.poly); ctx.clip(); ctx.lineCap = 'round';
+    [['#b8500e', 0.36, 1], ['#1c1410', 0.24, 0]].forEach(([col, w, add]) => {
+        ctx.strokeStyle = col; ctx.lineWidth = Math.max(3, p.r * w) + add;
+        ctx.beginPath(); p.char.forEach(sg => { ctx.moveTo(sg[0], sg[1]); ctx.lineTo(sg[2], sg[3]); }); ctx.stroke();
+    });
+    ctx.restore();
+}
+// which grapes of the bunch belong to this piece: the ones whose middle is inside it
+const grapesIn = (poly, r, ox, oy) => GRAPES.filter(([x, y]) => pointInPoly(poly, x * r + ox, y * r + oy));
 function drawPiece(ctx, p, lw) {
     lw = Math.min(lw, Math.max(1.2, p.r * 0.2));
+    // melting in a fire: it shrinks as it goes (the drips are drawn by the game), with a glow of heat on it
+    const mk = p.burn ? clamp(p.burn / BURN_TIME, 0, 1) : 0;
+    if (mk) { ctx.save(); const k = 1 - 0.4 * mk; ctx.scale(k, k); }
+    drawPieceBody(ctx, p, lw);
+    if (mk) {
+        if (p.poly && p.type.kind !== 'grapes') { ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, p.poly); ctx.fill(); }
+        ctx.restore();
+    }
+}
+function drawPieceBody(ctx, p, lw) {
     if (p.crown) drawCrown(ctx, p.crown, p.r, lw);
     if (!p.poly) return;
     if (p.type.kind === 'grapes') {
-        // part of a bunch: no outline round it, only its grapes. Those the blade went through
-        // show their pale inside along the cut.
-        ctx.save();
-        pathPoly(ctx, p.poly); ctx.clip();
-        ctx.translate(p.ox, p.oy); drawGrapes(ctx, p.r, lw, false);
-        ctx.beginPath(); GRAPES.forEach(([x, y]) => { ctx.moveTo((x + GRAPE_R) * p.r, y * p.r); ctx.arc(x * p.r, y * p.r, GRAPE_R * p.r, 0, Math.PI * 2); }); ctx.clip();
-        ctx.translate(-p.ox, -p.oy);
-        const ash = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
-        if (ash > 0) { ctx.globalAlpha = ash; ctx.fillStyle = '#5b5752'; pathPoly(ctx, p.poly); ctx.fill(); ctx.globalAlpha = 1; }
-        ctx.lineJoin = 'round';
-        pathPoly(ctx, p.poly); ctx.lineWidth = p.r * 0.14; ctx.strokeStyle = '#e6f2c8'; ctx.stroke();
-        ctx.restore();
+        // part of a bunch: its grapes, whole. No outline round it and no cut face.
+        ctx.save(); ctx.translate(p.ox, p.oy); drawGrapes(ctx, p.r, lw, grapesIn(p.poly, p.r, p.ox, p.oy)); ctx.restore();
         return;
     }
     if (p.type.kind === 'banana') {
@@ -662,11 +683,10 @@ function drawPiece(ctx, p, lw) {
         pathPoly(ctx, p.poly); ctx.clip();
         ctx.translate(p.ox, p.oy); drawBanana(ctx, p.type, p.r); ctx.translate(-p.ox, -p.oy);
         ctx.lineJoin = 'round';
-        pathPoly(ctx, p.poly); ctx.lineWidth = p.r * 0.22; ctx.strokeStyle = p.type.flesh; ctx.stroke();
-        pathPoly(ctx, whole); ctx.lineWidth = p.r * 0.24; ctx.strokeStyle = p.type.skin; ctx.stroke();     // the peel side stays peel
-        const ash = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
-        if (ash > 0) { ctx.globalAlpha = ash; ctx.fillStyle = '#5b5752'; pathPoly(ctx, p.poly); ctx.fill(); }
+        pathPoly(ctx, p.poly); ctx.lineWidth = p.r * 0.36; ctx.strokeStyle = p.type.flesh; ctx.stroke();
+        pathPoly(ctx, whole); ctx.lineWidth = p.r * 0.4; ctx.strokeStyle = p.type.skin; ctx.stroke();     // the peel side stays peel
         ctx.restore();
+        drawChar(ctx, p);
         pathPoly(ctx, p.poly); ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
         return;
     }
@@ -674,13 +694,7 @@ function drawPiece(ctx, p, lw) {
     pathPoly(ctx, p.poly); ctx.clip();
     ctx.translate(p.ox, p.oy); drawFace(ctx, p.type, p.r);
     ctx.restore();
-    const ashA = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
-    if (ashA > 0) {   // charred by the flame blade (darker with every cut) or melting in a fire
-        ctx.save(); ctx.globalAlpha = ashA; ctx.fillStyle = '#5b5752';
-        pathPoly(ctx, p.poly); ctx.fill();
-        if (p.crown) p.crown.forEach(leaf => { pathPoly(ctx, leaf); ctx.fill(); });
-        ctx.restore();
-    }
+    drawChar(ctx, p);
     pathPoly(ctx, p.poly); ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
 }
 
@@ -915,7 +929,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-bowl">Add bowl</button></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -1079,7 +1093,7 @@ export function mountFrogGame(stage, opts = {}) {
             setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
             setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
-            setA(held, 'opacity', pose.held && !pose.noBlades ? 1 : 0);
+            setA(held, 'opacity', pose.held && !pose.noBlades && !pose.stuck ? 1 : 0);
             setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
         const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
@@ -1091,7 +1105,9 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.side, 'opacity', sideOn ? 1 : 0);
         setA(el.all, 'opacity', sideOn ? 0 : 1);
         if (sideOn) {
-            setA(el.side, 'transform', pose.side < 0 ? `translate(1986 ${n2(-pose.sHop)}) scale(-1 1)` : `translate(0 ${n2(-pose.sHop)})`);
+            // (breathing fire: the drawing is narrowed in steps, the more the frog is turned toward us)
+            const turnX = pose.sTurn && pose.sTurn < 1 ? ` translate(993 0) scale(${n2(pose.sTurn)} 1) translate(-993 0)` : '';
+            setA(el.side, 'transform', (pose.side < 0 ? `translate(1986 ${n2(-pose.sHop)}) scale(-1 1)` : `translate(0 ${n2(-pose.sHop)})`) + turnX);
             // three-quarter (45 degrees) for cuts close to the frog, full profile (90) for the far ones
             // The body here is drawn side-on, so the head is always the profile one (one eye). A two-eyed
             // head on a side-on body reads as a mistake; close cuts are told apart by the narrower
@@ -1258,7 +1274,14 @@ export function mountFrogGame(stage, opts = {}) {
     // The fruit salad: everything that gets cut, grilled or blown apart lands in bowls stacked
     // around the frog. A bowl takes BOWL_HOLDS pieces to fill; there are BOWLS of them. Filling
     // them all is cosmetic, and meant to be something only the very best runs manage.
-    const BOWLS = 50, BOWL_HOLDS = 60, BOWL_SHOWN = 14;
+    const BOWLS = 56, BOWL_HOLDS = 60, BOWL_SHOWN = 14;
+    // Two pyramids, one on each side of the post. On a wide screen each is 7 bowls at the bottom up
+    // to 1 at the top (28 a side); on an upright one 4 up to 1 (10 a side), so the bowls never
+    // crowd the field. The salad itself is counted the same on every screen.
+    const bowlBase = () => W < H ? 4 : 7;
+    const bowlSlots = n => { const out = []; for (let r = 0; r < n; r++) for (let cI = 0; cI < n - r; cI++) out.push([cI + r * 0.5, r]); return out; };
+    const bowlsShown = () => Math.min(Math.ceil(salad.length / BOWL_HOLDS), bowlBase() * (bowlBase() + 1));
+    const mixHex = (a, b, k) => '#' + [1, 3, 5].map(i => Math.round(lerp(parseInt(a.slice(i, i + 2), 16), parseInt(b.slice(i, i + 2), 16), k)).toString(16).padStart(2, '0')).join('');
     let salad = [];                                            // { c: flesh colour, k: skin colour, g: grilled }
     function addToSalad(type, grilled) {
         if (salad.length < BOWLS * BOWL_HOLDS) salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() });
@@ -1277,20 +1300,18 @@ export function mountFrogGame(stage, opts = {}) {
         { body: '#f3efe4', mark: '#b5442c', rim: '#b5442c', foot: '#d8d2c4', pattern: 'band' },
         { body: '#2f4f4f', mark: '#cfe3da', rim: '#cfe3da', foot: '#243b3b', pattern: 'stripes' }
     ];
-    // 25 a side: rows of 7, 6, 5, 4 and 3, each row standing on the one below
-    const BOWL_SLOTS = [];
-    for (let r = 0; r < 5; r++) for (let cI = 0; cI < 7 - r; cI++) BOWL_SLOTS.push([cI + r * 0.5, r]);
     // where bowl b stands, and how big bowls are
     function bowlGeo() {
-        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / 7.5, 20, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
-        return { bw, bh, at: b => { const [col, row] = BOWL_SLOTS[Math.floor(b / 2)], sd = b % 2 ? 1 : -1; return [W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), base - row * bh * 0.86]; } };
+        const n = bowlBase(), slots = bowlSlots(n);
+        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / (n + 0.5), 20, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
+        return { bw, bh, row: b => slots[Math.floor(b / 2)][1], col: b => slots[Math.floor(b / 2)][0], at: b => { const [col, row] = slots[Math.floor(b / 2)], sd = b % 2 ? 1 : -1; return [W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), base - row * bh * 0.98]; } };
     }
     // The bowls are painted on their own canvas and only repainted when the salad changes (or
     // something in it is still dropping in); every frame just stamps that picture, and draws the steam.
     const saladCv = document.createElement('canvas'), saladCtx = saladCv.getContext('2d');
     let saladKey = '';
     function drawSalad(lw, tn) {
-        const n = Math.ceil(salad.length / BOWL_HOLDS);
+        const n = bowlsShown();
         if (!n) { saladKey = ''; return; }
         const last = salad[salad.length - 1], moving = tn - last.t < 300 || tn - salad[(n - 1) * BOWL_HOLDS].t < 300;
         const key = salad.length + '|' + W + '|' + H + '|' + dpr + '|' + (dbg ? 1 : 0);
@@ -1323,15 +1344,18 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     function renderSalad(K, lw, tn) {
-        const n = Math.ceil(salad.length / BOWL_HOLDS);
-        const { bw, bh, at } = bowlGeo();
-        // back to front: the top row is drawn after the row it stands on
-        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => BOWL_SLOTS[Math.floor(a / 2)][1] - BOWL_SLOTS[Math.floor(b / 2)][1]);
+        const n = bowlsShown();
+        const { bw, bh, at, row, col } = bowlGeo();
+        // a bowl with another standing on it shows only a low heap, so the bowl above is seen whole
+        const under = b => { for (let o = 0; o < n; o++) if (o % 2 === b % 2 && row(o) === row(b) + 1 && Math.abs(col(o) - col(b)) < 0.6) return true; return false; };
+        // back to front: the higher a bowl stands the further back it is, so the top row is
+        // painted first and each row below it sits in front
+        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => row(b) - row(a));
         order.forEach(b => {
             const [x, y] = at(b);
             const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
             // the heap shows up to BOWL_SHOWN pieces, more of them as the bowl fills, picked across what went in
-            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * BOWL_SHOWN));
+            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * (under(b) ? 5 : BOWL_SHOWN)));
             const chunks = Array.from({ length: shown }, (_, i) => mine[Math.min(mine.length - 1, Math.floor(i * mine.length / shown))]);
             const pop = clamp((tn - mine[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
             K.save(); K.translate(x, y); K.scale(sc, sc);
@@ -1342,10 +1366,16 @@ export function mountFrogGame(stage, opts = {}) {
                 const land = i === chunks.length - 1 ? clamp((tn - mine[mine.length - 1].t) / 160, 0, 1) : 1;      // the newest piece drops in
                 K.save(); K.translate(cx, cy - (1 - land) * bh * 0.8); K.rotate(i * 1.3);
                 K.beginPath(); K.moveTo(-r, r * 0.5); K.quadraticCurveTo(0, -r * 1.5, r, r * 0.5); K.closePath();     // a wedge
-                K.fillStyle = ch.g ? '#6d5a48' : ch.c; K.fill();
+                // grilled fruit is still fruit: its own colour turned golden and glossy, with two
+                // caramel grill lines across it. Never grey.
+                K.fillStyle = ch.g ? mixHex(ch.c, '#e8962e', 0.4) : ch.c; K.fill();
                 K.lineWidth = Math.max(1, lw * 0.5); K.strokeStyle = C.ink; K.stroke();
-                K.beginPath(); K.moveTo(-r, r * 0.5); K.lineTo(r, r * 0.5); K.lineWidth = Math.max(1.5, r * 0.3); K.strokeStyle = ch.g ? '#2b2420' : ch.k; K.stroke();   // its skin
-                if (ch.g) { K.strokeStyle = '#2b2420'; K.lineWidth = 1; [-0.3, 0.2].forEach(o => { K.beginPath(); K.moveTo(r * o - r * 0.2, r * 0.2); K.lineTo(r * o + r * 0.2, -r * 0.4); K.stroke(); }); }   // grill marks
+                K.beginPath(); K.moveTo(-r, r * 0.5); K.lineTo(r, r * 0.5); K.lineWidth = Math.max(1.5, r * 0.3); K.strokeStyle = ch.g ? mixHex(ch.k, '#8a4a17', 0.45) : ch.k; K.stroke();   // its skin
+                if (ch.g) {
+                    K.lineCap = 'round'; K.strokeStyle = '#8a4a17'; K.lineWidth = Math.max(1.2, r * 0.17);
+                    [-0.32, 0.18].forEach(o => { K.beginPath(); K.moveTo(r * o - r * 0.18, r * 0.2); K.lineTo(r * o + r * 0.2, -r * 0.42); K.stroke(); });   // grill lines
+                    K.strokeStyle = 'rgba(255,255,255,.6)'; K.lineWidth = Math.max(1, r * 0.1); K.beginPath(); K.moveTo(-r * 0.5, 0); K.lineTo(-r * 0.3, -r * 0.35); K.stroke();   // the glaze catching the light
+                }
                 K.restore();
             });
             // the bowl in front of it: Japanese ceramics, each a different glaze and pattern
@@ -1623,6 +1653,7 @@ export function mountFrogGame(stage, opts = {}) {
     // with a drawn crescent for the two frames in between; that pose holds while the blade
     // travels and a little longer; then the frog snaps back to ready.
     const DIRS = 8, SMEAR = 0.05, HOLD = 0.16, SETTLE = 0.07;
+    const JUMP_UP = 45;           // how far a jump lifts the frog (drawing units, front view; the profile uses 4x): a small, held lift, not an arc
     let poseAcc = 0;
     let swing = null;             // { a: heading (rad, snapped to 8), side: 'L'|'R', t, live }
     let windUp = false;
@@ -1653,12 +1684,12 @@ export function mountFrogGame(stage, opts = {}) {
             // A cut straight overhead is made with both katanas, facing us: the arms thrown up,
             // the blades crossed above the head for the instant of the cut, then swept apart and
             // held, the frog off its feet for a moment.
-            const smear = s.t < SMEAR, air = Math.sin(clamp(s.t / 0.34, 0, 1) * Math.PI);
+            const smear = s.t < SMEAR, air = s.live || s.t < 0.3 ? 1 : 0;      // in the air is a state: up at once, held, down at once
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
             pose.lK = smear ? 28 : -58; pose.rK = smear ? -28 : 58;
-            pose.bob -= 168 * air; pose.jump = 168 * U * air;            // the jump: the legs leave the post and tuck
+            pose.bob -= JUMP_UP * air; pose.jump = JUMP_UP * U * air;            // the jump: the legs leave the post and tuck
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
             return;
@@ -1702,15 +1733,12 @@ export function mountFrogGame(stage, opts = {}) {
                 // low, then the frog drives up through the cut, off its feet, and lands.
                 const wind = 0.07, air = 0.3;
                 if (s.t < wind) { pose.sLegs = 'down'; pose.sDrop = 120; pose.sRot = 26; aimTh = 60; }
-                else {
-                    const u = clamp((s.t - wind) / air, 0, 1);
-                    pose.sHop = Math.sin(u * Math.PI) * 900;                     // the hop
-                    pose.sRot = lerp(-4, pose.sRot, Math.min(1, u * 3));
-                    if (u >= 1 && s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
-                }
+                else if (s.t < wind + air) pose.sHop = JUMP_UP * 4;             // in the air: one held drawing, no arc
+                else if (s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
+                else pose.sLegs = 'level';                                       // then it stands, legs and body together
             }
             // a cut above its head: a small jump, legs together, as long as the blade is up there
-            if (s.high && cy >= -0.3) { pose.sHop = Math.max(pose.sHop, Math.sin(clamp(s.t / 0.32, 0, 1) * Math.PI) * 690); if (s.t < 0.32) { pose.sLegs = 'up'; pose.sDrop = 0; } }
+            if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
             pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
@@ -1852,6 +1880,8 @@ export function mountFrogGame(stage, opts = {}) {
         const body = poly && sh(poly), leaves = crown && crown.length ? crown.map(sh) : null;
         let R = 0;
         (body || []).concat(...(leaves || [])).forEach(v => { R = Math.max(R, Math.hypot(v[0], v[1])); });
+        if (f.type.kind === 'grapes') R += GRAPE_R * f.r;                       // its grapes reach past the line it was parted on
+        if (o && o.char) o.char = o.char.map(sg => [sg[0] - cen[0], sg[1] - cen[1], sg[2] - cen[0], sg[3] - cen[1]]);
         return Object.assign({
             type: f.type, r: f.r, hacked: f.hacked, src: f.src, ds: f.ds || 1, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
             x: f.x + cen[0] * c - cen[1] * sn, y: f.y + cen[0] * sn + cen[1] * c, rot: f.rot, g: G(), fam: f.fam, t: 0,
@@ -1876,21 +1906,36 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain; slices++;
         val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
-        addToSalad(f.type, f.ash > 0);
+        addToSalad(f.type, (bladeFx.fire && fxOn()) || !!(f.char && f.char.length));
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
-        // the flame blade chars what it cuts: every cut with it leaves the pieces ashier
-        const ash = (f.ash || 0) + (bladeFx.fire && fxOn() ? 1 : 0);
+        // The flame blade chars what it cuts: the edge it made is left burnt black, and stays so
+        // on whatever the piece is cut into later. Nothing else about the piece changes.
+        const fireCut = bladeFx.fire && fxOn(), nLen = Math.hypot(hit.nx, hit.ny) || 1;
+        const sideOf = (x, y) => ((x - hit.px) * hit.nx + (y - hit.py) * hit.ny) / nLen;
+        const charFor = (body, sgn) => {
+            const out = [];
+            (f.char || []).forEach(sg => {
+                let [x1, y1, x2, y2] = sg; const a = sideOf(x1, y1) * sgn, b = sideOf(x2, y2) * sgn;
+                if (a < 0 && b < 0) return;
+                if (a < 0) { const t = a / (a - b); x1 += (x2 - x1) * t; y1 += (y2 - y1) * t; }
+                else if (b < 0) { const t = a / (a - b); x2 = x1 + (x2 - x1) * t; y2 = y1 + (y2 - y1) * t; }
+                out.push([x1, y1, x2, y2]);
+            });
+            if (fireCut) body.forEach((c, i) => { const d = body[(i + 1) % body.length]; if (Math.abs(sideOf(c[0], c[1])) < 0.05 && Math.abs(sideOf(d[0], d[1])) < 0.05) out.push([c[0], c[1], d[0], d[1]]); });
+            return out;
+        };
         const nwx = -dy, nwy = dx, whole = polyArea(bodyA) + polyArea(bodyB);
         const drag = Math.min(bladeSpeed, H * 3) * 0.1, live = f.fam.cuts < MAX_CUTS;
         [[bodyA, leavesA, 1], [bodyB, leavesB, -1]].forEach(([body, leaves, side]) => {
             const share = polyArea(body) / whole, kick = H * 0.11 * clamp(0.5 / Math.max(share, 0.12), 0.7, 2.2);
+            if (f.type.kind === 'grapes' && !grapesIn(body, f.r, f.ox || 0, f.oy || 0).length) return;     // a part of the bunch with no grape in it is nothing
             pieces.push(makePiece(f, body, leaves, {
                 vx: f.vx * 0.6 + nwx * kick * side + dx * drag, vy: f.vy * 0.5 + nwy * kick * side + dy * drag - H * 0.12,
-                spin: f.spin * 0.5 + side * rand(2, 5), live, noCut: id, cutAt: now, ash
+                spin: f.spin * 0.5 + side * rand(2, 5), live, noCut: id, cutAt: now, char: charFor(body, side)
             }));
         });
         for (let i = 0; i < 14; i++) {
@@ -2108,19 +2153,17 @@ export function mountFrogGame(stage, opts = {}) {
             hud();
             return;
         }
-        // what's left: a puddle of molten fruit dripping down
-        bit(f.x, f.y + r * 0.3, (ctx, lw, b) => {
-            const k = clamp(b.t / 0.5, 0, 1);
-            ctx.rotate(-b.rot);
-            ctx.fillStyle = skin; ctx.beginPath(); ctx.ellipse(0, 0, r * (1.3 + 0.3 * k), r * 0.42, 0, 0, 7); ctx.fill();
-            ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, -r * 0.05, r * (1.05 + 0.3 * k), r * 0.28, 0, 0, 7); ctx.fill();
-            ctx.fillStyle = skin;
-            [-0.7, -0.1, 0.55].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(r * o, r * (0.35 + 0.5 * k * (1 + i % 2)), r * 0.13, r * (0.18 + 0.4 * k), 0, 0, 7); ctx.fill(); });
-        }, { vx: f.vx * 0.2, vy: 0, spin: 0, rot: 0, life: 1.1, g: G() * 0.6 });
+        // melted right through: it bursts into juice, and there is nothing left to cut
+        const juice = f.type.juice;
+        for (let k = 0; k < 30; k++) { const a = rand(0, 6.28), v = H * rand(0.12, 0.6); drops.push({ x: f.x + rand(-r, r) * 0.3, y: f.y + rand(-r, r) * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.18, c: juice, t: 0, s: rand(3, 7) }); }
+        for (let k = 0; k < 5; k++) {
+            const a = rand(0, 6.28), v = H * rand(0.2, 0.5), br = Math.max(4, r * rand(0.16, 0.3));
+            bit(f.x, f.y, ctx => { ctx.fillStyle = juice; ctx.beginPath(); ctx.ellipse(0, 0, br, br * 0.72, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.arc(-br * 0.3, -br * 0.25, br * 0.22, 0, 7); ctx.fill(); },
+                { vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.2, life: 0.9 });
+        }
         floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: true });
-        splash(f.x, f.y, f.type.juice, 16, 5);
-        splash(f.x, f.y, '#424242', 8, 4);
-        for (let k = 0; k < 18; k++) { const a = rand(0, 6.28), v = H * rand(0.3, 0.8); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.25, 0.45), s: rand(6, 12) }); }
+        splash(f.x, f.y, juice, 24, 6);
+        for (let k = 0; k < 8; k++) { const a = rand(0, 6.28), v = H * rand(0.3, 0.8); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.2, 0.35), s: rand(5, 9) }); }
         hud();
     }
     // where the mouth is on screen, for whichever drawing of the frog is showing
@@ -2129,13 +2172,14 @@ export function mountFrogGame(stage, opts = {}) {
             // the profile drawing: its mouth, turned with the top half about the hip, mirrored when it faces left
             const a = pose.sRot * Math.PI / 180, px = 1490 - 1000, py = 150 - 900;
             let x = 1000 + px * Math.cos(a) - py * Math.sin(a), y = 900 + px * Math.sin(a) + py * Math.cos(a) + pose.sDrop;
+            if (pose.sTurn && pose.sTurn < 1) x = 993 + (x - 993) * pose.sTurn;
             if (pose.side < 0) x = 1986 - x;
             return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * y / 1876 - pose.sHop * fbox.h / 1876 };
         }
         return frogPoint(993, MOUTH_Y);
     }
     // aimed at its own head: the frog turns to us and breathes straight out of the screen
-    const fireAtUs = () => { if (!aim) return false; const h = frogPoint(993, 420); return Math.hypot(aim.x - h.x, aim.y - h.y) < fbox.w * 0.42; };
+    const fireAtUs = () => { if (!aim) return false; const h = frogPoint(993, 420); return Math.hypot(aim.x - h.x, aim.y - h.y) < fbox.w * 0.17; };     // only when aimed right at its face
     function stepFire(dt) {
         // the breath is a wide cone from the mouth toward the cursor (no click needed);
         // a fruit that stays in it for BURN_TIME seconds in a row explodes
@@ -2158,7 +2202,8 @@ export function mountFrogGame(stage, opts = {}) {
                     continue;
                 }
                 const sp = fireSpread(), a = aimA + rand(-sp, sp) * 0.9, v = H * rand(1.5, 2.3);
-                flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) });
+                const toUs = pose.sTurn && pose.sTurn < 1 ? (1 - pose.sTurn) / 0.42 : 0;      // turned toward us: the flame comes at the camera, so it swells
+                flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14), grow: toUs ? 5 * toUs : undefined });
             }
         }
         flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; const k = Math.pow(0.985, dt * 60); p.vx *= k; p.vy *= k; });
@@ -2218,9 +2263,9 @@ export function mountFrogGame(stage, opts = {}) {
             // A clock-fed breath hacks the fruit it touches instead of melting it. Fruit that was
             // already melting before the clock burned keeps melting: burning and hacking don't mix.
             if (breath && fireSlow && !f.hacked && !f.burn) { f.hacked = true; f.hackT = 0; f.hackFor = hackFor(); snd('hack'); }
-            const inside = (breath && !f.hacked) || inBlade(f.x, f.y, f.r);
+            const br = breath && !f.hacked, inside = br || inBlade(f.x, f.y, f.r);
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * BURN_COOL); continue; }   // out of the flame: cools fast
-            f.burn = (f.burn || 0) + dt;
+            f.burn = (f.burn || 0) + dt * (br ? 1 : BLADE_HEAT);            // the breath melts it; a fire blade's trace only warms it
             if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
             if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
             if (f.burn >= burnTime()) { fruits.splice(i, 1); burnFruit(f); }
@@ -2229,9 +2274,10 @@ export function mountFrogGame(stage, opts = {}) {
         for (let i = pieces.length - 1; i >= 0; i--) {
             const q = pieces[i];
             if (!q.poly) continue;
-            const inside = (on && inFlame(q.x, q.y, q.R * 0.7)) || inBlade(q.x, q.y, q.R * 0.7);
+            const br = on && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);
             if (!inside) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
-            q.burn = (q.burn || 0) + dt;
+            q.burn = (q.burn || 0) + dt * (br ? 1 : BLADE_HEAT);
+            if (Math.random() < 0.35) drops.push({ x: q.x + rand(-q.R, q.R) * 0.5, y: q.y + q.R * 0.4, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: q.type.juice, t: 0, s: rand(2, 4) });
             if (q.burn >= burnTime()) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts)); }
         }
     }
@@ -2920,7 +2966,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     const OVER_WAIT = 2;
-    let overT = 0, splashed = false, splashT = 0, dropped = [];
+    let overT = 0, splashed = false, splashT = 0, dropped = [], breathT = 0;
     function stepFall(dt) {
         dropped.forEach(k => {
             if (k.stuck) { k.stuck += dt; return; }
@@ -3177,7 +3223,28 @@ export function mountFrogGame(stage, opts = {}) {
                 window.addEventListener('pointermove', at); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
             });
         });
-        // a bowl's worth of random salad, some of it grilled, to see how the bowls stack up
+        // a bowl's worth of random salad, some of it grilled, to see how the bowls stack up:
+        // a plain white bowl of fruit with a glowing plus over it
+        (function bowlButton() {
+            const c = $('.fg-debug-bowl'), k = Math.min(window.devicePixelRatio || 1, 2) * 2, S = 44;
+            c.width = S * k; c.height = S * k;
+            const x = c.getContext('2d'); x.scale(k, k); x.translate(S / 2, S / 2 + 4);
+            const bw = 30, bh = 13; x.lineJoin = 'round'; x.strokeStyle = '#000'; x.lineWidth = 1.6;
+            [['#ef5350', '#2e7d32'], ['#ffb74d', '#fb8c00'], ['#ec407a', '#d81b60'], ['#9ccc65', '#8d6e63'], ['#fff176', '#f9a825'], ['#ffca28', '#7b1fa2'], ['#fff3c4', '#d32f2f']].forEach(([col, skin], i) => {
+                const row = i < 4 ? 0 : 1, n = row ? 3 : 4, col0 = row ? i - 4 : i;
+                x.save(); x.translate((col0 - (n - 1) / 2) * 6.4, -2 - row * 5); x.rotate(i * 1.3);
+                x.beginPath(); x.moveTo(-4.4, 2.2); x.quadraticCurveTo(0, -6.6, 4.4, 2.2); x.closePath(); x.fillStyle = col; x.fill(); x.lineWidth = 1; x.stroke();
+                x.beginPath(); x.moveTo(-4.4, 2.2); x.lineTo(4.4, 2.2); x.lineWidth = 1.6; x.strokeStyle = skin; x.stroke(); x.strokeStyle = '#000';
+                x.restore();
+            });
+            x.lineWidth = 1.6; x.fillStyle = '#d9d4c7'; x.beginPath(); x.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.22); x.fill(); x.stroke();
+            x.beginPath(); x.moveTo(-bw / 2, 0); x.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); x.lineTo(bw * 0.16, bh * 0.86); x.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); x.closePath();
+            x.fillStyle = '#fafafa'; x.fill(); x.stroke();
+            // the plus
+            x.lineCap = 'round'; x.shadowColor = '#b2ff59'; x.shadowBlur = 8;
+            [['#000', 6], ['#b2ff59', 3.4]].forEach(([col, w]) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); x.moveTo(-6, -9); x.lineTo(6, -9); x.moveTo(0, -15); x.lineTo(0, -3); x.stroke(); });
+            c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); c.click(); } });
+        })();
         $('.fg-debug-bowl').addEventListener('click', () => {
             const grilled = Math.random() < 0.35;
             for (let k = 0; k < BOWL_HOLDS; k++) addToSalad(pick(FRUIT_BAG), grilled ? Math.random() < 0.8 : Math.random() < 0.1);
@@ -3212,7 +3279,9 @@ export function mountFrogGame(stage, opts = {}) {
             pose.bob = Math.sin(idleT * 3) * 1.5;
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
-            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0;
+            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0; pose.sTurn = 1;
+            // breathing fire, the katanas are stuck in the post at its sides, out of the way
+            pose.stuck = fireLeft > 0 && phase === 'play'; breathT = pose.stuck ? breathT + dt : 0;
             // at rest it half-turns toward the cursor
             pose.face = aim && phase === 'play' ? clamp((aim.x - W / 2) / (W * 0.3), -1, 1) * 0.18 : 0;   // a slight turn only: more than this pulls the front drawing apart
             stepSwing(dt);
@@ -3228,9 +3297,14 @@ export function mountFrogGame(stage, opts = {}) {
                 const m0 = frogPoint(993, 300), dx = aim.x - W / 2, dy = aim.y - m0.y, d = Math.hypot(dx, dy) || 1;
                 const cy = dy / d, th = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
                 pose.side = dx < 0 ? -1 : 1; pose.sQ = Math.abs(dx) < fbox.w * 0.5; pose.sHop = 0;
+                // How far it has turned from facing us, in five held states: aimed just beside the
+                // frog it is still nearly facing us (the drawing at its narrowest), and each step out
+                // it turns further, to full profile for a flame aimed well to the side.
+                const turned = Math.min(4, Math.floor(Math.abs(dx) / (fbox.w * 0.3)));
+                pose.sTurn = [0.58, 0.68, 0.79, 0.9, 1][turned];
                 pose.sLegs = cy > 0.5 ? 'down' : 'level'; pose.sDrop = cy > 0.5 ? 100 : 0;
-                pose.sRot = clamp(th * 0.55, -40, 40) * (pose.sQ ? 0.7 : 1) + Math.sin(idleT * 30) * 1.2;      // the head points along the flame, shaking with it
-                // both blades held low and behind, well clear of the face and the flame
+                pose.sRot = clamp(th * 0.55, -40, 40) * (0.6 + 0.1 * turned) + Math.sin(idleT * 30) * 1.2;      // the head points along the flame, shaking with it
+                // empty hands (the katanas are in the post): fists back, braced
                 pose.sF = { rot: 28 - pose.sRot, k: 208 - pose.sRot, stretch: 1.1 };
                 pose.sB = { rot: 52 - pose.sRot, k: 232 - pose.sRot, stretch: 1.1 };
                 }
@@ -3608,18 +3682,18 @@ export function mountFrogGame(stage, opts = {}) {
             if (drunk) drawEchoes(f, lw, drunk, tn);
             ctx.save(); ctx.translate(f.x, f.y); if (f.ds && f.ds !== 1) ctx.scale(f.ds, f.ds);
             const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
-            if (mk) {   // melting: it sags, spreads and glows, drips hang off the bottom
-                ctx.translate(0, f.r * 0.45 * mk); ctx.scale(1 + 0.45 * mk, 1 - 0.5 * mk);
-                ctx.fillStyle = f.type.skin;
-                [-0.55, 0.05, 0.6].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(f.r * o, f.r * (0.8 + 0.35 * mk * (1 + i % 2)), f.r * 0.16, f.r * (0.2 + 0.55 * mk), 0, 0, 7); ctx.fill(); });
+            if (mk) {   // melting: it shrinks and sags, juice running off the bottom
+                const k = 1 - 0.4 * mk;
+                ctx.translate(0, f.r * 0.12 * mk); ctx.scale(k * (1 + 0.12 * mk), k * (1 - 0.1 * mk));
+                ctx.fillStyle = f.type.juice;
+                [-0.5, 0.05, 0.55].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(f.r * o, f.r * (0.85 + 0.45 * mk * (1 + i % 2)), f.r * 0.13, f.r * (0.18 + 0.6 * mk), 0, 0, 7); ctx.fill(); });
             }
             ctx.rotate(f.rot); if (f.hacked) drawHacked(ctx, f, tn); else stampWhole(f, lw);
             if (mk) {
-                // melting, by any fire: it turns ash grey as it goes, with a glow of heat over it
+                // a glow of heat over it (it keeps its colour: melting is juice, not ash)
                 if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
                 const odd = f.type.kind === 'grapes' || f.type.kind === 'banana';     // not round: grey its own outline
                 const shape = () => { if (odd) pathPoly(ctx, f.poly); else { ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); } };
-                ctx.globalAlpha = mk * 0.75; ctx.fillStyle = '#5b5752'; shape(); ctx.fill();
                 ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; shape(); ctx.fill();
             }
             ctx.restore();
@@ -3750,7 +3824,9 @@ export function mountFrogGame(stage, opts = {}) {
             [0.5, 0.9].forEach(m => { ctx.beginPath(); ctx.ellipse(W / 2, sea, fbox.w * (0.4 + k * m), fbox.w * 0.05 * (1 + k), 0, 0, 7); ctx.stroke(); });
             ctx.restore();
         }
-        dropped.forEach(k => {   // a katana, point down: falling, then quivering in the wood
+        // breathing fire: both katanas stand in the top of the post, one at each side of the frog
+        const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
+        dropped.concat(stuckNow).forEach(k => {   // a katana, point down: falling, then quivering in the wood
             const L = fbox.w * 0.42, wob = k.stuck ? Math.sin(k.stuck * 40) * 0.12 * Math.exp(-k.stuck * 6) : 0;
             ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.rot + wob);
             ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.8;

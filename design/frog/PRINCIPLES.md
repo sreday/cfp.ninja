@@ -83,7 +83,8 @@ These are fixed. Tuning serves them; the trace review measures against them.
 4. **Skill keeps going.** Good players reach two minutes, using power-ups well reaches
    three, and that is very hard. Four minutes and beyond is a god's strike. No run is
    ever cut off: there is no maximum.
-5. **The bowls are a trophy.** Fifty bowls of salad, 60 pieces each. Filling them all is
+5. **The bowls are a trophy.** Fifty-six bowls of salad, 60 pieces each (two pyramids of 28;
+   an upright screen shows two pyramids of 10 so the field stays clear). Filling them all is
    cosmetic and should be something only the very best runs do.
 
 6. **The same play area on every screen.** Everything in the game is sized from the area

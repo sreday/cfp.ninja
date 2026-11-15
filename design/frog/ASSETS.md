@@ -32,13 +32,18 @@ Status key: `placeholder` = drawn in code, needs art. `none` = doesn't exist yet
 ## 2. Fruit
 
 Eight kinds, sized against the watermelon (as big as the frog's head), each 20% smaller than
-the one before: watermelon, pineapple, grapes, banana, orange, apple, kiwi, plum.
+the one before: watermelon, pineapple, grapes, orange, apple, banana, kiwi, plum.
 
-Two are not round and cut differently. Grapes are a bunch of about ten berries: a cut parts
-the bunch along the blade, whole berries go with their side and only the berries on the line
-are halved (pale inside showing), so there is no single cut face and no outline round a
-piece. A banana is a crescent: across it gives two shorter bananas with flesh at the cut end,
-along it two long halves with flesh down the cut side; the peel side always stays peel.
+Two are not round and cut differently. Grapes (pink) are a bunch of about ten berries, and a
+berry is never cut: a slash parts the bunch the way a chocolate bar breaks along its squares,
+each grape going whole with the side its middle is on. A banana is a fat crescent with a stalk
+at one end; it sits between apple and kiwi because it is thin (long, but hard to cut). Across
+it gives two shorter bananas with flesh at the cut end, along it two long halves.
+
+Fire: the breath melts fruit (it shrinks and drips juice, keeping its colour) and then it
+bursts into juice. A fire blade cuts as usual and leaves the cut edge burnt black with an
+ember line; it melts fruit only if the fruit lingers in its trail. Nothing turns grey. In the
+bowls, grilled fruit is golden and glossy with two caramel grill lines.
 
 The engine cuts fruit along the blade's real line, at any angle, up to 10 times, so pieces
 can't be pre-drawn one by one. What it needs per fruit is the set below; it clips the cut
