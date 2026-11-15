@@ -59,8 +59,8 @@ func SubmitGameTraceHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		input := "mouse"
-		if body.Input == "touch" {
-			input = "touch"
+		if body.Input == "touch" || body.Input == "debug" {
+			input = body.Input
 		}
 		row := models.GameTrace{Score: body.Score, DurationMs: body.DurationMs, Input: input, Data: string(body.Events)}
 		if err := cfg.DB.Create(&row).Error; err != nil {

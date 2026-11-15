@@ -821,10 +821,19 @@ export function mountFrogGame(stage, opts = {}) {
     const TRACE_MAX = 1500;
     let trace = [], traceT0 = 0, traceInput = 'mouse', traceSec = 0, traceFrames = 0;
     function log(what, ...a) {
-        if (dbg || phase === 'idle' || trace.length >= TRACE_MAX) return;
+        if (phase === 'idle' || trace.length >= TRACE_MAX) return;
         trace.push([Math.round(performance.now() - traceT0), what, ...a]);
     }
     const r2 = v => Math.round(v * 100) / 100;
+    // What each source of time was worth in this run, for balancing: uses, and seconds gained
+    // (for the clock, the seconds the countdown stood still count too).
+    // base = plain slashing; fire, sake, clock, fireworks = while that power-up did the work;
+    // sword = the enchanted sword after a clock; crate = the crate's reward and its fruit.
+    let worth = {};
+    const val = (src, sec) => { const w = worth[src] || (worth[src] = [0, 0]); w[1] += sec; };
+    const use = src => { const w = worth[src] || (worth[src] = [0, 0]); w[0]++; };
+    let srcHint = '';
+    function logWorth() { Object.keys(worth).forEach(k => log('val', k, worth[k][0], r2(worth[k][1]))); }
     // once a second: the state of the run, and anything that should never happen
     function traceTick(dt) {
         traceFrames++; traceSec += dt;
@@ -1101,6 +1110,7 @@ export function mountFrogGame(stage, opts = {}) {
         // breaking a crate is worth an apple
         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult;
         timeLeft += gain; slices++; lastSlice = performance.now();
+        use('crate'); val('crate', gain);
         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
         for (let i = 0; i < CRATE_FRUIT; i++) {
             const type = pick(FRUIT_BAG), g = G();
@@ -1113,7 +1123,7 @@ export function mountFrogGame(stage, opts = {}) {
             const v = cone ? Math.sqrt(2 * g * rand(0.25, 0.85) * H) : Math.sqrt(2 * g * rand(0.3, 0.6) * H) * CRATE_BURST;
             fruits.push(newFruit(type, base * type.r, c.x + rand(-1, 1) * c.hw * 0.5, c.y + rand(-1, 1) * c.hw * 0.3,
                 Math.cos(a) * v * 0.9 + c.vx * 0.3, Math.sin(a) * v, g,
-                { entered: true, noCut: cut ? cut.id : 0, cutAt: performance.now() }));   // the stroke that opened the crate can't cut what's inside
+                { entered: true, src: 'crate', noCut: cut ? cut.id : 0, cutAt: performance.now() }));   // the stroke that opened the crate can't cut what's inside
         }
         floats.push({ x: c.x, y: c.y - c.hw, text: 'Fruit crate! +' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
         hud();
@@ -1158,7 +1168,7 @@ export function mountFrogGame(stage, opts = {}) {
         let R = 0;
         (body || []).concat(...(leaves || [])).forEach(v => { R = Math.max(R, Math.hypot(v[0], v[1])); });
         return Object.assign({
-            type: f.type, r: f.r, hacked: f.hacked, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
+            type: f.type, r: f.r, hacked: f.hacked, src: f.src, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
             x: f.x + cen[0] * c - cen[1] * sn, y: f.y + cen[0] * sn + cen[1] * c, rot: f.rot, g: G(), fam: f.fam, t: 0,
             area: poly ? polyArea(poly) : 0
         }, o);
@@ -1178,6 +1188,7 @@ export function mountFrogGame(stage, opts = {}) {
         f.fam.cuts++;
         lastSlice = now;
         timeLeft += gain; slices++;
+        val(cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
@@ -1340,7 +1351,7 @@ export function mountFrogGame(stage, opts = {}) {
     function breakPickup(b, ang) {
         log('wreck', b.kind, sakeLeft > 0 ? 1 : 0);
         if (b.kind === 'fireworks') {   // slashing is how you set these off: no penalty
-            fwLeft = FW_SECONDS; fwT = 0;
+            fwLeft = FW_SECONDS; fwT = 0; use('fireworks');
             floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks!', t: 0, hot: true });
             explode(b.x, b.y, Math.min(W, H) * 0.12);
             return;
@@ -1370,6 +1381,7 @@ export function mountFrogGame(stage, opts = {}) {
     function burnFruit(f, mult = 1) {
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult, 0.01);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
+        val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
         log('burn', f.type.kind, r2(gain));
         style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);   // and half a style point
         // what's left: a puddle of molten fruit dripping down
@@ -1406,7 +1418,7 @@ export function mountFrogGame(stage, opts = {}) {
                 flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) });
             }
         }
-        flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.985; p.vy *= 0.985; });
+        flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; const k = Math.pow(0.985, dt * 60); p.vx *= k; p.vy *= k; });
         flames = flames.filter(p => p.t < p.life);
         if (flames.length > 500) flames.splice(0, flames.length - 500);
         // the flames a fire blade (sake + firefly) leaves along its trace burn like the breath does
@@ -1704,6 +1716,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function swallow(c) {
         log('eat', c.kind);
+        if (c.kind !== 'fruit' && c.kind !== 'crate') use(c.kind === 'fly' ? 'fire' : c.kind);
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
             flyCatches++;
@@ -1834,6 +1847,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (sparks.length > 900) sparks.splice(0, sparks.length - 900);
         if (phase !== 'play') return;
+        srcHint = 'fireworks';
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
             if (f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r) { fruits.splice(i, 1); burnFruit(f, FW_BONUS); }
@@ -1842,6 +1856,7 @@ export function mountFrogGame(stage, opts = {}) {
             const q = pieces[i];
             if (q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6) { pieces.splice(i, 1); burnFruit(q, FW_BONUS * Math.pow(RECUT, q.fam.cuts)); }
         }
+        srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
             if (d < R + c.hw) { crates.splice(i, 1); breakCrate(c, d > 1 ? (c.x - x) / d : 1, d > 1 ? (c.y - y) / d : 0, c.x, c.y); }   // like a clean slice
@@ -1870,7 +1885,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         rockets.forEach(r => { r.t += dt; });
         rockets = rockets.filter(r => { if (r.t < r.dur) return true; explode(r.tx, r.ty, Math.min(W, H) * 0.24); return false; });
-        sparks.forEach(p => { p.t += dt; p.vx *= 0.96; p.vy = p.vy * 0.96 + H * 0.5 * dt; p.x += p.vx * dt; p.y += p.vy * dt; });
+        sparks.forEach(p => { p.t += dt; const k = Math.pow(0.96, dt * 60); p.vx *= k; p.vy = p.vy * k + H * 0.5 * dt; p.x += p.vx * dt; p.y += p.vy * dt; });
         sparks = sparks.filter(p => p.t < p.life);
         blasts.forEach(b => { b.t += dt; }); blasts = blasts.filter(b => b.t < 0.3);
     }
@@ -1926,7 +1941,7 @@ export function mountFrogGame(stage, opts = {}) {
         hud();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'count';
-        trace = []; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
+        trace = []; worth = {}; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
     function stepCount(dt) {
         countT -= dt;
@@ -1953,7 +1968,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.tips.hidden = true; el.skip.hidden = true; el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
-        log('over', ms, slices, gradeIx);
+        logWorth(); log('over', ms, slices, gradeIx);
         if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, events: trace });
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms }, el.save);
         el.overlay.hidden = false;
@@ -1982,12 +1997,20 @@ export function mountFrogGame(stage, opts = {}) {
     const dbgEl = $('.fg-debug');
     function startDebug() {
         start();
-        dbg = true; dbgFrozen = true;
+        dbg = true; dbgFrozen = true; log('debug');
         if (!pose.held) readyPose();
         introOn = false; phase = 'play'; el.count.hidden = true;
         stage.classList.add('fg-debugging'); dbgEl.hidden = false; $('.fg-debug-pill').textContent = 'Exit debug';
     }
+    function sendDebugTrace() {
+        if (!dbg || trace.length < 4 || !opts.onTrace) return;
+        logWorth(); log('over', 0, slices, gradeIx);
+        opts.onTrace({ score: 0, duration_ms: Math.min(Math.round(performance.now() - traceT0), 6 * 3600 * 1000), input: 'debug', events: trace });
+        trace = [];
+    }
+    window.addEventListener('pagehide', sendDebugTrace);
     function exitDebug() {
+        sendDebugTrace();
         dbg = false; dbgFrozen = false; phase = 'idle';
         fruits = []; pieces = []; pickups = []; flies = []; crates = []; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
         stage.classList.remove('fg-debugging'); dbgEl.hidden = true; $('.fg-debug-pill').textContent = 'Debug';
@@ -1997,6 +2020,7 @@ export function mountFrogGame(stage, opts = {}) {
     function spawnDebug(what, x, y) {
         const base = clamp(Math.min(W, H) * 0.055, 22, 44), toss = Math.sqrt(2 * G() * 0.05 * H);
         const [kind, name] = what.split(':');
+        log('place', what, Math.round(x), Math.round(y));
         if (kind === 'fruit') {
             const type = FRUITS.find(f => f.kind === name);
             fruits.push(newFruit(type, base * type.r, x, y, 0, -toss, G(), { entered: true }));
@@ -2100,7 +2124,7 @@ export function mountFrogGame(stage, opts = {}) {
         const slowed = frozen || slowTail > 0;
         const wdt = dbg && dbgFrozen ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
-            if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; }   // the alarm clock stops the countdown
+            if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown
             // ramps over minutes and never quite tops out
             const difficulty = 1 - Math.exp(-clockT / 150);
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
@@ -2126,8 +2150,11 @@ export function mountFrogGame(stage, opts = {}) {
                         const o = markFrom || frogPoint(993, 300), d = Math.hypot(f.x - o.x, f.y - o.y) || 1;
                         crates.splice(cx, 1);
                         const mine = cut; cut = markCut;
+                        const n0 = fruits.length;
                         breakCrate(f, (f.x - o.x) / d, (f.y - o.y) / d, f.x, f.y, 1 + Math.min(MULTI * markCut.hits++, MULTI_MAX));
                         cut = mine;
+                        // the second pass slashes through the open box: the fruit that came out is cut once, there and then
+                        markAgain.push({ again: true, burst: fruits.slice(n0), x: f.x, y: f.y, r: f.hw, dx: -(f.y - o.y) / d, dy: (f.x - o.x) / d });
                         markFrom = { x: f.x, y: f.y };
                         continue;
                     }
@@ -2142,11 +2169,24 @@ export function mountFrogGame(stage, opts = {}) {
                         hurtFlash = 0;                                 // not a wasted power-up: no red flash
                         const chain = markCut.hits++;
                         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX));
-                        timeLeft += gain; slices++; lastSlice = performance.now();
+                        timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
                         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
                         floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: true });
                         slashes.push({ x: f.x, y: f.y, a: ang, r: 34, t: 0 });
                         markFrom = { x: f.x, y: f.y };
+                        continue;
+                    }
+                    if (f.again && f.burst) {   // the second pass through an opened crate: its fruit, cut once each
+                        const mine = cut; cut = markCut;
+                        f.burst.forEach(q => {
+                            const qi = fruits.indexOf(q);
+                            if (qi < 0) return;
+                            const c2 = Math.cos(-q.rot), s2 = Math.sin(-q.rot), ldx = f.dx * c2 - f.dy * s2, ldy = f.dx * s2 + f.dy * c2;
+                            if (cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, f.dx, f.dy, q.x, q.y)) fruits.splice(qi, 1);
+                        });
+                        cut = mine;
+                        slashes.push({ x: f.x, y: f.y, a: Math.atan2(f.dy, f.dx), r: f.r * 3, t: 0 });
+                        seqFlash(f.x, f.y, f.dx, f.dy, 0);
                         continue;
                     }
                     if (f.again) {   // the second pass: what the first cut left is cut again, at right angles
@@ -2211,7 +2251,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
             if (stunT > 0) stunT = Math.max(0, stunT - dt);
-            if (!dbg) traceTick(dt);
+            traceTick(dt);
             if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
             hud();
         }
@@ -2540,6 +2580,7 @@ export function mountFrogGame(stage, opts = {}) {
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('blur', onBlur);
+        window.removeEventListener('pagehide', sendDebugTrace);
         window.removeEventListener('error', onErr); window.removeEventListener('unhandledrejection', onErr);
         window.removeEventListener('pointercancel', onUp);
         canvas.removeEventListener('contextmenu', noMenu);
