@@ -1465,7 +1465,15 @@ a:hover {
 .fg-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 .4rem; }
 .fg-sub { color: var(--text-secondary); margin: 0 0 1rem; }
 .fg-start { min-width: 160px; }
-.fg-skip { display: block; margin: 6px auto 0; color: var(--text-secondary); }
+/* the one big button: frog green */
+.fg-play { display: block; margin: 6px auto 0; min-width: 240px; padding: 14px 28px; border: 2px solid #000; border-radius: 16px; background: #98b74b; color: #000;
+    font-size: 1.5rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 4px 0 #000; transition: background .15s ease, transform .05s ease; }
+.fg-play:hover, .fg-play:focus-visible { background: #b0cf62; color: #000; border-color: #000; }
+.fg-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; background: #b0cf62; color: #000; border-color: #000; }
+.fg-anykey { margin: 8px 0 0; font-size: .78rem; color: var(--text-light); }
+.fg-anykey[hidden] { display: none; }
+.fg-skip { display: block; margin: 14px auto 0; min-width: 150px; }
+.fg-tips { margin-bottom: 14px; text-align: left; }
 .fg-skip[hidden], .fg-tip[hidden], .fg-tips[hidden], .fg-count[hidden], .fg-sub[hidden] { display: none; }
 /* how-to-play pages */
 .fg-tips { text-align: left; margin: 0 0 1rem; }

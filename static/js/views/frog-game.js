@@ -712,8 +712,9 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><div><b>Pineapple leaves</b><span>Cutting only the crown buys no time.</span></div></div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-primary fg-start">Next</button>
-                <button type="button" class="btn btn-link btn-sm fg-skip">Skip the tips</button>
+                <button type="button" class="btn fg-start fg-play">Play</button>
+                <p class="fg-anykey" hidden>or press any key</p>
+                <button type="button" class="btn btn-primary btn-sm fg-skip">Show tips</button>
                 ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
                 <div class="fg-save"></div>
             </div>
@@ -1934,13 +1935,17 @@ export function mountFrogGame(stage, opts = {}) {
         pickups.push({ kind, x, y: H + r * 1.5, vx: (W / 2 - x) * 0.2, vy: -Math.sqrt(2 * g * rand(0.55, 0.8) * H), g, r, rot: rand(-0.4, 0.4), spin: rand(-1.5, 1.5), t: 0 });
     }
 
+    // The panel: a big Play button, and the tips only for those who ask. "Show tips" opens
+    // the first page, then steps through them; after the last it folds them away again.
     function showTips(page) {
-        tipsPage = page;
+        const open = page >= 0 && page < el.pages.length;
+        tipsPage = open ? page : -1;
+        el.tips.hidden = !open;
         el.pages.forEach((p, i) => { p.hidden = i !== page; });
-        el.start.textContent = page < el.pages.length - 1 ? 'Next' : 'Frogging time!';
-        el.skip.hidden = page >= el.pages.length - 1;
+        el.skip.textContent = !open ? 'Show tips' : page < el.pages.length - 1 ? `Next tip (${page + 1}/${el.pages.length})` : 'Hide tips';
     }
-    showTips(0);
+    showTips(-1);
+    $('.fg-anykey').hidden = touch;
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
         dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
@@ -1977,10 +1982,10 @@ export function mountFrogGame(stage, opts = {}) {
         snd(isBest ? 'best' : 'over');
         if (isBest) { best = ms; store.set(BEST_KEY, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
         el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
-        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (touch ? '' : ' Press any key to play again.');
+        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (touch ? '' : '');
         overAt = performance.now();
         el.start.textContent = 'Play again';
-        el.tips.hidden = true; el.skip.hidden = true; el.sub.hidden = false;
+        showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
         logWorth(); log('over', ms, slices, gradeIx);
@@ -1989,18 +1994,21 @@ export function mountFrogGame(stage, opts = {}) {
         el.overlay.hidden = false;
     }
     el.start.addEventListener('click', () => {
-        if (!el.tips.hidden && tipsPage < el.pages.length - 1) { showTips(tipsPage + 1); return; }
-        el.tips.hidden = true; start();
+        showTips(-1); start();
     });
-    el.skip.addEventListener('click', () => { el.tips.hidden = true; start(); });
-    // game over: any key plays again (after a beat, so a key still held from the run doesn't)
+    el.skip.addEventListener('click', () => showTips(tipsPage + 1));
     let overAt = 0;
     function onKey(e) {
-        if (phase !== 'over' || el.overlay.hidden || performance.now() - overAt < 700) return;
+        // start screen and game over: any key plays (on game over after a beat, so a key still held doesn't)
+        if ((phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
+        if (phase === 'over' && performance.now() - overAt < 700) return;
         if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab' || e.key === 'Escape' || e.repeat) return;
         if (opts.busy && opts.busy()) return;                  // the scoreboard is open
+        // Enter or Space on a focused button other than Play is that button's own business
+        const b = e.target && e.target.closest && e.target.closest('button, a');
+        if (b && b !== el.start && (e.key === 'Enter' || e.key === ' ')) return;
         e.preventDefault();
-        el.tips.hidden = true; start();
+        showTips(-1); start();
     }
     window.addEventListener('keydown', onKey);
     if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
@@ -2046,7 +2054,7 @@ export function mountFrogGame(stage, opts = {}) {
         dbg = false; dbgFrozen = false; phase = 'idle';
         fruits = []; pieces = []; pickups = []; flies = []; crates = []; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
         stage.classList.remove('fg-debugging'); dbgEl.hidden = true; $('.fg-debug-pill').textContent = 'Debug';
-        el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Frogging time!'; el.skip.hidden = true; timeLeft = START_SECONDS; hud();
+        el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Play'; showTips(-1); timeLeft = START_SECONDS; hud();
         el.overlay.hidden = false;
     }
     function spawnDebug(what, x, y) {
