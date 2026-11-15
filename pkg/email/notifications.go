@@ -124,18 +124,12 @@ func SendProposalStatusNotification(ncfg *NotifyConfig, proposal *models.Proposa
 		}
 	}
 
-	// Acceptances also go to every organiser (contact email + co-organisers) in
-	// Bcc, so whoever clicked Accept, the whole team knows; speakers don't see
-	// the organisers' addresses. Rejections stay speaker-only.
-	var bcc []string
-	if newStatus == models.ProposalStatusAccepted {
-		bcc = organiserBcc(event, append(append([]string{}, to...), cc...))
-	}
-
+	// Organisers are NOT copied on acceptance emails: they hear about a speaker
+	// when the speaker confirms (SendAttendanceConfirmedNotification), not each
+	// time one of them clicks Accept.
 	msg := &Message{
 		To:      to,
 		Cc:      cc,
-		Bcc:     bcc,
 		From:    ncfg.From,
 		ReplyTo: event.ContactEmail,
 		Subject: subject,
@@ -157,29 +151,8 @@ func SendProposalStatusNotification(ncfg *NotifyConfig, proposal *models.Proposa
 		"status", string(newStatus),
 		"to", to,
 		"cc", cc,
-		"bcc", len(bcc),
 	)
 	return nil
-}
-
-// organiserBcc returns the event's contact email and organiser emails, deduplicated
-// case-insensitively and without anyone already in exclude (the speakers).
-func organiserBcc(event *models.Event, exclude []string) []string {
-	seen := map[string]bool{}
-	for _, e := range exclude {
-		seen[strings.ToLower(strings.TrimSpace(e))] = true
-	}
-	to, cc, _ := organiserRecipients(event)
-	var out []string
-	for _, addr := range append(to, cc...) {
-		k := strings.ToLower(strings.TrimSpace(addr))
-		if k == "" || seen[k] {
-			continue
-		}
-		seen[k] = true
-		out = append(out, addr)
-	}
-	return out
 }
 
 // organiserRecipients returns who gets organiser notifications for an event.
