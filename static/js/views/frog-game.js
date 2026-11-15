@@ -1424,9 +1424,11 @@ export function mountFrogGame(stage, opts = {}) {
         const side = x < W / 2 ? 'L' : 'R';
         const near = Math.abs(x - W / 2) < Math.max(fbox.w * 0.9, W * 0.16);       // close to the frog: a three-quarter turn
         const high = y !== undefined && y < frogPoint(993, 60).y;                  // above its head: it has to jump for it
-        const over = high && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
+        const over = high && Math.sin(a) <= 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
         if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
-        swing = { a, side, t: 0, live: true, near, high, over };
+        // a stroke straight down, right in front of it: both blades come down together
+        const under = !over && Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;
+        swing = { a, side, t: 0, live: true, near, high, over, under };
     }
     function stepSwing(dt) {
         if (!swing) return;
@@ -1450,6 +1452,19 @@ export function mountFrogGame(stage, opts = {}) {
             pose.bob -= 26 * air;                                     // the jump
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
+            return;
+        }
+        if (s.under && !settling) {
+            // The same from above, downwards: facing us, both katanas brought down together, crossed
+            // for the instant of the cut, then driven apart toward the ground, the frog sunk into a crouch.
+            const smear = s.t < SMEAR;
+            pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
+            pose.lRot = 24; pose.rRot = -24;
+            pose.lStretch = pose.rStretch = smear ? 2.3 : 1.7;
+            pose.lK = smear ? 158 : 222; pose.rK = smear ? -158 : -222;
+            pose.squash = smear ? 0.4 : 0.9;
+            pose.bob += smear ? 0 : 6;
+            pose.tilt = 0; pose.lookY = 22;
             return;
         }
         const lead = s.side === 'L' ? 'l' : 'r', off = s.side === 'L' ? 'r' : 'l';
