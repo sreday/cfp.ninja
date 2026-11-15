@@ -1427,9 +1427,9 @@ a:hover {
 .fg-drunk .fg-bg { animation: fg-sway 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
 @keyframes fg-sway { 0%, 100% { transform: scale(1.06) rotate(-1.4deg) translateX(-1%); } 50% { transform: scale(1.06) rotate(1.4deg) translateX(1%); } }
 @media (prefers-reduced-motion: reduce) { .fg-drunk .fg-bg { animation: none; } }
-/* the frog sits on a post, 15% of the stage up; the post is as wide as the frog's seat */
-.fg-pole { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: calc(var(--fg-s, 800px) * 0.3 * 0.62); height: calc(15% + 16px); z-index: 0; pointer-events: none; }
-.fg-frog { position: absolute; left: 50%; bottom: 15%; transform: translateX(-50%); width: calc(var(--fg-s, 800px) * 0.3); height: auto; overflow: visible; z-index: 1; pointer-events: none; }
+/* the frog sits on a post, 18% of the stage up (it stands clear above the waterline); the post is as wide as the frog's seat */
+.fg-pole { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: calc(var(--fg-s, 800px) * 0.3 * 0.62); height: calc(18% + 16px); z-index: 0; pointer-events: none; }
+.fg-frog { position: absolute; left: 50%; bottom: 18%; transform: translateX(-50%); width: calc(var(--fg-s, 800px) * 0.3); height: auto; overflow: visible; z-index: 1; pointer-events: none; }
 .fg-hud { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; align-items: center; z-index: 3; pointer-events: none; }
 .fg-pill { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 14px; border-radius: 999px; font-variant-numeric: tabular-nums;
     background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border); color: var(--text);

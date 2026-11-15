@@ -148,12 +148,13 @@ const BEACH_SVG = `
         <ellipse cx="1300" cy="380" rx="340" ry="52"/><ellipse cx="1060" cy="350" rx="200" ry="42"/><ellipse cx="1560" cy="330" rx="180" ry="46"/>
     </g>
     <g fill="#222f38"><ellipse cx="800" cy="500" rx="520" ry="40"/><ellipse cx="240" cy="530" rx="300" ry="30"/><ellipse cx="1400" cy="525" rx="320" ry="32"/></g>
-    <rect x="-400" y="600" width="2400" height="130" fill="url(#fg-sea)"/>
+    <rect x="-400" y="600" width="2400" height="170" fill="url(#fg-sea)"/>
     <path d="M-400 600 H2000" stroke="#2b3b45" stroke-width="3"/>
     <g class="fg-waves" fill="none" stroke="#22323c" stroke-width="4" stroke-linecap="round">
         <path d="M60 640 q60 -10 120 0 t120 0"/><path d="M520 628 q50 -8 100 0 t100 0"/><path d="M980 650 q60 -10 120 0 t120 0"/><path d="M1360 632 q45 -8 90 0 t90 0"/>
         <path d="M250 676 q70 -12 140 0 t140 0"/><path d="M820 684 q60 -10 120 0 t120 0"/><path d="M1240 690 q70 -12 140 0 t140 0"/>
     </g>
+    <g transform="translate(0 36)">
     <rect x="-400" y="718" width="2400" height="400" fill="url(#fg-sand)"/>
     <path class="fg-shore" d="M-400 722 q100 -16 200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0 t200 0" fill="none" stroke="#3a4b55" stroke-width="6" stroke-linecap="round"/>
     <g fill="#322d26">
@@ -161,6 +162,7 @@ const BEACH_SVG = `
         <ellipse cx="1190" cy="792" rx="14" ry="8"/><ellipse cx="1420" cy="860" rx="24" ry="12"/><ellipse cx="1530" cy="800" rx="13" ry="7"/><ellipse cx="660" cy="870" rx="17" ry="9"/>
     </g>
     <g fill="#3b362e"><ellipse cx="230" cy="820" rx="9" ry="5"/><ellipse cx="890" cy="800" rx="11" ry="6"/><ellipse cx="1300" cy="830" rx="10" ry="6"/><ellipse cx="450" cy="880" rx="8" ry="5"/></g>
+    </g>
 </svg>`;
 // The frog's seat: a weathered wooden post standing in the shallows. It is stretched to the
 // stage (height) and to the frog (width), so its outline is drawn at a fixed thickness.
@@ -1032,7 +1034,7 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.stand, 'opacity', pose.up > 0.5 && !sideOn ? 1 : 0);
         // the legs stay planted and slant so their tops stay under the hips
         // (falling: the legs go with the body)
-        setA(el.stand, 'transform', pose.jump > 1 ? `translate(0 ${n2(-pose.jump)}) translate(0 860) scale(1 ${n2(1 - Math.min(0.34, pose.jump / 600))}) translate(0 -860)` : pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
+        setA(el.stand, 'transform', pose.jump > 1 ? `translate(0 ${n2(-pose.jump)}) translate(0 860) scale(1 ${n2(1 - Math.min(0.34, pose.jump / 1800))}) translate(0 -860)` : pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
         // breathing: the robe swells a little from the floor up; the head rides on it
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
@@ -1152,8 +1154,8 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     // where the sea is on screen (the backdrop is anchored to the bottom and scaled to cover)
-    const seaY = () => H - 215 * Math.max(W / 1600, H / 900);
-    let ripples = [];
+    const seaY = () => H - 190 * Math.max(W / 1600, H / 900);
+    let ripples = [], seaDrops = [];
     // How the run was played, reported with the score so runs played by a script or an AI
     // agent go on their own board (see looksAutomated in pkg/api/game_agent.go).
     let sig = { webdriver: false, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 };
@@ -1563,7 +1565,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
             pose.lK = smear ? 28 : -58; pose.rK = smear ? -28 : 58;
-            pose.bob -= 56 * air; pose.jump = 56 * U * air;            // the jump: the legs leave the post and tuck
+            pose.bob -= 168 * air; pose.jump = 168 * U * air;            // the jump: the legs leave the post and tuck
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
             return;
@@ -1609,13 +1611,13 @@ export function mountFrogGame(stage, opts = {}) {
                 if (s.t < wind) { pose.sLegs = 'down'; pose.sDrop = 120; pose.sRot = 26; aimTh = 60; }
                 else {
                     const u = clamp((s.t - wind) / air, 0, 1);
-                    pose.sHop = Math.sin(u * Math.PI) * 300;                     // the hop
+                    pose.sHop = Math.sin(u * Math.PI) * 900;                     // the hop
                     pose.sRot = lerp(-4, pose.sRot, Math.min(1, u * 3));
                     if (u >= 1 && s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
                 }
             }
             // a cut above its head: a small jump, legs together, as long as the blade is up there
-            if (s.high && cy >= -0.3) { pose.sHop = Math.max(pose.sHop, Math.sin(clamp(s.t / 0.32, 0, 1) * Math.PI) * 230); if (s.t < 0.32) { pose.sLegs = 'up'; pose.sDrop = 0; } }
+            if (s.high && cy >= -0.3) { pose.sHop = Math.max(pose.sHop, Math.sin(clamp(s.t / 0.32, 0, 1) * Math.PI) * 690); if (s.t < 0.32) { pose.sLegs = 'up'; pose.sDrop = 0; } }
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
             pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
@@ -2028,11 +2030,25 @@ export function mountFrogGame(stage, opts = {}) {
         for (let k = 0; k < 18; k++) { const a = rand(0, 6.28), v = H * rand(0.3, 0.8); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.25, 0.45), s: rand(6, 12) }); }
         hud();
     }
+    // where the mouth is on screen, for whichever drawing of the frog is showing
+    function mouthPoint() {
+        if (pose.side && pose.up > 0.5) {
+            // the profile drawing: its mouth, turned with the top half about the hip, mirrored when it faces left
+            const a = pose.sRot * Math.PI / 180, px = 1490 - 1000, py = 150 - 900;
+            let x = 1000 + px * Math.cos(a) - py * Math.sin(a), y = 900 + px * Math.sin(a) + py * Math.cos(a) + pose.sDrop;
+            if (pose.side < 0) x = 1986 - x;
+            return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * y / 1876 - pose.sHop * fbox.h / 1876 };
+        }
+        return frogPoint(993, MOUTH_Y);
+    }
+    // aimed at its own head: the frog turns to us and breathes straight out of the screen
+    const fireAtUs = () => { if (!aim) return false; const h = frogPoint(993, 420); return Math.hypot(aim.x - h.x, aim.y - h.y) < fbox.w * 0.42; };
     function stepFire(dt) {
         // the breath is a wide cone from the mouth toward the cursor (no click needed);
         // a fruit that stays in it for BURN_TIME seconds in a row explodes
         const on = fireLeft > 0 && phase === 'play';
-        const m = on ? frogPoint(993, MOUTH_Y) : null;
+        const atUs = on && fireAtUs();
+        const m = on ? (atUs ? frogPoint(993, MOUTH_Y) : mouthPoint()) : null;
         let aimA = 0, reach = 0;
         if (on) {
             fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) snd('fire_end');
@@ -2042,6 +2058,12 @@ export function mountFrogGame(stage, opts = {}) {
             fireEmit += dt * 160;
             while (fireEmit >= 1) {
                 fireEmit -= 1;
+                if (atUs) {
+                    // toward the camera: the flames barely travel across the screen, they swell as they come at us
+                    const a = rand(0, 6.28), v = H * rand(0.05, 0.5) * (1 + 0.5 * fireWide);
+                    flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.5, 0.85), s: rand(7, 14), grow: 9 });
+                    continue;
+                }
                 const sp = fireSpread(), a = aimA + rand(-sp, sp) * 0.9, v = H * rand(1.5, 2.3);
                 flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) });
             }
@@ -2056,6 +2078,7 @@ export function mountFrogGame(stage, opts = {}) {
         const inBlade = (x, y, r) => hot.some(p => Math.hypot(p.x - x, p.y - y) < r + p.s * 3);     // the heat reaches past the flame itself
         const inFlame = (x, y, r) => {
             const dx = x - m.x, dy = y - m.y, d = Math.hypot(dx, dy);
+            if (atUs) return d < S() * 0.42 * (1 + 0.35 * fireWide) + r;     // breathed at us: everything in front of the frog is in it
             let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
             return d < reach && da < fireSpread() + Math.atan2(r, Math.max(d, 1));
         };
@@ -2857,7 +2880,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
         // its katanas are left behind: they drop and stick, point down, in the top of the post
-        const top = H - (H * 0.15 + 16) + fbox.w * 0.09;       // a little below the rim: the points are in the wood
+        const top = H - (H * 0.18 + 16) + fbox.w * 0.09;       // a little below the rim: the points are in the wood
         dropped = [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
         pose.noBlades = true;
         pose.side = 0; pose.oneFoot = false; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
@@ -3104,13 +3127,20 @@ export function mountFrogGame(stage, opts = {}) {
                 // breathing fire: the same turn as a cut, toward where the flame is aimed (three-quarter
                 // when it is aimed close to the frog, profile further out), the top half tipped to the
                 // aim, the blades held back out of the way
+                if (fireAtUs()) {
+                    // straight at the camera: facing us, head thrown back a little, arms spread, blades down
+                    pose.side = 0; pose.face = 0; pose.squash = -0.3 + Math.sin(idleT * 30) * 0.05;
+                    pose.lRot = 55; pose.rRot = -55; pose.lK = 215; pose.rK = -215; pose.lookY = 0; pose.tilt = Math.sin(idleT * 30) * 1.5;
+                } else {
                 const m0 = frogPoint(993, 300), dx = aim.x - W / 2, dy = aim.y - m0.y, d = Math.hypot(dx, dy) || 1;
                 const cy = dy / d, th = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
                 pose.side = dx < 0 ? -1 : 1; pose.sQ = Math.abs(dx) < fbox.w * 0.5; pose.sHop = 0;
                 pose.sLegs = cy > 0.5 ? 'down' : 'level'; pose.sDrop = cy > 0.5 ? 100 : 0;
                 pose.sRot = clamp(th * 0.55, -40, 40) * (pose.sQ ? 0.7 : 1) + Math.sin(idleT * 30) * 1.2;      // the head points along the flame, shaking with it
-                pose.sF = { rot: 150 - pose.sRot, k: 330 - pose.sRot, stretch: 1.1 };
-                pose.sB = { rot: 120 - pose.sRot, k: 300 - pose.sRot, stretch: 1.1 };
+                // both blades held low and behind, well clear of the face and the flame
+                pose.sF = { rot: 28 - pose.sRot, k: 208 - pose.sRot, stretch: 1.1 };
+                pose.sB = { rot: 52 - pose.sRot, k: 232 - pose.sRot, stretch: 1.1 };
+                }
             } else
             if (swing) poseSwing();
             else if (windUp && phase === 'play') {               // pressed, not cutting yet: the held wind-up
@@ -3392,7 +3422,7 @@ export function mountFrogGame(stage, opts = {}) {
             // far fruit comes down in the sea, not off the bottom of the screen
             if (f.far && f.vy > 0 && f.y > seaY() && !f.hacked) {
                 fruits.splice(i, 1); ripples.push({ x: f.x, y: seaY(), r: f.r * f.ds, t: 0 }); snd('plop');
-                for (let d = 0; d < 7; d++) drops.push({ x: f.x + rand(-8, 8), y: seaY(), vx: rand(-70, 70), vy: -rand(0.1, 0.3) * H, c: '#9fc3d3', t: 0, s: rand(1.5, 3.5) });
+                for (let d = 0; d < 9; d++) seaDrops.push({ x: f.x + rand(-8, 8), y: seaY(), vx: rand(-80, 80), vy: -rand(0.12, 0.34) * H, t: 0, s: rand(1.5, 3.5) });
                 continue;
             }
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);
@@ -3449,6 +3479,14 @@ export function mountFrogGame(stage, opts = {}) {
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
         bctx.clearRect(0, 0, W, H);
+        // fruit landing in the sea: the ring and the spray are behind the frog and its post
+        if (ripples.length || seaDrops.length) {
+            bctx.save(); bctx.strokeStyle = '#9fc3d3'; bctx.lineWidth = 2;
+            ripples.forEach(q => { q.t += 1 / 60; const k = q.t / 0.7; bctx.globalAlpha = 1 - k; bctx.beginPath(); bctx.ellipse(q.x, q.y, q.r * (0.8 + k * 1.6), q.r * 0.22 * (1 + k), 0, 0, 7); bctx.stroke(); });
+            bctx.fillStyle = '#9fc3d3';
+            seaDrops.forEach(d => { d.t += 1 / 60; d.vy += H * 1.2 / 60; d.x += d.vx / 60; d.y += d.vy / 60; bctx.globalAlpha = Math.max(0, 1 - d.t / 0.6); bctx.beginPath(); bctx.arc(d.x, d.y, d.s, 0, 7); bctx.fill(); });
+            bctx.restore(); ripples = ripples.filter(q => q.t < 0.7); seaDrops = seaDrops.filter(d => d.t < 0.6);
+        }
         fruits.forEach(f => {
             if (!isBehind(f)) return;
             const sp = wholeSprite(f, clamp(W / 260, 2.5, 4));
@@ -3456,11 +3494,6 @@ export function mountFrogGame(stage, opts = {}) {
             bctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2); bctx.restore();
         });
         const lw = clamp(W / 260, 2.5, 4);
-        if (ripples.length) {   // fruit landing in the sea: a ring spreading on the water
-            ctx.save(); ctx.strokeStyle = '#9fc3d3'; ctx.lineWidth = 2;
-            ripples.forEach(q => { q.t += 1 / 60; const k = q.t / 0.7; ctx.globalAlpha = 1 - k; ctx.beginPath(); ctx.ellipse(q.x, q.y, q.r * (0.8 + k * 1.6), q.r * 0.22 * (1 + k), 0, 0, 7); ctx.stroke(); });
-            ctx.restore(); ripples = ripples.filter(q => q.t < 0.7);
-        }
         drawSalad(lw, tn);
         drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
         ctx.globalAlpha = 1;
@@ -3558,7 +3591,7 @@ export function mountFrogGame(stage, opts = {}) {
                     ctx.fillText(Math.floor(p.s * 977) % 2 ? '1' : '0', p.x, p.y);
                     return;
                 }
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + k * 1.2), 0, 7); ctx.fill();
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.s * (1 + k * (p.grow || 1.2)), 0, 7); ctx.fill();
             });
             ctx.restore();
         }
