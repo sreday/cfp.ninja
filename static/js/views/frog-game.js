@@ -639,11 +639,18 @@ function digitTile(i) {
     }
     return DIGIT_TILES[((i % 4) + 4) % 4];
 }
-function drawHacked(ctx, o, tn) {
+// what a hacked thing looks like right now: which digits, whether a band is torn, whether it jumps
+function hackLook(o, tn) {
+    const seed = (o.born || o.area || 1) % 97, tick = Math.floor(tn / 90 + seed), slow = Math.floor(tn / 220 + seed);
+    const rnd = n => { const v = Math.sin((tick + n) * 12.9898 + seed) * 43758.5453; return v - Math.floor(v); };
+    return { jump: rnd(1) < 0.22 ? (rnd(2) - 0.5) * 10 : 0, key: slow + (rnd(40) < 0.3 ? '|' + tick : '') };
+}
+// still: without the jump (the caller moves the finished picture instead)
+function drawHacked(ctx, o, tn, still) {
     const seed = (o.born || o.area || 1) % 97, tick = Math.floor(tn / 90 + seed);
     const rnd = n => { const v = Math.sin((tick + n) * 12.9898 + seed) * 43758.5453; return v - Math.floor(v); };
     ctx.save();
-    if (rnd(1) < 0.22) ctx.translate((rnd(2) - 0.5) * 10, 0);          // a glitch: the whole thing jumps
+    if (!still && rnd(1) < 0.22) ctx.translate((rnd(2) - 0.5) * 10, 0);          // a glitch: the whole thing jumps
     const shapes = (o.poly ? [o.poly] : []).concat(o.crown || []);
     ctx.lineJoin = 'round';
     shapes.forEach(sh => { pathPoly(ctx, sh); ctx.fillStyle = 'rgba(8,30,60,.45)'; ctx.fill(); });
@@ -748,10 +755,18 @@ function drawCrate(ctx, hw, lw) {
 let noGlow = false;                              // set while a thing is drawn for its outline: halos would blur the shape
 function glow(ctx, x, y, r, rgb, a) {
     if (noGlow) return;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(${rgb},${a})`); g.addColorStop(1, `rgba(${rgb},0)`);
-    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+    // the halo is painted once per colour and stamped: a fresh gradient for every glowing thing
+    // on every frame is what a phone's graphics chip is slowest at
+    let sp = GLOWS[rgb];
+    if (!sp) {
+        sp = GLOWS[rgb] = document.createElement('canvas'); sp.width = sp.height = 128;
+        const c = sp.getContext('2d'), g = c.createRadialGradient(64, 64, 0, 64, 64, 64);
+        g.addColorStop(0, `rgba(${rgb},1)`); g.addColorStop(1, `rgba(${rgb},0)`);
+        c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+    }
+    const was = ctx.globalAlpha; ctx.globalAlpha = was * a; ctx.drawImage(sp, x - r, y - r, r * 2, r * 2); ctx.globalAlpha = was;
 }
+const GLOWS = {};
 
 function drawFly(ctx, fl, s, t) {
     // a firefly: dark body, red head, flapping wings, a pulsing glowing tail
@@ -1260,10 +1275,18 @@ export function mountFrogGame(stage, opts = {}) {
     let phase = 'idle';           // idle | intro | play | over
     // The run's event log: [ms since the start, what, details...]. Small on purpose (no frames,
     // no pointer path), posted when the run ends so odd behaviour can be found afterwards.
-    const TRACE_MAX = 1500;
+    const TRACE_MAX = 4500, TRACE_KEEP = { over: 1, val: 1, sounds: 1, bug: 1, err: 1, crash: 1, q: 1, audio: 1, s: 1 };
+    // the server takes 128 KB: a log over 120 KB loses its most numerous lines first (presses, then sounds, then cuts)
+    function fitTrace(ev) {
+        for (const drop of ['d', 'snd', 'cut']) {
+            if (JSON.stringify(ev).length < 120000) break;
+            ev = ev.filter(e => e[1] !== drop); ev.push([0, 'trimmed', drop]);
+        }
+        return ev;
+    }
     let trace = [], traceT0 = 0, traceInput = 'mouse', traceSec = 0, traceFrames = 0;
     function log(what, ...a) {
-        if (phase === 'idle' || trace.length >= TRACE_MAX) return;
+        if (phase === 'idle' || (trace.length >= TRACE_MAX && !TRACE_KEEP[what]) || trace.length >= TRACE_MAX + 800) return;
         trace.push([Math.round(performance.now() - traceT0), what, ...a]);
     }
     const r2 = v => Math.round(v * 100) / 100;
@@ -1335,16 +1358,53 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // far fruit that has passed the top of its arc is behind the frog from then on
     const isBehind = f => f.far && f.vy > 0 && !f.hacked && !f.crownCut && !f.burn && !f.mark;
+    // Small canvases for the pictures of pieces and hacked things. They are handed back when the
+    // thing leaves and used again (in sizes that step by 32 px), so a busy screen is not making
+    // and throwing away hundreds of them; and only so many new pictures are painted per frame.
+    const sprPool = new Map();
+    let sprBuilt = 0;                                          // pictures painted this frame
+    const SPR_PER_FRAME = 8;
+    function sprGet(half) {
+        const px = Math.max(32, Math.ceil(half * 2 * dpr / 32) * 32), list = sprPool.get(px);
+        const cv = list && list.length ? list.pop() : document.createElement('canvas');
+        if (cv.width !== px) { cv.width = cv.height = px; }
+        const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.clearRect(0, 0, px, px);
+        const size = px / dpr; c.setTransform(dpr, 0, 0, dpr, px / 2, px / 2);
+        return { cv, c, half: size / 2, dpr, px };
+    }
+    function sprFree(o) {
+        [o.spr, o.hspr].forEach(sp => {
+            if (!sp || sp.dpr !== dpr) return;
+            let list = sprPool.get(sp.px); if (!list) sprPool.set(sp.px, list = []);
+            if (list.length < 24) list.push(sp.cv);
+        });
+        o.spr = o.hspr = null;
+    }
     function stampPiece(q, lw) {
-        if (q.burn > 0) { q.spr = null; drawPiece(ctx, q, lw); return; }     // melting: it changes every frame
-        if (!q.spr || q.spr.dpr !== dpr) {
-            const half = Math.ceil(q.R + lw * 2 + 2), cv = document.createElement('canvas');
-            cv.width = cv.height = Math.max(2, Math.ceil(half * 2 * dpr));
-            const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr);
-            drawPiece(c, q, lw);
-            q.spr = { cv, half, dpr };
+        if ((!q.spr || q.spr.dpr !== dpr) && sprBuilt < SPR_PER_FRAME) {
+            sprBuilt++;
+            const sp = sprGet(q.R + lw * 2 + 2), burn = q.burn;
+            q.burn = 0; drawPiece(sp.c, q, lw); q.burn = burn;        // the picture is of the piece as cut; melting is done to the picture
+            q.spr = sp;
         }
-        ctx.drawImage(q.spr.cv, -q.spr.half, -q.spr.half, q.spr.half * 2, q.spr.half * 2);
+        if (!q.spr || q.spr.dpr !== dpr) { drawPiece(ctx, q, lw); return; }     // over this frame's budget: drawn directly for now
+        // melting in a fire: the picture shrinks, with a glow of heat on it
+        const mk = q.burn ? clamp(q.burn / BURN_TIME, 0, 1) : 0, k = 1 - 0.4 * mk, h = q.spr.half * k;
+        ctx.drawImage(q.spr.cv, -h, -h, h * 2, h * 2);
+        if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.scale(k, k); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
+    }
+    // A hacked thing changes its look a few times a second, not sixty: its picture is painted when
+    // the look changes (the clip, the digits, the two outlines) and stamped on the frames between.
+    function stampHacked(o, tn) {
+        const look = hackLook(o, tn);
+        let sp = o.hspr;
+        if (!sp || sp.dpr !== dpr || (sp.key !== look.key && sprBuilt < SPR_PER_FRAME)) {
+            sprBuilt++;
+            if (sp && sp.dpr === dpr) { sp.c.save(); sp.c.setTransform(1, 0, 0, 1, 0, 0); sp.c.clearRect(0, 0, sp.px, sp.px); sp.c.restore(); }
+            else sp = o.hspr = sprGet((o.R || o.r) * 1.2 + 10);
+            drawHacked(sp.c, o, tn, true); sp.key = look.key;
+        }
+        ctx.drawImage(sp.cv, -sp.half + look.jump, -sp.half, sp.half * 2, sp.half * 2);
     }
     // Quality governor. The game starts at full sharpness; if the device can't hold 50 frames a
     // second for two seconds running it drops the canvas resolution a step (2x -> 1.5x -> 1x), and
@@ -3313,7 +3373,7 @@ export function mountFrogGame(stage, opts = {}) {
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
         logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('signals', sig); log('over', ms, slices, gradeIx);
-        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: trace });
+        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: fitTrace(trace) });
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
@@ -4005,12 +4065,12 @@ export function mountFrogGame(stage, opts = {}) {
                 continue;
             }
             const out = f.entered && (f.y > H + f.r * 2 || f.x < -f.r * 2 || f.x > W + f.r * 2);
-            if (out || f.y > H + H) fruits.splice(i, 1);
+            if (out || f.y > H + H) { sprFree(f); fruits.splice(i, 1); }
         }
         halves.forEach(h => { h.vy += h.g * dt; h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.spin * dt; h.t += dt; });
         // cut pieces belong to the world (slow motion slows them too), so they can be cut again
         pieces.forEach(q => { q.vy += q.g * wdt; q.x += q.vx * wdt; q.y += q.vy * wdt; q.rot += q.spin * wdt; q.t += wdt; });
-        pieces = pieces.filter(q => q.y < H + q.R * 2 + 40 && q.x > -q.R * 2 - 40 && q.x < W + q.R * 2 + 40);
+        pieces = pieces.filter(q => { const keep = q.y < H + q.R * 2 + 40 && q.x > -q.R * 2 - 40 && q.x < W + q.R * 2 + 40; if (!keep) sprFree(q); return keep; });
         halves = halves.filter(h => h.y < H + h.r * 3);
         drops.forEach(d => { d.vy += G() * dt; d.x += d.vx * dt; d.y += d.vy * dt; d.t += dt; });
         drops = drops.filter(d => d.t < 0.7);
@@ -4058,6 +4118,7 @@ export function mountFrogGame(stage, opts = {}) {
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
         bctx.clearRect(0, 0, W, H);
+        sprBuilt = 0;
         // planks on the water (behind the frog and its post): lying flat, bobbing, then slipping under
         planks.forEach(q => {
             if (q.afloat === undefined) return;
@@ -4085,7 +4146,16 @@ export function mountFrogGame(stage, opts = {}) {
         });
         const lw = clamp(W / 260, 2.5, 4);
         drawSalad(lw, tn);
-        drops.forEach(d => { ctx.globalAlpha = 1 - d.t / 0.7; ctx.fillStyle = d.c; ctx.beginPath(); ctx.arc(d.x, d.y, d.s, 0, 7); ctx.fill(); });
+        // juice: drops of one colour and about one fade are painted together, a few fills instead of hundreds
+        if (drops.length) {
+            const groups = {};
+            drops.forEach(d => { const a = Math.max(1, Math.ceil((1 - d.t / 0.7) * 5)), k = d.c + a; (groups[k] || (groups[k] = { c: d.c, a: a / 5 - 0.1, list: [] })).list.push(d); });
+            Object.keys(groups).forEach(k => {
+                const g = groups[k]; ctx.globalAlpha = g.a; ctx.fillStyle = g.c; ctx.beginPath();
+                g.list.forEach(d => { ctx.moveTo(d.x + d.s, d.y); ctx.arc(d.x, d.y, d.s, 0, 7); });
+                ctx.fill();
+            });
+        }
         ctx.globalAlpha = 1;
         // the crate and its broken planks sit behind all the fruit
         planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw); ctx.restore(); });
@@ -4103,7 +4173,7 @@ export function mountFrogGame(stage, opts = {}) {
             else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air
             ctx.restore();
         });
-        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
+        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) stampHacked(q, tn); else stampPiece(q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {
@@ -4119,7 +4189,7 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.fillStyle = f.type.juice;
                 [-0.5, 0.05, 0.55].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(f.r * o, f.r * (0.85 + 0.45 * mk * (1 + i % 2)), f.r * 0.13, f.r * (0.18 + 0.6 * mk), 0, 0, 7); ctx.fill(); });
             }
-            ctx.rotate(f.rot); if (f.hacked) drawHacked(ctx, f, tn); else stampWhole(f, lw);
+            ctx.rotate(f.rot); if (f.hacked) stampHacked(f, tn); else stampWhole(f, lw);
             if (mk) {
                 // a glow of heat over it (it keeps its colour: melting is juice, not ash)
                 if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);

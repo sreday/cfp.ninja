@@ -14,7 +14,7 @@ import (
 // MaxGameTraces are kept, and they can be read back in pages. A logged-in
 // player's runs carry their player id (a number, never a name).
 const (
-	MaxGameTraceBytes = 32 << 10
+	MaxGameTraceBytes = 128 << 10
 	MaxGameTraces     = 2000
 	GameTracePage     = 50
 )

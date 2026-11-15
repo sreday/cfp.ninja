@@ -20,6 +20,16 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-15 | no traces after id 63 | Busy runs were not being stored: the log of a run was capped at
+  1,500 events and the server refused anything over 32 KB without the game saying so. Now 4,500
+  events (the closing lines always fit), 128 KB, and an oversized log drops presses, then sounds,
+  then cuts before it is sent. | fix shipped, check that long runs arrive
+- 2026-11-15 | busy screens on a phone | Drawing work cut for crowded screens, with no effect removed:
+  a hacked thing's picture is repainted only when its look changes (about 5-10 times a second, not
+  60), piece pictures come from a pool and at most 8 new ones are painted per frame, melting pieces
+  are stamped, glows are stamped from one picture per colour, juice drops are filled in batches.
+  A desktop headless browser holds 60 fps either way, so the gain on a phone is not measured:
+  compare seconds under 50 frames in the next touch runs with 30+ fruit or 100+ pieces. | fix shipped, unverified
 - 2026-11-15 | aspect study (`ASPECT.md`) | Windows wider than 16:9 are unfair to the player: at
   21:9 the model player lasts about 20% less, at 32:9 about 45% less, because side throws cross
   a wider screen in the same time. Not fixed. The clean fix is to keep the stage at most 16:9
