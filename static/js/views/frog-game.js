@@ -26,9 +26,12 @@ const FIRE_SECONDS = 3;                         // firefly: fire breath burns ev
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 // What the fire breath burns changes it for the rest of that breath, and it adds up:
-// every sake makes the cone FIRE_WIDER wider, every clock slows the fruit the flame touches
-// by FIRE_SLOW more (that fruit stays slow until it falls or bursts).
-const FIRE_WIDER = 0.3, FIRE_WIDE_MAX = 3, FIRE_SLOW = 0.3, FIRE_SLOW_MAX = 0.9;
+// a sake makes the cone FIRE_WIDE times as wide, a clock makes it hack the fruit it touches
+// (see drawHacked). Both at once: a hacking, super-wide breath.
+// A power-up destroyed by another one (burned by the breath, slashed on sake) adds POWER_BONUS s
+// to the one that is running, which can never have more than its base time + POWER_BONUS_MAX left.
+const POWER_BONUS = 1, POWER_BONUS_MAX = 2;
+const FIRE_WIDE = 3, FIRE_SLOW = 0.3, FIRE_SLOW_MAX = 0.9;
 const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
 // Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
@@ -626,9 +629,10 @@ export function mountFrogGame(stage, opts = {}) {
             <div class="fg-grade" data-g="0"><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
         <div class="fg-count" hidden></div>
+        <button type="button" class="fg-pill fg-debug-pill">Debug</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-exit">Exit debug</button></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -642,15 +646,15 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth: a sake widens the flame, a clock makes it hack fruit, which then floats until cut. No slashing or tongue.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>3 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: the flame gets 30% wider. Clock: it hacks fruit, which floats until you cut it. Crate: it bursts open.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, three times as wide, melts fruit. Clock: chronoblade, its trace hangs and cuts. Sake: bubbles.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: the flame gets three times as wide. Clock: it hacks fruit, which floats until you cut it. Both: a wide hacking breath. Each adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, three times as wide, melts fruit. Clock: chronoblade, its trace hangs and cuts. Sake: bubbles. Each adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
@@ -670,7 +674,6 @@ export function mountFrogGame(stage, opts = {}) {
                 <button type="button" class="btn btn-primary fg-start">Next</button>
                 <button type="button" class="btn btn-link btn-sm fg-skip">Skip the tips</button>
                 ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
-                <button type="button" class="btn btn-outline-secondary btn-sm fg-debug-link">Debug</button>
                 <div class="fg-save"></div>
             </div>
         </div>`;
@@ -833,7 +836,7 @@ export function mountFrogGame(stage, opts = {}) {
         clock: ['rgba(225,245,254,.9)', 'rgba(79,195,247,.75)', 'rgba(41,121,255,.45)']
     };
     let fireTint = '', fireWide = 0, fireSlow = 0;             // sakes and clocks burned by this breath
-    const fireSpread = () => FIRE_SPREAD * Math.min(1 + FIRE_WIDER * fireWide, FIRE_WIDE_MAX);
+    const fireSpread = () => FIRE_SPREAD * (fireWide ? FIRE_WIDE : 1);
     // The blade's effects run while the frog is drunk, during the slashes that follow a time
     // freeze, and for FX_SECONDS after those (fxLeft) when a firefly or a sake was among them.
     const FX_SECONDS = 5;
@@ -842,6 +845,7 @@ export function mountFrogGame(stage, opts = {}) {
     function setBladeFx(kind, x, y, force) {
         if (sakeLeft <= 0 && !force) return;
         bladeFx[kind] = true; bladeFx.last = kind;
+        if (sakeLeft > 0) sakeLeft = Math.min(sakeLeft + POWER_BONUS, SAKE_SECONDS + POWER_BONUS_MAX);   // slashed on sake: the sake lasts longer
         if (kind === 'frost' && !warpCut.id) warpCut = { id: ++cutId, hits: 0 };
         floats.push({ x, y: y - 30, text: BLADE_FX[kind].text, t: 0, hot: true });
     }
@@ -1351,6 +1355,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (Math.random() < 0.5) flames.push({ x: b.x + rand(-r, r) * 0.6, y: b.y - r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
                 if (b.burn >= BURN_TIME) {
                     list.splice(i, 1);
+                    fireLeft = Math.min(fireLeft + POWER_BONUS, FIRE_SECONDS + POWER_BONUS_MAX);   // every power-up burned keeps the breath going longer
                     // burned sake turns the flame yellow, a burned clock turns it blue, for the rest of this breath
                     if (b.kind === 'sake' || b.kind === 'clock') fireTint = b.kind;
                     if (b.kind === 'sake') { fireWide++; floats.push({ x: b.x, y: b.y - 34, text: 'Wider flame!', t: 0, hot: true }); }
@@ -1753,7 +1758,7 @@ export function mountFrogGame(stage, opts = {}) {
     showTips(0);
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
-        dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) stage.querySelector('.fg-debug').hidden = true;
+        dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
@@ -1820,12 +1825,12 @@ export function mountFrogGame(stage, opts = {}) {
         dbg = true; dbgFrozen = true;
         if (!pose.held) readyPose();
         introOn = false; phase = 'play'; el.count.hidden = true;
-        stage.classList.add('fg-debugging'); dbgEl.hidden = false;
+        stage.classList.add('fg-debugging'); dbgEl.hidden = false; $('.fg-debug-pill').textContent = 'Exit debug';
     }
     function exitDebug() {
         dbg = false; dbgFrozen = false; phase = 'idle';
         fruits = []; pieces = []; pickups = []; flies = []; crates = []; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
-        stage.classList.remove('fg-debugging'); dbgEl.hidden = true;
+        stage.classList.remove('fg-debugging'); dbgEl.hidden = true; $('.fg-debug-pill').textContent = 'Debug';
         el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Frogging time!'; el.skip.hidden = true; timeLeft = START_SECONDS; hud();
         el.overlay.hidden = false;
     }
@@ -1874,8 +1879,8 @@ export function mountFrogGame(stage, opts = {}) {
                 window.addEventListener('pointermove', at); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
             });
         });
-        $('.fg-debug-link').addEventListener('click', () => { el.tips.hidden = true; startDebug(); });
-        $('.fg-debug-exit').addEventListener('click', exitDebug);
+        // the pill at the top right: into debug mode from anywhere (it drops a run in progress), and back out
+        $('.fg-debug-pill').addEventListener('click', () => { if (dbg) exitDebug(); else { el.tips.hidden = true; startDebug(); } });
     })();
 
     // ---------- loop ----------
