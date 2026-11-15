@@ -2098,8 +2098,9 @@ export function mountFrogGame(stage, opts = {}) {
         // (and a slash that has already cut other fruit pays more for each one after the first)
         const chain = cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
         if (cut && f.fam.cuts === 0) cut.hits = chain + 1;
-        // three whole fruit in one strike: one stamina bar back, there and then
-        if (cut && f.fam.cuts === 0 && cut.hits === 3 && cut !== markCut && cut !== warpCut && !(summon && cut === summon.cutId) && sakeLeft <= 0 && stamina < STAMINA_BARS) {
+        // three whole fruit in one strike of the plain sword (no boost on it): one stamina bar back,
+        // there and then. Once a strike: a sixth or ninth fruit gives nothing more.
+        if (cut && f.fam.cuts === 0 && cut.hits === 3 && !fxOn() && cut !== markCut && cut !== warpCut && !(summon && cut === summon.cutId) && sakeLeft <= 0 && stamina < STAMINA_BARS) {
             stamina = Math.min(STAMINA_BARS, stamina + 1); snd('resume'); log('refund');
             floats.push({ x: f.x, y: f.y - f.r - 26, text: '+1 slash', t: 0, hot: true });
         }

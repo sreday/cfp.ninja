@@ -47,7 +47,8 @@ file is the source of truth, this document explains the intent.
    something sensible and readable (breath meets crate: it bursts; clock meets power-up: it
    can be marked). "Nothing happens" is a bug unless written down here as intended.
 4. **One slash, one price.** A slash costs one stamina bar once it is long enough to count.
-   Cutting three whole fruit in one slash gives a bar back at once.
+   Cutting three whole fruit in one slash of the plain sword (no boost on it) gives one bar
+   back at once; only one, however many more that slash cuts.
    Jitter and tiny moves are free.
 5. **Readable at speed.** However wild the effects, the player must always be able to tell
    fruit from power-up from debris, and see where the blade is.
