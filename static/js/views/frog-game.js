@@ -1156,7 +1156,9 @@ export function mountFrogGame(stage, opts = {}) {
         const loll = stage.classList.contains('fg-drunk') ? Math.sin(performance.now() / 290) * 9 + Math.sin(performance.now() / 131) * 3 : 0;
         // the head leads the turn (it goes further than the body); the bandana tails stream out behind it
         const hx = (pose.up > 0.5 ? pose.face : 0) * 150;
-        setA(el.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)`);
+        // (breathing fire straight up: the head is thrown back, so we see it from below, foreshortened)
+        const back = pose.headUp ? ' translate(0 -70) translate(0 780) scale(1.04 0.66) translate(0 -780)' : '';
+        setA(el.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} 993 700)` + back);
         setA(el.tail, 'transform', `translate(${n2(hx - (pose.up > 0.5 ? pose.face : 0) * 60)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
         setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
         setA(el.pupils, 'transform', `translate(${n2(clamp(pose.lookX + (pose.up > 0.5 ? pose.face : 0) * 34, -46, 46))} ${n2(pose.lookY)})`);
@@ -2181,7 +2183,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (pose.side < 0) x = 1986 - x;
             return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * y / 1876 - pose.sHop * fbox.h / 1876 };
         }
-        return frogPoint(993, MOUTH_Y);
+        return pose.headUp ? frogPoint(993, 250) : frogPoint(993, MOUTH_Y);     // head back: the flame leaves over the top of it
     }
     // aimed at its own head: the frog turns to us and breathes straight out of the screen
     const fireAtUs = () => { if (!aim) return false; const h = frogPoint(993, 420); return Math.hypot(aim.x - h.x, aim.y - h.y) < fbox.w * 0.17; };     // only when aimed right at its face
@@ -3286,7 +3288,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.bob = Math.sin(idleT * 3) * 1.5;
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
-            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0; pose.sTurn = 1;
+            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0; pose.sTurn = 1; pose.headUp = false;
             // breathing fire, the katanas are stuck in the post at its sides, out of the way
             pose.stuck = fireLeft > 0 && phase === 'play'; breathT = pose.stuck ? breathT + dt : 0;
             // at rest it half-turns toward the cursor
@@ -3300,6 +3302,10 @@ export function mountFrogGame(stage, opts = {}) {
                     // straight at the camera: facing us, head thrown back a little, arms spread, blades down
                     pose.side = 0; pose.face = 0; pose.squash = -0.3 + Math.sin(idleT * 30) * 0.05;
                     pose.lRot = 55; pose.rRot = -55; pose.lK = 215; pose.rK = -215; pose.lookY = 0; pose.tilt = Math.sin(idleT * 30) * 1.5;
+                } else if (Math.abs(aim.x - W / 2) < fbox.w * 0.3 && aim.y < frogPoint(993, 60).y) {
+                    // straight up: facing us, the head thrown all the way back, fists down at its sides
+                    pose.side = 0; pose.face = 0; pose.headUp = true; pose.squash = -0.5 + Math.sin(idleT * 30) * 0.05;
+                    pose.lRot = 20; pose.rRot = -20; pose.lK = 200; pose.rK = -200; pose.lookY = -40; pose.tilt = Math.sin(idleT * 30) * 1.5;
                 } else {
                 const m0 = frogPoint(993, 300), dx = aim.x - W / 2, dy = aim.y - m0.y, d = Math.hypot(dx, dy) || 1;
                 const cy = dy / d, th = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
