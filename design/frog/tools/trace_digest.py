@@ -47,7 +47,9 @@ def check(run):
             out.append(("malformed event", e))
             continue
         t, what = e[0], e[1]
-        if what in ("bug", "err"):
+        if what == "crash":
+            out.append(("LEADING TO GAME CRASH", e))
+        elif what in ("bug", "err"):
             out.append((what, e))
         elif what == "s" and len(e) >= 8:
             fruit, pieces, _, stamina, time_left, frames = e[2:8]
@@ -104,7 +106,10 @@ def main():
         print(f"no runs after id {a.after}")
         return 0
 
-    real = [r for r in runs if r.get("input") != "debug"]
+    crashed = [r for r in runs if r.get("input") == "crash"]
+    if crashed:
+        print(f"LEADING TO GAME CRASH: {len(crashed)} run(s), trace ids {', '.join(str(r['id']) for r in crashed[:20])}")
+    real = [r for r in runs if r.get("input") not in ("debug", "crash")]
     print(f"runs: {len(runs)} (real {len(real)}, debug {len(runs) - len(real)}), "
           f"ids {runs[0]['id']}..{runs[-1]['id']}, last id {runs[-1]['id']}")
     if real:

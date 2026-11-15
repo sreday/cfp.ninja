@@ -1075,6 +1075,17 @@ export function mountFrogGame(stage, opts = {}) {
         if (markQueue.length > 200) log('bug', 'mark-queue', markQueue.length);
     }
     function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
+    // The game broke (an error inside a frame). The run's log is tagged and sent at once, so the
+    // recording that led to it can be found; then the game tries to carry on.
+    let crashes = 0;
+    function crashed(err) {
+        crashes++;
+        const msg = String((err && (err.stack || err.message)) || err).split('\n').slice(0, 3).join(' | ').slice(0, 300);
+        log('crash', msg);
+        if (crashes === 1 && opts.onTrace && trace.length) {
+            opts.onTrace({ score: Math.round(clockT * 1000), duration_ms: Math.min(Math.round(performance.now() - traceT0), 6 * 3600 * 1000), input: 'crash', signals: sig, events: trace });
+        }
+    }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false, bladeLook = '';
     // Sprites. A whole fruit looks the same every frame, and so does a cut piece, so each is
@@ -1137,6 +1148,19 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // where the bowls stand: a pyramid on each side of the post, three on the sand and two on
     // top of them. Filled from the frog outwards, the two sides in turn, the bottom rows first.
+    // ten glazes: indigo and white, celadon, iron red, white and blue, black and vermilion...
+    const BOWL_GLAZES = [
+        { body: '#27408b', mark: '#e8eef7', rim: '#e8eef7', foot: '#d8d2c4', pattern: 'waves' },
+        { body: '#f3efe4', mark: '#27408b', rim: '#27408b', foot: '#d8d2c4', pattern: 'stripes' },
+        { body: '#8fb8a0', mark: '#5f8f78', rim: '#3d6b56', foot: '#c9c2b0', pattern: 'drip' },
+        { body: '#1d1d1f', mark: '#c0392b', rim: '#c0392b', foot: '#3a3a3c', pattern: 'band' },
+        { body: '#b5442c', mark: '#f0d9b5', rim: '#2b1a14', foot: '#6b4a3a', pattern: 'dots' },
+        { body: '#e9e4d6', mark: '#3d6b56', rim: '#3d6b56', foot: '#c9c2b0', pattern: 'waves' },
+        { body: '#3a6ea5', mark: '#f3efe4', rim: '#f3efe4', foot: '#d8d2c4', pattern: 'dots' },
+        { body: '#6b4a3a', mark: '#d9b98a', rim: '#d9b98a', foot: '#4a3226', pattern: 'drip' },
+        { body: '#f3efe4', mark: '#b5442c', rim: '#b5442c', foot: '#d8d2c4', pattern: 'band' },
+        { body: '#2f4f4f', mark: '#cfe3da', rim: '#cfe3da', foot: '#243b3b', pattern: 'stripes' }
+    ];
     const BOWL_SLOTS = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];     // [column, row]
     function drawSalad(lw, tn) {
         const n = Math.ceil(salad.length / BOWL_HOLDS);
@@ -1166,10 +1190,37 @@ export function mountFrogGame(stage, opts = {}) {
                 if (ch.g) { ctx.strokeStyle = '#2b2420'; ctx.lineWidth = 1; [-0.3, 0.2].forEach(o => { ctx.beginPath(); ctx.moveTo(r * o - r * 0.2, r * 0.2); ctx.lineTo(r * o + r * 0.2, -r * 0.4); ctx.stroke(); }); }   // grill marks
                 ctx.restore();
             });
-            // the bowl in front of it
-            ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.quadraticCurveTo(-bw * 0.42, bh, 0, bh); ctx.quadraticCurveTo(bw * 0.42, bh, bw / 2, 0); ctx.closePath();
-            ctx.fillStyle = '#eceff1'; ctx.fill(); ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(-bw * 0.3, bh * 0.45); ctx.quadraticCurveTo(0, bh * 0.7, bw * 0.3, bh * 0.45); ctx.lineWidth = Math.max(1.5, bh * 0.1); ctx.strokeStyle = '#a3211d'; ctx.stroke();   // a red band
+            // the bowl in front of it: Japanese ceramics, each a different glaze and pattern
+            const G = BOWL_GLAZES[b % BOWL_GLAZES.length];
+            const bowlPath = () => { ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); ctx.lineTo(bw * 0.16, bh * 0.86); ctx.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); ctx.closePath(); };
+            // the foot ring it stands on
+            ctx.fillStyle = G.foot; ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round';
+            ctx.beginPath(); ctx.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.2); ctx.fill(); ctx.stroke();
+            bowlPath(); ctx.fillStyle = G.body; ctx.fill();
+            ctx.save(); bowlPath(); ctx.clip();
+            ctx.strokeStyle = G.mark; ctx.fillStyle = G.mark; ctx.lineWidth = Math.max(1.2, bh * 0.05);
+            if (G.pattern === 'waves') {            // seigaiha: rows of overlapping arcs
+                for (let r = 0; r < 3; r++) for (let c = -3; c <= 3; c++) {
+                    const wx = (c + (r % 2 ? 0.5 : 0)) * bw * 0.2, wy = bh * (0.38 + r * 0.24);
+                    [0.1, 0.065, 0.03].forEach(k => { ctx.beginPath(); ctx.arc(wx, wy, bw * k, Math.PI, 0); ctx.stroke(); });
+                }
+            } else if (G.pattern === 'stripes') {   // tokusa: fine vertical stripes
+                for (let c = -6; c <= 6; c++) { ctx.beginPath(); ctx.moveTo(c * bw * 0.08, 0); ctx.lineTo(c * bw * 0.05, bh); ctx.stroke(); }
+            } else if (G.pattern === 'dots') {      // mizutama: dots
+                for (let r = 0; r < 3; r++) for (let c = -3; c <= 3; c++) { ctx.beginPath(); ctx.arc((c + (r % 2 ? 0.5 : 0)) * bw * 0.16, bh * (0.22 + r * 0.24), bw * 0.028, 0, 7); ctx.fill(); }
+            } else if (G.pattern === 'drip') {      // a second glaze running down from the rim
+                ctx.beginPath(); ctx.moveTo(-bw / 2, 0);
+                for (let c = -4; c <= 4; c++) ctx.quadraticCurveTo((c - 0.5) * bw * 0.12, bh * (0.3 + ((c * 7 + b) % 3) * 0.12), c * bw * 0.12 + bw * 0.06, bh * 0.2);
+                ctx.lineTo(bw / 2, 0); ctx.closePath(); ctx.fill();
+            } else if (G.pattern === 'band') {      // a brushed band and a single line
+                ctx.fillRect(-bw / 2, bh * 0.3, bw, bh * 0.2); ctx.beginPath(); ctx.moveTo(-bw / 2, bh * 0.62); ctx.lineTo(bw / 2, bh * 0.62); ctx.stroke();
+            }
+            // a soft highlight down one side: glazed, not flat
+            ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.beginPath(); ctx.ellipse(-bw * 0.28, bh * 0.4, bw * 0.06, bh * 0.3, 0.35, 0, 7); ctx.fill();
+            ctx.restore();
+            bowlPath(); ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.stroke();
+            // the rim, in its own colour
+            ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.lineTo(bw / 2, 0); ctx.lineWidth = Math.max(2, bh * 0.1); ctx.strokeStyle = G.rim; ctx.stroke();
             ctx.restore();
         });
     }
@@ -1422,7 +1473,7 @@ export function mountFrogGame(stage, opts = {}) {
         const a = Math.round(Math.atan2(dy, dx) / (Math.PI * 2 / DIRS)) * (Math.PI * 2 / DIRS);
         // the arm on the side the blade is working does the cutting
         const side = x < W / 2 ? 'L' : 'R';
-        const near = Math.abs(x - W / 2) < Math.max(fbox.w * 0.9, W * 0.16);       // close to the frog: a three-quarter turn
+        const near = Math.abs(x - W / 2) < fbox.w * 0.5;       // close to the frog: a three-quarter turn
         const high = y !== undefined && y < frogPoint(993, 60).y;                  // above its head: it has to jump for it
         const over = high && Math.sin(a) <= 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
         if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
@@ -1797,6 +1848,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         for (let i = pickups.length - 1; i >= 0; i--) {
             const b = pickups[i];
+            if (!b) continue;                                    // a blast set off by this stroke may have taken others with it
             if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15) { if (b.kind === 'fireworks') spared++; breakPickup(pickups.splice(i, 1)[0], ang); }
         }
         const lost = wrecked - flies.length - pickups.length - spared;
@@ -1947,7 +1999,9 @@ export function mountFrogGame(stage, opts = {}) {
         // that stays in the flame for BURN_TIME goes up like a fruit and pays like a burned apple.
         const burnExtras = (list, rad) => {
             for (let i = list.length - 1; i >= 0; i--) {
-                const b = list[i], r = rad(b);
+                const b = list[i];
+                if (!b) continue;
+                const r = rad(b);
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
                 // a clock-fed breath hacks what it touches instead of burning it (fireworks excepted: they just go off)
                 if (fireSlow && on && b.kind !== 'fireworks' && inFlame(b.x, b.y, r)) { if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); feedFire(b, list === flies); b.hackFor = hackFor(); } continue; }
@@ -2536,10 +2590,10 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (sparks.length > 900) sparks.splice(0, sparks.length - 900);
         if (phase !== 'play') return;
-        for (let i = pickups.length - 1; i >= 0; i--) {
-            const b = pickups[i];
-            if (b.kind === 'fireworks' && Math.hypot(b.x - x, b.y - y) < R + b.r) { pickups.splice(i, 1); breakPickup(b, 0); }
-        }
+        // (taken out of the list first, all of them, and only then set off: setting one off
+        // reaches the next, and the list must not change under this loop)
+        const chain = pickups.filter(b => b.kind === 'fireworks' && Math.hypot(b.x - x, b.y - y) < R + b.r);
+        if (chain.length) { pickups = pickups.filter(b => !chain.includes(b)); chain.forEach(b => breakPickup(b, 0)); }
         srcHint = 'fireworks';
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
@@ -2837,7 +2891,14 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- loop ----------
     let raf = 0, last = performance.now(), idleT = 0, dead = false;
+    // every frame runs inside a net: an error is reported (crashed) and the next frame still comes
     function frame(now) {
+        if (dead) return;
+        try { frameBody(now); }
+        catch (err) { crashed(err); if (crashes > 30) { dead = true; return; } }
+        if (!dead) raf = requestAnimationFrame(frame);
+    }
+    function frameBody(now) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
@@ -2864,7 +2925,7 @@ export function mountFrogGame(stage, opts = {}) {
                 // aim, the blades held back out of the way
                 const m0 = frogPoint(993, 300), dx = aim.x - W / 2, dy = aim.y - m0.y, d = Math.hypot(dx, dy) || 1;
                 const cy = dy / d, th = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
-                pose.side = dx < 0 ? -1 : 1; pose.sQ = Math.abs(dx) < Math.max(fbox.w * 0.9, W * 0.16); pose.sHop = 0;
+                pose.side = dx < 0 ? -1 : 1; pose.sQ = Math.abs(dx) < fbox.w * 0.5; pose.sHop = 0;
                 pose.sLegs = cy > 0.5 ? 'down' : 'level'; pose.sDrop = cy > 0.5 ? 100 : 0;
                 pose.sRot = clamp(th * 0.55, -40, 40) * (pose.sQ ? 0.7 : 1) + Math.sin(idleT * 30) * 1.2;      // the head points along the flame, shaking with it
                 pose.sF = { rot: 150 - pose.sRot, k: 330 - pose.sRot, stretch: 1.1 };
@@ -3166,7 +3227,6 @@ export function mountFrogGame(stage, opts = {}) {
         }
 
         draw(tn);
-        raf = requestAnimationFrame(frame);
     }
 
     // one fruit image smeared back along its flight: faint copies first, the sharpest one last
