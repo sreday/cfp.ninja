@@ -400,6 +400,12 @@ export function createAudio() {
     let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0;
     const lastAt = {}, samples = {}, loops = {};
     const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });
+    // On a phone, say what this sound is. Left alone, iOS treats a web page's synthesised sound
+    // like a ringtone: silent whenever the ring switch is off, whatever the volume buttons say.
+    // The player turned the sound on on purpose, so it is media, like a video: it plays at the
+    // phone's media volume and the volume buttons control it. Off again, the page goes back to
+    // being quiet in the background.
+    const session = playing => { try { if (navigator.audioSession) navigator.audioSession.type = playing ? 'playback' : 'auto'; } catch (e) { /* not supported: nothing to do */ } };
     function ensure() {
         if (!ctx) {
             const AC = window.AudioContext || window.webkitAudioContext;
@@ -417,7 +423,8 @@ export function createAudio() {
             sfxBus.connect(lp); lp.connect(wet); lp.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(comp);
             musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(comp);
         }
-        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        // (an iPhone leaves the context 'interrupted' after a call or a lock: that needs resuming too)
+        if (ctx.state !== 'running') ctx.resume().catch(() => {});
         return true;
     }
     function tick() {
@@ -440,6 +447,7 @@ export function createAudio() {
         // call from a click or a tap (browsers only let sound start from one)
         setOn(v) {
             on = !!v;
+            session(on);
             if (on) {
                 if (!ensure()) { on = false; return false; }
                 barNo = 0; nextBar = 0;
@@ -479,6 +487,8 @@ export function createAudio() {
         },
         // the tab went away or came back
         pause(hidden) { if (!ctx) return; if (hidden) ctx.suspend().catch(() => {}); else if (on) ctx.resume().catch(() => {}); },
+        // a touch while the sound is on: wake it if the phone put it to sleep (a call, the lock screen)
+        wake() { if (on && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); },
         destroy() { clearInterval(timer); on = false; if (ctx) ctx.close().catch(() => {}); ctx = null; }
     };
 }

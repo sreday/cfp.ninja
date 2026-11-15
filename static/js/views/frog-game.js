@@ -3324,6 +3324,7 @@ export function mountFrogGame(stage, opts = {}) {
             store.set(SOUND_KEY, on ? 1 : 0); show(on);
             if (on) snd('ui');
         });
+        window.addEventListener('pointerdown', () => audio.wake(), true);
         // it was on last time: browsers only start sound from a click or a tap, so wait for the first one
         if (store.get(SOUND_KEY) === 1) {
             show(true);

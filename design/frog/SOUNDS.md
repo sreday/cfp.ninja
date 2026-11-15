@@ -14,6 +14,9 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 
 - Off by default. The megaphone pill (top right, crossed out when off) turns it on; the
   choice is remembered on that device.
+- On a phone the sound counts as media (like a video), set when it is turned on: it plays at
+  the phone's media volume, the volume buttons control it, and the ring/silent switch does not
+  mute it. After a call or the lock screen it wakes on the next touch.
 - No volume control: the level is the device's own. On phones the hardware volume buttons
   and the silent switch apply.
 - Sound pauses when the tab is hidden.
