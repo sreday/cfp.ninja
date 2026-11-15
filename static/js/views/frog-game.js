@@ -1424,8 +1424,9 @@ export function mountFrogGame(stage, opts = {}) {
         const side = x < W / 2 ? 'L' : 'R';
         const near = Math.abs(x - W / 2) < Math.max(fbox.w * 0.9, W * 0.16);       // close to the frog: a three-quarter turn
         const high = y !== undefined && y < frogPoint(993, 60).y;                  // above its head: it has to jump for it
-        if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; return; }      // still the same stroke
-        swing = { a, side, t: 0, live: true, near, high };
+        const over = high && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
+        if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
+        swing = { a, side, t: 0, live: true, near, high, over };
     }
     function stepSwing(dt) {
         if (!swing) return;
@@ -1437,6 +1438,20 @@ export function mountFrogGame(stage, opts = {}) {
         const s = swing, deg = s.a * 180 / Math.PI, cx = Math.cos(s.a), cy = Math.sin(s.a);
         const settling = !s.live && s.t > (s.end || 0) + HOLD;
         const k = settling ? 0.35 : 1;                               // one in-between on the way back to ready
+        if (s.over && !settling) {
+            // A cut straight overhead is made with both katanas, facing us: the arms thrown up,
+            // the blades crossed above the head for the instant of the cut, then swept apart and
+            // held, the frog off its feet for a moment.
+            const smear = s.t < SMEAR, air = Math.sin(clamp(s.t / 0.34, 0, 1) * Math.PI);
+            pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
+            pose.lRot = 160; pose.rRot = -160;
+            pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
+            pose.lK = smear ? 28 : -58; pose.rK = smear ? -28 : 58;
+            pose.bob -= 26 * air;                                     // the jump
+            pose.squash = smear ? -0.7 : -0.25;
+            pose.tilt = 0; pose.lookY = -22;
+            return;
+        }
         const lead = s.side === 'L' ? 'l' : 'r', off = s.side === 'L' ? 'r' : 'l';
         // the leading arm thrown out along the heading, blade in line with it; the other arm swept back for balance
         pose[lead + 'Rot'] = lerp(READY[lead], deg - 90, k);
