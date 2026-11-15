@@ -820,7 +820,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-bowl">Add bowl</button></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -998,7 +998,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (sideOn) {
             setA(el.side, 'transform', pose.side < 0 ? `translate(1986 ${n2(-pose.sHop)}) scale(-1 1)` : `translate(0 ${n2(-pose.sHop)})`);
             // three-quarter (45 degrees) for cuts close to the frog, full profile (90) for the far ones
-            setA(el.headP, 'opacity', pose.sQ ? 0 : 1); setA(el.headQ, 'opacity', pose.sQ ? 1 : 0);
+            // The body here is drawn side-on, so the head is always the profile one (one eye). A two-eyed
+            // head on a side-on body reads as a mistake; close cuts are told apart by the narrower
+            // stance and the gentler lean instead.
+            setA(el.headP, 'opacity', 1); setA(el.headQ, 'opacity', 0);
             setA(el.sideLegs, 'transform', pose.sQ ? 'translate(1000 0) scale(0.86 1) translate(-1000 0)' : '');
             for (const k in el.sLegs) setA(el.sLegs[k], 'opacity', k === pose.sLegs ? 1 : 0);
             const hipY = 900 + pose.sDrop;
@@ -1100,7 +1103,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     window.addEventListener('error', onErr); window.addEventListener('unhandledrejection', onErr);
     let lowBeat = 0, wasDrunk = false, bladeLook = '';
-    let fireTap = 0;
+    let fireTap = 0, dbgBusy = false;
     // Sprites. A whole fruit looks the same every frame, and so does a cut piece, so each is
     // painted once on its own small canvas and then stamped (turned, scaled) wherever it is.
     // Same pixels as before; a fraction of the work when the screen is full of pieces.
@@ -1160,13 +1163,12 @@ export function mountFrogGame(stage, opts = {}) {
     // The fruit salad: everything that gets cut, grilled or blown apart lands in bowls stacked
     // around the frog. A bowl takes BOWL_HOLDS pieces to fill; there are BOWLS of them. Filling
     // them all is cosmetic, and meant to be something only the very best runs manage.
-    const BOWLS = 10, BOWL_HOLDS = 60, BOWL_SHOWN = 14;
+    const BOWLS = 50, BOWL_HOLDS = 60, BOWL_SHOWN = 14;
     let salad = [];                                            // { c: flesh colour, k: skin colour, g: grilled }
     function addToSalad(type, grilled) {
         if (salad.length < BOWLS * BOWL_HOLDS) salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() });
     }
-    // where the bowls stand: a pyramid on each side of the post, three on the sand and two on
-    // top of them. Filled from the frog outwards, the two sides in turn, the bottom rows first.
+    // where the bowls stand: a pyramid on each side of the post. Filled from the frog outwards, the two sides in turn, the bottom rows first.
     // ten glazes: indigo and white, celadon, iron red, white and blue, black and vermilion...
     const BOWL_GLAZES = [
         { body: '#27408b', mark: '#e8eef7', rim: '#e8eef7', foot: '#d8d2c4', pattern: 'waves' },
@@ -1180,37 +1182,38 @@ export function mountFrogGame(stage, opts = {}) {
         { body: '#f3efe4', mark: '#b5442c', rim: '#b5442c', foot: '#d8d2c4', pattern: 'band' },
         { body: '#2f4f4f', mark: '#cfe3da', rim: '#cfe3da', foot: '#243b3b', pattern: 'stripes' }
     ];
-    const BOWL_SLOTS = [[0, 0], [1, 0], [2, 0], [0.5, 1], [1.5, 1]];     // [column, row]
+    // 25 a side: rows of 7, 6, 5, 4 and 3, each row standing on the one below
+    const BOWL_SLOTS = [];
+    for (let r = 0; r < 5; r++) for (let cI = 0; cI < 7 - r; cI++) BOWL_SLOTS.push([cI + r * 0.5, r]);
+    // where bowl b stands, and how big bowls are
+    function bowlGeo() {
+        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / 7.5, 20, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
+        return { bw, bh, at: b => { const [col, row] = BOWL_SLOTS[Math.floor(b / 2)], sd = b % 2 ? 1 : -1; return [W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), base - row * bh * 0.86]; } };
+    }
+    // The bowls are painted on their own canvas and only repainted when the salad changes (or
+    // something in it is still dropping in); every frame just stamps that picture, and draws the steam.
+    const saladCv = document.createElement('canvas'), saladCtx = saladCv.getContext('2d');
+    let saladKey = '';
     function drawSalad(lw, tn) {
         const n = Math.ceil(salad.length / BOWL_HOLDS);
-        if (!n) return;
-        const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / 3.5, 34, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
-        // back to front: the top row is drawn after the row it stands on
-        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => BOWL_SLOTS[Math.floor(a / 2)][1] - BOWL_SLOTS[Math.floor(b / 2)][1]);
-        order.forEach(b => {
-            const [col, row] = BOWL_SLOTS[Math.floor(b / 2)], sd = b % 2 ? 1 : -1;
-            const x = W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), y = base - row * bh * 0.86;
+        if (!n) { saladKey = ''; return; }
+        const last = salad[salad.length - 1], moving = tn - last.t < 300 || tn - salad[(n - 1) * BOWL_HOLDS].t < 300;
+        const key = salad.length + '|' + W + '|' + H + '|' + dpr + '|' + (dbg ? 1 : 0);
+        if (moving || key !== saladKey) {
+            saladKey = moving ? '' : key;
+            if (saladCv.width !== canvas.width || saladCv.height !== canvas.height) { saladCv.width = canvas.width; saladCv.height = canvas.height; }
+            saladCtx.setTransform(1, 0, 0, 1, 0, 0); saladCtx.clearRect(0, 0, saladCv.width, saladCv.height); saladCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            renderSalad(saladCtx, lw, tn);
+        }
+        ctx.drawImage(saladCv, 0, 0, W, H);
+        // steam, live, over the bowls that are more than half grilled
+        const { bw, bh, at } = bowlGeo();
+        for (let b = 0; b < n; b++) {
             const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
-            // the heap shows up to BOWL_SHOWN pieces, more of them as the bowl fills, picked across what went in
-            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * BOWL_SHOWN));
-            const chunks = Array.from({ length: shown }, (_, i) => mine[Math.min(mine.length - 1, Math.floor(i * mine.length / shown))]);
-            const pop = clamp((tn - mine[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
-            ctx.save(); ctx.translate(x, y); ctx.scale(sc, sc);
-            // the heap of fruit, back to front
-            chunks.forEach((ch, i) => {
-                const row = i < 5 ? 0 : i < 10 ? 1 : 2, col = i - (row === 0 ? 0 : row === 1 ? 5 : 10), per = row === 2 ? 4 : 5;
-                const cx = (col - (per - 1) / 2) * bw * 0.16 + (row % 2 ? bw * 0.04 : 0), cy = -bh * 0.08 - row * bh * 0.3, r = bw * 0.11;
-                const land = i === chunks.length - 1 ? clamp((tn - mine[mine.length - 1].t) / 160, 0, 1) : 1;      // the newest piece drops in
-                ctx.save(); ctx.translate(cx, cy - (1 - land) * bh * 0.8); ctx.rotate(i * 1.3);
-                ctx.beginPath(); ctx.moveTo(-r, r * 0.5); ctx.quadraticCurveTo(0, -r * 1.5, r, r * 0.5); ctx.closePath();     // a wedge
-                ctx.fillStyle = ch.g ? '#6d5a48' : ch.c; ctx.fill();
-                ctx.lineWidth = Math.max(1, lw * 0.5); ctx.strokeStyle = C.ink; ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-r, r * 0.5); ctx.lineTo(r, r * 0.5); ctx.lineWidth = Math.max(1.5, r * 0.3); ctx.strokeStyle = ch.g ? '#2b2420' : ch.k; ctx.stroke();   // its skin
-                if (ch.g) { ctx.strokeStyle = '#2b2420'; ctx.lineWidth = 1; [-0.3, 0.2].forEach(o => { ctx.beginPath(); ctx.moveTo(r * o - r * 0.2, r * 0.2); ctx.lineTo(r * o + r * 0.2, -r * 0.4); ctx.stroke(); }); }   // grill marks
-                ctx.restore();
-            });
-            // more than half of it grilled: the bowl steams
-            if (mine.filter(ch => ch.g).length * 2 > mine.length) {
+            if (mine.filter(ch => ch.g).length * 2 <= mine.length) continue;
+            const [x, y] = at(b);
+            ctx.save(); ctx.translate(x, y);
+            {
                 ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = Math.max(1.5, bw * 0.035); ctx.lineCap = 'round';
                 [-0.22, 0, 0.22].forEach((o, i) => {
                     const ph = tn / 520 + i * 2.1, rise = (tn / 1400 + i * 0.33) % 1;
@@ -1221,38 +1224,67 @@ export function mountFrogGame(stage, opts = {}) {
                 });
                 ctx.restore();
             }
+            ctx.restore();
+        }
+    }
+    function renderSalad(K, lw, tn) {
+        const n = Math.ceil(salad.length / BOWL_HOLDS);
+        const { bw, bh, at } = bowlGeo();
+        // back to front: the top row is drawn after the row it stands on
+        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => BOWL_SLOTS[Math.floor(a / 2)][1] - BOWL_SLOTS[Math.floor(b / 2)][1]);
+        order.forEach(b => {
+            const [x, y] = at(b);
+            const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
+            // the heap shows up to BOWL_SHOWN pieces, more of them as the bowl fills, picked across what went in
+            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * BOWL_SHOWN));
+            const chunks = Array.from({ length: shown }, (_, i) => mine[Math.min(mine.length - 1, Math.floor(i * mine.length / shown))]);
+            const pop = clamp((tn - mine[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
+            K.save(); K.translate(x, y); K.scale(sc, sc);
+            // the heap of fruit, back to front
+            chunks.forEach((ch, i) => {
+                const row = i < 5 ? 0 : i < 10 ? 1 : 2, col = i - (row === 0 ? 0 : row === 1 ? 5 : 10), per = row === 2 ? 4 : 5;
+                const cx = (col - (per - 1) / 2) * bw * 0.16 + (row % 2 ? bw * 0.04 : 0), cy = -bh * 0.08 - row * bh * 0.3, r = bw * 0.11;
+                const land = i === chunks.length - 1 ? clamp((tn - mine[mine.length - 1].t) / 160, 0, 1) : 1;      // the newest piece drops in
+                K.save(); K.translate(cx, cy - (1 - land) * bh * 0.8); K.rotate(i * 1.3);
+                K.beginPath(); K.moveTo(-r, r * 0.5); K.quadraticCurveTo(0, -r * 1.5, r, r * 0.5); K.closePath();     // a wedge
+                K.fillStyle = ch.g ? '#6d5a48' : ch.c; K.fill();
+                K.lineWidth = Math.max(1, lw * 0.5); K.strokeStyle = C.ink; K.stroke();
+                K.beginPath(); K.moveTo(-r, r * 0.5); K.lineTo(r, r * 0.5); K.lineWidth = Math.max(1.5, r * 0.3); K.strokeStyle = ch.g ? '#2b2420' : ch.k; K.stroke();   // its skin
+                if (ch.g) { K.strokeStyle = '#2b2420'; K.lineWidth = 1; [-0.3, 0.2].forEach(o => { K.beginPath(); K.moveTo(r * o - r * 0.2, r * 0.2); K.lineTo(r * o + r * 0.2, -r * 0.4); K.stroke(); }); }   // grill marks
+                K.restore();
+            });
             // the bowl in front of it: Japanese ceramics, each a different glaze and pattern
             const G = BOWL_GLAZES[b % BOWL_GLAZES.length];
-            const bowlPath = () => { ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); ctx.lineTo(bw * 0.16, bh * 0.86); ctx.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); ctx.closePath(); };
+            const bowlPath = () => { K.beginPath(); K.moveTo(-bw / 2, 0); K.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); K.lineTo(bw * 0.16, bh * 0.86); K.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); K.closePath(); };
             // the foot ring it stands on
-            ctx.fillStyle = G.foot; ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round';
-            ctx.beginPath(); ctx.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.2); ctx.fill(); ctx.stroke();
-            bowlPath(); ctx.fillStyle = G.body; ctx.fill();
-            ctx.save(); bowlPath(); ctx.clip();
-            ctx.strokeStyle = G.mark; ctx.fillStyle = G.mark; ctx.lineWidth = Math.max(1.2, bh * 0.05);
+            K.fillStyle = G.foot; K.lineWidth = lw * 0.8; K.strokeStyle = C.ink; K.lineJoin = 'round';
+            K.beginPath(); K.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.2); K.fill(); K.stroke();
+            bowlPath(); K.fillStyle = G.body; K.fill();
+            K.save(); bowlPath(); K.clip();
+            K.strokeStyle = G.mark; K.fillStyle = G.mark; K.lineWidth = Math.max(1.2, bh * 0.05);
             if (G.pattern === 'waves') {            // seigaiha: rows of overlapping arcs
                 for (let r = 0; r < 3; r++) for (let c = -3; c <= 3; c++) {
                     const wx = (c + (r % 2 ? 0.5 : 0)) * bw * 0.2, wy = bh * (0.38 + r * 0.24);
-                    [0.1, 0.065, 0.03].forEach(k => { ctx.beginPath(); ctx.arc(wx, wy, bw * k, Math.PI, 0); ctx.stroke(); });
+                    [0.1, 0.065, 0.03].forEach(k => { K.beginPath(); K.arc(wx, wy, bw * k, Math.PI, 0); K.stroke(); });
                 }
             } else if (G.pattern === 'stripes') {   // tokusa: fine vertical stripes
-                for (let c = -6; c <= 6; c++) { ctx.beginPath(); ctx.moveTo(c * bw * 0.08, 0); ctx.lineTo(c * bw * 0.05, bh); ctx.stroke(); }
+                for (let c = -6; c <= 6; c++) { K.beginPath(); K.moveTo(c * bw * 0.08, 0); K.lineTo(c * bw * 0.05, bh); K.stroke(); }
             } else if (G.pattern === 'dots') {      // mizutama: dots
-                for (let r = 0; r < 3; r++) for (let c = -3; c <= 3; c++) { ctx.beginPath(); ctx.arc((c + (r % 2 ? 0.5 : 0)) * bw * 0.16, bh * (0.22 + r * 0.24), bw * 0.028, 0, 7); ctx.fill(); }
+                for (let r = 0; r < 3; r++) for (let c = -3; c <= 3; c++) { K.beginPath(); K.arc((c + (r % 2 ? 0.5 : 0)) * bw * 0.16, bh * (0.22 + r * 0.24), bw * 0.028, 0, 7); K.fill(); }
             } else if (G.pattern === 'drip') {      // a second glaze running down from the rim
-                ctx.beginPath(); ctx.moveTo(-bw / 2, 0);
-                for (let c = -4; c <= 4; c++) ctx.quadraticCurveTo((c - 0.5) * bw * 0.12, bh * (0.3 + ((c * 7 + b) % 3) * 0.12), c * bw * 0.12 + bw * 0.06, bh * 0.2);
-                ctx.lineTo(bw / 2, 0); ctx.closePath(); ctx.fill();
+                K.beginPath(); K.moveTo(-bw / 2, 0);
+                for (let c = -4; c <= 4; c++) K.quadraticCurveTo((c - 0.5) * bw * 0.12, bh * (0.3 + ((c * 7 + b) % 3) * 0.12), c * bw * 0.12 + bw * 0.06, bh * 0.2);
+                K.lineTo(bw / 2, 0); K.closePath(); K.fill();
             } else if (G.pattern === 'band') {      // a brushed band and a single line
-                ctx.fillRect(-bw / 2, bh * 0.3, bw, bh * 0.2); ctx.beginPath(); ctx.moveTo(-bw / 2, bh * 0.62); ctx.lineTo(bw / 2, bh * 0.62); ctx.stroke();
+                K.fillRect(-bw / 2, bh * 0.3, bw, bh * 0.2); K.beginPath(); K.moveTo(-bw / 2, bh * 0.62); K.lineTo(bw / 2, bh * 0.62); K.stroke();
             }
             // a soft highlight down one side: glazed, not flat
-            ctx.fillStyle = 'rgba(255,255,255,.16)'; ctx.beginPath(); ctx.ellipse(-bw * 0.28, bh * 0.4, bw * 0.06, bh * 0.3, 0.35, 0, 7); ctx.fill();
-            ctx.restore();
-            bowlPath(); ctx.lineWidth = lw * 0.8; ctx.strokeStyle = C.ink; ctx.stroke();
+            K.fillStyle = 'rgba(255,255,255,.16)'; K.beginPath(); K.ellipse(-bw * 0.28, bh * 0.4, bw * 0.06, bh * 0.3, 0.35, 0, 7); K.fill();
+            K.restore();
+            bowlPath(); K.lineWidth = lw * 0.8; K.strokeStyle = C.ink; K.stroke();
             // the rim, in its own colour
-            ctx.beginPath(); ctx.moveTo(-bw / 2, 0); ctx.lineTo(bw / 2, 0); ctx.lineWidth = Math.max(2, bh * 0.1); ctx.strokeStyle = G.rim; ctx.stroke();
-            ctx.restore();
+            K.beginPath(); K.moveTo(-bw / 2, 0); K.lineTo(bw / 2, 0); K.lineWidth = Math.max(2, bh * 0.1); K.strokeStyle = G.rim; K.stroke();
+            K.restore();
         });
     }
     let dbg = false, dbgFrozen = false;                        // debug mode, and its stand-still before the first touch
@@ -2485,6 +2517,20 @@ export function mountFrogGame(stage, opts = {}) {
                 if (ix >= 0 && cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) list.splice(list.indexOf(f), 1);
             });
         });
+        // power-ups are cut too (first slash), each for a normal apple's worth
+        if (!turn) {
+            pickups.slice().concat(flies.slice()).forEach(b => {
+                if (b.y > H || b.x < 0 || b.x > W) return;
+                const fly = flies.includes(b);
+                if (fly) { flies.splice(flies.indexOf(b), 1); breakFly(b, Math.PI / 2); } else { if (!pickups.includes(b)) return; pickups.splice(pickups.indexOf(b), 1); breakPickup(b, Math.PI / 2); }
+                hurtFlash = 0;
+                if (b.kind === 'fireworks') return;                // those just go off
+                const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * timeMult();
+                timeLeft += gain; slices++; lastSlice = performance.now(); val('laptop', gain);
+                style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+                floats.push({ x: b.x, y: b.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+            });
+        }
         // crates: the first slash breaks them open; the fruit hangs there (time is stopped) and
         // the second slash cuts each of them once
         if (!turn) crates.slice().forEach(c => {
@@ -3015,6 +3061,11 @@ export function mountFrogGame(stage, opts = {}) {
                 window.addEventListener('pointermove', at); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
             });
         });
+        // a bowl's worth of random salad, some of it grilled, to see how the bowls stack up
+        $('.fg-debug-bowl').addEventListener('click', () => {
+            const grilled = Math.random() < 0.35;
+            for (let k = 0; k < BOWL_HOLDS; k++) addToSalad(pick(FRUIT_BAG), grilled ? Math.random() < 0.8 : Math.random() < 0.1);
+        });
         // the pill at the top right: into debug mode from anywhere (it drops a run in progress), and back out
         $('.fg-debug-pill').addEventListener('click', () => { if (dbg) exitDebug(); else { el.tips.hidden = true; startDebug(); } });
     })();
@@ -3269,6 +3320,12 @@ export function mountFrogGame(stage, opts = {}) {
         audio.loop('dizzy', live && stunT > 0);
         audio.loop('freeze', live && (freezeLeft > 0 || markQueue.length > 0));
         audio.loop('drunk', live && sakeLeft > 0);
+        if (dbg && live) {
+            const busy = fruits.length || pieces.length || pickups.length || flies.length || crates.length || rockets.length || punch || tongue || markQueue.length || summon
+                || sakeLeft > 0 || fireLeft > 0 || freezeLeft > 0 || fwLeft > 0 || fxLeft > 0 || stunT > 0;
+            if (busy) dbgBusy = true;
+            else if (dbgBusy) { dbgBusy = false; salad = []; }      // the sequence is over: the bowls are cleared for the next one
+        }
         const drunkNow = live && sakeLeft > 0;
         if (drunkNow !== wasDrunk) { wasDrunk = drunkNow; stage.classList.toggle('fg-drunk', drunkNow); audio.setDrunk(drunkNow); }
         // what the held blades show: sake's glow, the fire blade's flames, the chronoblade's blue

@@ -154,6 +154,17 @@ export function GameView() {
             </div>
         </div>`;
 
+    // no zooming by accident while playing: no double-tap zoom, no pinch (put back when the page is left)
+    const vp = document.querySelector('meta[name=viewport]'), vpWas = vp && vp.getAttribute('content');
+    if (vp) vp.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    const noPinch = e => { if (document.querySelector('.game-page')) e.preventDefault(); };
+    document.addEventListener('gesturestart', noPinch);
+    const left = new MutationObserver(() => {
+        if (document.querySelector('.game-page')) return;
+        left.disconnect(); document.removeEventListener('gesturestart', noPinch);
+        if (vp && vpWas) vp.setAttribute('content', vpWas);
+    });
+    left.observe(main, { childList: true });
     // the stage fills the screen (the navbar is hidden on this page, so this measures 0)
     const page = main.querySelector('.game-page'), nav = document.getElementById('nav-container');
     const fit = new ResizeObserver(() => {

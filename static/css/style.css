@@ -1549,6 +1549,10 @@ a:hover {
 .fg-stamina.fire i { border-radius: 0; margin: 0 -5px; border-color: #e53935; border-left-color: transparent; border-right-color: transparent; }
 .fg-stamina.fire i:first-child { border-radius: 7px 0 0 7px; margin-left: 0; border-left-color: #e53935; }
 .fg-stamina.fire i:last-child { border-radius: 0 7px 7px 0; margin-right: 0; border-right-color: #e53935; }
+/* limitless (sake, fire): one solid pill, no compartments */
+.fg-stamina.gold i, .fg-stamina.fire i { visibility: hidden; }
+.fg-stamina.gold { background: linear-gradient(#ffe082, #f5c542); animation: fg-gold 1.1s ease-in-out infinite; }
+.fg-stamina.fire { background: linear-gradient(#ff8a65, #e53935); animation: fg-gold .7s ease-in-out infinite; }
 @keyframes fg-gold { 50% { filter: brightness(1.35); } }
 .fg-stamina.stunned { opacity: .55; }
 @keyframes fg-empty { 50% { box-shadow: 0 0 22px 6px rgba(229,57,53,.95); } }
@@ -1561,7 +1565,9 @@ a:hover {
 #game-stage { height: calc(100vh - var(--game-nav-h, 53px)); height: calc(100dvh - var(--game-nav-h, 53px)); min-height: 380px; border-bottom: 1px solid var(--border);
     background: radial-gradient(120% 80% at 50% 110%, rgba(152, 183, 75, .22), transparent 60%), color-mix(in srgb, var(--surface) 60%, transparent); }
 #app:has(.game-page) footer, #app:has(.game-page) #nav-container { display: none; }
-.game-page { background: var(--background); color: var(--text); }
+.game-page { background: var(--background); color: var(--text); touch-action: manipulation; }
+.game-page * { touch-action: manipulation; }
+.game-page .fg-stage, .game-page .fg-canvas, .game-page .fg-debug-item { touch-action: none; }
 /* no navbar here: a small notch at the top left (home + GitHub login), the HUD starts beside it */
 .game-notch { position: fixed; z-index: 40; top: 12px; left: 12px; justify-content: space-evenly; gap: 8px; }
 .game-notch-home { display: inline-flex; border-radius: 50%; }
@@ -1598,7 +1604,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* debug mode: a tray of things to drag onto the field, under the frog, and a big title */
 .fg-debug { position: absolute; left: 0; right: 0; bottom: 6px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
 .fg-debug[hidden] { display: none; }
-.fg-debug-title { font: 900 2.1rem/1 Inter, sans-serif; letter-spacing: .1em; color: #ffd400; -webkit-text-stroke: 2px #000; paint-order: stroke fill; }
+.fg-debug-title { position: fixed; top: 62px; left: 0; right: 0; text-align: center; font: 900 2.1rem/1 Inter, sans-serif; letter-spacing: .1em; color: #ffd400; -webkit-text-stroke: 2px #000; paint-order: stroke fill; }
 .fg-debug-tray { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; max-width: calc(100% - 16px); padding: 5px 12px; border-radius: 28px; pointer-events: auto;
     background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
 .fg-debug-item { width: 88px; height: 88px; border-radius: 16px; cursor: grab; touch-action: none; }
@@ -1606,7 +1612,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-debug-ghost { position: fixed; z-index: 100; width: 88px; height: 88px; margin: -44px 0 0 -44px; pointer-events: none; transform: scale(1.15); }
 .fg-debugging .fg-time, .fg-debugging .fg-hud { visibility: hidden; }
 @media (max-width: 1100px) { .fg-debug-item { width: 64px; height: 64px; } }
-@media (max-width: 575px) { .fg-debug-title { font-size: 1.4rem; } .fg-debug-item { width: 56px; height: 56px; } }
+@media (max-width: 575px) { .fg-debug-title { font-size: 1.4rem; top: 104px; } .fg-debug-item { width: 56px; height: 56px; } }
 /* the scoreboard: a full screen under the navbar, opened from the game's own panel */
 .game-board-screen { position: fixed; z-index: 50; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }

@@ -83,7 +83,7 @@ These are fixed. Tuning serves them; the trace review measures against them.
 4. **Skill keeps going.** Good players reach two minutes, using power-ups well reaches
    three, and that is very hard. Four minutes and beyond is a god's strike. No run is
    ever cut off: there is no maximum.
-5. **The bowls are a trophy.** Ten bowls of salad, 60 pieces each. Filling all ten is
+5. **The bowls are a trophy.** Fifty bowls of salad, 60 pieces each. Filling them all is
    cosmetic and should be something only the very best runs do.
 
 6. **The same play area on every screen.** Everything in the game is sized from the area
@@ -106,7 +106,7 @@ Targets to measure against (real runs, not debug):
 | Runs reaching 120 s | roughly one in ten |
 | Runs reaching 180 s | about one in a hundred |
 | Runs reaching 240 s | rarer than one in a thousand |
-| Runs filling all 10 bowls | rarer than one in a hundred |
+| Runs filling 10 bowls | rarer than one in a hundred |
 
 The curve was set from a model, not from data: assumed earning rates per second of play of
 0.4 (casual) to 3.2 (the best imaginable) give 60 s, 134 s (good), 172 s (expert), 236 s.
