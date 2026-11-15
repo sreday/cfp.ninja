@@ -1054,7 +1054,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="rare" hidden>
                         <p class="fg-tip-lead">Rare finds.</p>
-                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too. Fireflies, sake and clocks they cut go into their blades.</span></div></div>
                         <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts. Tongue them: the frog spits 10 big ones. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                         <div class="fg-row"><canvas data-icon="gull"></canvas><div><b>Seagull (rare)</b><span>Leave it alone. Slash or tongue it bare and it attacks: for 2 s left is right. With any boost on, it faints: an apple's worth.</span></div></div>
@@ -2005,12 +2005,15 @@ export function mountFrogGame(stage, opts = {}) {
         val(how === 'laptop' ? 'laptop' : how === 'blast' ? 'fireworks' : how === 'clock' ? 'clock' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword', gain);
         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
         floats.push({ x: g.x, y: g.y - g.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
-        log('gull', how, r2(gain));
+        log('gull', how, r2(gain), g.hits);                    // (the last number: which hit on this gull it was)
         if (g.state === 'fly') {
             // out cold: it drops into the sea, on its back, or as a roast chicken if fire did it
             g.state = 'faint'; g.hacked = false; g.burnt = roast; g.vx = g.dir * g.speed * 0.4; g.vy = -H * 0.35; g.spin = g.dir * rand(3, 6); g.mark = 0;
             snd('gull_faint');
-        } else { g.vy = Math.min(g.vy, -H * 0.22); if (roast) g.burnt = true; }     // knocked up again on its way down
+        } else {
+            g.vy = Math.min(g.vy, -H * 0.22); if (roast) g.burnt = true;     // knocked up again on its way down
+            if (g.hits === 2) floats.push({ x: g.x, y: g.y - g.r - 30, text: 'Got damn seagulls!', t: 0, hot: true });     // the second hit on one that is already out
+        }
         feathers(g.x, g.y, g.r, 6, '#fafafa');
         hud();
     }
@@ -2202,7 +2205,7 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain; slices++;
         val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
-        addToSalad(f.type, (bladeFx.fire && fxOn()) || !!(f.char && f.char.length));
+        addToSalad(f.type, (bladeFx.fire && fxOn()) || summonFire || !!(f.char && f.char.length));
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
@@ -2210,7 +2213,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
         // The flame blade chars what it cuts: the edge it made is left burnt black, and stays so
         // on whatever the piece is cut into later. Nothing else about the piece changes.
-        const fireCut = bladeFx.fire && fxOn(), nLen = Math.hypot(hit.nx, hit.ny) || 1;
+        const fireCut = (bladeFx.fire && fxOn()) || summonFire, nLen = Math.hypot(hit.nx, hit.ny) || 1;
         const sideOf = (x, y) => ((x - hit.px) * hit.nx + (y - hit.py) * hit.ny) / nLen;
         const charFor = (body, sgn) => {
             const out = [];
@@ -2947,7 +2950,7 @@ export function mountFrogGame(stage, opts = {}) {
         corgi: { fur: '#f29a3f', face: '#ffffff', gi: '#1f6fd6', hi: '#4c93ee' }
     };
     // drawn facing right, feet at y = 5u, about 11u tall; arm = where the sword arm points (deg, 0 = forward, -90 = up)
-    function drawFriend(name, x, y, size, flip, arm, lw) {
+    function drawFriend(name, x, y, size, flip, arm, lw, fx) {
         const F = FRIEND[name], u = size / 11, ink = C.ink;
         ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
         ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = Math.max(2, lw); ctx.strokeStyle = ink;
@@ -2991,17 +2994,22 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.strokeStyle = F.hi; ctx.lineWidth = u * 0.3; ctx.beginPath(); ctx.moveTo(-2.2 * u, (hy - 1.25) * u); ctx.lineTo(2.2 * u, (hy - 1.25) * u); ctx.stroke();
         ctx.restore(); ctx.strokeStyle = ink; ctx.lineWidth = Math.max(2, lw);
         ctx.beginPath(); ctx.ellipse(0, hy * u, 2.5 * u, 2.2 * u, 0, 0, 7); ctx.stroke();
-        // the sword arm: sleeve, hand, katana in line with it
+        // the sword arm: sleeve, hand, and the katana held across it (60 degrees off the arm, as the frog holds its own)
         ctx.save(); ctx.translate(0.6 * u, -0.9 * u); ctx.rotate(arm * Math.PI / 180);
         box(-0.2 * u, -0.6 * u, 2.4 * u, 1.2 * u, F.gi);
-        oval(2.6 * u, 0, 0.6 * u, 0.6 * u, F.fur);
-        box(2.9 * u, -0.28 * u, 1.3 * u, 0.56 * u, C.steel);                                                      // grip
+        ctx.save(); ctx.translate(2.6 * u, 0); ctx.rotate(-60 * Math.PI / 180); ctx.translate(-2.6 * u, 0);
+        // a blade that took an element from a power-up it cut: it glows with it
+        const FXC = { fire: ['255,120,20', '#ffb74d'], bubbles: ['255,213,60', '#ffe082'], frost: ['79,195,247', '#b3e5fc'] }[fx];
+        if (FXC) { glow(ctx, 7 * u, 0, 4.5 * u, FXC[0], 0.75); glow(ctx, 4.5 * u, 0, 3 * u, FXC[0], 0.5); }
+        box(2.0 * u, -0.28 * u, 2.2 * u, 0.56 * u, C.steel);                                                      // grip
         box(4.1 * u, -0.7 * u, 0.35 * u, 1.4 * u, '#6b6e74');                                                    // guard
-        poly([[4.45, -0.28], [9.4, -0.28], [10.2, 0.1], [9.4, 0.28], [4.45, 0.28]].map(q => [q[0], q[1]]), C.blade);
+        poly([[4.45, -0.28], [9.4, -0.28], [10.2, 0.1], [9.4, 0.28], [4.45, 0.28]].map(q => [q[0], q[1]]), FXC ? FXC[1] : C.blade);
+        ctx.restore();
+        oval(2.6 * u, 0, 0.6 * u, 0.6 * u, F.fur);
         ctx.restore();
         ctx.restore();
     }
-    let laptopNext = 60, summon = null, summonPay = 1;
+    let laptopNext = 60, summon = null, summonPay = 1, summonFire = false;
     const SUMMON = { enter: 0.45, slash1: 0.85, slash2: 1.45, leave: 1.95, end: 2.4 };
     function startSummon() {
         const who = FRIENDS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
@@ -3014,14 +3022,20 @@ export function mountFrogGame(stage, opts = {}) {
         floats.push({ x: W / 2, y: H * 0.3, text: 'Calling the team!', t: 0, hot: true });
     }
     // one slash from every friend at once: everything with flesh on it is cut clean in half
-    function summonSlash(turn) {
-        const mine = cut; cut = summon.cutId; summonPay = LAPTOP_PAY;
+    // echo > 0: an extra cut left hanging by a helper's chronoblade, on a diagonal
+    function summonSlash(turn, echo = 0) {
+        const els = summon.friends.map(fr => fr.el).filter(Boolean), count = k => els.filter(e => e === k).length;
+        const mine = cut; cut = summon.cutId;
+        // helpers whose blades took an element (see below) use it from the second slash on:
+        // sake pays 10% more per blade, fire grills what it cuts
+        summonPay = LAPTOP_PAY * (turn ? 1 + 0.1 * count('bubbles') : 1); summonFire = turn && count('fire') > 0;
+        const diag = echo ? (echo % 2 ? 1 : -1) * Math.SQRT1_2 : 0, before = new Set(pieces);
         [fruits, pieces].forEach(list => {
             const todo = list.slice();
             todo.forEach(f => {
                 if (!f.poly || (list === fruits && !f.entered) || f.y > H || f.x < 0 || f.x > W) return;
                 // the first slash is vertical, the second horizontal: everything ends up in quarters
-                const dx = turn ? 1 : 0, dy = turn ? 0 : 1;
+                const dx = echo ? diag : turn ? 1 : 0, dy = echo ? Math.SQRT1_2 : turn ? 0 : 1;
                 const c = Math.cos(-f.rot), sn = Math.sin(-f.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
                 const ix = list.indexOf(f);
                 if (ix >= 0 && cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) list.splice(list.indexOf(f), 1);
@@ -3029,9 +3043,11 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // power-ups are cut too (first slash), each for a normal apple's worth
         if (!turn) {
+            const taken = [];
             pickups.slice().concat(flies.slice()).forEach(b => {
                 if (b.y > H || b.x < 0 || b.x > W) return;
                 const fly = flies.includes(b);
+                if (fly) taken.push('fire'); else if (b.kind === 'sake') taken.push('bubbles'); else if (b.kind === 'clock') taken.push('frost');
                 if (fly) { flies.splice(flies.indexOf(b), 1); breakFly(b, Math.PI / 2); } else { if (!pickups.includes(b)) return; pickups.splice(pickups.indexOf(b), 1); breakPickup(b, Math.PI / 2); }
                 hurtFlash = 0;
                 if (b.kind === 'fireworks') return;                // those just go off
@@ -3040,21 +3056,35 @@ export function mountFrogGame(stage, opts = {}) {
                 style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
                 floats.push({ x: b.x, y: b.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
             });
+            // Every firefly, sake and clock the first blow destroyed goes into a helper's blade: dealt
+            // out at random, one to a helper. More than three: three of them, picked at random.
+            // Fewer: that many helpers get one. The blades glow, and the second slash uses them.
+            const mix = a => a.map(v => [Math.random(), v]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+            const deal = mix(taken).slice(0, summon.friends.length);
+            mix(summon.friends).forEach((fr, i) => {
+                if (!deal[i]) return;
+                fr.el = deal[i];
+                floats.push({ x: fr.x, y: fr.y - S() * 0.2, text: BLADE_FX[deal[i]].text, t: 0, hot: true });
+            });
+            if (deal.length) { log('infuse', deal.join('+')); snd('power_sake'); }
+            summon.echoes = deal.filter(e => e === 'frost').length; summon.echoed = 0;
         }
         // the team is gentle with the seagull: it faints, unburnt
         if (!turn) gulls.forEach(g => { if (g.state === 'fly' && g.x > 0 && g.x < W) gullHit(g, 'laptop'); });
         // crates: the first slash breaks them open; the fruit hangs there (time is stopped) and
         // the second slash cuts each of them once
+        if (summonFire) pieces.forEach(q => { if (!before.has(q)) q.burn = burnTime() * 0.85; });     // grilled, about to burst into juice
         if (!turn) crates.slice().forEach(c => {
             if (c.y > H || c.x < 0 || c.x > W) return;
             crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY);
         });
         // what was just cut can be cut again by the next slash, whatever its count
         pieces.forEach(q => { q.live = true; });
-        cut = mine; summonPay = 1;
+        cut = mine; summonPay = 1; summonFire = false;
+        if (echo) { slashes.push({ x: W / 2, y: H / 2, a: Math.atan2(Math.SQRT1_2, diag), r: Math.hypot(W, H) * 0.55, t: 0, c: BLADE_FX.frost.glow, w: 2 }); snd('slash', { kind: 'frost', power: 1 }); return; }
         // the strokes themselves: one from each friend, down the screen, then across it
         summon.friends.forEach((fr, i) => slashes.push(turn
-            ? { x: W / 2, y: H * (0.25 + i * 0.2), a: 0, r: W * 0.55, t: 0, c: FRIEND[fr.n].hi, w: 2 }
+            ? { x: W / 2, y: H * (0.25 + i * 0.2), a: 0, r: W * 0.55, t: 0, c: fr.el ? BLADE_FX[fr.el].glow : FRIEND[fr.n].hi, w: fr.el === 'fire' ? 3 : 2 }
             : { x: W * (0.25 + i * 0.25), y: H / 2, a: Math.PI / 2, r: H * 0.55, t: 0, c: FRIEND[fr.n].hi, w: 2 }));
         snd('slash', { power: 1 }); snd('crate');
     }
@@ -3063,6 +3093,8 @@ export function mountFrogGame(stage, opts = {}) {
         summon.t += dt;
         if (summon.done < 1 && summon.t >= SUMMON.slash1) { summon.done = 1; summonSlash(false); }
         if (summon.done < 2 && summon.t >= SUMMON.slash2) { summon.done = 2; summonSlash(true); }
+        // a chronoblade's cut hangs in the air and cuts again: one more slash for each helper carrying one
+        if (summon.done === 2 && summon.echoed < (summon.echoes || 0) && summon.t >= SUMMON.slash2 + 0.15 * (summon.echoed + 1)) { summon.echoed++; summonSlash(true, summon.echoed); }
         if (summon.t >= SUMMON.end) { pieces.forEach(q => { q.live = q.fam.cuts < MAX_CUTS; }); summon = null; readyPose(); }
     }
     function drawSummon(lw) {
@@ -3076,7 +3108,7 @@ export function mountFrogGame(stage, opts = {}) {
             const arm = t < SUMMON.slash1 ? -100 : t < SUMMON.slash1 + 0.3 ? 70 : t < SUMMON.slash2 ? 170 : 0;
             const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1 - 0.04) / 0.12, 1 - Math.abs(t - SUMMON.slash2 - 0.04) / 0.12) * size * 0.3;
             const x = fr.x + fr.fx * off - fr.fx * hit, y = fr.y + fr.fy * off - fr.fy * hit + size * 0.1;
-            drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw);
+            drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw, fr.el);
         });
     }
     // the crate the tongue hauled in: lifted over the head (PUNCH_LIFT s), then the fist lands
