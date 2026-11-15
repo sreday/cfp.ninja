@@ -91,6 +91,13 @@ These are fixed. Tuning serves them; the trace review measures against them.
    number of fruit whether it is a phone held upright (tall) or a desktop window (wide).
    Balanced between 9:16 and 16:9; windows more extreme than that are not balanced for.
 
+7. **It runs well on any recent phone or tablet, at full quality.** The target is 60 frames a
+   second (more where the screen allows). Speed comes from doing the same drawing with less
+   work (things that don't change are painted once and stamped), never from removing effects.
+   The one automatic fallback is canvas resolution, stepped down only when a device can't hold
+   50 frames a second. Every run records its frame rate once a second, so slow moments can be
+   traced to what was on screen.
+
 Targets to measure against (real runs, not debug):
 
 | Measure | Target |

@@ -20,6 +20,10 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-15 | traces 30, 34 (iPhone, 430x739) | Frame rate fell to 23-46 for a few seconds with
+  10-19 hacked fruit on screen, and to 33-41 with 56 cut pieces. Hacked things are now filled from
+  pre-drawn digit tiles and fruit and pieces are stamped from sprites. Not yet confirmed on the
+  phone: check the next touch runs for seconds under 50 and for `q` events (resolution drops). | fix shipped, unverified
 - 2026-11-15 | review of the code | The smooth blade trace is drawn as curves, but cutting
   follows the straight lines between pointer samples. On a fast arc the trace can pass a
   few pixels from where the cut is tested. | open

@@ -104,8 +104,9 @@ distract from the fruit.
 
 - **The laptop (very rare item).** Caught with the tongue, the frog sits down with its laptop and
   three of the four friends appear at the left, top and right of the screen and slash
-  everything twice. This is the first place the cast shows up, drawn from the brand art in
-  `static/img/game/` (placeholders until they are redrawn in the game's style).
+  everything twice. This is the first place the cast shows up, drawn in the frog's style and the frog's clothes, each in its own colour
+  (monkey purple, llama green, platypus orange, corgi blue), katana in hand. Placeholder
+  vector drawings in the engine (`drawFriend`).
 
 ## Not decided
 
