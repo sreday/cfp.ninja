@@ -70,7 +70,7 @@ file is the source of truth, this document explains the intent.
 | CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay. Each firefly, sake and clock the first slash destroys goes into one helper's blade, dealt at random, one each (three at most): on the second slash a sake blade pays 10% more, a fire blade grills what it cuts, a chronoblade adds one more cut |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
-breath + sake (wide), breath + clock (hacks fruit, and copies digital fruit held in it: one
+breath + sake (wide), breath + clock (hacks fruit, and copies digital fruit and digital seagulls held in it: one
 copy per 0.6 s of exposure, up to 36 fruit on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 

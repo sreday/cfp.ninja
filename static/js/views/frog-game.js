@@ -61,7 +61,7 @@ const MARK_STEP = 0.07;                          // seconds between the slashes 
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
-const DUP_TIME = 0.6, DUP_MAX = 36;              // a hacked fruit held in the hacking breath this long is copied; never past this many fruit on screen
+const DUP_TIME = 0.6, DUP_MAX = 36, GULL_MAX = 12;              // a hacked fruit held in the hacking breath this long is copied; never past this many fruit on screen
 const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
@@ -2602,7 +2602,19 @@ export function mountFrogGame(stage, opts = {}) {
             if (g.state !== 'fly') return;
             const inB = on && inFlame(g.x, g.y, g.r);
             // the hacking breath turns it digital: it hangs there, harmless, and any blade knocks it out
-            if (inB && fireSlow) { if (!g.hacked) { g.hacked = true; g.hackT = 0; g.hackFor = hackFor(); snd('hack'); log('gull', 'hacked'); } return; }
+            if (inB && fireSlow) {
+                if (!g.hacked) { g.hacked = true; g.hackT = 0; g.hackFor = hackFor(); snd('hack'); log('gull', 'hacked'); }
+                // held in the hacking breath a digital gull is copied, like digital fruit (never more than GULL_MAX in the air)
+                g.dup = (g.dup || 0) + dt;
+                if (g.dup >= DUP_TIME && gulls.length < GULL_MAX) {
+                    g.dup = 0;
+                    const a = rand(0, 6.28), d = g.r * 2.2;
+                    const twin = Object.assign({}, g, { x: clamp(g.x + Math.cos(a) * d, g.r, W - g.r), base: clamp(g.base + Math.sin(a) * d, g.r * 2, seaY() - g.r * 2), phase: rand(0, 6), hits: 0, dup: 0, hackT: 0, hackFor: hackFor(), mark: 0, noCut: 0 });
+                    twin.y = twin.base; gulls.push(twin); snd('hack'); log('gull', 'dup');
+                    floats.push({ x: twin.x, y: twin.y - g.r, text: 'x2', t: 0, hot: true });
+                }
+                return;
+            }
             if (inB || inBlade(g.x, g.y, g.r)) gullHit(g, 'fire');     // roasted
         });
         burnExtras(pickups, b => b.r);
@@ -2688,7 +2700,10 @@ export function mountFrogGame(stage, opts = {}) {
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
-        if (phase === 'load' || phase === 'count' || phase === 'over') return;   // wait for 3, 2, 1; and nothing once time is up
+        // 3, 2, 1: once the frog is on its feet with its blades out it can already swing them (for
+        // free: nothing to cut yet, no stamina used). Not while it is still getting up, and nothing once time is up.
+        if (phase === 'load' || phase === 'over' || (phase === 'count' && !pose.held)) return;
+        if (phase === 'count' && introOn) { readyPose(); introOn = false; }      // blades already out: the rest of the flourish is skipped, the frog is the player's
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
@@ -3417,6 +3432,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (countT <= 0) {
             if (introOn) { readyPose(); introOn = false; }
             phase = 'play';
+            down = false; cut = null; press = null; autoCut = false;     // a warm-up swing still in the air at Go! is not a paid slash
             setTimeout(() => { if (countShown === 'Go!') el.count.hidden = true; }, 600);
         }
     }
