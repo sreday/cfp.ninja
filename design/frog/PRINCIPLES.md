@@ -53,7 +53,7 @@ file is the source of truth, this document explains the intent.
 
 | Thing | How often | What it does |
 |---|---|---|
-| Fruit (6 kinds) | constantly, faster over time | buys 0.1 s (watermelon) to 0.5 s (plum); smaller pays more |
+| Fruit (8 kinds) | constantly, faster over time | buys 0.1 s (watermelon) to 0.5 s (plum); smaller pays more |
 | Firefly | every 8-13 s | tongue: 3 s fire breath; slashed on sake: fire blade |
 | Golden sake | every 14-20 s | tongue: 5 s free, button-less slashing |
 | Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |

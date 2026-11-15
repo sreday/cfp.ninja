@@ -336,15 +336,64 @@ const FROG_SVG = `
 
 // ---------- fruit ----------
 // The watermelon is as big as the frog's head; each fruit down the line is 20% smaller
-// than the one before: watermelon, pineapple, orange, apple, kiwi, plum.
+// than the one before: watermelon, pineapple, grapes, banana, orange, apple, kiwi, plum.
+//
+// Two of them are not round, and are cut differently:
+//  - grapes: a bunch of separate berries. A blade parts the bunch along its line: the berries
+//    on each side stay whole and go with their half, and only the berries the blade actually
+//    passes through are halved. There is no single cut face; a piece is just fewer grapes.
+//  - banana: long and curved. Across it (the natural cut) it gives two shorter bananas with
+//    pale flesh at the cut end; along it, two long halves with flesh down the cut side. The
+//    precision bands are measured across whichever way the blade crosses it, so a clean cut
+//    lengthwise needs the blade right down the middle of a thin fruit: hard, and worth it.
 const FRUITS = [
     { kind: 'watermelon', r: 1.62, skin: '#2e7d32', flesh: '#ef5350', ring: '#c5e1a5', juice: '#ef5350', w: 2 },
-    { kind: 'orange', r: 1.04, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
+    { kind: 'orange', r: 0.66, skin: '#fb8c00', flesh: '#ffb74d', ring: '#ffe0b2', juice: '#ffa726', w: 3 },
     { kind: 'pineapple', r: 1.3, skin: '#f9a825', flesh: '#fff176', ring: '#fff9c4', juice: '#ffee58', w: 3 },
-    { kind: 'kiwi', r: 0.66, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
-    { kind: 'apple', r: 0.83, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
-    { kind: 'plum', r: 0.53, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
+    { kind: 'grapes', r: 1.04, skin: '#7cb342', flesh: '#dcedc8', ring: '#c5e1a5', juice: '#aed581', w: 2 },
+    { kind: 'banana', r: 0.83, skin: '#fdd835', flesh: '#fff8e1', ring: '#fff59d', juice: '#fff176', w: 2 },
+    { kind: 'kiwi', r: 0.42, skin: '#8d6e63', flesh: '#9ccc65', ring: '#7cb342', juice: '#9ccc65', w: 2 },
+    { kind: 'apple', r: 0.53, skin: '#d32f2f', flesh: '#fff3c4', ring: '#fff8e1', juice: '#fff59d', w: 2 },
+    { kind: 'plum', r: 0.34, skin: '#7b1fa2', flesh: '#ffca28', ring: '#ffe082', juice: '#ab47bc', w: 2 }
 ];
+// the bunch: where each grape sits (in units of r), and the outline the blade tests against
+const GRAPES = [[-0.6, -0.6], [-0.2, -0.62], [0.2, -0.62], [0.6, -0.6], [-0.4, -0.22], [0, -0.24], [0.4, -0.22], [-0.2, 0.16], [0.2, 0.16], [0, 0.54]];
+const GRAPE_R = 0.27;
+const grapesPoly = r => [[-0.92, -0.9], [0.92, -0.9], [0.98, -0.45], [0.34, 0.86], [-0.34, 0.86], [-0.98, -0.45]].map(p => [p[0] * r, p[1] * r]);
+// the banana: a crescent, thick in the middle and tapering to both tips
+function bananaPoly(r, inset = 0) {
+    const out = [], n = 9, pt = (t, outer) => {
+        const a = t * 0.78, k = Math.pow(Math.abs(t), 3);
+        const R = (outer ? 2.0 - 0.07 * k - inset : 1.52 + 0.4 * k + inset) * r;
+        return [Math.sin(a) * R, (-1.76 * r) + Math.cos(a) * R];
+    };
+    for (let i = 0; i <= n; i++) out.push(pt(-1 + 2 * i / n, true));
+    for (let i = n; i >= 0; i--) out.push(pt(-1 + 2 * i / n, false));
+    return out;
+}
+function fruitPoly(type, r) {
+    return type.kind === 'pineapple' ? polyOval(r * PINE_X, r * PINE_Y) : type.kind === 'grapes' ? grapesPoly(r) : type.kind === 'banana' ? bananaPoly(r) : polyOval(r, r);
+}
+const ICON_K = kind => kind === 'pineapple' ? 0.85 : kind === 'banana' ? 0.72 : kind === 'grapes' ? 0.9 : 1;   // so the long ones fit an icon
+const fruitReach = (type, r) => type.kind === 'pineapple' ? r * 2.1 : type.kind === 'banana' ? r * 1.45 : type.kind === 'grapes' ? r * 1.25 : r;
+function drawBanana(ctx, t, r) {
+    ctx.lineJoin = 'round';
+    pathPoly(ctx, bananaPoly(r)); ctx.fillStyle = t.skin; ctx.fill();
+    ctx.save(); pathPoly(ctx, bananaPoly(r)); ctx.clip();
+    ctx.strokeStyle = '#f9a825'; ctx.lineWidth = r * 0.07; ctx.beginPath(); ctx.arc(0, -1.76 * r, 1.82 * r, Math.PI / 2 - 0.7, Math.PI / 2 + 0.7); ctx.stroke();   // the ridge
+    ctx.fillStyle = '#6d4c41'; [-1, 1].forEach(sd => { ctx.beginPath(); ctx.arc(Math.sin(sd * 0.78) * 1.93 * r, -1.76 * r + Math.cos(0.78) * 1.93 * r, r * 0.13, 0, 7); ctx.fill(); });   // the brown tips
+    ctx.restore();
+}
+function drawGrapes(ctx, r, lw, inside) {
+    // back to front so the lower grapes sit over the upper ones
+    GRAPES.forEach(([x, y], i) => {
+        ctx.beginPath(); ctx.arc(x * r, y * r, GRAPE_R * r, 0, 7);
+        ctx.fillStyle = inside ? '#dcedc8' : '#8bc34a'; ctx.fill();
+        ctx.lineWidth = lw * 0.8; ctx.strokeStyle = inside ? '#7cb342' : '#000'; ctx.stroke();
+        if (!inside) { ctx.fillStyle = 'rgba(255,255,255,.4)'; ctx.beginPath(); ctx.ellipse((x - 0.08) * r, (y - 0.1) * r, GRAPE_R * r * 0.32, GRAPE_R * r * 0.2, -0.6, 0, 7); ctx.fill(); }
+        else { ctx.fillStyle = '#9ccc65'; ctx.beginPath(); ctx.arc(x * r, y * r, GRAPE_R * r * 0.22, 0, 7); ctx.fill(); }     // the pip
+    });
+}
 const SIZE_MIN = Math.min(...FRUITS.map(f => f.r)), SIZE_MAX = Math.max(...FRUITS.map(f => f.r));
 const sizeK = type => clamp((type.r - SIZE_MIN) / (SIZE_MAX - SIZE_MIN), 0, 1);   // 0 = smallest fruit, 1 = biggest
 const PINE_X = 0.8, PINE_Y = 1.16;               // the pineapple is taller than wide
@@ -437,6 +486,18 @@ const APPLE = FRUITS.find(f => f.kind === 'apple');   // a power-up burned by th
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
     lw = Math.min(lw, Math.max(1.2, r * 0.2));
+    if (t.kind === 'grapes') {
+        ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#5d4037';
+        ctx.beginPath(); ctx.moveTo(0, -r * 0.8); ctx.quadraticCurveTo(r * 0.05, -r * 1.15, r * 0.28, -r * 1.25); ctx.stroke();   // the stalk
+        ctx.fillStyle = '#558b2f'; ctx.strokeStyle = '#000'; ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 1.02, r * 0.34, r * 0.17, 0.5, 0, 7); ctx.fill(); ctx.stroke();   // a leaf
+        drawGrapes(ctx, r, lw, false);
+        return;
+    }
+    if (t.kind === 'banana') {
+        drawBanana(ctx, t, r);
+        pathPoly(ctx, bananaPoly(r)); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
+        return;
+    }
     if (t.kind === 'pineapple') drawCrown(ctx, f.crown || crownLeaves(r), r, lw);   // behind the body
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
@@ -477,6 +538,8 @@ function drawWhole(ctx, f, r, lw) {
 
 // the cut face of a fruit, the whole of it, centred on the origin (pieces clip it)
 function drawFace(ctx, t, r) {
+    if (t.kind === 'grapes') { drawGrapes(ctx, r, Math.max(1.2, r * 0.06), false); return; }     // a piece of a bunch is whole grapes; the clip halves the ones on the line
+    if (t.kind === 'banana') { drawBanana(ctx, t, r); return; }     // the peel; drawPiece adds the pale flesh along the cut
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     const disc = (rad, col) => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
@@ -522,7 +585,7 @@ function drawHalf(ctx, f, r, lw) {
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.closePath(); ctx.stroke();
+    if (t.kind !== 'grapes' && t.kind !== 'banana') { ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI); ctx.closePath(); ctx.stroke(); }
     ctx.restore();
 }
 
@@ -577,6 +640,36 @@ function drawPiece(ctx, p, lw) {
     lw = Math.min(lw, Math.max(1.2, p.r * 0.2));
     if (p.crown) drawCrown(ctx, p.crown, p.r, lw);
     if (!p.poly) return;
+    if (p.type.kind === 'grapes') {
+        // part of a bunch: no outline round it, only its grapes. Those the blade went through
+        // show their pale inside along the cut.
+        ctx.save();
+        pathPoly(ctx, p.poly); ctx.clip();
+        ctx.translate(p.ox, p.oy); drawGrapes(ctx, p.r, lw, false);
+        ctx.beginPath(); GRAPES.forEach(([x, y]) => { ctx.moveTo((x + GRAPE_R) * p.r, y * p.r); ctx.arc(x * p.r, y * p.r, GRAPE_R * p.r, 0, Math.PI * 2); }); ctx.clip();
+        ctx.translate(-p.ox, -p.oy);
+        const ash = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
+        if (ash > 0) { ctx.globalAlpha = ash; ctx.fillStyle = '#5b5752'; pathPoly(ctx, p.poly); ctx.fill(); ctx.globalAlpha = 1; }
+        ctx.lineJoin = 'round';
+        pathPoly(ctx, p.poly); ctx.lineWidth = p.r * 0.14; ctx.strokeStyle = '#e6f2c8'; ctx.stroke();
+        ctx.restore();
+        return;
+    }
+    if (p.type.kind === 'banana') {
+        // still a banana from outside; the pale flesh shows only along the edges the blade made
+        const whole = bananaPoly(p.r).map(q => [q[0] + p.ox, q[1] + p.oy]);
+        ctx.save();
+        pathPoly(ctx, p.poly); ctx.clip();
+        ctx.translate(p.ox, p.oy); drawBanana(ctx, p.type, p.r); ctx.translate(-p.ox, -p.oy);
+        ctx.lineJoin = 'round';
+        pathPoly(ctx, p.poly); ctx.lineWidth = p.r * 0.22; ctx.strokeStyle = p.type.flesh; ctx.stroke();
+        pathPoly(ctx, whole); ctx.lineWidth = p.r * 0.24; ctx.strokeStyle = p.type.skin; ctx.stroke();     // the peel side stays peel
+        const ash = Math.min(0.3 * (p.ash || 0) + 0.7 * Math.min((p.burn || 0) / BURN_TIME, 1), 0.9);
+        if (ash > 0) { ctx.globalAlpha = ash; ctx.fillStyle = '#5b5752'; pathPoly(ctx, p.poly); ctx.fill(); }
+        ctx.restore();
+        pathPoly(ctx, p.poly); ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineJoin = 'round'; ctx.stroke();
+        return;
+    }
     ctx.save();
     pathPoly(ctx, p.poly); ctx.clip();
     ctx.translate(p.ox, p.oy); drawFace(ctx, p.type, p.r);
@@ -822,7 +915,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-bowl">Add bowl</button></div>
+            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-bowl">Add bowl</button></div>
         </div>
         <div class="fg-overlay">
             <div class="fg-panel">
@@ -920,7 +1013,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (seen.has(t.kind)) return; seen.add(t.kind);
             const cell = document.createElement('div'); cell.className = 'fg-fruit';
             const c = document.createElement('canvas'); const x = prep(c);
-            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * (t.kind === 'pineapple' ? 0.85 : 1), 2);
+            x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * ICON_K(t.kind), 2);
             const g = fruitTime(t);
             cell.appendChild(c); cell.insertAdjacentHTML('beforeend', `<span>${t.kind}</span><b>+${g.toFixed(g * 10 % 1 ? 2 : 1)} s</b>`);
             box.appendChild(cell);
@@ -1661,8 +1754,8 @@ export function mountFrogGame(stage, opts = {}) {
         return Object.assign({
             type, r, x, y, vx, vy, g, rot: rand(0, 6.28), spin: rand(-3, 3), entered: false, born: performance.now(),
             // its outline for the blade, and the cuts its family (the fruit and all its pieces) has taken
-            poly: pine ? polyOval(r * PINE_X, r * PINE_Y) : polyOval(r, r), crown: pine ? crownLeaves(r) : null,
-            R: pine ? r * 2.1 : r, ox: 0, oy: 0, fam: { cuts: 0 }, noCut: 0, cutAt: 0
+            poly: fruitPoly(type, r), crown: pine ? crownLeaves(r) : null,
+            R: fruitReach(type, r), ox: 0, oy: 0, fam: { cuts: 0 }, noCut: 0, cutAt: 0
         }, o);
     }
 
@@ -3056,7 +3149,7 @@ export function mountFrogGame(stage, opts = {}) {
             c.width = S * k; c.height = S * k;
             const x = c.getContext('2d'); x.scale(k, k);
             const [kind, name] = c.dataset.spawn.split(':');
-            if (kind === 'fruit') { const t = FRUITS.find(f => f.kind === name); x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * (name === 'pineapple' ? 0.85 : 1), 2); }
+            if (kind === 'fruit') { const t = FRUITS.find(f => f.kind === name); x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * ICON_K(name), 2); }
             else if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
@@ -3524,10 +3617,10 @@ export function mountFrogGame(stage, opts = {}) {
             if (mk) {
                 // melting, by any fire: it turns ash grey as it goes, with a glow of heat over it
                 if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
-                ctx.globalAlpha = mk * 0.75; ctx.fillStyle = '#5b5752';
-                ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill();
-                ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00';
-                ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill();
+                const odd = f.type.kind === 'grapes' || f.type.kind === 'banana';     // not round: grey its own outline
+                const shape = () => { if (odd) pathPoly(ctx, f.poly); else { ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); } };
+                ctx.globalAlpha = mk * 0.75; ctx.fillStyle = '#5b5752'; shape(); ctx.fill();
+                ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; shape(); ctx.fill();
             }
             ctx.restore();
         });

@@ -31,14 +31,20 @@ Status key: `placeholder` = drawn in code, needs art. `none` = doesn't exist yet
 
 ## 2. Fruit
 
-Six kinds, sized against the watermelon (as big as the frog's head), each 20% smaller than
-the one before: watermelon, pineapple, orange, apple, kiwi, plum.
+Eight kinds, sized against the watermelon (as big as the frog's head), each 20% smaller than
+the one before: watermelon, pineapple, grapes, banana, orange, apple, kiwi, plum.
+
+Two are not round and cut differently. Grapes are a bunch of about ten berries: a cut parts
+the bunch along the blade, whole berries go with their side and only the berries on the line
+are halved (pale inside showing), so there is no single cut face and no outline round a
+piece. A banana is a crescent: across it gives two shorter bananas with flesh at the cut end,
+along it two long halves with flesh down the cut side; the peel side always stays peel.
 
 The engine cuts fruit along the blade's real line, at any angle, up to 10 times, so pieces
 can't be pre-drawn one by one. What it needs per fruit is the set below; it clips the cut
 face to the piece's outline itself.
 
-| # | Element (for each of the 6 fruits) | Notes | Status |
+| # | Element (for each of the 8 fruits) | Notes | Status |
 |---|---|---|---|
 | 2.1 | Whole fruit | the outside, with a clear silhouette and one highlight; pineapple includes its crown as a separate layer of leaves | placeholder |
 | 2.2 | Cut face, full | what the inside looks like across the whole fruit, drawn as if cut through the middle: flesh, rind ring, seeds or segments. The engine shows the part inside each piece | placeholder |
@@ -53,7 +59,7 @@ face to the piece's outline itself.
 | 2.11 | Marked | the mark put on a fruit during a time freeze: a dot, a glow, the line joining marks | placeholder |
 | 2.12 | Drunk echoes | the five trailing copies seen on sake | placeholder (faded copies) |
 
-That is 12 elements x 6 fruits. 2.3-2.5 are the "sliced in three different spots" set.
+That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots" set.
 
 ## 3. Power-ups and rare items
 
