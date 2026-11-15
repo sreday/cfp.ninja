@@ -176,7 +176,7 @@ const POLE_SVG = `
 
 const FROG_SVG = `
 <svg class="fg-frog" viewBox="0 0 1986 1876" aria-hidden="true">
-    <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath><clipPath id="fg-sideclip"><path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z"/></clipPath></defs>
+    <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath><clipPath id="fg-side3clip"><path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z"/></clipPath><clipPath id="fg-sideclip"><path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z"/></clipPath></defs>
     <ellipse id="fg-shadow" cx="993" cy="1700" rx="905" ry="80" fill="#000"/>
     <g id="fg-stand" opacity="0" stroke-linejoin="round">
         <g id="fg-legL">
@@ -194,9 +194,11 @@ const FROG_SVG = `
     <!-- The frog in profile, facing right (mirrored for left): its own drawing, used while it cuts.
          Three sets of legs (a lunge, a crouch, a stretch) and a top half that rotates at the hip. -->
     <g id="fg-side" opacity="0" stroke-linejoin="round" stroke-linecap="round">
+        <g id="fg-side-legs">
         <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        </g>
         <g id="fg-side-top">
             ${arm('fg-sarmB')}
             <path id="fg-side-hem" d="M880 850 L1120 850 L1250 1090 Q1010 1150 790 1080 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
@@ -209,6 +211,7 @@ const FROG_SVG = `
                 <path d="M670 -50 L330 -120 L400 16 L620 24 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
                 <path d="M660 20 L370 110 L490 196 L640 104 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
             </g>
+            <g id="fg-side-headP">
             <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="${C.green}"/>
             <circle cx="1200" cy="70" r="135" fill="#fff"/>
             <circle cx="1238" cy="78" r="90" fill="#000"/>
@@ -221,6 +224,26 @@ const FROG_SVG = `
             <path d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>
             <ellipse cx="1440" cy="70" rx="16" ry="23" fill="#000" transform="rotate(25 1440 70)"/>
             <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="none" stroke="#000" stroke-width="26"/>
+            </g>
+            <!-- the three-quarter head, for cuts close to the frog: both eyes, the near one bigger -->
+            <g id="fg-side-headQ" opacity="0">
+            <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="${C.green}"/>
+            <circle cx="940" cy="56" r="116" fill="#fff"/>
+            <circle cx="1290" cy="66" r="134" fill="#fff"/>
+            <circle cx="976" cy="64" r="78" fill="#000"/>
+            <circle cx="1328" cy="74" r="90" fill="#000"/>
+            <circle cx="1002" cy="18" r="32" fill="#fff"/>
+            <circle cx="1358" cy="22" r="38" fill="#fff"/>
+            <g clip-path="url(#fg-side3clip)">
+                <path d="M460 -420 L1660 -420 L1660 -60 L1500 -40 Q1340 -30 1140 78 Q1000 0 800 -34 L610 14 L460 14 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M620 -80 Q1040 -160 1470 -100" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+                <path d="M720 240 Q1140 340 1530 150 L1620 430 L640 450 Z" fill="${C.belly}"/>
+            </g>
+            <path d="M790 250 Q1170 320 1510 152" stroke="#000" stroke-width="22" fill="none"/>
+            <ellipse cx="1370" cy="96" rx="15" ry="22" fill="#000" transform="rotate(-20 1370 96)"/>
+            <ellipse cx="1448" cy="84" rx="15" ry="22" fill="#000" transform="rotate(25 1448 84)"/>
+            <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="none" stroke="#000" stroke-width="26"/>
+            </g>
             <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${C.red}" stroke="#000" stroke-width="22"/>
             ${arm('fg-sarmF')}
         </g>
@@ -811,6 +834,7 @@ export function mountFrogGame(stage, opts = {}) {
     const svg = $('.fg-frog');
     const el = {
         all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
+        headP: $('#fg-side-headP'), headQ: $('#fg-side-headQ'), sideLegs: $('#fg-side-legs'),
         side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
         sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up') },
         sF: { g: $('#fg-sarmF'), limb: $('#fg-sarmF .fg-limb'), held: $('#fg-sarmF .fg-held'), blade: $('#fg-sarmF .fg-blade') },
@@ -882,7 +906,7 @@ export function mountFrogGame(stage, opts = {}) {
         // standing: up = 0 (seated) .. 1 (on its feet); lean and shift follow the blade; fall = dropping off the post
         up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0,
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
-        side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
+        side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const RISE = 400;                                          // logo px the body rises when the frog stands
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
@@ -910,7 +934,10 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.side, 'opacity', sideOn ? 1 : 0);
         setA(el.all, 'opacity', sideOn ? 0 : 1);
         if (sideOn) {
-            setA(el.side, 'transform', pose.side < 0 ? 'translate(1986 0) scale(-1 1)' : '');
+            setA(el.side, 'transform', pose.side < 0 ? `translate(1986 ${n2(-pose.sHop)}) scale(-1 1)` : `translate(0 ${n2(-pose.sHop)})`);
+            // three-quarter (45 degrees) for cuts close to the frog, full profile (90) for the far ones
+            setA(el.headP, 'opacity', pose.sQ ? 0 : 1); setA(el.headQ, 'opacity', pose.sQ ? 1 : 0);
+            setA(el.sideLegs, 'transform', pose.sQ ? 'translate(1000 0) scale(0.62 1) translate(-1000 0)' : '');
             for (const k in el.sLegs) setA(el.sLegs[k], 'opacity', k === pose.sLegs ? 1 : 0);
             const hipY = 900 + pose.sDrop;
             setA(el.sideTop, 'transform', `translate(0 ${n2(pose.sDrop)}) rotate(${n2(pose.sRot)} 1000 ${900})`);
@@ -1297,8 +1324,9 @@ export function mountFrogGame(stage, opts = {}) {
         const a = Math.round(Math.atan2(dy, dx) / (Math.PI * 2 / DIRS)) * (Math.PI * 2 / DIRS);
         // the arm on the side the blade is working does the cutting
         const side = x < W / 2 ? 'L' : 'R';
-        if (swing && swing.live && swing.a === a && swing.side === side) return;      // still the same stroke
-        swing = { a, side, t: 0, live: true };
+        const near = Math.abs(x - W / 2) < Math.max(fbox.w * 0.9, W * 0.16);       // close to the frog: a three-quarter turn
+        if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; return; }      // still the same stroke
+        swing = { a, side, t: 0, live: true, near };
     }
     function stepSwing(dt) {
         if (!swing) return;
@@ -1325,12 +1353,25 @@ export function mountFrogGame(stage, opts = {}) {
         // leaning in for a level one, bowed right over for a downward one. Legs: stretch, lunge, crouch.
         if (!settling) {
             const th = Math.atan2(cy, Math.abs(cx)) * 180 / Math.PI;      // the heading as the profile sees it: -90 up .. 90 down
-            pose.side = facing;
+            pose.side = facing; pose.sQ = !!s.near; pose.sHop = 0;
             pose.sLegs = cy > 0.3 ? 'down' : cy < -0.3 ? 'up' : 'level';
             pose.sDrop = cy > 0.3 ? 100 : 0;
-            pose.sRot = 14 + cy * (cy > 0 ? 32 : 30);
+            pose.sRot = (14 + cy * (cy > 0 ? 32 : 30)) * (s.near ? 0.55 : 1);     // turned less, it leans less
             const smear = s.t < SMEAR;
-            pose.sF = { rot: th - 90 - pose.sRot, k: th + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
+            let aimTh = th;
+            if (cy < -0.3) {
+                // An undercut (an upward stroke) is a move of its own: a held crouch with the blade
+                // low, then the frog drives up through the cut, off its feet, and lands.
+                const wind = 0.07, air = 0.3;
+                if (s.t < wind) { pose.sLegs = 'down'; pose.sDrop = 120; pose.sRot = 26; aimTh = 60; }
+                else {
+                    const u = clamp((s.t - wind) / air, 0, 1);
+                    pose.sHop = Math.sin(u * Math.PI) * 170;                     // the hop
+                    pose.sRot = lerp(-4, pose.sRot, Math.min(1, u * 3));
+                    if (u >= 1 && s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
+                }
+            }
+            pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
             pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
         }
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
@@ -2555,6 +2596,18 @@ export function mountFrogGame(stage, opts = {}) {
             // at rest it half-turns toward the cursor
             pose.face = aim && phase === 'play' ? clamp((aim.x - W / 2) / (W * 0.3), -1, 1) * 0.45 : 0;
             stepSwing(dt);
+            if (fireLeft > 0 && phase === 'play' && aim) {
+                // breathing fire: the same turn as a cut, toward where the flame is aimed (three-quarter
+                // when it is aimed close to the frog, profile further out), the top half tipped to the
+                // aim, the blades held back out of the way
+                const m0 = frogPoint(993, 300), dx = aim.x - W / 2, dy = aim.y - m0.y, d = Math.hypot(dx, dy) || 1;
+                const cy = dy / d, th = Math.atan2(dy, Math.abs(dx)) * 180 / Math.PI;
+                pose.side = dx < 0 ? -1 : 1; pose.sQ = Math.abs(dx) < Math.max(fbox.w * 0.9, W * 0.16); pose.sHop = 0;
+                pose.sLegs = cy > 0.5 ? 'down' : 'level'; pose.sDrop = cy > 0.5 ? 100 : 0;
+                pose.sRot = clamp(th * 0.55, -40, 40) * (pose.sQ ? 0.7 : 1) + Math.sin(idleT * 30) * 1.2;      // the head points along the flame, shaking with it
+                pose.sF = { rot: 150 - pose.sRot, k: 330 - pose.sRot, stretch: 1.1 };
+                pose.sB = { rot: 120 - pose.sRot, k: 300 - pose.sRot, stretch: 1.1 };
+            } else
             if (swing) poseSwing();
             else if (windUp && phase === 'play') {               // pressed, not cutting yet: the held wind-up
                 pose.squash = 0.8; pose.lK = READY.lK - 25; pose.rK = READY.rK + 25; pose.lRot = READY.l + 18; pose.rRot = READY.r - 18;
