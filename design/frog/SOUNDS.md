@@ -47,7 +47,7 @@ because it sits on the effects bus, not in each sound.
 | `slash` (fire) | a slash with the fire blade | the same, under a whoosh of flame | a torch swung through the air |
 | `slash` (frost) | a slash with the chronoblade | the same, with a pitch falling away | a swish with a reversed tail |
 | `empty` | a slash is refused, no stamina | a dull, low, breathless swipe | a tired grunt and a weak swipe |
-| `cut` | a fruit or piece is cut | four layers: the blade biting the skin (a tick), the thock of the flesh (deeper and longer for bigger fruit), a wet squelch, a drip. Lower for each re-cut of the same fruit | a juicy slice per fruit kind: watermelon crunch, pineapple crackle, citrus spray, apple snap, soft kiwi, small plum pop |
+| `cut` | a fruit or piece is cut | four layers: the blade biting the skin (a tick), the thock of the flesh (deeper and longer for bigger fruit), a wet squelch, a drip. Lower for each re-cut of the same fruit | a juicy slice per fruit kind: watermelon crunch, pineapple crackle, citrus spray, apple snap, soft kiwi, small plum pop, a run of grape pops, a soft banana thud |
 | `cut` (clean) | the cut went through the middle | adds a steel ring, climbing in pitch with each fruit in the same slash | a bright "shing" |
 | `cut` (hacked) | a hacked fruit is cut | adds two digital blips | a glitchy slice |
 | `bounce` | a fruit is only clipped and flies off | a rubbery knock | a boing or thump |
