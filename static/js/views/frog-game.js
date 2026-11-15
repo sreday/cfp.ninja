@@ -1845,7 +1845,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
-            pose.lK = smear ? 28 : -58; pose.rK = smear ? -28 : 58;
+            pose.lK = smear ? 30 : -75; pose.rK = smear ? -30 : 75;      // (50 degrees off the arm, crossed; then 55 the other way)
             pose.bob -= JUMP_UP * air; pose.jump = JUMP_UP * U * air;            // the jump: the legs leave the post and tuck
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
@@ -1856,9 +1856,9 @@ export function mountFrogGame(stage, opts = {}) {
             // for the instant of the cut, then driven apart toward the ground, the frog sunk into a crouch.
             const smear = s.t < SMEAR;
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
-            pose.lRot = 24; pose.rRot = -24;
+            pose.lRot = smear ? 24 : 60; pose.rRot = smear ? -24 : -60;      // the arms end out to the sides, the blades pointing down from the hands
             pose.lStretch = pose.rStretch = smear ? 2.3 : 1.7;
-            pose.lK = smear ? 158 : 222; pose.rK = smear ? -158 : -222;
+            pose.lK = smear ? 154 : 190; pose.rK = smear ? -154 : -190;      // (the same grip, pointing down)
             pose.squash = smear ? 0.4 : 0.9;
             pose.bob += smear ? 0 : 6;
             pose.tilt = 0; pose.lookY = 22;
@@ -1897,7 +1897,15 @@ export function mountFrogGame(stage, opts = {}) {
             // a cut above its head: a small jump, legs together, as long as the blade is up there
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
-            pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
+            // How a katana is held: never as an extension of the arm. The grip sets the blade across the
+            // forearm, at about a right angle when it is cocked for the cut and never closer than 50
+            // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
+            // not straighten). So the heading of a cut lies between the two: the arm on one side of it,
+            // the blade on the other. Aimed level or upward the blade is above the arm; aimed downward,
+            // below it. The other blade is carried behind, raised, at the same sort of angle.
+            const GRIP = smear ? 90 : 50;
+            const hold = (th2, grip) => { const sgn = th2 > 30 ? -1 : 1; return { rot: th2 + sgn * grip / 2 - 90 - pose.sRot, k: th2 - sgn * grip / 2 + 90 - pose.sRot }; };
+            pose.sF = Object.assign(hold(aimTh, GRIP), { stretch: smear ? 2.4 : 1.6 });
             if (s.thrust) {
                 // Four thrusts (up-left, up-right, down-left, down-right), each its own drawing of the
                 // legs: a leap with the knee driven up for the high ones, a long low lunge for the low
@@ -1907,10 +1915,10 @@ export function mountFrogGame(stage, opts = {}) {
                 pose.side = s.tx < W / 2 ? -1 : 1; pose.sQ = false;
                 pose.sLegs = up ? 'leap' : 'lunge'; pose.sHop = up ? JUMP_UP * 5 : 0; pose.sDrop = up ? 0 : 160;
                 pose.sRot = up ? -6 : 34; pose.sShift = up ? 220 : 0;      // (the low one keeps both feet on the post and leans out over the edge)
-                pose.sF = { rot: aim2 - 90 - pose.sRot, k: aim2 + 90 - pose.sRot, stretch: smear ? 2.8 : 2.1 };
-                pose.sB = { rot: aim2 + 90 - pose.sRot, k: aim2 + 270 - pose.sRot, stretch: 1.2 };
+                pose.sF = Object.assign(hold(aim2, GRIP), { stretch: smear ? 2.8 : 2.1 });
+                pose.sB = { rot: aim2 + 90 - pose.sRot, k: aim2 + 340 - pose.sRot, stretch: 1.2 };
             }
-            pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
+            if (!s.thrust) pose.sB = { rot: th + 80 - pose.sRot, k: th + 330 - pose.sRot, stretch: 1.1 };     // the other arm swept back for balance, its blade raised behind (70 degrees off the arm)
         }
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
         pose.lean = facing * (16 + cy * 24 + (Math.abs(cx) < 0.3 ? cy * 0 : 0) - (cy < 0 ? 4 : 0)) * k; pose.shift = (cx * 90 + facing * 30 * Math.max(cy, 0)) * k;

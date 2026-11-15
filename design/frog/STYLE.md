@@ -121,6 +121,13 @@ crescent arc for 3 to 4 frames. A cut fruit is the thing hit: flash it flat whit
    characters, with soft shapes. Characters and fruit are the only things with a hard ink
    line.
 
+**How the katana is held.** Never as an extension of the arm. The grip sets the blade across
+the forearm: at about a right angle when it is cocked or at rest, and never closer than 50
+degrees to the arm's own line at the end of a cut (the wrist snaps the blade forward, it does
+not straighten). So the line of a cut lies between the arm and the blade. The second katana
+is carried behind, raised, at the same sort of angle. In the engine this is `hold()` and
+`GRIP` in `poseSwing`; any new pose with a blade in it keeps to 50-90 degrees.
+
 **Grounded** means: weight is real (things arc, land and settle), the frog stays on its
 post, and an effect lasts only as long as the thing that caused it.
 
