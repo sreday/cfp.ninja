@@ -29,6 +29,8 @@ file is the source of truth, this document explains the intent.
 - **Brands as characters, never adverts.** The game introduces our conference mascots by
   making them fun to be around. Nothing brand-related may interrupt or clutter a run. See
   `STORY.md`.
+- **A run can be paused.** Escape (or leaving the tab) stops everything and hides the field
+  behind a menu: Resume, Play again, Hints. Paused time never counts.
 - **Sound is opt-in.** Off until the player turns it on; never the only signal for
   anything the player needs to know.
 
@@ -58,13 +60,13 @@ file is the source of truth, this document explains the intent.
 
 | Thing | How often | What it does |
 |---|---|---|
-| Fruit (8 kinds) | constantly, faster over time | buys 0.1 s (watermelon) to 0.5 s (plum); smaller pays more |
-| Firefly | every 8-13 s | tongue: 3 s fire breath; slashed on sake: fire blade |
+| Fruit (8 kinds) | constantly, faster over time | buys 0.1 s (watermelon), then 0.1 s more for each smaller kind, up to 0.8 s (plum) |
+| Firefly | every 8-13 s | tongue: fire breath (it can't be stopped early); slashed on sake: fire blade |
 | Golden sake | every 14-20 s | tongue: 5 s free, button-less slashing |
 | Alarm clock | every 16-24 s | tongue: 3 s time freeze, mark things, everything cut twice on release |
 | Fruit crate | every 38-60 s (rare) | slash, punch (tongue), burn, blast or mark: 10 fruit burst out |
 | Fireworks | every 42-65 s (rare) | slash: 3 s of blasts; tongue: 5 aimed big blasts |
-| Seagull | every 40-62 s (rare) | the one hazard. Touched bare (a plain slash or the tongue) it attacks the frog: for 2 s (a watermelon's stun) slashes and tongue shots land mirrored, left for right. Only one at a time: another touched meanwhile just bolts. Hit with any boost on (fire, sake, clock, enchanted sword, fireworks, laptop) it faints into the sea (as a roast chicken if fire did it) for an apple's worth, half as much for each further hit. Never cut into pieces |
+| Seagull | every 20-31 s | the one hazard. Touched bare (a plain slash or the tongue) it attacks the frog: for 2 s (a watermelon's stun) slashes and tongue shots land mirrored, left for right. Only one at a time: another touched meanwhile just bolts. Hit with any boost on (fire, sake, clock, enchanted sword, fireworks, laptop) it faints into the sea (as a roast chicken if fire did it) for an apple's worth, half as much for each further hit. Never cut into pieces |
 | CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:

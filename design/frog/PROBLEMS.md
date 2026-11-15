@@ -20,6 +20,16 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-15 | traces 65, 67 (iPhone) | Nearly every slow second (22-48 frames) was inside a sake, with
+  as few as 2 fruit on screen. Cause found in the stylesheet: the gold stamina bar pulsed by
+  animating a brightness filter, which redraws it every frame. Now it pulses by fading. The
+  swaying background is also given its own layer while drunk. Not confirmed on the phone: check
+  the seconds inside a sake in the next touch runs. | fix shipped, unverified
+- 2026-11-15 | Marek's request | Fruit now buys 0.1 s (watermelon) to 0.8 s (plum) in steps of 0.1
+  (was 0.1 to 0.5). The model player lasts about 17% longer (good: 63 to 74 s, expert: 107 to
+  126 s), and real runs were already longer than the targets in `PRINCIPLES.md` 3a (median about
+  100 s against a target of 60). Seagulls come twice as often, which pulls the other way for
+  careless players. The time curve (`TIME_TAU`) was not retuned. | needs a decision once there is data
 - 2026-11-15 | no traces after id 63 | Busy runs were not being stored: the log of a run was capped at
   1,500 events and the server refused anything over 32 KB without the game saying so. Now 4,500
   events (the closing lines always fit), 128 KB, and an oversized log drops presses, then sounds,

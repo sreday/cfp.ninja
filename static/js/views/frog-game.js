@@ -9,7 +9,7 @@ const C = {
 };
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
-const TIME_SMALL = 0.5, TIME_BIG = 0.1;         // seconds a fruit buys: smallest .. biggest
+const TIME_BIG = 0.1, TIME_STEP = 0.1;          // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.2 .. 0.8)
 // What a second of earned time is really worth. Two smooth pressures, no cap anywhere:
 //  - it is worth more early and less the longer the run has lasted (TIME_EARLY at the start,
 //    1 at about a minute, 0.43 at two, 0.19 at three, 0.1 at four);
@@ -45,13 +45,15 @@ const CRATE_BURST = 0.7;                         // how fast the fruit leaves th
 // as a watermelon's stun lasts every slash and tongue shot lands mirrored, left for right. Hit with any boost on (fire, sake, clock, the
 // enchanted sword, fireworks, the laptop) it faints and drops into the sea, for an apple's
 // worth of time, less for each further hit. It never comes apart.
-const GULL_FIRST = [26, 40], GULL_EVERY = [40, 62];   // seconds
+const GULL_FIRST = [13, 20], GULL_EVERY = [20, 31];   // seconds
 const GULL_IN = 0.35, GULL_OUT = 0.6;           // the flight onto the frog, and away again
 const PLANK_FLOAT = 2.6, PLANK_SINK = 1.1;      // a broken crate's planks on the water: afloat, then going under (seconds)
 const CRATE_FRUIT = 10, CRATE_FIRST = [22, 34], CRATE_EVERY = [38, 60];   // seconds
 const WOOD = { face: '#c9a36b', dark: '#a9834f', back: '#8d6b3f', inside: '#5d452a' };
 const HACK_FLOAT = 5;                            // seconds a hacked fruit floats; then it is a normal fruit again and falls
-const FAR_SHARE = 0.3, DEPTH_SWING = 0.1, FAR_SIZE = 0.6;     // fruit that lands in the sea; how much near fruit grows and shrinks; how small far fruit gets
+// Depth is a hint, not a hazard: a fruit's size never changes by more than 10% in all (5% either
+// side of its real size), so what you aim at is what you hit.
+const FAR_SHARE = 0.3, DEPTH_SWING = 0.05, FAR_SIZE = 0.95, NEAR_SIZE = 1.05;     // fruit that lands in the sea; how much near fruit grows and shrinks; how small far fruit gets; how big it is thrown
 const SLOW_ENTRY = 0.2;                          // how fast new fruit comes on screen during slow motion (1 = normal speed)
 const SLOW_TAIL = 0.5;                           // seconds the world takes to speed up again after a time freeze
 const MARK_REACH = 2;                            // how generous marking is during a time freeze: twice the thing's own size
@@ -219,6 +221,8 @@ const FROG_SVG = `
         <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-tuck" opacity="0"><ellipse cx="900" cy="1330" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1400" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-lunge" opacity="0"><ellipse cx="520" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1350" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-leap" opacity="0"><ellipse cx="470" cy="1470" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(38 470 1470)"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1230" cy="1300" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-20 1230 1300)"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         </g>
         <g id="fg-side-top">
@@ -958,8 +962,9 @@ function drawGear(ctx, r, lw) {
 // ---------- helpers ----------
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
-// seconds a fruit buys: kiwi/plum 0.5 s down to watermelon 0.1 s
-const fruitTime = type => Math.round(lerp(TIME_SMALL, TIME_BIG, sizeK(type)) * 20) / 20;
+// seconds a fruit buys: watermelon 0.1 s, then 0.1 s more for each smaller kind, up to plum 0.8 s
+const FRUIT_RANK = FRUITS.slice().sort((a, b) => b.r - a.r).map(f => f.kind);       // biggest first
+const fruitTime = type => Math.round((TIME_BIG + TIME_STEP * FRUIT_RANK.indexOf(type.kind)) * 100) / 100;
 // 65.3 s -> "1:05.3", 12.4 s -> "12.4"
 export function formatSurvival(sec) {
     sec = Math.max(0, sec);
@@ -1028,6 +1033,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
+            <button type="button" class="fg-pill fg-debug-fold">Hide items</button>
             <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="gull" title="seagull"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-anims">Animations</button></div>
         </div>
         <div class="fg-overlay">
@@ -1042,7 +1048,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue; double-tap to stop early.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue while it lasts.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                     </div>
@@ -1074,6 +1080,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                 </div>
                 <button type="button" class="btn fg-start fg-play">Play</button>
+                <button type="button" class="btn fg-play fg-again" hidden>Play again</button>
                 <p class="fg-anykey" hidden>or press any key</p>
                 <button type="button" class="btn btn-primary btn-sm fg-skip">Show tips</button>
                 ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
@@ -1092,7 +1099,7 @@ export function mountFrogGame(stage, opts = {}) {
         all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
         headUp: $('#fg-headup'), headP: $('#fg-side-headP'), headQ: $('#fg-side-headQ'), sideLegs: $('#fg-side-legs'),
         side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
-        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck') },
+        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck'), lunge: $('#fg-sl-lunge'), leap: $('#fg-sl-leap') },
         sF: { g: $('#fg-sarmF'), limb: $('#fg-sarmF .fg-limb'), held: $('#fg-sarmF .fg-held'), blade: $('#fg-sarmF .fg-blade') },
         sB: { g: $('#fg-sarmB'), limb: $('#fg-sarmB .fg-limb'), held: $('#fg-sarmB .fg-held'), blade: $('#fg-sarmB .fg-blade') },
         robeSit: $('#fg-robe-sit'), robeUp: $('#fg-robe-up'), hem: $('#fg-hem'), sleevesSit: $('#fg-sleeves-sit'), sleevesUp: $('#fg-sleeves-up'), legL: $('#fg-legL'), legR: $('#fg-legR'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
@@ -1208,13 +1215,14 @@ export function mountFrogGame(stage, opts = {}) {
         if (sideOn) {
             // (breathing fire: the drawing is narrowed in steps, the more the frog is turned toward us)
             const turnX = pose.sTurn && pose.sTurn < 1 ? ` translate(993 0) scale(${n2(pose.sTurn)} 1) translate(-993 0)` : '';
-            setA(el.side, 'transform', (pose.side < 0 ? `translate(1986 ${n2(-pose.sHop)}) scale(-1 1)` : `translate(0 ${n2(-pose.sHop)})`) + turnX);
+            const reach = pose.sLegs === 'lunge' || pose.sLegs === 'leap' ? pose.sShift || 0 : 0;       // a thrust carries the whole frog toward its target
+            setA(el.side, 'transform', (pose.side < 0 ? `translate(${n2(1986 - reach)} ${n2(-pose.sHop)}) scale(-1 1)` : `translate(${n2(reach)} ${n2(-pose.sHop)})`) + turnX);
             // three-quarter (45 degrees) for cuts close to the frog, full profile (90) for the far ones
             // The body here is drawn side-on, so the head is always the profile one (one eye). A two-eyed
             // head on a side-on body reads as a mistake; close cuts are told apart by the narrower
             // stance and the gentler lean instead.
             setA(el.headP, 'opacity', 1); setA(el.headQ, 'opacity', 0);
-            setA(el.sideLegs, 'transform', pose.sQ ? 'translate(1000 0) scale(0.86 1) translate(-1000 0)' : '');
+            setA(el.sideLegs, 'transform', pose.sQ && !reach ? 'translate(1000 0) scale(0.86 1) translate(-1000 0)' : '');
             for (const k in el.sLegs) setA(el.sLegs[k], 'opacity', k === pose.sLegs ? 1 : 0);
             const hipY = 900 + pose.sDrop;
             setA(el.sideTop, 'transform', `translate(0 ${n2(pose.sDrop)}) rotate(${n2(pose.sRot)} 1000 ${900})`);
@@ -1812,7 +1820,12 @@ export function mountFrogGame(stage, opts = {}) {
         if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
         // a stroke straight down, right in front of it: both blades come down together
         const under = !over && Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;
-        swing = { a, side, t: 0, live: true, near, high, over, under };
+        // far out toward a corner (well to the side, and well above the head or down by the feet):
+        // a thrust, the whole frog thrown at it, blade first
+        const h0 = frogPoint(993, 300), wide = Math.abs(x - W / 2) > fbox.w * 1.6;
+        const thrust = y === undefined || !wide ? '' : y < h0.y - fbox.w * 0.9 ? 'up' : y > h0.y + fbox.w * 0.95 ? 'down' : '';
+        if (swing && swing.live && swing.thrust && swing.thrust === thrust && swing.side === side) { swing.tx = x; swing.ty = y; return; }     // the same thrust, followed
+        swing = { a, side, t: 0, live: true, near, high, over, under, thrust, tx: x, ty: y };
     }
     function stepSwing(dt) {
         if (!swing) return;
@@ -1885,6 +1898,18 @@ export function mountFrogGame(stage, opts = {}) {
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
+            if (s.thrust) {
+                // Four thrusts (up-left, up-right, down-left, down-right), each its own drawing of the
+                // legs: a leap with the knee driven up for the high ones, a long low lunge for the low
+                // ones. The blade arm is straight out at the target, the other straight back.
+                const up = s.thrust === 'up', sh = frogPoint(993, 470);
+                const aim2 = Math.atan2(s.ty - sh.y, Math.abs(s.tx - sh.x)) * 180 / Math.PI;      // as the profile sees it
+                pose.side = s.tx < W / 2 ? -1 : 1; pose.sQ = false;
+                pose.sLegs = up ? 'leap' : 'lunge'; pose.sHop = up ? JUMP_UP * 5 : 0; pose.sDrop = up ? 0 : 160;
+                pose.sRot = up ? -6 : 34; pose.sShift = up ? 220 : 0;      // (the low one keeps both feet on the post and leans out over the edge)
+                pose.sF = { rot: aim2 - 90 - pose.sRot, k: aim2 + 90 - pose.sRot, stretch: smear ? 2.8 : 2.1 };
+                pose.sB = { rot: aim2 + 90 - pose.sRot, k: aim2 + 270 - pose.sRot, stretch: 1.2 };
+            }
             pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
         }
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
@@ -1928,7 +1953,7 @@ export function mountFrogGame(stage, opts = {}) {
         // Depth: everything is thrown from where we stand, so it starts close. About a third of
         // the fruit carries on away from us and comes down in the sea (far); the rest stays near
         // and drifts a little closer and further as it flies (ds = how big it looks: 1 = as thrown).
-        fruits.push(newFruit(type, r, x, y, vx, vy, g, { far: Math.random() < FAR_SHARE, ds: 1.1, dph: rand(0, 6.28) }));
+        fruits.push(newFruit(type, r, x, y, vx, vy, g, { far: Math.random() < FAR_SHARE, ds: NEAR_SIZE, dph: rand(0, 6.28) }));
     }
     function newFruit(type, r, x, y, vx, vy, g, o) {
         const pine = type.kind === 'pineapple';
@@ -2397,6 +2422,15 @@ export function mountFrogGame(stage, opts = {}) {
             // the sake bottle shatters
             for (let i = 0; i < 8; i++) { const pts = shardPath(3, r * rand(0.25, 0.5)); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i === 0 ? '#a3211d' : '#f5c542', lw * 0.7)); }
             splash(b.x, b.y, '#fff3c4', 16, 5);
+            if (b.kind === 'sake') {
+                // the sake spills: a gush thrown along the blade, and a stream that pours straight down after it
+                const ca = Math.cos(ang), sa = Math.sin(ang);
+                for (let i = 0; i < 46; i++) {
+                    const v = rand(0.15, 0.7) * FH(), sp = rand(-0.5, 0.5);
+                    drops.push({ x: b.x + rand(-r, r) * 0.3, y: b.y + rand(-r, r) * 0.3, vx: (ca * Math.cos(sp) - sa * Math.sin(sp)) * v, vy: (sa * Math.cos(sp) + ca * Math.sin(sp)) * v - FH() * 0.12, c: i % 3 ? '#f5c542' : '#ffe9a0', t: 0, s: rand(3, 8) });
+                }
+                for (let i = 0; i < 18; i++) drops.push({ x: b.x + rand(-r, r) * 0.25, y: b.y + i * r * 0.12, vx: rand(-25, 25), vy: rand(0, 0.15) * FH(), c: '#f5c542', t: -i * 0.02, s: rand(4, 7) });
+            }
             floats.push({ x: b.x, y: b.y - r, text: 'Smash!', t: 0, hot: false });
         }
     }
@@ -2502,6 +2536,14 @@ export function mountFrogGame(stage, opts = {}) {
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
                 // the laptop is fireproof: it heats to a red glow and that is all, so it can still be taken with the tongue afterwards
                 if (b.kind === 'laptop') { b.burn = Math.min((b.burn || 0) + dt, BURN_TIME); continue; }
+                // Caught in a fire blade's trail (not in a breath): the blade has cut it, wide as it is. It
+                // gives its upgrade like any power-up slashed on sake (a clock: chronoblade on top of the
+                // fire), instead of burning away for nothing.
+                if (sakeLeft > 0 && !(on && inFlame(b.x, b.y, r))) {
+                    list.splice(i, 1);
+                    if (list === flies) breakFly(b, 0); else breakPickup(b, 0);
+                    continue;
+                }
                 // a clock-fed breath hacks what it touches instead of burning it (fireworks too: digital, they hang there until a blade sets them off)
                 if (fireSlow && on && inFlame(b.x, b.y, r)) { if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); feedFire(b, list === flies); b.hackFor = hackFor(); } continue; }
                 b.burn = (b.burn || 0) + dt;
@@ -2614,11 +2656,7 @@ export function mountFrogGame(stage, opts = {}) {
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
-        // breathing fire: a double tap (or double click) puts the flame out early
-        if (fireLeft > 0 && phase === 'play' && e.button !== 2) {
-            const t = performance.now();
-            if (t - fireTap < 350) { fireLeft = 0.01; fireTap = 0; log('fire-off'); } else fireTap = t;
-        }
+        // (a breath can't be put out early: it runs its course)
         if (fireLeft > 0 || fwBusy() || summon) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
@@ -2959,7 +2997,9 @@ export function mountFrogGame(stage, opts = {}) {
     const SUMMON = { enter: 0.45, slash1: 0.85, slash2: 1.45, leave: 1.95, end: 2.4 };
     function startSummon() {
         const who = FRIENDS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
-        const spots = [{ x: W * 0.1, y: H * 0.42, fx: -1, fy: 0 }, { x: W * 0.5, y: H * 0.26, fx: 0, fy: -1 }, { x: W * 0.9, y: H * 0.42, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
+        // they run in from the left, the top and the right and meet in the middle of the screen to slash
+        const mid = fieldY(0.45), gap = Math.min(S() * 0.34, W * 0.3);
+        const spots = [{ x: W / 2 - gap, y: mid, fx: -1, fy: 0 }, { x: W / 2, y: mid - S() * 0.2, fx: 0, fy: -1 }, { x: W / 2 + gap, y: mid, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
         summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
         use('laptop'); snd('summon'); log('summon', who.join('+'));
         down = false; cut = null; press = null; autoCut = false; swing = null;
@@ -3019,11 +3059,11 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function drawSummon(lw) {
         const t = summon.t, inK = ease(clamp(t / SUMMON.enter, 0, 1)), outK = ease(clamp((t - SUMMON.leave) / (SUMMON.end - SUMMON.leave), 0, 1));
-        const k = inK * (1 - outK), size = S() * 0.34;
+        const k = inK * (1 - outK), size = S() * 0.3;
         // the world holds its breath
         ctx.save(); ctx.globalAlpha = 0.25 * k; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); ctx.restore();
         summon.friends.forEach(fr => {
-            const off = (1 - k) * size * 1.8;
+            const off = (1 - k) * (fr.fx ? W / 2 + size : fr.y + size);      // from beyond the edge of the screen
             // held poses, snapped (no easing): sword raised, the vertical cut, sword drawn back, the horizontal cut
             const arm = t < SUMMON.slash1 ? -100 : t < SUMMON.slash1 + 0.3 ? 70 : t < SUMMON.slash2 ? 170 : 0;
             const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1 - 0.04) / 0.12, 1 - Math.abs(t - SUMMON.slash2 - 0.04) / 0.12) * size * 0.3;
@@ -3231,7 +3271,7 @@ export function mountFrogGame(stage, opts = {}) {
         tipsPage = open ? page : -1;
         el.tips.hidden = !open;
         el.pages.forEach((p, i) => { p.hidden = i !== page; });
-        el.skip.textContent = !open ? 'Show tips' : page < el.pages.length - 1 ? `Next tip (${page + 1}/${el.pages.length})` : 'Hide tips';
+        el.skip.textContent = !open ? (el.overlay.classList.contains('fg-paused') ? 'Hints' : 'Show tips') : page < el.pages.length - 1 ? `Next tip (${page + 1}/${el.pages.length})` : 'Hide tips';
     }
     showTips(-1);
     $('.fg-anykey').hidden = touch;
@@ -3283,7 +3323,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (dprCap !== 2) { dprCap = 2; wholeSprites.clear(); resize(); }      // every run starts at full sharpness
         warmUp();
         el.overlay.hidden = true; el.save.innerHTML = '';
-        stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
+        stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
         dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
@@ -3326,11 +3366,11 @@ export function mountFrogGame(stage, opts = {}) {
         if (overT <= 0) return;
         overT += dt;
         // a beat of shock (held), then it tips backwards and drops
-        const t = overT - 0.25;
-        if (t <= 0) { pose.squash = -0.5; pose.lRot = 150; pose.rRot = -150; pose.lookY = -20; }
+        const t = overT - (pose.slip ? 0.1 : 0.25);
+        if (t <= 0) { if (!pose.slip) pose.squash = -0.5; pose.lRot = 150; pose.rRot = -150; pose.lookY = -20; }
         else {
             pose.squash = 0;
-            pose.fallRot = -Math.min(170, t * 300);                // backwards, heels over head, behind the post
+            pose.fallRot = pose.slip ? Math.min(170, t * 360) : -Math.min(170, t * 300);                // backwards, heels over head, behind the post (slipping: over sideways, toward the lifted leg)
             pose.fallY = 2600 * t * t;                           // logo px: off the post and down
             pose.lRot = 170; pose.rRot = -170;
             // it goes into the water behind the post: the splash comes up from behind it, either side
@@ -3372,18 +3412,46 @@ export function mountFrogGame(stage, opts = {}) {
         const top = H - (H * 0.18 + 16) + fbox.w * 0.09;       // a little below the rim: the points are in the wood
         dropped = [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
         pose.noBlades = true;
-        pose.side = 0; pose.oneFoot = false; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
+        // (it was teetering on one foot: that foot slips, and it goes over as it stands, the other leg still up)
+        pose.side = 0; pose.slip = pose.oneFoot; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
         el.count.textContent = formatSurvival(clockT) + ' s'; el.count.hidden = false; el.count.classList.remove('pop'); el.count.classList.add('fg-final');
     }
     el.start.addEventListener('click', () => {
+        if (paused) { snd('ui'); setPause(false); return; }
         snd('ui_play');
         showTips(-1); start();
     });
     el.skip.addEventListener('click', () => { snd('ui'); showTips(tipsPage + 1); });
     let overAt = 0;
+    // ---------- pause ----------
+    // Escape during a run: everything stops and a menu comes up. Resume (green), Play again (red),
+    // Hints (white). Leaving the tab pauses too. The field is hidden behind the menu.
+    let paused = false, pausedAt = 0, pauseSaved = null;
+    function setPause(on) {
+        if (on === paused || (on && (phase !== 'play' || dbg))) return;
+        paused = on;
+        el.overlay.classList.toggle('fg-paused', on); $('.fg-again').hidden = !on;
+        if (on) {
+            pausedAt = performance.now(); log('pause');
+            down = false; cut = null; autoCut = false; press = null;
+            pauseSaved = { title: el.title.textContent, start: el.start.textContent, sub: el.sub.hidden };
+            el.title.textContent = 'Paused'; el.start.textContent = 'Resume'; el.sub.hidden = true;
+            el.overlay.hidden = false; showTips(-1); audio.pause(true);
+        } else {
+            // the time spent paused never happened: nothing that counts real time may notice it
+            const gone = performance.now() - pausedAt;
+            lastSlice += gone; traceT0 += gone; fruits.forEach(f => { f.born += gone; });
+            el.overlay.hidden = true; showTips(-1);
+            if (pauseSaved) { el.title.textContent = pauseSaved.title; el.start.textContent = pauseSaved.start; el.sub.hidden = pauseSaved.sub; }
+            if (!document.hidden) audio.pause(false);
+            log('resume');
+        }
+    }
+    $('.fg-again').addEventListener('click', () => { snd('ui'); setPause(false); showTips(-1); start(); });
+    window.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.repeat && (paused || (phase === 'play' && !dbg))) { e.preventDefault(); setPause(!paused); } });
     function onKey(e) {
         // start screen and game over: any key plays (on game over after a beat, so a key still held doesn't)
-        if ((phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
+        if (paused || (phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
         if (phase === 'over' && performance.now() - overAt < 700) return;
         if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab' || e.key === 'Escape' || e.repeat) return;
         if (opts.busy && opts.busy()) return;                  // the scoreboard is open
@@ -3421,7 +3489,11 @@ export function mountFrogGame(stage, opts = {}) {
     (function fullScreen() {
         const pill = $('.fg-full-pill'), root = document.documentElement;
         const can = root.requestFullscreen || root.webkitRequestFullscreen;
-        if (!can) return;                                      // iPhone Safari has no full screen for pages
+        // An iPhone has no full screen for web pages at all (only for videos), whatever the browser:
+        // there the button is not shown. iPads and Android phones have it.
+        const allowed = document.fullscreenEnabled || document.webkitFullscreenEnabled;
+        const iPhone = /iPhone|iPod/.test(navigator.userAgent);
+        if (!can || !allowed || iPhone) return;
         pill.hidden = false;
         const isOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
         const show = () => { pill.textContent = isOn() ? 'Exit full screen' : 'Full screen'; };
@@ -3491,25 +3563,27 @@ export function mountFrogGame(stage, opts = {}) {
     // The interface gets out of the way as one: when anything in play covers any one of its
     // elements (the blade, a fruit, a piece, a power-up, a crate, a seagull), all of them fade
     // together, and come back a moment after the last one is clear.
-    let dimAt = 0, dimUntil = 0, dimNow = false;
+    let dimAt = 0;
     function dimStep(tn) {
         if (tn - dimAt > 1500) { dimAt = tn; dimMeasure(); }
-        let hit = false;
-        if (phase === 'play') {
-            const PAD = 46, slashing = pointer && (down || autoCut || swing);
-            // (x0..y1 already reach PAD past the element, for the blade; things are tested against the element itself plus their own size)
-            const over = (d, x, y, r) => x > d.x0 + PAD - r && x < d.x1 - PAD + r && y > d.y0 + PAD - r && y < d.y1 - PAD + r;
-            for (const d of dimEls) {
-                if (slashing && pointer.x > d.x0 && pointer.x < d.x1 && pointer.y > d.y0 && pointer.y < d.y1) { hit = true; break; }
-                if (d.n.classList.contains('fg-debug-tray') || d.n.classList.contains('fg-debug-title')) continue;     // the debug tray is not hidden by what is dropped from it
-                if (fruits.some(f => f.entered && over(d, f.x, f.y, f.R || f.r)) || pieces.some(q => q.poly && over(d, q.x, q.y, q.R * 0.7))
+        // Each part of the interface fades on its own, and only while something is over it: the blade,
+        // a fruit, a piece, a power-up, a crate, a gull. The rest stays readable.
+        const PAD = 46, slashing = phase === 'play' && pointer && (down || autoCut || swing);
+        // (x0..y1 already reach PAD past the element, for the blade; things are tested against the element itself plus their own size)
+        const over = (d, x, y, r) => x > d.x0 + PAD - r && x < d.x1 - PAD + r && y > d.y0 + PAD - r && y < d.y1 - PAD + r;
+        for (const d of dimEls) {
+            let hit = false;
+            if (phase === 'play') {
+                if (slashing && pointer.x > d.x0 && pointer.x < d.x1 && pointer.y > d.y0 && pointer.y < d.y1) hit = true;
+                else if (d.n.classList.contains('fg-debug-tray') || d.n.classList.contains('fg-debug-title')) hit = false;     // the debug tray is not hidden by what is dropped from it
+                else hit = fruits.some(f => f.entered && over(d, f.x, f.y, f.R || f.r)) || pieces.some(q => q.poly && over(d, q.x, q.y, q.R * 0.7))
                     || pickups.some(b => over(d, b.x, b.y, b.r)) || flies.some(f => over(d, f.x, f.y, f.s * 1.5)) || crates.some(c => over(d, c.x, c.y, c.hw))
-                    || gulls.some(g => over(d, g.x, g.y, g.r))) { hit = true; break; }
+                    || gulls.some(g => over(d, g.x, g.y, g.r));
             }
+            if (hit) d.until = tn + 250;
+            const on = tn < (d.until || 0);
+            if (on !== !!d.dim) { d.dim = on; d.n.classList.toggle('fg-dim', on); }
         }
-        if (hit) dimUntil = tn + 250;
-        const on = tn < dimUntil;
-        if (on !== dimNow) { dimNow = on; dimEls.forEach(d => { d.dim = on; d.n.classList.toggle('fg-dim', on); }); }
     }
 
     // ---------- debug mode ----------
@@ -3546,6 +3620,9 @@ export function mountFrogGame(stage, opts = {}) {
         DIRN.forEach((n, i) => cutAnim('cut ' + n + ', near', i * Math.PI / 4, () => ({ x: W / 2 + (Math.cos(i * Math.PI / 4) < -0.3 ? -1 : 1) * fw() * 0.3, y: head().y + fw() * 0.5 })));
         cutAnim('cut high, right (jump)', 0, () => ({ x: W / 2 + fw() * 1.2, y: head().y - fw() * 0.9 }));
         cutAnim('cut high, left (jump)', Math.PI, () => ({ x: W / 2 - fw() * 1.2, y: head().y - fw() * 0.9 }));
+        [['up-right', 1, -1], ['up-left', -1, -1], ['down-right', 1, 1], ['down-left', -1, 1]].forEach(([n, sx, sy]) =>
+            cutAnim('thrust far ' + n, Math.atan2(sy, sx), () => ({ x: W / 2 + sx * fw() * 2.1, y: head().y + (sy < 0 ? -fw() * 1.4 : fw() * 1.15) })));
+        out.push({ name: 'time up: slips off one foot', low: true, dur: 1.3, tick() { if (this.t0 === undefined) this.t0 = 0; this.t0 += 1 / 60; timeLeft = 3; if (this.t0 > 0.35 && !overT) { pose.slip = true; overT = 0.0001; } }, end() { this.t0 = undefined; overT = 0; pose.slip = false; pose.fallY = 0; pose.fallRot = 0; timeLeft = START_SECONDS; hud(); } });
         cutAnim('cut overhead, both blades', 0, () => ({ x: W / 2, y: head().y - fw() * 0.9 }));
         cutAnim('cut straight down, both blades', Math.PI / 2, () => ({ x: W / 2, y: head().y + fw() * 0.5 }));
         const breath = (name, dx, dy) => out.push({ name, dur: 0.8, tick() { fireLeft = Math.max(fireLeft, 0.3); const h = head(); aim = { x: h.x + dx * fw(), y: h.y + dy * fw() }; }, end() { fireLeft = 0; } });
@@ -3674,6 +3751,11 @@ export function mountFrogGame(stage, opts = {}) {
         })();
         // play every pose and animation in turn, each with its name
         $('.fg-debug-anims').addEventListener('click', () => { window.frogAnims.all(); });
+        // the tray folds away to the bottom edge, so the whole field can be seen (and unfolds again)
+        $('.fg-debug-fold').addEventListener('click', e => {
+            const box = stage.querySelector('.fg-debug'), folded = box.classList.toggle('fg-debug-folded');
+            e.currentTarget.textContent = folded ? 'Show items' : 'Hide items'; dimAt = 0;
+        });
         $('.fg-debug-bowl').addEventListener('click', () => {
             const grilled = Math.random() < 0.35;
             for (let k = 0; k < BOWL_HOLDS; k++) addToSalad(pick(FRUIT_BAG), grilled ? Math.random() < 0.8 : Math.random() < 0.1);
@@ -3699,6 +3781,7 @@ export function mountFrogGame(stage, opts = {}) {
     function frameBody(now) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
+        if (paused) { last = now; return; }                    // the pause menu is up: the world and the clock stand still
         const dt = Math.min(0.05, (now - last) / 1000); last = now;
         idleT += dt;
 
@@ -3762,7 +3845,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the summon: the frog sits back down with its laptop while the friends work
         if (summon) { pose.up = 0; pose.side = 0; pose.held = false; pose.laptop.gone = false; pose.laptop.x = 0; pose.laptop.y = 0; pose.laptop.rot = 0; pose.lRot = REST.l; pose.rRot = REST.r; pose.lean = 0; pose.shift = 0; pose.squash = 0; }
         // under five seconds: on one foot, wobbling more the closer it gets
-        pose.oneFoot = phase === 'play' && (!dbg || (demo && demo.a.low)) && timeLeft < LOW_TIME && pose.up > 0.5;
+        pose.oneFoot = (phase === 'over' && !!pose.slip) || phase === 'play' && (!dbg || (demo && demo.a.low)) && timeLeft < LOW_TIME && pose.up > 0.5;
         if (pose.oneFoot) { const w = 1 - timeLeft / LOW_TIME; pose.lean += Math.sin(idleT * 7) * (4 + 9 * w); pose.shift += Math.sin(idleT * 7) * 30 * w; }
         pose.breath = Math.sin(idleT * 1.7);
         // the bandana tails trail behind the body: they whip the other way when it leans
@@ -3818,7 +3901,23 @@ export function mountFrogGame(stage, opts = {}) {
                 freezeLeft = 0;
             }
             if (wasFrozen && freezeLeft <= 0) {
-                markQueue = allMarked(); log('release', markQueue.length);
+                markQueue = allMarked();
+                // The blade goes through whatever is there: fruit and pieces lying over (or under) a marked
+                // one are cut with it, marked or not.
+                {
+                    const inQ = new Set(markQueue), out = [];
+                    const loose = fruits.filter(f => f.entered).concat(pieces.filter(q => q.live && q.poly));
+                    markQueue.forEach(m => {
+                        out.push(m);
+                        if (!(fruits.includes(m) || pieces.includes(m))) return;
+                        loose.forEach(o => {
+                            if (inQ.has(o) || Math.hypot(o.x - m.x, o.y - m.y) > ((m.R || m.r) + (o.R || o.r)) * 0.7) return;
+                            inQ.add(o); o.mark = m.mark; out.push(o);
+                        });
+                    });
+                    markQueue = out;
+                }
+                log('release', markQueue.length);
                 markCut = { id: ++cutId, hits: 0 };   // the release is one slash: each thing it cuts is worth more than the last
                 markT = 0; markFrom = null;
             }
@@ -3827,7 +3926,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (markQueue.length) {
                 markT -= dt;
                 while (markQueue.length && markT <= 0) {
-                    markT += MARK_STEP;
+                    markT += MARK_STEP / (bladeFx.bubbles ? 2 : 1);      // a sake on the sword: the slashes come twice as fast
                     const f = markQueue.shift(), ix = fruits.indexOf(f), cx = crates.indexOf(f);
                     if (cx >= 0) {   // a marked crate: opened with a perfect cut through its middle, fruit all round
                         const o = markFrom || frogPoint(993, 300), d = Math.hypot(f.x - o.x, f.y - o.y) || 1;
@@ -4051,7 +4150,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!f.entered && f.x > -f.r && f.x < W + f.r && f.y < H) f.entered = true;
             // depth: far fruit shrinks away from us all the way; near fruit breathes in and out a little
             const age = (performance.now() - f.born) / 1000;
-            if (f.far) f.ds = Math.max(FAR_SIZE, f.ds - ft * 0.28);
+            if (f.far) f.ds = Math.max(FAR_SIZE, f.ds - ft * 0.06);
             else if (f.dph !== undefined) f.ds = 1 + DEPTH_SWING * Math.sin(f.dph + age * 1.6);
             // far fruit comes down in the sea, not off the bottom of the screen
             if (f.far && f.vy > 0 && f.y > seaY() && !f.hacked) {
@@ -4427,7 +4526,7 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.globalAlpha = 1;
     }
 
-    function onVis() { last = performance.now(); audio.pause(document.hidden); }
+    function onVis() { last = performance.now(); if (document.hidden) setPause(true); if (!paused || document.hidden) audio.pause(document.hidden); }
     function onBlur() { down = false; cut = null; autoCut = false; press = null; dullId = 0; gapLeft = 0; }
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVis);

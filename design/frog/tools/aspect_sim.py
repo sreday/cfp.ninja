@@ -15,7 +15,8 @@ FRUITS = [('watermelon', 1.62, 2), ('orange', 0.83, 3), ('pineapple', 1.3, 3), (
           ('banana', 0.53, 2), ('kiwi', 0.42, 2), ('apple', 0.66, 2), ('plum', 0.34, 2)]
 RMIN, RMAX = 0.34, 1.62
 BAG = [f for f in FRUITS for _ in range(f[2])]
-def fruit_time(r): return round((0.5 + (0.1 - 0.5) * (r - RMIN) / (RMAX - RMIN)) * 20) / 20
+RANK = sorted((f[1] for f in FRUITS), reverse=True)
+def fruit_time(r): return round(0.1 + 0.1 * RANK.index(r), 2)      # watermelon 0.1 s .. plum 0.8 s
 COMBO_AT = [0, 4, 9, 15, 22, 30, 39, 49, 60, 72, 85]
 clamp = lambda v, a, b: max(a, min(b, v))
 
@@ -68,7 +69,7 @@ def spawn(w, rnd, objs, t):
         vx = d * w.Wh * rnd.uniform(0.35, 0.6) * sp / w.time_k
         vy = -math.sqrt(2 * g * rnd.uniform(0.15, min(0.55, yk - 0.1)) * w.Hv)
     objs.append(dict(x=x, y=y, vx=vx, vy=vy, g=g, r=r, val=fruit_time(tr), cuts=0, far=rnd.random() < 0.3,
-                     ds=1.1, entered=False, whole=True, nocut=-1, born=t, frm=frm))
+                     ds=1.05, entered=False, whole=True, nocut=-1, born=t, frm=frm))
 
 def step_objs(w, objs, dt, stats=None):
     W, H = w.W, w.H
@@ -78,7 +79,7 @@ def step_objs(w, objs, dt, stats=None):
         r = f['r']
         if not f['entered'] and -r < f['x'] < W + r and f['y'] < H: f['entered'] = True
         if f['whole']:
-            if f['far']: f['ds'] = max(0.6, f['ds'] - dt * 0.28)
+            if f['far']: f['ds'] = max(0.95, f['ds'] - dt * 0.06)
             if f['far'] and f['vy'] > 0 and f['y'] > w.sea: objs.pop(i); continue
         if (f['entered'] and (f['y'] > H + r * 2 or f['x'] < -r * 2 or f['x'] > W + r * 2)) or f['y'] > 2 * H:
             objs.pop(i)

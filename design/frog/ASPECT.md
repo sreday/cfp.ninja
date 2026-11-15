@@ -87,6 +87,10 @@ Note that the upright field is now a little smaller in area than the wide one, a
 there is still about 12% faster against its size. Equal chances needed slightly denser fruit
 to make up for slightly faster fruit; equal area alone was not fair.
 
+(These tables are from before fruit times went to 0.1-0.8 s and depth was limited to 10% of a
+fruit's size. With those, every row is about 17% higher and the shapes still agree: 74.4 s on
+16:9, 74.5 s on 9:16, 73.8 s on a tall phone, for the good player.)
+
 ## What this does not cover
 
 - **It is a model, not people.** A finger on a phone and a mouse on a desktop differ in ways
