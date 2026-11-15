@@ -206,6 +206,7 @@ const FROG_SVG = `
         <g id="fg-side-legs">
         <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-tuck" opacity="0"><ellipse cx="900" cy="1330" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L1140 1110 L940 1290" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1400" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1260 1100 L1120 1360" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         </g>
         <g id="fg-side-top">
@@ -882,7 +883,7 @@ export function mountFrogGame(stage, opts = {}) {
         all: $('#fg-all'), sit: $('#fg-sit'), stand: $('#fg-stand'), shadow: $('#fg-shadow'),
         headP: $('#fg-side-headP'), headQ: $('#fg-side-headQ'), sideLegs: $('#fg-side-legs'),
         side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
-        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up') },
+        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck') },
         sF: { g: $('#fg-sarmF'), limb: $('#fg-sarmF .fg-limb'), held: $('#fg-sarmF .fg-held'), blade: $('#fg-sarmF .fg-blade') },
         sB: { g: $('#fg-sarmB'), limb: $('#fg-sarmB .fg-limb'), held: $('#fg-sarmB .fg-held'), blade: $('#fg-sarmB .fg-blade') },
         robeSit: $('#fg-robe-sit'), robeUp: $('#fg-robe-up'), hem: $('#fg-hem'), sleevesSit: $('#fg-sleeves-sit'), sleevesUp: $('#fg-sleeves-up'), legL: $('#fg-legL'), legR: $('#fg-legR'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
@@ -967,7 +968,7 @@ export function mountFrogGame(stage, opts = {}) {
         // standing: up = 0 (seated) .. 1 (on its feet); lean and shift follow the blade; fall = dropping off the post
         up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0,
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
-        oneFoot: false, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
+        oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const RISE = 400;                                          // logo px the body rises when the frog stands
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
@@ -983,7 +984,7 @@ export function mountFrogGame(stage, opts = {}) {
             setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
             setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
-            setA(held, 'opacity', pose.held ? 1 : 0);
+            setA(held, 'opacity', pose.held && !pose.noBlades ? 1 : 0);
             setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
         const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
@@ -1007,7 +1008,7 @@ export function mountFrogGame(stage, opts = {}) {
             setA(el.sideTail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} 660 0)`);       // the tails lag the turn
             setA(el.sideHem, 'transform', `translate(1000 850) skewX(${n2(pose.sRot * 0.5)}) translate(-1000 -850)`);
         }
-        setA(el.back, 'opacity', pose.held ? 0 : 1);
+        setA(el.back, 'opacity', pose.held || pose.noBlades ? 0 : 1);
         const L = pose.laptop;
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
         if (!L.gone) setA(el.laptop, 'transform', `translate(${n2(L.x * U)} ${n2(L.y * U)}) rotate(${n2(L.rot)} 993 1160)`);
@@ -1028,7 +1029,7 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.stand, 'opacity', pose.up > 0.5 && !sideOn ? 1 : 0);
         // the legs stay planted and slant so their tops stay under the hips
         // (falling: the legs go with the body)
-        setA(el.stand, 'transform', pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
+        setA(el.stand, 'transform', pose.jump > 1 ? `translate(0 ${n2(-pose.jump)}) translate(0 860) scale(1 ${n2(1 - Math.min(0.34, pose.jump / 600))}) translate(0 -860)` : pose.fallY ? `translate(0 ${n2(pose.fallY)}) rotate(${n2(pose.fallRot)} 993 600)` : `translate(0 1668) skewX(${n2(-Math.atan(pose.shift / 770) * 180 / Math.PI)}) translate(0 -1668)`);
         setA(el.shadow, 'opacity', pose.fallY ? 0 : 1);
         // breathing: the robe swells a little from the floor up; the head rides on it
         setA(el.body, 'transform', `translate(0 1520) scale(1 ${Math.round((1 + pose.breath * 0.012) * 1e4) / 1e4}) translate(0 -1520)`);
@@ -1530,7 +1531,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
             pose.lK = smear ? 28 : -58; pose.rK = smear ? -28 : 58;
-            pose.bob -= 26 * air;                                     // the jump
+            pose.bob -= 56 * air; pose.jump = 56 * U * air;            // the jump: the legs leave the post and tuck
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
             return;
@@ -1576,13 +1577,14 @@ export function mountFrogGame(stage, opts = {}) {
                 if (s.t < wind) { pose.sLegs = 'down'; pose.sDrop = 120; pose.sRot = 26; aimTh = 60; }
                 else {
                     const u = clamp((s.t - wind) / air, 0, 1);
-                    pose.sHop = Math.sin(u * Math.PI) * 170;                     // the hop
+                    pose.sHop = Math.sin(u * Math.PI) * 300;                     // the hop
                     pose.sRot = lerp(-4, pose.sRot, Math.min(1, u * 3));
                     if (u >= 1 && s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
                 }
             }
             // a cut above its head: a small jump, legs together, as long as the blade is up there
-            if (s.high && cy >= -0.3) { pose.sHop = Math.max(pose.sHop, Math.sin(clamp(s.t / 0.32, 0, 1) * Math.PI) * 120); if (s.t < 0.32) { pose.sLegs = 'up'; pose.sDrop = 0; } }
+            if (s.high && cy >= -0.3) { pose.sHop = Math.max(pose.sHop, Math.sin(clamp(s.t / 0.32, 0, 1) * Math.PI) * 230); if (s.t < 0.32) { pose.sLegs = 'up'; pose.sDrop = 0; } }
+            if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             pose.sF = { rot: aimTh - 90 - pose.sRot, k: aimTh + 90 - pose.sRot, stretch: smear ? 2.4 : 1.6 };
             pose.sB = { rot: th + 80 - pose.sRot, k: th + 260 - pose.sRot, stretch: 1.1 };     // the other blade swept back, for balance
         }
@@ -2118,7 +2120,7 @@ export function mountFrogGame(stage, opts = {}) {
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
-        if (phase === 'count') return;                       // wait for 3, 2, 1
+        if (phase === 'count' || phase === 'over') return;   // wait for 3, 2, 1; and nothing once time is up
         noteInput(e);
         if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
@@ -2179,6 +2181,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (markSeq > before) snd('mark', { n: markSeq });
     }
     function movePoint(x, y, ts) {
+        if (phase === 'over') { aim = { x, y }; return; }
         const from = aim || { x, y };
         aim = { x, y };                                   // the fire breath follows the cursor
         if (markQueue.length && freezeLeft <= 0 && phase === 'play') { cut = null; autoCut = false; press = null; return; }   // the marked slashes are running: hands off
@@ -2723,7 +2726,7 @@ export function mountFrogGame(stage, opts = {}) {
     $('.fg-anykey').hidden = touch;
     function start() {
         el.overlay.hidden = true; el.save.innerHTML = '';
-        stage.classList.remove('fg-fallen'); splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
+        stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
         dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
@@ -2755,8 +2758,13 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     const OVER_WAIT = 2;
-    let overT = 0, splashed = false, splashT = 0;
+    let overT = 0, splashed = false, splashT = 0, dropped = [];
     function stepFall(dt) {
+        dropped.forEach(k => {
+            if (k.stuck) { k.stuck += dt; return; }
+            k.vy += H * 2.4 * dt; k.y += k.vy * dt; k.x += (k.tx - k.x) * Math.min(1, dt * 5); k.rot += (0 - k.rot) * Math.min(1, dt * 7) + (Math.abs(k.rot) > 0.2 ? dt * 14 * Math.sign(k.rot) : 0);
+            if (k.vy > 0 && k.y >= k.ty) { k.y = k.ty; k.x = k.tx; k.rot = 0; k.stuck = 0.0001; snd('bounce'); }
+        });
         if (overT <= 0) return;
         overT += dt;
         // a beat of shock (held), then it tips backwards and drops
@@ -2802,6 +2810,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
+        // its katanas are left behind: they drop and stick, point down, in the top of the post
+        const top = H - (H * 0.15 + 16) + fbox.w * 0.09;       // a little below the rim: the points are in the wood
+        dropped = [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
+        pose.noBlades = true;
         pose.side = 0; pose.oneFoot = false; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
         el.count.textContent = formatSurvival(clockT) + ' s'; el.count.hidden = false; el.count.classList.remove('pop'); el.count.classList.add('fg-final');
     }
@@ -3033,7 +3045,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.bob = Math.sin(idleT * 3) * 1.5;
             pose.lK = READY.lK + Math.sin(idleT * 2) * 3; pose.rK = READY.rK - Math.sin(idleT * 2) * 3;
             pose.lRot = READY.l; pose.rRot = READY.r; pose.lStretch = pose.rStretch = 1;
-            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0;
+            pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.side = 0; pose.jump = 0;
             // at rest it half-turns toward the cursor
             pose.face = aim && phase === 'play' ? clamp((aim.x - W / 2) / (W * 0.3), -1, 1) * 0.18 : 0;   // a slight turn only: more than this pulls the front drawing apart
             stepSwing(dt);
@@ -3106,7 +3118,8 @@ export function mountFrogGame(stage, opts = {}) {
             const difficulty = FRUIT_PACE;
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
             // every fruit on screen marked (or none left): time flows again
-            if (freezeLeft > 0 && !fruits.some(f => f.entered && !f.mark) && !crates.some(c => !c.mark && c.y < H)
+            // (not in debug mode: there every power-up runs its full time, even over an empty field)
+            if (!dbg && freezeLeft > 0 && !fruits.some(f => f.entered && !f.mark) && !crates.some(c => !c.mark && c.y < H)
                 && !pickups.some(b => !b.mark && b.y < H) && !flies.some(f => !f.mark && f.x > 0 && f.x < W)) {
                 if (allMarked().length) floats.push({ x: W / 2, y: H * 0.3, text: 'All marked!', t: 0, hot: true });
                 freezeLeft = 0;
@@ -3266,12 +3279,6 @@ export function mountFrogGame(stage, opts = {}) {
         }
         // under five seconds: a heartbeat each second
         if (live && !dbg && timeLeft < LOW_TIME && Math.ceil(timeLeft) !== lowBeat) { lowBeat = Math.ceil(timeLeft); snd('lowtime'); }
-        // debug: once the field is empty again, every effect is over, so the next scene starts clean
-        if (dbg && live && !fruits.length && !pieces.length && !pickups.length && !flies.length && !crates.length && !rockets.length && !punch && !tongue && !markQueue.length
-            && (sakeLeft > 0 || fireLeft > 0 || freezeLeft > 0 || fwLeft > 0 || fxLeft > 0 || stunT > 0)) {
-            sakeLeft = 0; fireLeft = 0; freezeLeft = 0; fwLeft = 0; fwShots = 0; stunT = 0; slowTail = 0; fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
-            clearBladeFx(); cut = null; autoCut = false; down = false; stamina = STAMINA_BARS; log('debug-clear');
-        }
         stepFire(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
@@ -3560,6 +3567,16 @@ export function mountFrogGame(stage, opts = {}) {
             [0.5, 0.9].forEach(m => { ctx.beginPath(); ctx.ellipse(W / 2, sea, fbox.w * (0.4 + k * m), fbox.w * 0.05 * (1 + k), 0, 0, 7); ctx.stroke(); });
             ctx.restore();
         }
+        dropped.forEach(k => {   // a katana, point down: falling, then quivering in the wood
+            const L = fbox.w * 0.42, wob = k.stuck ? Math.sin(k.stuck * 40) * 0.12 * Math.exp(-k.stuck * 6) : 0;
+            ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.rot + wob);
+            ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.8;
+            const sink = k.stuck ? L * 0.16 : 0;                // the tip is in the wood
+            ctx.fillStyle = C.blade; ctx.beginPath(); ctx.rect(-L * 0.035, -L * 0.62, L * 0.07, L * 0.62 - sink); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#6b6e74'; ctx.beginPath(); ctx.rect(-L * 0.09, -L * 0.66, L * 0.18, L * 0.05); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = C.steel; ctx.beginPath(); ctx.rect(-L * 0.05, -L * 0.94, L * 0.1, L * 0.28); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        });
         if (swing && swing.t < SMEAR + 0.03 && pose.held) {
             const c0 = frogPoint(993, 1000), R = fbox.w * 0.62, k = swing.t / (SMEAR + 0.03);
             ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(swing.a);
