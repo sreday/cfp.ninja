@@ -1868,9 +1868,13 @@ export function mountFrogGame(stage, opts = {}) {
         const near = Math.abs(x - W / 2) < fbox.w * 0.5;       // close to the frog: a three-quarter turn
         const high = y !== undefined && y < frogPoint(993, 60).y;                  // above its head: it has to jump for it
         const over = high && Math.sin(a) <= 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
-        if (swing && swing.live && swing.a === a && swing.side === side) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
         // a stroke straight down, right in front of it: both blades come down together
-        const under = !over && Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;
+        // ... and so does any cut made low down right under it (below its knees, within its own width),
+        // whichever way the blade is travelling: the frog bends over it, katanas crossed underneath
+        const low = y !== undefined && y > frogPoint(993, 1380).y && Math.abs(x - W / 2) < fbox.w * 0.6;
+        const under = !over && ((Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42) || low);
+        if (swing && swing.live && swing.a === a && swing.side === side && !!swing.under === under) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
+        // a stroke straight down, right in front of it: both blades come down together
         // far out toward a corner (well to the side, and well above the head or down by the feet):
         // a thrust, the whole frog thrown at it, blade first
         const h0 = frogPoint(993, 300), wide = Math.abs(x - W / 2) > fbox.w * 1.6;
