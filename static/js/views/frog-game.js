@@ -837,7 +837,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="rare" hidden>
                         <p class="fg-tip-lead">Rare finds.</p>
-                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts across the sky. Tongue them: the frog spits 10 big ones all over the sky. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                     </div>
@@ -2377,6 +2377,12 @@ export function mountFrogGame(stage, opts = {}) {
                 const ix = list.indexOf(f);
                 if (ix >= 0 && cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y)) list.splice(list.indexOf(f), 1);
             });
+        });
+        // crates: the first slash breaks them open; the fruit hangs there (time is stopped) and
+        // the second slash cuts each of them once
+        if (!turn) crates.slice().forEach(c => {
+            if (c.y > H || c.x < 0 || c.x > W) return;
+            crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY);
         });
         // what was just cut can be cut again by the next slash, whatever its count
         pieces.forEach(q => { q.live = true; });
