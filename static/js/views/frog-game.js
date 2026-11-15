@@ -2492,6 +2492,22 @@ export function mountFrogGame(stage, opts = {}) {
             [0.38, 0.6].forEach(len => bit(b.x, b.y, (ctx, lw) => { ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -r * len); ctx.stroke(); }));
             for (let i = 0; i < 3; i++) bit(b.x, b.y, ctx => { ctx.fillStyle = '#cfd8dc'; ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, r * 0.05), 0, 7); ctx.fill(); });
             floats.push({ x: b.x, y: b.y - r, text: 'Clank!', t: 0, hot: false });
+        } else if (b.kind === 'laptop') {
+            // cut clean in two along the blade: the halves fall apart, keys and sparks fly
+            const nx = -Math.sin(ang), ny = Math.cos(ang);
+            [1, -1].forEach(sd => bit(b.x + nx * r * 0.25 * sd, b.y + ny * r * 0.25 * sd, (ctx, lw) => {
+                ctx.rotate(ang - b.rot);
+                ctx.beginPath(); ctx.rect(-r * 3, sd > 0 ? 0 : -r * 3, r * 6, r * 3); ctx.clip();
+                ctx.rotate(-(ang - b.rot));
+                drawLaptop(ctx, { x: 0, y: 0, r, rot: 0, t: 0, kind: 'laptop' }, lw);
+                // the cut edge: bare metal and a glint of circuit
+                ctx.rotate(ang - b.rot);
+                ctx.strokeStyle = '#263238'; ctx.lineWidth = lw * 1.8; ctx.beginPath(); ctx.moveTo(-r * 1.15, 0); ctx.lineTo(r * 1.15, 0); ctx.stroke();
+                ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = lw * 0.6; ctx.setLineDash([r * 0.12, r * 0.1]); ctx.beginPath(); ctx.moveTo(-r * 1.05, 0); ctx.lineTo(r * 1.05, 0); ctx.stroke(); ctx.setLineDash([]);
+            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2 }));
+            for (let i = 0; i < 9; i++) { const k = r * rand(0.1, 0.16); bit(b.x, b.y, (ctx, lw) => { ctx.fillStyle = '#eceff1'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke(); }, { life: 1.6 }); }     // keys
+            splash(b.x, b.y, '#fff59d', 14, 3);                                                                                  // sparks
+            floats.push({ x: b.x, y: b.y - r, text: 'Crack!', t: 0, hot: false });
         } else {
             // the sake bottle shatters
             for (let i = 0; i < 8; i++) { const pts = shardPath(3, r * rand(0.25, 0.5)); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i === 0 ? '#a3211d' : '#f5c542', lw * 0.7)); }
@@ -4200,6 +4216,7 @@ export function mountFrogGame(stage, opts = {}) {
                     }
                     if (px >= 0 || fx >= 0) {   // a marked power-up: cut, and worth a cleanly cut apple
                         const o = markFrom || frogPoint(993, 300), ang = Math.atan2(f.y - o.y, f.x - o.x);
+                        swing = null; swingTo(Math.cos(ang), Math.sin(ang), f.x, f.y);      // the frog strikes it itself, like the fruit
                         if (px >= 0) { pickups.splice(px, 1); breakPickup(f, ang); } else { flies.splice(fx, 1); breakFly(f, ang); }
                         // a firefly sets the sword on fire, a sake turns it yellow: for the cuts still
                         // to come in this sequence, and for FX_SECONDS of normal slashing afterwards
