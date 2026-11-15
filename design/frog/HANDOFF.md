@@ -9,6 +9,10 @@ Read this first when picking the work up. Everything needed is in this repo.
   change against it.
 - **`STYLE.md`** and **`ASSETS.md`**: the visual style for whoever draws the game, and the
   list of every element to create. All current art is placeholder.
+- **`STORY.md`**: the plot, the cast (our conference mascots), the comics, and how the
+  brands appear without becoming adverts.
+- **`SOUNDS.md`**: every sound effect and the music, all synthesised for now, and how to
+  swap in real recordings.
 - **`SPEC.md`**: the measured anatomy of the logo frog.
 - **Deploy:** Heroku app `cfpninja`, by `git push heroku main` from a machine that has the
   Heroku login. Pushing to GitHub alone deploys nothing.

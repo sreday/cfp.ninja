@@ -129,18 +129,13 @@ post, and an effect lasts only as long as the thing that caused it.
 
 ## The cast
 
-The other four are the mascots of their own events; use each brand's own logo as the
-source of truth, the same way the frog comes from its logo (brand kit:
-`https://conf42.com/assets/brandkit/`). Draw them in the frog's style: thick black backing,
-flat colour, one highlight per form, big readable eyes.
-
-| Animal | Brand | Role at the party |
-|---|---|---|
-| Frog | CFP.ninja | the hero: on the post, making the salad |
-| Monkey | SREday | to be decided (suggestion: throws the fruit) |
-| Platypus | PLATFORMday | to be decided (suggestion: the DJ) |
-| Llama | LLMday | to be decided (suggestion: dancing, reacts to combos) |
-| Corgi | Conf42 | to be decided (suggestion: guards the dessert table, brings the crates) |
+The other four are the mascots of our conferences. What they look like, where their source
+art lives, their personalities and how they appear in the game are in `STORY.md`. Draw them
+in the frog's style: thick black backing, flat colour, one highlight per form, big readable
+eyes. Their brand art is rounder and softer than the frog's logo, with thinner outlines and
+some shading; in the game they take the frog's heavier line and flat fills so the five read
+as one cast. Keep each one's signature: the monkey's purple suit and tie, the llama's green
+fleece, the platypus's olive hoodie and grey bill, the corgi's orange-and-white face.
 
 ## Reference footage
 

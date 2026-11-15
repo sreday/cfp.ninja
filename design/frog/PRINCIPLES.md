@@ -23,6 +23,15 @@ file is the source of truth, this document explains the intent.
 - **Survival, not score.** Time is the only currency: the clock runs down, fruit buys
   seconds, the score is how long you lasted.
 
+- **A tablet at a conference.** It must be playable by someone walking up to a stand: no
+  login needed to play, readable from arm's length, fine with touch, a run that is over in
+  a couple of minutes.
+- **Brands as characters, never adverts.** The game introduces our conference mascots by
+  making them fun to be around. Nothing brand-related may interrupt or clutter a run. See
+  `STORY.md`.
+- **Sound is opt-in.** Off until the player turns it on; never the only signal for
+  anything the player needs to know.
+
 ## 2. Rules that keep it fair
 
 1. **Power-ups never penalise.** Picking one up, or having one end, must never leave the

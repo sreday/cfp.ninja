@@ -31,10 +31,11 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Missing
 
+- 2026-11-15 | sound | All sound is synthesised and was never listened to by a person: it was
+  checked for level only. Needs a listen and a tuning pass, or real recordings (`SOUNDS.md`).
+- 2026-11-15 | story | Nothing from `STORY.md` is in the game yet: no cast on the beach, no
+  comics. Needs art first.
 - 2026-11-15 | design | All art is placeholder. See `STYLE.md` and `ASSETS.md`.
-- 2026-11-15 | design | No sound at all.
-- 2026-11-15 | design | The other animals of the story (monkey, platypus, llama, corgi)
-  don't appear in the game yet.
 - 2026-11-15 | handoff | The frog is still the hand-drawn SVG, not traced from the logo
   (see `HANDOFF.md` and `SPEC.md`).
 

@@ -121,7 +121,18 @@ dance loop, a cheer and a groan. Roles are suggestions (see `STYLE.md`).
 | 7.8 | Debug mode | "DEBUG MODE" title and the item tray | placeholder |
 | 7.9 | Game title art | "Frog Ninja" logo lockup | none |
 
-## 8. Not visual, but missing
+## 8. Comics
 
-Sound: slash, cut (per precision), bounce, tongue, each power-up start and end, crate
-break, fireworks, combo steps, countdown, game over, party music.
+Scripts are in `STORY.md`.
+
+| # | Element | Notes | Status |
+|---|---|---|---|
+| 8.1 | Strip 1, "The dessert" | 6 panels, the intro | none |
+| 8.2 | Strip 2, "Power-ups" | 4 panels, one per power-up, usable as tips | none |
+| 8.3 | Strip 3, "Game over" | 3 panels; the salad bowl in several sizes; a verdict pose per animal | none |
+| 8.4 | Comic frame and lettering | panel border, caption box, sound-effect lettering | none |
+
+## 9. Sound
+
+Every sound and the music are listed in `SOUNDS.md`, with what a real recording of each
+would be. All of it is synthesised placeholder today.

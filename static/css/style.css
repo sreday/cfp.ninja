@@ -1525,7 +1525,13 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-board-link { display: block; margin: 10px auto 0; }
 .fg-debug-pill { position: absolute; top: 12px; right: 12px; z-index: 6; width: 116px; height: 38px; padding: 0 12px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease; }
 .fg-debug-pill:hover { background: var(--border-light); }
+/* the sound pill: a megaphone, crossed out while sound is off */
+.fg-sound-pill { position: absolute; top: 12px; right: 136px; z-index: 6; width: 46px; height: 38px; padding: 0; align-items: center; justify-content: center; font-size: 1.05rem; line-height: 1; cursor: pointer; transition: background .15s ease; }
+.fg-sound-pill:hover { background: var(--border-light); }
+.fg-sound-off { color: transparent; text-shadow: 0 0 0 rgba(255,255,255,.55); }
+.fg-sound-off::after { content: ''; position: absolute; left: 9px; right: 9px; top: 50%; height: 2.5px; border-radius: 2px; background: #e53935; transform: rotate(-38deg); }
 @media (max-width: 575px) { .fg-debug-pill { width: auto; top: auto; bottom: 8px; right: 8px; height: 30px; font-size: .7rem; } .fg-debugging .fg-debug-pill { bottom: auto; top: 56px; } }
+@media (max-width: 575px) { .fg-sound-pill { top: auto; bottom: 8px; right: auto; left: 8px; width: 40px; height: 30px; font-size: .9rem; } }
 /* debug mode: a tray of things to drag onto the field, under the frog, and a big title */
 .fg-debug { position: absolute; left: 0; right: 0; bottom: 6px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
 .fg-debug[hidden] { display: none; }
