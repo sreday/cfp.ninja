@@ -1523,6 +1523,18 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 @media (max-width: 575px), (max-height: 720px) { .fg-panel { padding: 14px 16px; } .fg-title { font-size: 1.25rem; margin-bottom: .2rem; } .fg-tip-lead { font-size: .9rem; margin-bottom: .5rem; }
     .fg-row { padding: 6px 0; } .fg-row b { font-size: .9rem; } .fg-row span { font-size: .8rem; line-height: 1.25; } .fg-tip-combo { font-size: .8rem; } }
 .fg-board-link { display: block; margin: 10px auto 0; }
+.fg-debug-link { display: block; margin: 8px auto 0; }
+/* debug mode: a tray of things to drag onto the field, under the frog, and a big title */
+.fg-debug { position: absolute; left: 0; right: 0; bottom: 6px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
+.fg-debug[hidden] { display: none; }
+.fg-debug-title { font: 900 2.1rem/1 Inter, sans-serif; letter-spacing: .1em; color: #ffd400; -webkit-text-stroke: 2px #000; paint-order: stroke fill; }
+.fg-debug-tray { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px; max-width: calc(100% - 16px); padding: 5px 12px; border-radius: 28px; pointer-events: auto;
+    background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.fg-debug-item { width: 44px; height: 44px; border-radius: 10px; cursor: grab; touch-action: none; }
+.fg-debug-item:hover { background: var(--border-light); }
+.fg-debug-ghost { position: fixed; z-index: 100; width: 44px; height: 44px; margin: -22px 0 0 -22px; pointer-events: none; transform: scale(1.4); }
+.fg-debugging .fg-time, .fg-debugging .fg-hud { visibility: hidden; }
+@media (max-width: 575px) { .fg-debug-title { font-size: 1.4rem; } .fg-debug-item { width: 36px; height: 36px; } }
 /* the scoreboard: a full screen under the navbar, opened from the game's own panel */
 .game-board-screen { position: fixed; z-index: 50; inset: 0; display: flex; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
