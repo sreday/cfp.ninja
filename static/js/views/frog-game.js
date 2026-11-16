@@ -108,7 +108,6 @@ const CUT_MAX = 1, CUT_GAP = 12;                 // CUT_MAX = the screen's longe
 // doesn't stretch one stamina bar: the next bit of travel is a new, paid cut.
 const CUT_TIME = 0.6;
 const TURN_STEP = 10, TURN_COS = Math.cos(75 * Math.PI / 180);   // px sampled, max turn
-const HAT_ROT = Math.PI;                         // how the banana is turned to sit on the head, ends down
 const STUN_MIN = 0.5, STUN_MAX = 2;             // swallowing fruit, small to big
 const MOUTH_Y = 700;                            // the smile, in logo px
 const BEST_KEY = 'cfpninja.game.bestSurvivalMs';
@@ -2764,6 +2763,11 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function hitTest1(ax, ay, bx, by, hx, hy) {
         if (phase !== 'play') return;
+        if (stunT > 0) {      // stunned: the blade does nothing, except across a fruit stuck on its own head
+            const h = frogPoint(993, 440);
+            if (headFx && headFx.mode === 'stuck' && segDist(h.x, h.y, ax, ay, bx, by) < fbox.w * 0.26) freeHead();
+            return;
+        }
         // the blade's heading: this move's, or the stroke's when the move is too short to tell
         let dx = bx - ax, dy = by - ay;
         const len = Math.hypot(dx, dy);
@@ -3466,7 +3470,7 @@ export function mountFrogGame(stage, opts = {}) {
             return;
         }
         if (e.button !== 0 && e.pointerType === 'mouse') return;
-        if (phase === 'play' && stunT > 0) return;                 // dizzy: no slashing
+        if (phase === 'play' && stunT > 0 && !(headFx && headFx.mode === 'stuck')) return;                 // dizzy: no slashing (but with a fruit stuck on its head it can cut itself free)
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
         cut = null; press = { x: px, y: py }; windUp = true;
@@ -3725,6 +3729,7 @@ export function mountFrogGame(stage, opts = {}) {
     const STUN_WORD = { stuck: 'Stuck!', splat: 'Splat!', bump: 'Bonk!', hat: 'Nice hat!', eat: 'Yum!', '': 'Bonk!' };
     const HEAD_AFTER = 5;                                     // seconds a bump or a banana hat stays once the stun is over
     let headFx = null;                                        // { mode, type, r, t, after, blobs }
+    let bumps = null;                                         // { n: 1..3, t, after }: the bumps apples have raised, kept apart so another fruit's joke doesn't wipe them
     function stunWith(type, r, head) {
         const mode = STUN_MODE[type.kind] || '';
         headFx = { mode, type, r, t: 0, after: 0, chew: 0, blobs: [] };
@@ -3734,13 +3739,34 @@ export function mountFrogGame(stage, opts = {}) {
         if (mode === 'splat') {
             spray(34);
             // where the juice lands on its face: a few big blots over the eyes, smaller ones round them, each with a drip (in units of the head's half width)
-            for (let i = 0; i < 9; i++) headFx.blobs.push({ x: i < 2 ? (i ? 0.42 : -0.42) + rand(-0.06, 0.06) : rand(-0.8, 0.8), y: i < 2 ? rand(-0.05, 0.05) : rand(-0.45, 0.5), r: i < 2 ? rand(0.36, 0.44) : rand(0.12, 0.26), drip: rand(0.2, 0.9), w: rand(0.05, 0.09) });
-        } else if (mode === 'bump' || mode === '') { spray(18); twoHalves(); }
+            // the drips along the lower edge of the coat, left to right: how far each runs, and how high the valley after it stays
+            for (let i = 0; i < 9; i++) headFx.blobs.push({ len: (i === 2 || i === 6 ? rand(210, 270) : rand(60, 200)), val: rand(-40, 30) });
+        } else if (mode === 'bump' || mode === '') {
+            spray(18); twoHalves();
+            if (mode === 'bump') bumps = { n: Math.min(3, (bumps ? bumps.n : 0) + 1), t: 0, after: 0 };       // another apple: another bump, three at most
+        }
         else if (mode === 'stuck') spray(12);
-        else if (mode === 'eat') spray(4);
+        else if (mode === 'eat') {
+            // eaten: it is still a stun, but the fruit was food, and pays what a cut of it pays
+            spray(4);
+            const gain = Math.max(fruitTime(type) * (1 + GRADES[gradeIx].bonus) * timeMult(), 0.01);
+            timeLeft += gain; val('eat', gain); gainPop(head.x, head.y - 50, gain); log('eat-pay', type.kind, r2(gain));
+        }
         floats.push({ x: head.x, y: head.y - 20, text: STUN_WORD[mode], t: 0, hot: true, word: true });
     }
+    // stuck fruit: a slash across its own head cuts the frog free at once
+    function freeHead() {
+        if (!(headFx && headFx.mode === 'stuck' && stunT > 0)) return;
+        const h = frogPoint(993, 440);
+        stunT = 0; snd('stun_end'); log('stun', headFx.type.kind, 'freed');
+        slashes.push({ x: h.x, y: h.y, a: 0, r: fbox.w * 0.4, t: 0 });
+        floats.push({ x: h.x, y: h.y - fbox.w * 0.4, text: 'Free!', t: 0, hot: true, word: true });
+    }
     function stepHeadFx(dt) {
+        if (bumps) {
+            bumps.t += dt; if (stunT <= 0) bumps.after += dt;
+            if (bumps.after > HEAD_AFTER || (phase !== 'play' && !dbg)) bumps = null;
+        }
         const fx = headFx; if (!fx) return;
         fx.t += dt;
         if (phase !== 'play' && !dbg) { headFx = null; return; }
@@ -3754,56 +3780,86 @@ export function mountFrogGame(stage, opts = {}) {
             if (fx.mode === 'stuck') { const h = frogPoint(993, 450); [1, -1].forEach(sd => halves.push({ type: fx.type, r: fx.r, x: h.x, y: h.y, vx: sd * H * 0.2, vy: -H * 0.3, g: G(), rot: sd < 0 ? Math.PI : 0, spin: sd * 4, t: 0 })); }
         }
         fx.after += dt;
-        if (fx.after > (fx.mode === 'bump' || fx.mode === 'hat' ? HEAD_AFTER : fx.mode === 'splat' ? 0.5 : 0)) headFx = null;
+        if (fx.after > (fx.mode === 'hat' ? HEAD_AFTER : fx.mode === 'splat' ? 0.5 : 0)) headFx = null;
     }
     // the top of the frog's head on screen, and how far the head is tipped there, for whichever drawing of it is showing
-    function headTop() {
-        if (pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop) {
-            const a = pose.sRot * Math.PI / 180, px = 1060 - 1000, py = -285 - 900;
-            let x = 1000 + px * Math.cos(a) - py * Math.sin(a), y = 900 + px * Math.sin(a) + py * Math.cos(a) + pose.sDrop;
-            if (pose.side < 0) x = 1986 - x;
-            return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * (y - pose.sHop) / 1876, rot: a * pose.side };
-        }
-        const k = fbox.w / 1986, p = frogPoint(993 + pose.face * 150, 112);
-        return { x: p.x + pose.shift * k, y: p.y + (pose.bob * U - (pose.jump || 0)) * k, rot: (pose.tilt + pose.lean) * Math.PI / 180 };
+    // Everything worn on the head is painted in the head's own frame: the canvas takes on the very transform of
+    // the head drawing that is showing (front, profile, or thrown back), so a bump or a hat sits right in every
+    // pose, mirrored and tipped with it. Origin: the top of the head; units: the logo's.
+    const HEAD_TOP = { front: [993, 112], side: [1060, -285], up: [993, 240] };
+    function inHead(fn) {
+        const sideOn = pose.side !== 0 && pose.up > 0.5 && !pose.fallY && !pose.chop;
+        const g = sideOn ? el.headP : pose.headUp ? el.headUp : el.head, at = HEAD_TOP[sideOn ? 'side' : pose.headUp ? 'up' : 'front'];
+        const m = g.getScreenCTM && g.getScreenCTM(); if (!m) return;
+        const b = canvas.getBoundingClientRect();
+        ctx.save(); ctx.transform(m.a, m.b, m.c, m.d, m.e - b.left, m.f - b.top); ctx.translate(at[0], at[1]);
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        try { fn(sideOn); } finally { ctx.restore(); }
     }
+    const HEAD_PATH = typeof Path2D === 'function' ? new Path2D(HEAD) : null;
+    const BUMP_W = 102, BUMP_H = 212, BUMP_STEP = 150;      // a bump on the head, in the logo's units; how far up the next one sits
     function drawHeadFx(lw) {
-        const fx = headFx; if (!fx) return;
-        const hw = fbox.w * 0.245, stun = stunT > 0;         // (half the head's width on screen)
-        if (fx.mode === 'stuck' && stun) {
-            const c = frogPoint(993, 440), pine = fx.type.kind === 'pineapple', r = hw * (pine ? 0.86 : 1.06);
-            ctx.save(); ctx.translate(c.x, c.y - (pine ? hw * 0.1 : 0)); ctx.rotate(Math.sin(fx.t * 9) * 0.07 * Math.min(1, stunT));
-            drawWhole(ctx, { type: fx.type, crown: topOf(fx.type, r) }, r, lw); ctx.restore();
-        } else if (fx.mode === 'splat') {
-            const c = frogPoint(993, 500), fade = stun ? 1 : Math.max(0, 1 - fx.after / 0.5), grow = Math.min(1, fx.t / 0.12);
-            ctx.save(); ctx.globalAlpha = fade; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-            [0, 1].forEach(pass => fx.blobs.forEach(b => {
-                const x = c.x + b.x * hw, y = c.y + b.y * hw, r = b.r * hw * grow, drip = b.drip * hw * Math.min(1, fx.t / 1.2);
-                ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
-                if (!pass) { ctx.lineWidth = lw * 2; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + r + drip); ctx.lineWidth = b.w * hw * 2 + lw * 2; ctx.stroke(); }
-                else { ctx.fillStyle = fx.type.juice; ctx.fill(); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + r + drip); ctx.lineWidth = b.w * hw * 2; ctx.strokeStyle = fx.type.juice; ctx.stroke();
-                    ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.ellipse(x - r * 0.3, y - r * 0.35, r * 0.28, r * 0.16, -0.6, 0, 7); ctx.fill(); }
-            }));
+        const fx = headFx, stun = stunT > 0, LW = 22;
+        if (!fx && !bumps) return;
+        if (fx && fx.mode === 'stuck' && stun) inHead(() => {
+            const pine = fx.type.kind === 'pineapple', r = 488 * (pine ? 0.86 : 1.06);
+            ctx.translate(0, pine ? 290 : 340); ctx.rotate(Math.sin(fx.t * 9) * 0.07 * Math.min(1, stunT));
+            drawWhole(ctx, { type: fx.type, crown: topOf(fx.type, r) }, r, LW);
+        });
+        if (fx && fx.mode === 'splat' && HEAD_PATH) inHead(side => {
+            // Poured over the head like caramel over an apple: a glossy coat that follows the head's own outline, thick
+            // at the top, running down over the eyes in fat rounded drips of different lengths, with a shine on it.
+            if (side) return;
+            const fade = stun ? 1 : Math.max(0, 1 - fx.after / 0.5), grow = Math.min(1, fx.t / 0.18), run = Math.min(1, fx.t / 1.1);
+            ctx.translate(-993, -112); ctx.globalAlpha = fade;
+            const edge = () => {      // the lower edge of the coat, left to right: a valley, a drip, a valley...
+                const d = fx.blobs, n = d.length, x0 = 440, x1 = 1546, w = (x1 - x0) / n;
+                ctx.lineTo(x0, 80 + 420 * grow);
+                for (let k = 0; k < n; k++) {
+                    const xa = x0 + k * w, tip = 80 + (500 + d[k].len * (0.45 + 0.55 * run)) * grow, val = 80 + (470 + d[k].val) * grow;
+                    ctx.bezierCurveTo(xa + w * 0.18, val, xa + w * 0.2, tip, xa + w * 0.5, tip);
+                    ctx.bezierCurveTo(xa + w * 0.8, tip, xa + w * 0.82, val, xa + w, val);
+                }
+            };
+            ctx.save(); ctx.clip(HEAD_PATH);
+            ctx.beginPath(); ctx.moveTo(1546, 0); ctx.lineTo(440, 0); edge(); ctx.closePath(); ctx.fillStyle = fx.type.juice; ctx.fill();
+            // darker along the lower edge (thickness), and the shine: a long streak up top and a dot on each fat drip
+            ctx.beginPath(); ctx.moveTo(440, 0); edge(); ctx.lineWidth = 64; ctx.strokeStyle = 'rgba(0,0,0,.16)'; ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(440, 0); edge(); ctx.lineWidth = LW; ctx.strokeStyle = '#000'; ctx.stroke();
+            ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = 34; ctx.beginPath(); ctx.moveTo(690, 250); ctx.quadraticCurveTo(840, 170, 1010, 168); ctx.stroke();
+            ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(1120, 180); ctx.lineTo(1190, 196); ctx.stroke();
             ctx.restore();
-        } else if (fx.mode === 'bump') {
-            // a lump coming up through the bandana: skin, sore and red at the top, with a shine on it
-            const h = headTop(), up = Math.min(1, fx.t / 0.35), down = Math.min(1, Math.max(0, HEAD_AFTER - fx.after) / 0.4), k = up * down, w = hw * 0.3, tall = hw * 0.62 * k;
-            if (k <= 0) return;
-            ctx.save(); ctx.translate(h.x, h.y + hw * 0.1); ctx.rotate(h.rot);
-            ctx.beginPath(); ctx.moveTo(-w, 0); ctx.bezierCurveTo(-w, -tall * 1.25, w, -tall * 1.25, w, 0); ctx.closePath();
-            const g = ctx.createLinearGradient(0, -tall, 0, 0); g.addColorStop(0, '#ef5350'); g.addColorStop(0.55, '#e59a8f'); g.addColorStop(1, C.green);
-            ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round'; ctx.stroke();
-            ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-w * 0.3, -tall * 0.62, w * 0.2, tall * 0.13, -0.5, 0, 7); ctx.fill();
-            ctx.restore();
-        } else if (fx.mode === 'hat') {
-            // the banana, ends down, sitting across the top of its head
-            const h = headTop(), down = Math.min(1, Math.max(0, HEAD_AFTER - fx.after) / 0.3), r = hw * 0.62;
+        });
+        // the bumps (one for each apple, three at most), one on top of the other, each a little smaller
+        if (bumps) inHead(() => {
+            const up = Math.min(1, bumps.t / 0.35), down = stun ? 1 : Math.min(1, Math.max(0, HEAD_AFTER - bumps.after) / 0.4);
+            for (let n = 0; n < bumps.n; n++) {
+                const k = (n === bumps.n - 1 ? up : 1) * down, sc = 1 - n * 0.12, w = BUMP_W * sc, tall = BUMP_H * sc * k;
+                if (k <= 0) continue;
+                ctx.save(); ctx.translate(0, 40 - n * BUMP_STEP * down);
+                ctx.beginPath(); ctx.moveTo(-w, 0); ctx.bezierCurveTo(-w, -tall * 1.25, w, -tall * 1.25, w, 0); ctx.closePath();
+                const g = ctx.createLinearGradient(0, -tall, 0, 0); g.addColorStop(0, '#ef5350'); g.addColorStop(0.55, '#e59a8f'); g.addColorStop(1, n ? '#e59a8f' : C.red);
+                ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = LW; ctx.strokeStyle = '#000'; ctx.stroke();
+                ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-w * 0.3, -tall * 0.62, w * 0.2, tall * 0.13, -0.5, 0, 7); ctx.fill();
+                ctx.restore();
+            }
+        });
+        if (fx && fx.mode === 'hat') inHead(() => {
+            // a banana peel, stalk up, its flaps hanging down over the head (on top of any bumps)
+            const down = Math.min(1, Math.max(0, HEAD_AFTER - fx.after) / 0.3), land = Math.min(1, fx.t / 0.12);
             if (down <= 0) return;
-            ctx.save(); ctx.translate(h.x, h.y - hw * 0.02 - (1 - down) * hw * 0.6); ctx.rotate(h.rot + Math.sin(fx.t * 7) * 0.05 * (stun ? 1 : 0)); ctx.globalAlpha = down;
-            ctx.rotate(HAT_ROT);
-            drawBanana(ctx, fx.type, r); pathPoly(ctx, bananaPoly(r)); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineJoin = 'round'; ctx.stroke();
-            ctx.restore();
-        }
+            ctx.globalAlpha = down; ctx.translate(0, 70 - (bumps ? bumps.n * BUMP_STEP * 0.8 : 0) - (1 - down) * 260 - (1 - land) * 200);
+            ctx.rotate(stun ? Math.sin(fx.t * 7) * 0.05 : 0);
+            const flap = (d, fill) => { const p2 = new Path2D(d); ctx.fillStyle = fill; ctx.fill(p2); ctx.lineWidth = LW; ctx.strokeStyle = '#000'; ctx.stroke(p2); };
+            const skin = fx.type.skin, pale = '#fff3b0', tip = '#7a5a2b';
+            flap('M -40 -150 C -200 -90 -400 60 -640 300 C -470 300 -230 170 40 -40 Z', skin);                 // the flap down our left
+            flap('M 40 -150 C 200 -90 400 60 640 300 C 470 300 230 170 -40 -40 Z', skin);                       // ... and down our right
+            flap('M -90 -140 C -140 20 -110 190 30 330 C 130 210 140 20 90 -140 Z', pale);                      // the one in front, its pale inside showing
+            flap('M -90 -140 C -130 0 -120 150 -60 300 C -10 150 0 0 10 -150 Z', skin);
+            flap('M -34 -250 L 34 -250 L 46 -130 L -46 -130 Z', skin);                                           // the stalk
+            flap('M -34 -250 L 34 -250 L 30 -215 L -30 -215 Z', tip);
+            ctx.fillStyle = tip; [[-640, 300], [640, 300], [30, 330]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 20, 0, 7); ctx.fill(); });
+        });
     }
     function stepTongue(dt) {
         if (!tongue) return;
@@ -4323,7 +4379,7 @@ export function mountFrogGame(stage, opts = {}) {
         gulls = []; gullOn = null; mirrorT = 0; gullCool = 0; gullT = rand(...GULL_FIRST);
         crates = []; planks = []; clouds = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
-        stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null; headFx = null;
+        stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null; headFx = null; bumps = null;
         hud();
         recStart();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
@@ -4663,8 +4719,10 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
         out.push({ name: 'stunned', dur: 0.9, start() { stunT = stunFor = 0.9; headFx = null; } });
         [['watermelon', 'stuck on its head'], ['pineapple', 'stuck on its head'], ['grapes', 'splattered over its face'], ['orange', 'splattered over its face'], ['apple', 'a bump comes up'], ['banana', 'worn as a hat'], ['kiwi', 'eating it'], ['plum', 'eating it']].forEach(([kind, what]) =>
-            out.push({ name: 'stunned by ' + kind + ': ' + what, dur: 0.9, start() { const t = FRUITS.find(f => f.kind === kind); stunT = stunFor = 0.9; stunWith(t, clamp(S() * 0.05, 18, 44) * t.r, frogPoint(993, 300)); }, end() { headFx = null; stunT = 0; halves = []; } }));
-        out.push({ name: 'after the stun: the bump on its head, cutting', dur: 0.7, start() { stunWith(APPLE, 20, frogPoint(993, 300)); headFx.after = 0.5; headFx.t = 1; halves = []; swing = null; swingTo(1, 0, W / 2 + fw() * 1.4, head().y + fw() * 0.5); if (swing) swing.demo = true; }, end() { headFx = null; if (swing) swing.demo = false; } });
+            out.push({ name: 'stunned by ' + kind + ': ' + what, dur: 0.9, start() { const t = FRUITS.find(f => f.kind === kind); stunT = stunFor = 0.9; stunWith(t, clamp(S() * 0.05, 18, 44) * t.r, frogPoint(993, 300)); }, end() { headFx = null; bumps = null; stunT = 0; halves = []; } }));
+        out.push({ name: 'after the stun: the bump on its head, cutting', dur: 0.7, start() { stunWith(APPLE, 20, frogPoint(993, 300)); headFx = null; bumps.t = 1; halves = []; swing = null; swingTo(1, 0, W / 2 + fw() * 1.4, head().y + fw() * 0.5); if (swing) swing.demo = true; }, end() { bumps = null; if (swing) swing.demo = false; } });
+        out.push({ name: 'after the stun: three bumps and the banana peel, cutting down', dur: 0.7, start() { for (let k = 0; k < 3; k++) stunWith(APPLE, 20, frogPoint(993, 300)); bumps.t = 1; stunWith(FRUITS.find(f => f.kind === 'banana'), 20, frogPoint(993, 300)); headFx.after = 0.5; headFx.t = 1; halves = []; swing = null; swingTo(0.7, 0.7, W / 2 + fw() * 1.4, head().y + fw() * 0.9); if (swing) swing.demo = true; }, end() { headFx = null; bumps = null; if (swing) swing.demo = false; } });
+        out.push({ name: 'three bumps, hopping over a level cut', dur: 0.7, start() { for (let k = 0; k < 3; k++) stunWith(APPLE, 20, frogPoint(993, 300)); bumps.t = 1; headFx = null; halves = []; swing = null; swingTo(-1, 0, W / 2, frogPoint(993, 1100).y); if (swing) swing.demo = true; }, end() { bumps = null; if (swing) swing.demo = false; } });
         out.push({ name: 'after the stun: the banana hat, cutting', dur: 0.7, start() { stunWith(FRUITS.find(f => f.kind === 'banana'), 20, frogPoint(993, 300)); headFx.after = 0.5; headFx.t = 1; swing = null; swingTo(-1, 0.6, W / 2 - fw() * 1.4, head().y + fw() * 0.5); if (swing) swing.demo = true; }, end() { headFx = null; if (swing) swing.demo = false; } });
         out.push({ name: 'out of stamina', dur: 0.7, tick() { stamina = 0; }, end() { stamina = STAMINA_BARS; hud(); } });
         out.push({ name: 'drunk (sake)', dur: 0.9, tick() { sakeLeft = Math.max(sakeLeft, 0.6); }, end() { sakeLeft = 0; } });

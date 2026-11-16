@@ -9,7 +9,7 @@ pictures. Checks: the fruit rate over a run; roasted fruit; the laptop's digital
 copied, full seagull time when cut); sake and fireflies in the hacking breath (burned, never
 digital: a wider cone, faster copies).
 """
-import argparse, os, sys, tempfile, time
+import json, argparse, os, sys, tempfile, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from playtest import Game
 
@@ -165,6 +165,12 @@ def main():
         g.js("frogPlay.blast && 0"); q = g.state()['gulls'][0]
         g.js("frogPlay.freeze && frogPlay.freeze(0.6)"); time.sleep(0.1); g.mouse("mouseMoved", q['x'] - 60, q['y'], 0); g.mouse("mouseMoved", q['x'], q['y'], 0); g.mouse("mouseMoved", q['x'] + 60, q['y'], 0); time.sleep(1.6); st = g.state()
         check('a roast chicken marked with the clock is cut, not knocked about', len(st['gulls']) == 0 and any(e[1] == 'cut' and e[2] == 'chicken' for e in st['log']), (len(st['gulls']), st['pieces'], [e for e in st['log'] if e[1] in ('gull', 'cut', 'release')][-6:]))
+
+        # 12c. a watermelon stuck on the head: a slash across the head cuts the frog free
+        fresh(g); g.js("window.frogAnims.play('stunned by watermelon: stuck on its head')"); time.sleep(0.15)
+        was = g.state()['stunned']; hb = json.loads(g.js("JSON.stringify((r => [r.left + r.width / 2, r.top + r.height / 2])(document.querySelector('#fg-head').getBoundingClientRect()))"))
+        g.drag([(hb[0] - 150, hb[1]), (hb[0], hb[1] + 4), (hb[0] + 150, hb[1] + 8)]); st = g.state()
+        check('stuck fruit: a slash across its own head frees the frog', was and not st['stunned'] and any(e[1] == 'stun' and e[-1] == 'freed' for e in st['log']), (was, st['stunned']))
 
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)

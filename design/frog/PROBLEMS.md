@@ -66,6 +66,9 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 - 2026-11-16 | Marek: the Sensei is a secret and a template for new characters | The game always
   opens as the frog; the choice lasts one loading of the page; the chooser stays on the first page
   of the hints (a five-press secret was tried and dropped the same day). | shipped
+- 2026-11-16 | Marek's follow-up on the stun jokes | Slash to free a stuck head (pays nothing: say
+  if the freed fruit should pay); peel hat; eaten fruit pays; bumps 30% smaller, up to three,
+  tracked through the head's own transform (`inHead`); juice as a poured coat. | shipped
 - 2026-11-16 | Marek's request | Stun jokes per fruit (see PRINCIPLES), logged as `stun kind mode`.
   The fruit, juice, bump and hat are painted on the canvas over the frog, placed by `headTop()`;
   in a fall or the planning pose the hat and bump sit only roughly. The head still jitters by

@@ -113,10 +113,14 @@ blade would do):
   he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry
   a `char elder` event in the log: leave them out of balance work.
 - Swallowing a fruit is always the same stun (stars, the same time by size), but each fruit plays
-  its own joke so it is less obvious: watermelon and pineapple jam on the head in place of it and
-  drop off in two when the stun ends; grapes and orange burst over the face (it can't see);
-  an apple bounces off in two and leaves a bump for 5 s after the stun; a banana is worn as a hat
-  for 5 s after; kiwi and plum are simply eaten, chewing. The bump and the hat are looks only.
+  its own joke so it is less obvious. Watermelon and pineapple jam on the head in place of it:
+  a slash across its own head frees the frog at once (the only thing a blade does while stunned),
+  otherwise they drop off when the stun ends. Grapes and orange pour over the head like caramel
+  over an apple, down over the eyes. An apple bounces off in two and raises a bump that stays 5 s
+  after the stun; more apples stack more bumps, three at most. A banana is worn as a peel hat for
+  5 s after. Kiwi and plum are eaten: still a stun, but they pay what a cut of them pays (`val
+  eat`). The bump and the hat are looks only; they are painted in the head's own frame, so they
+  follow it in every pose.
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)
