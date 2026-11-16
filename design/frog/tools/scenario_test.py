@@ -66,15 +66,16 @@ def main():
         check('neither is left on the field, the clock is copied', 'sake' not in kinds and 'fly' not in kinds and kinds.count('clock') >= 2, kinds)
         check('no copy of a sake or a firefly was ever made', not any(e[1] == 'dup' and e[2] in ('sake', 'fly') for s in sts for e in s['log']))
         g.shot(os.path.join(a.out, 'hacking-breath-fed.png'))
-        # 5. fruit in the flame pops in two roasted halves, and each half in two again: no further
+        # 5. fruit in the flame pops in two roasted halves, each half in two again, and the quarters into juice
         fresh(g); g.js("frogPlay.breath({seconds: 1.5, wide: 2}); frogPlay.drop('fruit:orange', 600, 260); frogPlay.drop('fruit:watermelon', 720, 240); frogPlay.drop('fruit:apple', 500, 230)")
         sts = hold(g, 640, 200, 0.45, every=0.05); mid = sts[-1]
         check('first pop: no whole fruit left, two roasted halves each', len(mid['fruits']) == 0 and mid['pieces'] == 6 and mid['roastedPieces'] == 6, (len(mid['fruits']), mid['pieces'], mid['roastedPieces']))
         g.shot(os.path.join(a.out, 'roasted.png'))
         sts = hold(g, 640, 260, 0.9, every=0.05); n = [s['pieces'] for s in sts]
         burns = {(e[0], e[2], e[4] if len(e) > 4 else 0) for s2 in sts for e in s2['log'] if e[1] == 'burn'}
-        check('second pop: quarters, and then the flame does no more', max(n) == 12, n)
-        check('nine pops were paid for (3 fruit, then 6 halves)', len(burns) >= 6, len(burns))
+        check('second pop: quarters; a third time in the flame they go to juice', max(n) == 12 and n[-1] == 0, n)
+        juiced = sorted({(e[0], e[2], e[3]) for s2 in sts for e in s2['log'] if e[1] == 'burn' and len(e) == 4})
+        check('quarters juiced were paid for', len(juiced) >= 3, juiced[:4])
 
         # 5b. a cloud turns cut pieces digital; they come back roasted
         fresh(g); g.js("frogPlay.breath({seconds: 0.5, wide: 2}); frogPlay.drop('fruit:watermelon', 640, 240)")

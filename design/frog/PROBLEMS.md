@@ -20,6 +20,10 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | Quarters popped by fire now burst into juice when cooked a third
+  time, each for a quarter of a fruit's time. A fruit held in the flame to the end pays 1 + 0.5 +
+  0.25 + 4 x 0.25 = 2.75 times its time (burning it used to pay 1). The pieces of a fire split
+  jump apart with a small pop. | shipped, balance unverified
 - 2026-11-16 | Marek's request | Fire now cuts: a fruit in the flame pops in halves, then quarters,
   paying each time (1, then 0.5 and 0.25 of a fruit's time: about 1.75 times what burning a fruit
   paid before). Replaces "roasted fruit stays whole" from earlier the same day. Watch `fire` in the

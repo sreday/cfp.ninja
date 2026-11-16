@@ -70,7 +70,8 @@ const DUP_TIME = 0.6, DUP_MAX = 36, GULL_MAX = 12;              // a hacked frui
 const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
 const CRATE_SIZE = 1.62;                         // half the crate's width, in fruit units (1.8 until 2026-11-16: 10% smaller)
 const LAPTOP_POP = 1.3;                          // a laptop takes this much longer in a flame than a crate before it goes off
-const FIRE_CUTS = 2;                             // a flame splits a fruit in half, and each half again: no further
+const FIRE_POP = 0.14;                           // seconds a piece popped apart by fire stays swollen (30% bigger, shrinking back)
+const FIRE_CUTS = 2, FIRE_JUICE = 0.25;          // a flame splits a fruit in half, and each half again; cooked a third time a quarter goes to juice, for this share of a fruit's time
 const MARK_FAST_AFTER = 2;                       // the slashes after a time freeze: past this many seconds, the rest come twice as fast
 const CLOUD_SECONDS = 3, CLOUD_FADE = 0.6;       // the laptop's digital cloud: how long it works, then how long it takes to fade
 const STEAM_SECONDS = 2.5;                       // a piece cut from roasted fruit steams this long
@@ -1144,7 +1145,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit pops in two roasted halves, and each half in two again, paying like a cut each time. Crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue while it lasts.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit pops in two roasted halves, each half in two again, and the quarters into juice, paying each time. Crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue while it lasts.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                     </div>
@@ -1565,7 +1566,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (!q.spr || q.spr.dpr !== dpr) { drawPiece(ctx, q, lw); return; }     // over this frame's budget: drawn directly for now
         // in a fire: a glow of heat on it
-        const mk = q.burn && !q.roasted ? clamp(q.burn / BURN_TIME, 0, 1) : 0, h = q.spr.half;
+        const mk = q.burn ? clamp(q.burn / BURN_TIME, 0, 1) : 0, h = q.spr.half;
         ctx.drawImage(q.spr.cv, -h, -h, h * 2, h * 2);
         if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
     }
@@ -2710,14 +2711,20 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- fire breath (firefly) ----------
     // Cooked through by a flame, a fruit (or a piece) pops in two, as if cut clean through its
     // middle: the halves are roasted, and a flame pops each of them in two again (FIRE_CUTS in all).
-    // After that fire has nothing more to do to them; in every other way they are ordinary pieces.
+    // Cooked a third time a quarter bursts into juice (see stepFire); in every other way they are ordinary pieces.
     // The caller takes o out of its list when this returns true.
     function fireSplit(o, mult = 1) {
         if (!o.poly) return false;
         const a = rand(0, 6.28), dx = Math.cos(a), dy = Math.sin(a), c = Math.cos(-o.rot), sn = Math.sin(-o.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
         const n0 = pieces.length, n = (o.fireCuts || 0) + 1;
         if (!cutFruit(o, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, o.x, o.y, mult)) return false;
-        for (let k = n0; k < pieces.length; k++) Object.assign(pieces[k], { roasted: true, fireCuts: n, burn: 0, lit: 0, steam: STEAM_SECONDS });
+        for (let k = n0; k < pieces.length; k++) {
+            const q = pieces[k];
+            Object.assign(q, { roasted: true, fireCuts: n, quarter: n >= FIRE_CUTS, burn: 0, lit: 0, steam: STEAM_SECONDS, pop: FIRE_POP });
+            // the pop: the two jump apart and up a little, and swell for an instant (see the drawing of pieces)
+            const ox = q.x - o.x, oy = q.y - o.y, d = Math.hypot(ox, oy) || 1, fh = FH();
+            q.vx += ox / d * fh * 0.1; q.vy += oy / d * fh * 0.1 - fh * 0.13; q.spin *= 1.4;
+        }
         for (let k = 0; k < 3; k++) steamPuff(o.x, o.y - o.r * 0.3, o.r);
         for (let k = 0; k < 8; k++) { const fa = rand(0, 6.28), v = H * rand(0.25, 0.7); flames.push({ x: o.x, y: o.y, vx: Math.cos(fa) * v, vy: Math.sin(fa) * v, t: 0, life: rand(0.2, 0.35), s: rand(5, 9) }); }
         if (o.spr || o.hspr) sprFree(o);
@@ -3108,15 +3115,18 @@ export function mountFrogGame(stage, opts = {}) {
         for (let i = pieces.length - 1; i >= 0; i--) {
             const q = pieces[i];
             if (!q.poly) continue;
+            if (q.pop > 0) q.pop = Math.max(0, q.pop - dt);
             if (q.steam > 0) { q.steam -= dt; if (Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot
-            if ((q.fireCuts || 0) >= FIRE_CUTS) { if (q.burn) q.burn = 0; continue; }     // popped twice already: fire has nothing more to do to it
             const br = on && !fireSlow && !q.hacked && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);     // (a hacking breath hacks, it does not burn: pieces are left alone)
             // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
             if (!inside && !q.lit) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
             q.burn = (q.burn || 0) + dt * (br ? power(q) : q.lit ? 1 : BLADE_HEAT);
             if (q.burn >= burnTime()) {
                 const lit = q.lit || 1;
-                if (fireSplit(q, lit)) pieces.splice(i, 1); else { burnFruit(q, Math.pow(RECUT, q.fam.cuts) * lit, false, true); q.fireCuts = FIRE_CUTS; }
+                // popped twice already: the third time it is cooked through it goes to juice, for a quarter of
+                // a fruit's time (half of that for a quarter a blade has cut smaller since)
+                if ((q.fireCuts || 0) >= FIRE_CUTS) { pieces.splice(i, 1); burnFruit(q, FIRE_JUICE * (q.quarter ? 1 : 0.5) * lit); sprFree(q); }
+                else if (fireSplit(q, lit)) pieces.splice(i, 1); else { burnFruit(q, Math.pow(RECUT, q.fam.cuts) * lit, false, true); q.fireCuts = FIRE_CUTS; }
             }
         }
     }
@@ -5029,7 +5039,7 @@ export function mountFrogGame(stage, opts = {}) {
             else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air
             ctx.restore();
         });
-        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
+        pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); if (q.pop > 0) { const ps = 1 + 0.3 * q.pop / FIRE_POP; ctx.scale(ps, ps); } ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;
         fruits.forEach(f => {

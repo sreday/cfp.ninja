@@ -98,7 +98,9 @@ blade would do):
 - A crate burned down by the breath comes apart in ashen planks.
 - Fire cuts fruit (Marek, 2026-11-16: roasted fruit that just stayed whole "feels bad, it doesn't
   achieve the goal of slicing fruit"). A fruit cooked through pops in two roasted halves, as if cut
-  clean through the middle, and a flame pops each half in two again: twice in all, never more. The
+  clean through the middle, and a flame pops each half in two again. A quarter cooked through a
+  third time bursts into juice and is gone, for a quarter of a fruit's time (half of that if a
+  blade has cut it smaller since). The
   same goes for a piece cut by a blade that fire has not popped yet. Each pop pays like a clean cut
   with half the combo bonus and counts as a cut of that fruit, so later cuts of it pay less. Roasted
   pieces are ordinary pieces for everything else (blades, clock, fireworks, the team, the cloud).
