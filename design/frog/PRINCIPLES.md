@@ -96,10 +96,15 @@ blade would do):
   turns digital and is copied there and then: once per cloud, and a copy is not copied again by
   the same cloud. Something digital already is copied all the same. (Marek, 2026-11-16.)
 - A crate burned down by the breath comes apart in ashen planks.
-- Fire roasts fruit, it does not destroy it (Marek, 2026-11-16): a fruit or piece cooked through
-  pays once, as burning used to, and stays in play with ashy edges. It can be cut (its pieces steam),
-  hacked and copied; a flame does nothing more to it. Fireworks still blow fruit apart. The hacking
-  breath hacks and copies a laptop like any other item.
+- Fire cuts fruit (Marek, 2026-11-16: roasted fruit that just stayed whole "feels bad, it doesn't
+  achieve the goal of slicing fruit"). A fruit cooked through pops in two roasted halves, as if cut
+  clean through the middle, and a flame pops each half in two again: twice in all, never more. The
+  same goes for a piece cut by a blade that fire has not popped yet. Each pop pays like a clean cut
+  with half the combo bonus and counts as a cut of that fruit, so later cuts of it pay less. Roasted
+  pieces are ordinary pieces for everything else (blades, clock, fireworks, the team, the cloud).
+  Fireworks still blow fruit apart. The hacking breath hacks and copies a laptop like any other item.
+- The digital cloud also turns cut pieces digital (they are not copied): they hang until it wears
+  off, then fall as what they were, roasted if they were roasted.
 - Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
   flow. A marked bundle is set off, not paid for.
 - Fireworks take on the element of whatever sets them off (fire, sake, time): looks only, so far.

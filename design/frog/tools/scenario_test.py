@@ -66,18 +66,21 @@ def main():
         check('neither is left on the field, the clock is copied', 'sake' not in kinds and 'fly' not in kinds and kinds.count('clock') >= 2, kinds)
         check('no copy of a sake or a firefly was ever made', not any(e[1] == 'dup' and e[2] in ('sake', 'fly') for s in sts for e in s['log']))
         g.shot(os.path.join(a.out, 'hacking-breath-fed.png'))
-        # 5. roasted fruit: paid once, stays, can be cut, its pieces are roasted
-        fresh(g); g.js("frogPlay.breath({seconds: 0.75}); frogPlay.drop('fruit:orange', 600, 260); frogPlay.drop('fruit:watermelon', 700, 240); frogPlay.drop('fruit:banana', 520, 230); frogPlay.drop('fruit:pineapple', 780, 250)")
-        sts = hold(g, 640, 200, 0.7); last = sts[-1]
-        burns = [e for s in sts for e in s['log'] if e[1] == 'burn']; paid = {(e[0], e[2]) for e in burns}
-        check('fruit in the flame is roasted and stays', len(last['fruits']) == 4 and all(f['roasted'] for f in last['fruits']), last['fruits'])
-        check('each was paid for once', len(paid) == 4, sorted(paid))
+        # 5. fruit in the flame pops in two roasted halves, and each half in two again: no further
+        fresh(g); g.js("frogPlay.breath({seconds: 1.5, wide: 2}); frogPlay.drop('fruit:orange', 600, 260); frogPlay.drop('fruit:watermelon', 720, 240); frogPlay.drop('fruit:apple', 500, 230)")
+        sts = hold(g, 640, 200, 0.45, every=0.05); mid = sts[-1]
+        check('first pop: no whole fruit left, two roasted halves each', len(mid['fruits']) == 0 and mid['pieces'] == 6 and mid['roastedPieces'] == 6, (len(mid['fruits']), mid['pieces'], mid['roastedPieces']))
         g.shot(os.path.join(a.out, 'roasted.png'))
-        time.sleep(0.12)
-        st = g.state(); q = max(st['fruits'], key=lambda f: f['r'])
-        g.drag([(q['x'] - 120, q['y'] + q['vy'] * 0.06), (q['x'] - 40, q['y'] + q['vy'] * 0.07), (q['x'] + 40, q['y'] + q['vy'] * 0.09), (q['x'] + 120, q['y'] + q['vy'] * 0.11)], 0.02); time.sleep(0.2)
-        st = g.state(); g.shot(os.path.join(a.out, 'roasted-cut.png'))
-        check('a roasted fruit can be cut, and its pieces are roasted', st['roastedPieces'] >= 2 and any(e[1] == 'cut' for e in st['log']), (st['pieces'], st['roastedPieces']))
+        sts = hold(g, 640, 260, 0.9, every=0.05); n = [s['pieces'] for s in sts]
+        burns = {(e[0], e[2], e[4] if len(e) > 4 else 0) for s2 in sts for e in s2['log'] if e[1] == 'burn'}
+        check('second pop: quarters, and then the flame does no more', max(n) == 12, n)
+        check('nine pops were paid for (3 fruit, then 6 halves)', len(burns) >= 6, len(burns))
+
+        # 5b. a cloud turns cut pieces digital; they come back roasted
+        fresh(g); g.js("frogPlay.breath({seconds: 0.5, wide: 2}); frogPlay.drop('fruit:watermelon', 640, 240)")
+        hold(g, 640, 200, 0.45, every=0.05); g.js("frogPlay.cloud(640, 250)"); time.sleep(0.3); st = g.state()
+        check('pieces in a cloud turn digital, and are not copied', st['pieces'] in (2, 4) and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
+        g.shot(os.path.join(a.out, 'cloud-pieces.png'))
 
         # 6. the laptop in a plain flame: red hot, then a digital cloud that copies once
         fresh(g); g.js("frogPlay.breath({seconds: 1}); frogPlay.drop('laptop', 640, 240)")
@@ -114,6 +117,10 @@ def main():
         g.drag([(q['x'] - 60, q['y']), (q['x'], q['y']), (q['x'] + 60, q['y'])], 0.02)
         time.sleep(2.2); st = g.state()
         check('half a sake after the freeze', 0.3 < st['sake'] <= 2.5 and any(e[1] == 'sake' and e[2] == 'clock' for e in st['log']), (st['sake'], st['log'][-8:]))
+        # 10. fireworks set off by the breath go off red
+        fresh(g); g.js("frogPlay.breath({seconds: 1, wide: 1}); frogPlay.drop('fireworks', 640, 240)")
+        hold(g, 640, 220, 0.7); st = g.state(); g.shot(os.path.join(a.out, 'fire-fireworks.png'))
+        check('fireworks lit by the breath are fire fireworks', st['fw'] == 'fire', st['fw'])
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()

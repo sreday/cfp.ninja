@@ -20,6 +20,21 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | Fire now cuts: a fruit in the flame pops in halves, then quarters,
+  paying each time (1, then 0.5 and 0.25 of a fruit's time: about 1.75 times what burning a fruit
+  paid before). Replaces "roasted fruit stays whole" from earlier the same day. Watch `fire` in the
+  balance table. | shipped, balance unverified
+- 2026-11-16 | Marek's request | Combo steps need 20% more points (5, 11, 18... 102) and a step
+  holds 10% longer (0.99 s before it drains, 8.73 points a second). Crate 10% smaller. A laptop takes
+  30% longer than a crate to pop in a flame. Fireworks lit by the breath are always red (blue from
+  a hacking breath), no longer golden from a sake-fed one. | shipped
+- 2026-11-16 | Marek's request | "When the clock animation goes over 2 s, the rest twice as fast"
+  was read as the row of slashes after a time freeze, not the freeze itself (still 3 s). Cloud
+  pieces "get digitalized" was read as digital, not copied. Ask Marek if either was meant
+  otherwise. | open
+- 2026-11-16 | Marek's report | A seagull could attack during a fire breath. Kept, as a joke: it
+  arrives singed black and attacks all the same. How the attack starts during a breath was not
+  traced (probably one already on its way when the firefly was swallowed). | open
 - 2026-11-16 | Marek's request | On sake the frog holds the bottle in its own left hand (on our right
   when it faces us; the far arm in profile) and cuts with one blade, eyelids half down in every view.
   Placeholder drawings on the placeholder rig; in some profile cuts (level, thrust) the bottle is
