@@ -1425,7 +1425,7 @@ a:hover {
 .fg-fallen .fg-pole { z-index: 1; }
 .fg-fallen .fg-frog { z-index: 0; }
 .fg-drunk .fg-bg { animation: fg-sway 2.6s ease-in-out infinite; transform-origin: 50% 100%; will-change: transform; }
-@keyframes fg-sway { 0%, 100% { transform: scale(1.06) rotate(-1.4deg) translateX(-1%); } 50% { transform: scale(1.06) rotate(1.4deg) translateX(1%); } }
+@keyframes fg-sway { 0%, 100% { transform: scale(1.13) rotate(-2.8deg) translateX(-2%); } 50% { transform: scale(1.13) rotate(2.8deg) translateX(2%); } }
 @media (prefers-reduced-motion: reduce) { .fg-drunk .fg-bg { animation: none; } }
 /* the frog sits on a post, 18% of the stage up (it stands clear above the waterline); the post is as wide as the frog's seat */
 .fg-pole { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: calc(var(--fg-s, 800px) * 0.3 * 0.62); height: calc(18% + 16px); z-index: 0; pointer-events: none; }

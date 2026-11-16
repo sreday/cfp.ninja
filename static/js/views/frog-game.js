@@ -85,9 +85,11 @@ const FRUIT_RATE = 1.44;                         // fruit thrown per second, aga
 const FRUIT_MORE = 0.03, FRUIT_MORE_EVERY = 10;  // ...and 3% more of it (of the starting rate) for every 10 s the run has lasted
 const DUP_FRY = 0.3;                             // each firefly burned by a hacking breath: everything copies this much faster
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
+const SAKE_MARKED = 0.5;                        // a sake marked and cut in a time freeze: this share of a sake once time flows again
 // Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
-// seconds ago, swaying), and all three are smeared along their flight.
-const ECHO_GAP = 0.032, ECHO_ALPHA = [0.6, 0.48, 0.37, 0.27, 0.17], BLUR_TIME = 0.011, BLUR_STEPS = 3;
+// seconds ago, swaying). The fruit itself is sharp; each echo is a little more blurred than the
+// one before it, the last one quite blurred (ECHO_BLUR: how much of its detail each one keeps).
+const ECHO_GAP = 0.032, ECHO_ALPHA = [0.6, 0.48, 0.37, 0.27, 0.17], ECHO_BLUR = [0.6, 0.42, 0.3, 0.21, 0.14];
 // A cut is at most CUT_MAX of the screen's longer side (no limits while sake is on) and a sharp turn starts
 // a new one, so circling or scrubbing can't slice for free. Between cuts the blade
 // lifts for CUT_GAP px of travel: a distance, not a time, so the gap stays small
@@ -146,6 +148,13 @@ function arm(id) {
             <ellipse cx="0" cy="58" rx="18" ry="16" fill="${C.green}" stroke="#000" stroke-width="7"/>
         </g>
         <g class="fg-held" opacity="0">${katana(id + '-k', false, BACK_K / ARM_K)}</g>
+        <!-- on sake: the bottle, gripped round the neck (the same tokkuri as the power-up) -->
+        <g class="fg-bottle" opacity="0"><g transform="scale(1.5) translate(0 22)">
+            <path d="M-8 -45 L8 -45 Q7 -20 27 -4 Q38 16 25 31 L-25 31 Q-38 16 -27 -4 Q-7 -20 -8 -45 Z" fill="#f5c542" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+            <ellipse cx="-14" cy="-2" rx="4" ry="12" fill="#fff3c4" transform="rotate(17 -14 -2)"/>
+            <rect x="-11" y="2" width="22" height="18" fill="#a3211d" stroke="#000" stroke-width="3"/>
+            <rect x="-9.5" y="-52" width="19" height="8" fill="#6d4c41" stroke="#000" stroke-width="4"/>
+        </g></g>
         <!-- the hand again, over the grip: green fingers closed round the katana -->
         <g class="fg-hand"><ellipse cx="0" cy="0" rx="19" ry="15" fill="${C.green}" stroke="#000" stroke-width="7"/><path d="M-11 -5 L11 -5 M-12 3 L12 3" stroke="#000" stroke-width="3" stroke-linecap="round" opacity=".45"/></g>
     </g></g>`;
@@ -259,6 +268,7 @@ const FROG_SVG = `
             <circle cx="1200" cy="70" r="135" fill="#fff"/>
             <circle cx="1238" cy="78" r="90" fill="#000"/>
             <circle cx="1268" cy="24" r="38" fill="#fff"/>
+            <g class="fg-lid" opacity="0"><path d="M1059 58 A 141 141 0 0 1 1341 58 Q 1200 96 1059 58 Z" fill="${C.green}"/><path d="M1063 58 Q 1200 96 1337 58" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-sideclip)">
                 <path d="M500 -420 L1640 -420 L1640 -50 L1450 -30 Q1330 70 1200 30 Q1010 -10 620 50 L500 50 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
                 <path d="M650 -60 Q1050 -150 1440 -90" stroke="${C.redHi}" stroke-width="34" fill="none"/>
@@ -282,6 +292,8 @@ const FROG_SVG = `
             <circle cx="1326" cy="32" r="96" fill="#000"/>
             <circle cx="984" cy="-2" r="30" fill="#fff"/>
             <circle cx="1350" cy="0" r="34" fill="#fff"/>
+            <g class="fg-lid" opacity="0"><path d="M791 8 A 134 134 0 0 1 1059 8 Q 925 46 791 8 Z" fill="${C.green}"/><path d="M795 8 Q 925 46 1055 8" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M1137 12 A 148 148 0 0 1 1433 12 Q 1285 50 1137 12 Z" fill="${C.green}"/><path d="M1141 12 Q 1285 50 1429 12" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-side3clip)">
                 <!-- the band sits on top of the eyes and dips between them, like the logo: that dip is the frown -->
                 <path d="M460 -420 L1660 -420 L1660 -118 L1470 -118 Q1300 -92 1168 8 Q1108 42 1048 8 Q930 -84 790 -118 L460 -118 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
@@ -358,6 +370,9 @@ const FROG_SVG = `
                     <circle cx="822" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
                     <circle cx="1164" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
                 </g>
+                <!-- on sake: the eyelids half down (each view of the head has its own) -->
+                <g class="fg-lid" opacity="0"><path d="M622 488 A 146 146 0 0 1 914 488 Q 768 526 622 488 Z" fill="${C.green}"/><path d="M626 488 Q 768 526 910 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
+                <g class="fg-lid" opacity="0"><path d="M1072 488 A 146 146 0 0 1 1364 488 Q 1218 526 1072 488 Z" fill="${C.green}"/><path d="M1076 488 Q 1218 526 1360 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
             </g>
             <g clip-path="url(#fg-headclip)">
                 <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
@@ -1140,7 +1155,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
                         <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s, and copies digital things held in it, roast chicken too (cut one for full seagull time). Firefly: fruit cooks faster, and a hacking flame copies 30% faster. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. Sake: bubbles, cuts pay 10% more. Each stacks up to 10 and adds 1 s.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s, and each marked sake is half a sake once time flows again.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="2" hidden>
                         <p class="fg-tip-lead">Fruit = time. The smaller the fruit, the more time it buys.</p>
@@ -1306,11 +1321,21 @@ export function mountFrogGame(stage, opts = {}) {
         if (node[k] !== val) { node.setAttribute(name, val); node[k] = val; }
     }
     function applyPose() {
-        const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld) => {
+        // On sake the frog keeps the bottle in its left hand and cuts with the right one alone. In every
+        // pose that arm is the same held drawing: raised out to the side, the bottle upright and tipping a
+        // little as it sways. Its own left hand: the arm on our right when it faces us; in profile, the
+        // arm on the far side, behind the body.
+        const drunk = stage.classList.contains('fg-drunk'), tip = drunk ? Math.round(Math.sin(performance.now() / 420) * 2) * 6 : 0;
+        const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld, bottleArm) => {
+            const armed = pose.held && !pose.noBlades && !pose.stuck, withBottle = !!bottleArm && drunk && armed;
+            if (withBottle) { rot = bottleArm.rot; stretch = bottleArm.stretch; kWorld = bottleArm.k + tip; }
             setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
             setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
-            setA(held, 'opacity', pose.held && !pose.noBlades && !pose.stuck ? 1 : 0);
+            setA(held, 'opacity', armed && !withBottle ? 1 : 0);
+            const bottle = g._bottle || (g._bottle = g.querySelector('.fg-bottle'));
+            setA(bottle, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
+            setA(bottle, 'opacity', withBottle ? 1 : 0);
             // the hand sits at the end of the arm, on top of whatever it holds, turned with the grip
             const hand = g._hand || (g._hand = g.querySelector('.fg-hand'));
             if (hand) setA(hand, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
@@ -1319,7 +1344,7 @@ export function mountFrogGame(stage, opts = {}) {
         const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
         // turned: the near shoulder comes forward and the far one tucks in behind the body
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
-        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK);
+        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK, { rot: -112, stretch: 1.3, k: 10 });     // (its own left hand: on our right when it faces us)
         // the profile drawing takes over while the frog cuts
         const sideOn = pose.side !== 0 && upNow && !pose.fallY && !pose.chop;
         // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
@@ -1340,7 +1365,7 @@ export function mountFrogGame(stage, opts = {}) {
             for (const k in el.sLegs) setA(el.sLegs[k], 'opacity', k === pose.sLegs ? 1 : 0);
             const hipY = 900 + pose.sDrop;
             setA(el.sideTop, 'transform', `translate(0 ${n2(pose.sDrop)}) rotate(${n2(pose.sRot)} 1000 ${900})`);
-            setArm(el.sB.g, el.sB.limb, el.sB.held, el.sB.blade, [1000, 470], pose.sB.rot, pose.sB.stretch, pose.sB.k);
+            setArm(el.sB.g, el.sB.limb, el.sB.held, el.sB.blade, [1000, 470], pose.sB.rot, pose.sB.stretch, pose.sB.k, { rot: 142 - pose.sRot, stretch: 1.9, k: -14 - pose.sRot });     // (up and back, clear of the head)
             setArm(el.sF.g, el.sF.limb, el.sF.held, el.sF.blade, [1000, 470], pose.sF.rot, pose.sF.stretch, pose.sF.k);
             setA(el.sideTail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} 660 0)`);       // the tails lag the turn
             setA(el.sideHem, 'transform', `translate(1000 850) skewX(${n2(pose.sRot * 0.5)}) translate(-1000 -850)`);
@@ -1393,6 +1418,7 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.tail, 'transform', `translate(${n2(hx - (pose.up > 0.5 ? pose.face : 0) * 60)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} 600 300)`);
         setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
         setA(el.pupils, 'transform', `translate(${n2(clamp(pose.lookX + (pose.up > 0.5 ? pose.face : 0) * 34, -46, 46))} ${n2(pose.lookY)})`);
+        (el.lids || (el.lids = [...svg.querySelectorAll('.fg-lid')])).forEach(g => setA(g, 'opacity', drunk ? 1 : 0));
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
     }
@@ -1805,7 +1831,7 @@ export function mountFrogGame(stage, opts = {}) {
     // The blade's effects run while the frog is drunk, during the slashes that follow a time
     // freeze, and for FX_SECONDS after those (fxLeft) when a firefly or a sake was among them.
     const FX_SECONDS = 5;
-    let fxLeft = 0, fxPending = false;
+    let fxLeft = 0, fxPending = false, sakePending = 0;      // (sakePending: seconds of sake owed by sakes cut in a time freeze)
     const fxOn = () => sakeLeft > 0 || fxLeft > 0 || markQueue.length > 0;
     function setBladeFx(kind, x, y, force) {
         if (sakeLeft <= 0 && !force) return;
@@ -1817,7 +1843,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // everything marked during a time freeze, in the order it was marked
     const allMarked = () => fruits.filter(f => f.mark).concat(pieces.filter(q => q.mark), crates.filter(c => c.mark), gulls.filter(g => g.mark), pickups.filter(b => b.mark), flies.filter(f => f.mark)).sort((a, b) => a.mark - b.mark);
-    const clearBladeFx = () => { fxLeft = 0; fxPending = false; bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
+    const clearBladeFx = () => { fxLeft = 0; fxPending = false; sakePending = 0; bladeFx = { fire: false, bubbles: false, frost: false, last: '' }; warpCut = { id: 0, hits: 0 }; };
     const FIRE_HALF = 14;                                      // px either side the fire blade also cuts, per stack
     const FX_STACKS = 10;                                      // fire, sake and chrono effects stack up to this many times
     // A blade with width: try lines across it and keep the best result, so a cut that would be
@@ -2986,7 +3012,12 @@ export function mountFrogGame(stage, opts = {}) {
                 }
                 return;
             }
-            if (inB || inBlade(g.x, g.y, g.r)) gullHit(g, 'fire');     // roasted
+            // in a flame it takes as long to roast as a fruit does; out of it, it cools
+            if (inB || inBlade(g.x, g.y, g.r)) {
+                g.burn = (g.burn || 0) + dt * (inB ? power(g) : 1);
+                if (Math.random() < 0.5) flames.push({ x: g.x + rand(-g.r, g.r) * 0.6, y: g.y - g.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
+                if (g.burn >= burnTime()) { g.burn = 0; gullHit(g, 'fire'); }     // roasted
+            } else if (g.burn) g.burn = Math.max(0, g.burn - dt * BURN_COOL);
         });
         burnExtras(pickups, b => b.r);
         burnExtras(flies, f => f.s * 1.6);
@@ -4206,6 +4237,15 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'stunned', dur: 0.9, start() { stunT = stunFor = 0.9; } });
         out.push({ name: 'out of stamina', dur: 0.7, tick() { stamina = 0; }, end() { stamina = STAMINA_BARS; hud(); } });
         out.push({ name: 'drunk (sake)', dur: 0.9, tick() { sakeLeft = Math.max(sakeLeft, 0.6); }, end() { sakeLeft = 0; } });
+        // on sake every cut is made with the right blade alone, the bottle in the other hand, the eyelids half down
+        const drunkCut = (name, ang, where) => out.push({ name, dur: 0.7, start() { const p = where(); swing = null; swingTo(Math.cos(ang), Math.sin(ang), p.x, p.y); if (swing) swing.demo = true; }, tick() { sakeLeft = Math.max(sakeLeft, 0.6); }, end() { if (swing) swing.demo = false; sakeLeft = 0; } });
+        drunkCut('drunk: cut right, far', 0, () => ({ x: W / 2 + fw() * 1.4, y: head().y + fw() * 0.5 }));
+        drunkCut('drunk: cut left, far', Math.PI, () => ({ x: W / 2 - fw() * 1.4, y: head().y + fw() * 0.5 }));
+        drunkCut('drunk: cut down-right, far', Math.PI / 4, () => ({ x: W / 2 + fw() * 1.4, y: head().y + fw() * 0.5 }));
+        drunkCut('drunk: cut up-left, far', -3 * Math.PI / 4, () => ({ x: W / 2 - fw() * 1.4, y: head().y + fw() * 0.5 }));
+        drunkCut('drunk: cut overhead', 0, () => ({ x: W / 2, y: head().y - fw() * 0.9 }));
+        drunkCut('drunk: cut straight down', Math.PI / 2, () => ({ x: W / 2, y: head().y + fw() * 0.5 }));
+        drunkCut('drunk: thrust far up-right', Math.atan2(-1, 1), () => ({ x: W / 2 + fw() * 2.1, y: head().y - fw() * 1.4 }));
         out.push({ name: 'time freeze', dur: 0.7, tick() { freezeLeft = Math.max(freezeLeft, 0.3); }, end() { freezeLeft = 0; } });
         out.push({ name: 'under five seconds (one foot)', low: true, dur: 0.9, tick() { timeLeft = 3; }, end() { timeLeft = START_SECONDS; hud(); } });
         out.push({ name: 'laptop: the team is called', dur: 5, start() { startSummon(); } });
@@ -4245,7 +4285,8 @@ export function mountFrogGame(stage, opts = {}) {
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; },
         at(seconds) { clockT = seconds; },
         blast(x, y) { explode(x, y, S() * 0.12); },
-        cloud(x, y) { digitalCloud(x, y, 'test'); }
+        cloud(x, y) { digitalCloud(x, y, 'test'); },
+        freeze(seconds) { freezeLeft = seconds; }
     };
     function playAnim(name) {
         const a = ANIMS.find(q => q.name === name);
@@ -4578,7 +4619,7 @@ export function mountFrogGame(stage, opts = {}) {
                         // a firefly sets the sword on fire, a sake turns it yellow: for the cuts still
                         // to come in this sequence, and for FX_SECONDS of normal slashing afterwards
                         if (fx >= 0) { setBladeFx('fire', f.x, f.y, true); fxPending = true; }
-                        else if (f.kind === 'sake') { setBladeFx('bubbles', f.x, f.y, true); fxPending = true; }
+                        else if (f.kind === 'sake') { setBladeFx('bubbles', f.x, f.y, true); fxPending = true; sakePending += SAKE_SECONDS * SAKE_MARKED; }
                         else if (f.kind === 'clock') { setBladeFx('frost', f.x, f.y, true); fxPending = true; }
                         hurtFlash = 0;                                 // not a wasted power-up: no red flash
                         const chain = markCut.hits++;
@@ -4672,7 +4713,15 @@ export function mountFrogGame(stage, opts = {}) {
                 // first pass done: the same sequence again, every cut turned 90 degrees
                 if (!markQueue.length && markAgain.length) { markQueue = markAgain; markAgain = []; }
                 // all done: what the sword picked up on the way stays on it for normal slashing
-                if (!markQueue.length && fxPending) { fxPending = false; fxLeft = FX_SECONDS; }
+                if (!markQueue.length && fxPending) {
+                    fxPending = false; fxLeft = FX_SECONDS;
+                    // a sake cut in the freeze: time flows again and the frog is drunk, for half a sake each (free slashes and all)
+                    if (sakePending > 0) {
+                        sakeLeft = Math.min(Math.max(sakeLeft, 0) + sakePending, SAKE_SECONDS + POWER_BONUS_MAX); sakePending = 0; stamina = STAMINA_BARS;
+                        snd('power_sake'); log('sake', 'clock', r2(sakeLeft));
+                        const h = frogPoint(993, 150); floats.push({ x: h.x, y: h.y - 30, text: 'Sake!', t: 0, hot: true });
+                    }
+                }
             }
             if (fxLeft > 0 && !markQueue.length) { fxLeft = Math.max(0, fxLeft - dt); if (fxLeft <= 0 && sakeLeft <= 0) clearBladeFx(); }
             if (!dbg) spawnT -= dt;                              // real time: slow motion doesn't hold the fruit back
@@ -4829,28 +4878,36 @@ export function mountFrogGame(stage, opts = {}) {
         draw(tn);
     }
 
-    // one fruit image smeared back along its flight: faint copies first, the sharpest one last
-    function drawSmeared(f, x, y, rot, alpha, lw, k, steps = BLUR_STEPS) {
-        for (let i = steps; i >= 1; i--) {
-            const tau = BLUR_TIME * k * i;
-            ctx.save(); ctx.globalAlpha = alpha * 0.34 * (1 - (i - 1) / (BLUR_STEPS + 1));
-            ctx.translate(x - f.vx * tau, y - f.vy * tau); ctx.rotate(rot - f.spin * tau);
-            stampWhole(f, lw); ctx.restore();
+    // A blurred picture of a whole fruit, made once: the picture shrunk to `keep` of its size (by
+    // halves, so nothing is skipped). Drawn back at full size it is soft, the softer the smaller it was kept.
+    const blurSprites = new Map();
+    function blurSprite(f, lw, level) {
+        const key = level + '|' + (f.roasted ? 'r' : '') + f.type.kind + '|' + Math.round(f.r * 2) + '|' + dpr;
+        let sp = blurSprites.get(key);
+        if (!sp) {
+            const src = f.roasted ? roastSprite(f, lw) : wholeSprite(f, lw), want = Math.max(6, Math.round(src.cv.width * ECHO_BLUR[level]));
+            let cur = src.cv;
+            while (cur.width > want) {
+                const n = Math.max(want, Math.ceil(cur.width / 2)), cv = document.createElement('canvas');
+                cv.width = cv.height = n; cv.getContext('2d').drawImage(cur, 0, 0, n, n); cur = cv;
+            }
+            sp = { cv: cur, half: src.half }; blurSprites.set(key, sp);
+            if (blurSprites.size > 160) blurSprites.delete(blurSprites.keys().next().value);
         }
+        return sp;
     }
-    // the two echoes behind a fruit (furthest first), then the smear of the fruit itself;
-    // the caller draws the solid fruit on top
+    // the echoes behind a fruit (furthest and most blurred first); the caller draws the sharp fruit on top
     function drawEchoes(f, lw, k, tn) {
         for (let n = ECHO_ALPHA.length; n >= 1; n--) {
             const tau = ECHO_GAP * n * k;
             // where it was tau seconds ago on its arc, plus a drunken sway
             const sway = reduced ? 0 : Math.sin(tn / 1000 * 5 + n * 1.9 + f.born) * f.r * 0.07 * n * k;
             const ex = f.x - f.vx * tau + sway, ey = f.y - f.vy * tau + 0.5 * f.g * tau * tau;
-            const rot = f.rot - f.spin * tau, a = ECHO_ALPHA[n - 1] * k;
-            drawSmeared(f, ex, ey, rot, a, lw, k, 1);
-            ctx.save(); ctx.globalAlpha = a; ctx.translate(ex, ey); ctx.rotate(rot); stampWhole(f, lw); ctx.restore();
+            ctx.save(); ctx.globalAlpha = ECHO_ALPHA[n - 1] * k; ctx.translate(ex, ey); ctx.rotate(f.rot - f.spin * tau);
+            if (f.crownCut) stampWhole(f, lw);
+            else { const sp = blurSprite(f, lw, n - 1); ctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2); }
+            ctx.restore();
         }
-        drawSmeared(f, f.x, f.y, f.rot, 1, lw, k);
     }
 
     function draw(tn) {

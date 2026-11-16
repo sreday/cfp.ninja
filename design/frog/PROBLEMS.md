@@ -20,6 +20,18 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | On sake the frog holds the bottle in its own left hand (on our right
+  when it faces us; the far arm in profile) and cuts with one blade, eyelids half down in every view.
+  Placeholder drawings on the placeholder rig; in some profile cuts (level, thrust) the bottle is
+  mostly hidden behind the head. Needs real art with the rest (`ASSETS.md`). | open
+- 2026-11-16 | Marek's request | A sake marked and cut in a time freeze gives half a sake (2.5 s, free
+  slashes, full stamina) once time flows again, on top of the 5 s of bubbles on the blade; two marked
+  sakes give 5 s. Makes the clock stronger again: it was already the most valuable item per use
+  (12.7 s, traces 1-97). | shipped, balance unverified
+- 2026-11-16 | Marek's request | A seagull now needs as long in a flame as a fruit (0.3 s, less with
+  fireflies) before it is roasted; it was instant. Drunk vision: the background sways twice as far,
+  the fruit itself is sharp and each echo is more blurred (pictures made once, one draw per echo:
+  fewer draws than before, but not measured on a phone). | shipped
 - 2026-11-16 | Marek's request | Roasted fruit stays in play: the flame pays for it once, as before,
   and it can then be cut for the normal pay of a cut. So a fire breath is now worth its old pay plus
   whatever is cut afterwards, and adds a piece to the bowls twice. Not modelled. Watch `fire` and

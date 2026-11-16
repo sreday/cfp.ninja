@@ -102,6 +102,18 @@ def main():
         fresh(g); g.js("frogPlay.roast(640, 250); frogPlay.breath({slow: 1, seconds: 0.5})"); hold(g, 640, 230, 0.4)
         n0 = len(g.state()['gulls']); g.js("frogPlay.cloud(640, 250)"); time.sleep(0.3); st = g.state()
         check('a digital roast chicken in a cloud is copied again', n0 >= 1 and len(st['gulls']) == n0 * 2 and all(q['hacked'] for q in st['gulls']), (n0, st['gulls']))
+        # 8. a seagull in a plain flame takes as long to roast as a fruit (0.3 s), not an instant
+        fresh(g); g.js("frogPlay.breath({seconds: 1.2}); frogPlay.drop('gull', 640, 240)")
+        sts = hold(g, 640, 230, 0.9, every=0.05)
+        first = next((i for i, s in enumerate(sts) if any(q['state'] != 'fly' for q in s['gulls'])), None)
+        check('the gull is still flying after the first instant in the flame, and roasted soon after', first is not None and first >= 3 and sts[-1]['gulls'] and sts[-1]['gulls'][0]['burnt'], (first, sts[-1]['gulls']))
+
+        # 9. a sake marked and cut in a time freeze: half a sake once time flows again
+        fresh(g); g.js("frogPlay.drop('sake', 640, 260)"); time.sleep(0.25); g.js("frogPlay.freeze(1.2)"); time.sleep(0.1)
+        q = [p for p in g.state()['pickups'] if p['kind'] == 'sake'][0]
+        g.drag([(q['x'] - 60, q['y']), (q['x'], q['y']), (q['x'] + 60, q['y'])], 0.02)
+        time.sleep(2.2); st = g.state()
+        check('half a sake after the freeze', 0.3 < st['sake'] <= 2.5 and any(e[1] == 'sake' and e[2] == 'clock' for e in st['log']), (st['sake'], st['log'][-8:]))
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()
