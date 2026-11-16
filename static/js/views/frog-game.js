@@ -1083,6 +1083,37 @@ const store = {
 };
 
 // ---------- mount ----------
+// The start screen's last picture, its own drawing: the frog with its face in a slice of watermelon,
+// bowls of fruit salad all around it.
+function saladFrog() {
+    const bowl = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})">
+        ${[['#ef5350', -120, -40, 62], ['#ffb74d', -30, -78, 70], ['#7b1fa2', 70, -52, 50], ['#9ccc65', 130, -20, 52], ['#fff176', 20, -20, 60], ['#ec407a', -70, -6, 50]].map(([c, cx, cy, r]) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${c}" stroke="#000" stroke-width="14"/>`).join('')}
+        <path d="M-230 0 H230 Q220 190 90 210 H-90 Q-220 190 -230 0 Z" fill="#fff" stroke="#000" stroke-width="20" stroke-linejoin="round"/>
+        <path d="M-180 60 Q0 100 180 60" stroke="#cfd8dc" stroke-width="16" fill="none" stroke-linecap="round"/></g>`;
+    const slice = 'M543 668 L783 668 A70 70 0 0 0 923 668 A70 70 0 0 0 1063 668 A70 70 0 0 0 1203 668 L1443 668 A450 450 0 0 1 543 668 Z';
+    const hand = x => `<ellipse cx="${x}" cy="850" rx="92" ry="80" fill="${C.green}" stroke="#000" stroke-width="22"/>`;
+    return `<svg viewBox="-190 40 2366 1200" aria-hidden="true">
+        <defs><clipPath id="fg-hint-slice"><path d="${slice}"/></clipPath></defs>
+        ${bowl(250, 640, 0.8)}${bowl(1736, 640, 0.8)}
+        <path d="${HEAD}" fill="${C.green}"/>
+        <circle cx="768" cy="${EYE_Y}" r="140" fill="#fff"/><circle cx="1218" cy="${EYE_Y}" r="140" fill="#fff"/>
+        <circle cx="792" cy="${EYE_Y + 40}" r="94" fill="#000"/><circle cx="1194" cy="${EYE_Y + 40}" r="94" fill="#000"/>
+        <circle cx="822" cy="${EYE_Y - 10}" r="40" fill="#fff"/><circle cx="1164" cy="${EYE_Y - 10}" r="40" fill="#fff"/>
+        <g clip-path="url(#fg-headclip)">
+            <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+            <path d="M605 296 Q993 268 1381 296" stroke="${C.redHi}" stroke-width="34" fill="none"/>
+        </g>
+        <path d="M640 668 Q993 620 1346 668 Q1300 772 993 780 Q686 772 640 668 Z" fill="#5a1010" stroke="#000" stroke-width="22"/>
+        <path d="${HEAD}" fill="none" stroke="#000" stroke-width="26"/>
+        <path d="${slice}" fill="#2e7d32"/>
+        <g clip-path="url(#fg-hint-slice)"><circle cx="993" cy="668" r="408" fill="#dcedc8"/><circle cx="993" cy="668" r="372" fill="#ef5350"/></g>
+        ${[[720, 800], [860, 930], [993, 800], [1126, 930], [1266, 800], [993, 985]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="17" ry="27" fill="#000"/>`).join('')}
+        <path d="${slice}" fill="none" stroke="#000" stroke-width="26" stroke-linejoin="round"/>
+        ${hand(560)}${hand(1426)}
+        <path d="M1500 700 q28 50 0 78 q-28 -28 0 -78 Z M470 730 q24 44 0 68 q-24 -24 0 -68 Z" fill="#ef5350" stroke="#000" stroke-width="12"/>
+        ${bowl(110, 1010, 1.05)}${bowl(1876, 1010, 1.05)}
+    </svg>`;
+}
 const mouseIcon = side => `<svg class="fg-mouse" viewBox="0 0 40 56" aria-hidden="true">
     <rect x="3" y="3" width="34" height="50" rx="17" fill="#fff" stroke="#000" stroke-width="3"/>
     <path d="M3 22 H37 M20 3 V22" stroke="#000" stroke-width="3"/>
@@ -1141,7 +1172,7 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-hint"><canvas data-hint="katana"></canvas><b>${touch ? 'Tap and hold to slash' : 'Click and hold to slash'}</b></div>
                     <div class="fg-hint"><canvas data-hint="tongue"></canvas><b>${touch ? 'Quick tap to fetch with the tongue' : 'Quick click / right click to fetch with the tongue'}</b></div>
                     <div class="fg-hint fg-hint-wide"><canvas data-hint="stack"></canvas><b>Cut fruit, catch power-ups, mix and match for different combos</b></div>
-                    <div class="fg-hint fg-hint-wide"><span class="fg-hint-frog"></span><b>Survive as long as possible!</b></div>
+                    <div class="fg-hint fg-hint-wide"><span class="fg-hint-frog">${saladFrog()}</span><b>Prepare a fruit salad and survive as long as you can!</b></div>
                 </div>
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
@@ -3937,23 +3968,6 @@ export function mountFrogGame(stage, opts = {}) {
         el.skip.textContent = !open ? 'All hints' : page < el.pages.length - 1 ? `Next hint (${page + 1}/${el.pages.length})` : 'Hide hints';
     }
     showTips(-1);
-    // The start screen's last picture is the frog itself, going off the post: the rig is put in its
-    // falling pose for a moment, copied, and put back. (The copy keeps no ids: there is one rig.)
-    (function fallPicture() {
-        const was = JSON.parse(JSON.stringify(pose));
-        Object.assign(pose, { up: 1, held: true, noBlades: true, side: 0, squash: 0, lean: 0, shift: 0, fallRot: -62, fallY: 1, lRot: 170, rRot: -170, lookY: -20 });
-        pose.laptop.gone = true;
-        try {
-            applyPose();
-            const copy = svg.cloneNode(true);
-            copy.querySelectorAll('defs').forEach(d => d.remove());
-            copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
-            copy.setAttribute('class', ''); copy.setAttribute('viewBox', '300 150 1400 1600');
-            $('.fg-hint-frog').appendChild(copy);
-        } catch (e) { log('hintfrog', String(e)); }
-        Object.keys(was).forEach(k => { if (was[k] && typeof was[k] === 'object') Object.assign(pose[k], was[k]); else pose[k] = was[k]; });
-        applyPose();
-    })();
     $('.fg-anykey').hidden = touch;
     // Warm-up: the first time anything is drawn it costs (shapes are compiled, text is laid out,
     // sprites are built), and on a phone that showed as a slow second at the start of the first
