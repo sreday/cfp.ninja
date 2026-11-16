@@ -73,7 +73,7 @@ Combos are part of mastery and are listed in the game's "Power-ups combine" tips
 breath + sake (wide), breath + clock (hacks what it touches, and copies every digital thing held in it by dividing it
 like a living cell: it shrinks a little, becomes two joined ones, then two that grow back and
 drift apart about the spot where the one was. Fruit takes 0.6 s; seagulls, power-ups, fireflies,
-crates and the laptop take twice that. Never more than 36 fruit, 12 gulls, 12 power-ups, 12
+crates and the laptop take 0.9 s. Never more than 36 fruit, 12 gulls, 12 power-ups, 12
 fireflies or 6 crates on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 

@@ -64,7 +64,7 @@ const SLOWMO = 0.02;                             // ...until the time is up or t
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
 const FIRE_FAR = 0;                              // how much weaker the breath is at the furthest corner of the screen than at the mouth. 0: the same everywhere (0.3 was tried and felt far too weak)
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
-const DUP_SLOW = 2, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everything that is not fruit takes DUP_SLOW times as long to copy; s for the two to grow back; most power-ups, fireflies, crates on screen
+const DUP_SLOW = 1.5, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everything that is not fruit takes DUP_SLOW times as long to copy (0.9 s against 0.6); s for the two to grow back; most power-ups, fireflies, crates on screen
 const CELL_SMALL = 0.8, CELL_OFF = 0.8, CELL_PUSH = 0.45;           // dividing: the size of each of the two, how far each sits from the middle, and how far each then drifts on (in radii)
 const DUP_TIME = 0.6, DUP_MAX = 36, GULL_MAX = 12;              // a hacked fruit held in the hacking breath this long is copied; never past this many fruit on screen
 const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
