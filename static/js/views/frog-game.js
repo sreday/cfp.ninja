@@ -4734,7 +4734,13 @@ export function mountFrogGame(stage, opts = {}) {
             for (let k = 0; k < BOWL_HOLDS; k++) addToSalad(pick(FRUIT_BAG), grilled ? Math.random() < 0.8 : Math.random() < 0.1);
         });
         // the pill at the top right: into debug mode from anywhere (it drops a run in progress), and back out
-        $('.fg-debug-pill').addEventListener('click', () => { if (dbg) exitDebug(); else { el.tips.hidden = true; startDebug(); } });
+        // (there is no debug mode for the Sensei: the Debug button turns the game back to the frog, and opens debug there)
+        const DEBUG_NEXT = 'cfpninja.game.debugNext';
+        $('.fg-debug-pill').addEventListener('click', () => {
+            if (elder && !dbg) { try { localStorage.setItem(CHAR_KEY, 'frog'); sessionStorage.setItem(DEBUG_NEXT, '1'); } catch (e) { return; } location.reload(); return; }
+            if (dbg) exitDebug(); else { el.tips.hidden = true; startDebug(); }
+        });
+        try { if (sessionStorage.getItem(DEBUG_NEXT)) { sessionStorage.removeItem(DEBUG_NEXT); setTimeout(() => { if (!dead && !dbg && phase !== 'play') { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } }, 400); } } catch (e) { /* private mode */ }
     })();
 
     // ---------- loop ----------

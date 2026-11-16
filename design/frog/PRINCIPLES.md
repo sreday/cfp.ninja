@@ -102,7 +102,7 @@ blade would do):
 - The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. Second character, picked on the first page of the hints; for fun, never on the
   scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, no tongue, every
   stroke repeated by a second blade mirrored left to right, five times the fruit, and everything
-  he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. His runs carry
+  he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry
   a `char elder` event in the log: leave them out of balance work.
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).

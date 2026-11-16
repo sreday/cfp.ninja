@@ -168,6 +168,8 @@ def main():
         for k in range(7): g.drag([(300, 150 + k * 20), (420, 160 + k * 20), (540, 170 + k * 20)]); time.sleep(0.05)
         check('old master: slashing uses no stamina', g.state()['stamina'] == 5, g.state()['stamina'])
         g.shot(os.path.join(a.out, 'old-master.png'))
+        g.js("location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-debug-pill').click(); 1"); time.sleep(3.2); st = g.state()
+        check('old master: the Debug button turns the game back to the frog, in debug', st['char'] == 'frog' and st['rate'] == 1.44 and g.js("document.querySelector('.fg-debug-pill').textContent") == 'Exit debug', (st['char'], st['rate']))
         g.js("localStorage.removeItem('cfpninja.game.character')")
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
