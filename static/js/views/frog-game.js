@@ -4765,6 +4765,10 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // pickups and fireflies sit in front of the fruit
         pickups.forEach(b => { if (b.hacked) cells(b, b.r, () => drawOutline(b.x, b.y, b.r * 2.6, tn, g => drawPickup(g, Object.assign({}, b, { x: 0, y: 0 }), lw))); else drawPickup(ctx, b, lw); });
+        flies.forEach(f => {
+            const ft = freezeLeft > 0 || markQueue.length ? tn / 10000 : tn / 1000;
+            if (f.hacked) cells(f, f.s * 1.6, () => drawOutline(f.x, f.y, f.s * 4.5, tn, g => drawFly(g, Object.assign({}, f, { x: 0, y: 0 }), f.s, ft))); else drawFly(ctx, f, f.s, ft);
+        });
         // the marks of a time freeze: a dot in the middle of each marked fruit (and crate),
         // joined by a line in the order they will be cut
         const marked = allMarked();
@@ -4782,10 +4786,6 @@ export function mountFrogGame(stage, opts = {}) {
             });
             ctx.restore();
         }
-        flies.forEach(f => {
-            const ft = freezeLeft > 0 || markQueue.length ? tn / 10000 : tn / 1000;
-            if (f.hacked) cells(f, f.s * 1.6, () => drawOutline(f.x, f.y, f.s * 4.5, tn, g => drawFly(g, Object.assign({}, f, { x: 0, y: 0 }), f.s, ft))); else drawFly(ctx, f, f.s, ft);
-        });
         if (flames.length) {
             ctx.save(); ctx.globalCompositeOperation = 'lighter';
             const tint = FLAME[fireLeft > 0 ? fireTint : ''];
