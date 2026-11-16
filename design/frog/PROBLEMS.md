@@ -20,6 +20,17 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | Roasted fruit stays in play: the flame pays for it once, as before,
+  and it can then be cut for the normal pay of a cut. So a fire breath is now worth its old pay plus
+  whatever is cut afterwards, and adds a piece to the bowls twice. Not modelled. Watch `fire` and
+  `base` in the balance table and the bowls. | shipped, balance unverified
+- 2026-11-16 | Marek's request | The laptop's digital cloud (slashed, cooked or hit by fireworks)
+  copies everything in it once, instantly, laptops and power-ups included, up to the usual limits
+  (36 fruit, 12 gulls, 12 power-ups, 6 crates). "Already digital things copy an additional time"
+  was read as: they are copied once by the cloud like everything else. Ask Marek if he meant twice. | open
+- 2026-11-16 | play-test gaps | The roasted look (edges darkened once per picture with a canvas
+  shadow) and the cloud were only seen in headless Chrome on the Mac: not checked on an iPhone,
+  for looks or for frame rate. | open
 - 2026-11-16 | Marek's request | More fruit: 20% more from the start and 3% more every 10 s of the
   run (core truth 1 in `PRINCIPLES.md` 3a rewritten). More fruit is more time to earn, and runs
   were already longer than the targets (median 112 s against 60, 13 of 81 runs filled every bowl,

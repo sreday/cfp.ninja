@@ -5,7 +5,7 @@
 
 Uses the automation-only hooks on window.frogPlay (debug, drop, roast, breath, at) to stage a
 moment and reads the result from frogPlay.state(). Prints PASS/FAIL per check and saves a few
-pictures. Checks: the fruit rate over a run; a roast chicken in the hacking breath (digital,
+pictures. Checks: the fruit rate over a run; roasted fruit; the laptop's digital cloud; a roast chicken in the hacking breath (digital,
 copied, full seagull time when cut); sake and fireflies in the hacking breath (burned, never
 digital: a wider cone, faster copies).
 """
@@ -66,6 +66,42 @@ def main():
         check('neither is left on the field, the clock is copied', 'sake' not in kinds and 'fly' not in kinds and kinds.count('clock') >= 2, kinds)
         check('no copy of a sake or a firefly was ever made', not any(e[1] == 'dup' and e[2] in ('sake', 'fly') for s in sts for e in s['log']))
         g.shot(os.path.join(a.out, 'hacking-breath-fed.png'))
+        # 5. roasted fruit: paid once, stays, can be cut, its pieces are roasted
+        fresh(g); g.js("frogPlay.breath({seconds: 0.75}); frogPlay.drop('fruit:orange', 600, 260); frogPlay.drop('fruit:watermelon', 700, 240); frogPlay.drop('fruit:banana', 520, 230); frogPlay.drop('fruit:pineapple', 780, 250)")
+        sts = hold(g, 640, 200, 0.7); last = sts[-1]
+        burns = [e for s in sts for e in s['log'] if e[1] == 'burn']; paid = {(e[0], e[2]) for e in burns}
+        check('fruit in the flame is roasted and stays', len(last['fruits']) == 4 and all(f['roasted'] for f in last['fruits']), last['fruits'])
+        check('each was paid for once', len(paid) == 4, sorted(paid))
+        g.shot(os.path.join(a.out, 'roasted.png'))
+        time.sleep(0.12)
+        st = g.state(); q = max(st['fruits'], key=lambda f: f['r'])
+        g.drag([(q['x'] - 120, q['y'] + q['vy'] * 0.06), (q['x'] - 40, q['y'] + q['vy'] * 0.07), (q['x'] + 40, q['y'] + q['vy'] * 0.09), (q['x'] + 120, q['y'] + q['vy'] * 0.11)], 0.02); time.sleep(0.2)
+        st = g.state(); g.shot(os.path.join(a.out, 'roasted-cut.png'))
+        check('a roasted fruit can be cut, and its pieces are roasted', st['roastedPieces'] >= 2 and any(e[1] == 'cut' for e in st['log']), (st['pieces'], st['roastedPieces']))
+
+        # 6. the laptop in a plain flame: red hot, then a digital cloud that copies once
+        fresh(g); g.js("frogPlay.breath({seconds: 1}); frogPlay.drop('laptop', 640, 240)")
+        sts = hold(g, 640, 220, 1.3); last = sts[-1]
+        check('a laptop in the flame pops into a cloud', last['clouds'] == 1 and not any(p['kind'] == 'laptop' for p in last['pickups']), (last['clouds'], last['pickups']))
+        g.js("frogPlay.drop('fruit:apple', 640, 300); frogPlay.drop('gull', 600, 200); frogPlay.drop('sake', 700, 260)")
+        time.sleep(0.5); st = g.state(); g.shot(os.path.join(a.out, 'cloud.png'))
+        check('fruit in the cloud is digital and copied once', len(st['fruits']) == 2 and all(f['hacked'] for f in st['fruits']), st['fruits'])
+        check('a gull and a sake too', len(st['gulls']) == 2 and len(st['pickups']) == 2, (len(st['gulls']), len(st['pickups'])))
+        time.sleep(1.0); st = g.state()
+        check('nothing is copied a second time by the same cloud', len(st['fruits']) == 2 and len(st['gulls']) == 2, (len(st['fruits']), len(st['gulls'])))
+        time.sleep(2.2); st = g.state()
+        check('the cloud is gone after 3 s and a fade', st['clouds'] == 0, st['clouds'])
+
+        # 7. slashed, and caught by fireworks: the same cloud; something digital already is copied again
+        fresh(g); g.js("frogPlay.drop('laptop', 640, 260)"); time.sleep(0.15)
+        q = [p for p in g.state()['pickups'] if p['kind'] == 'laptop'][0]
+        g.drag([(q['x'] - 110, q['y'] - 30), (q['x'] - 40, q['y'] - 30), (q['x'] + 40, q['y'] - 34), (q['x'] + 110, q['y'] - 36)], 0.02); time.sleep(0.2)
+        check('a slashed laptop leaves a cloud', g.state()['clouds'] == 1, g.state()['log'][-6:])
+        fresh(g); g.js("frogPlay.drop('laptop', 640, 260); frogPlay.blast(650, 250)"); time.sleep(0.2)
+        st = g.state(); check('a laptop caught by fireworks leaves a cloud', st['clouds'] == 1 and not st['pickups'], (st['clouds'], st['pickups']))
+        fresh(g); g.js("frogPlay.roast(640, 250); frogPlay.breath({slow: 1, seconds: 0.5})"); hold(g, 640, 230, 0.4)
+        n0 = len(g.state()['gulls']); g.js("frogPlay.cloud(640, 250)"); time.sleep(0.3); st = g.state()
+        check('a digital roast chicken in a cloud is copied again', n0 >= 1 and len(st['gulls']) == n0 * 2 and all(q['hacked'] for q in st['gulls']), (n0, st['gulls']))
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()

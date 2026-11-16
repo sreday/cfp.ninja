@@ -68,7 +68,9 @@ const DUP_SLOW = 1.5, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everyt
 const CELL_SMALL = 0.8, CELL_OFF = 0.8, CELL_PUSH = 0.45;           // dividing: the size of each of the two, how far each sits from the middle, and how far each then drifts on (in radii)
 const DUP_TIME = 0.6, DUP_MAX = 36, GULL_MAX = 12;              // a hacked fruit held in the hacking breath this long is copied; never past this many fruit on screen
 const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
-const LAPTOP_HOT = 1.2;                          // the laptop in a plain flame: the heat it can hold (red hot from BURN_TIME up), so it stays glowing a while after
+const CLOUD_SECONDS = 3, CLOUD_FADE = 0.6;       // the laptop's digital cloud: how long it works, then how long it takes to fade
+const STEAM_SECONDS = 2.5;                       // a piece cut from roasted fruit steams this long
+const PUNCH_SPEED = 1.2;                         // the chop (a crate or a digital gull on the tongue) plays this much faster than first drawn
 const BURN_TIME = 0.3;                          // seconds a fruit must stay in the flame to melt away
 const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone (radians): a wide path
 // What the fire breath burns changes it for the rest of that breath, and it adds up:
@@ -728,16 +730,33 @@ function drawChar(ctx, p) {
 }
 // which grapes of the bunch belong to this piece: the ones whose middle is inside it
 const grapesIn = (poly, r, ox, oy) => GRAPES.filter(([x, y]) => pointInPoly(poly, x * r + ox, y * r + oy));
+// Roasted, not burnt: the picture on a canvas keeps its shape and its colours, takes a warm
+// brown glaze all over, and its edges go ashy black (the dark comes in from the outline, whatever
+// the shape). Done once per picture, never per frame.
+const charT = document.createElement('canvas');
+function charEdges(cv, blur, passes = 4) {
+    const n = cv.width;
+    if (charT.width < n) charT.width = charT.height = n;
+    const t = charT.getContext('2d');
+    t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, n, n); t.fillStyle = '#000'; t.fillRect(0, 0, n, n);
+    t.globalCompositeOperation = 'destination-out'; t.drawImage(cv, 0, 0);          // everything that is not the fruit
+    const c = cv.getContext('2d');
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1; c.globalCompositeOperation = 'source-atop';
+    c.fillStyle = 'rgba(150,78,16,.26)'; c.fillRect(0, 0, n, n);                     // the glaze
+    // the shadow of everything around it falls inward, on the fruit: a wide brown one, then a tight ashy black one at the very edge
+    c.shadowOffsetX = n * 2;
+    c.shadowColor = 'rgba(92,44,10,1)'; c.shadowBlur = blur * 2;
+    for (let i = 0; i < passes / 2; i++) c.drawImage(charT, 0, 0, n, n, -n * 2, 0, n, n);
+    c.shadowColor = 'rgba(22,16,13,1)'; c.shadowBlur = blur * 0.9;
+    for (let i = 0; i < passes; i++) c.drawImage(charT, 0, 0, n, n, -n * 2, 0, n, n);
+    c.restore();
+}
 function drawPiece(ctx, p, lw) {
     lw = Math.min(lw, Math.max(1.2, p.r * 0.2));
-    // melting in a fire: it shrinks as it goes (the drips are drawn by the game), with a glow of heat on it
+    // in a fire: a glow of heat on it (it keeps its size: it roasts, it does not melt)
     const mk = p.burn ? clamp(p.burn / BURN_TIME, 0, 1) : 0;
-    if (mk) { ctx.save(); const k = 1 - 0.4 * mk; ctx.scale(k, k); }
     drawPieceBody(ctx, p, lw);
-    if (mk) {
-        if (p.poly && p.type.kind !== 'grapes') { ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, p.poly); ctx.fill(); }
-        ctx.restore();
-    }
+    if (mk && p.poly && p.type.kind !== 'grapes') { ctx.save(); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, p.poly); ctx.fill(); ctx.restore(); }
 }
 function drawPieceBody(ctx, p, lw) {
     if (p.crown) drawCrown(ctx, p.crown, p.r, lw, TOP_COL[p.type.kind]);
@@ -1106,13 +1125,13 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="1" hidden>
                         <p class="fg-tip-lead">Power-ups: catch them with the tongue. Slashing one wrecks it and costs a stamina bar.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit melts, crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue while it lasts.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Firefly</b><span>4 s of fire breath, aimed with the cursor. Fruit is roasted: it pays, and stays to be cut. Crates burst, power-ups burn for an apple's worth and 1 s more breath. No slashing or tongue while it lasts.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>Alarm clock</b><span>3 s of frozen time. Move over fruit, crates and power-ups to mark them: when time flows again, each is cut perfectly, in order.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>Golden sake</b><span>5 s of free slashing: just move, no button needed. The frog gets drunk.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="rare" hidden>
                         <p class="fg-tip-lead">Rare finds.</p>
-                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too. Fireflies, sake and clocks they cut go into their blades.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too. Fireflies, sake and clocks they cut go into their blades. Slash, burn or blast it: a blue cloud for 3 s that turns what enters it digital and copies it once.</span></div></div>
                         <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts. Tongue them: the frog spits 10 big ones. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
                         <div class="fg-row"><canvas data-icon="gull"></canvas><div><b>Seagull (rare)</b><span>Leave it alone. Slash or tongue it bare and it attacks: for 2 s left is right. With any boost on, it faints: an apple's worth.</span></div></div>
@@ -1465,12 +1484,24 @@ export function mountFrogGame(stage, opts = {}) {
             const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr);
             drawWhole(c, { type: f.type, crown: topOf(f.type, f.r) }, f.r, lw);
             sp = { cv, half }; wholeSprites.set(key, sp);
-            if (wholeSprites.size > 40) wholeSprites.delete(wholeSprites.keys().next().value);
+            if (wholeSprites.size > 60) wholeSprites.delete(wholeSprites.keys().next().value);
+        }
+        return sp;
+    }
+    // the same picture, roasted (see charEdges)
+    function roastSprite(f, lw) {
+        const key = 'roast|' + f.type.kind + '|' + Math.round(f.r * 2) + '|' + dpr;
+        let sp = wholeSprites.get(key);
+        if (!sp) {
+            const src = wholeSprite(f, lw), cv = document.createElement('canvas');
+            cv.width = cv.height = src.cv.width; cv.getContext('2d').drawImage(src.cv, 0, 0);
+            charEdges(cv, f.r * 0.5 * dpr);
+            sp = { cv, half: src.half }; wholeSprites.set(key, sp);
         }
         return sp;
     }
     // far fruit that has passed the top of its arc is behind the frog from then on
-    const isBehind = f => f.far && f.vy > 0 && !f.hacked && !f.crownCut && !f.burn && !f.mark;
+    const isBehind = f => f.far && f.vy > 0 && !f.hacked && !f.crownCut && !f.burn && !f.roasted && !f.mark;
     // Small canvases for the pictures of pieces and hacked things. They are handed back when the
     // thing leaves and used again (in sizes that step by 32 px), so a busy screen is not making
     // and throwing away hundreds of them; and only so many new pictures are painted per frame.
@@ -1498,14 +1529,15 @@ export function mountFrogGame(stage, opts = {}) {
         if ((!q.spr || q.spr.dpr !== dpr) && sprBuilt < SPR_PER_FRAME) {
             sprBuilt++;
             const sp = sprGet(q.R + lw * 2 + 2), burn = q.burn;
-            q.burn = 0; drawPiece(sp.c, q, lw); q.burn = burn;        // the picture is of the piece as cut; melting is done to the picture
+            q.burn = 0; drawPiece(sp.c, q, lw); q.burn = burn;        // the picture is of the piece as cut; the heat is drawn over the picture
+            if (q.roasted) charEdges(sp.cv, clamp((q.area || 0) / (2 * q.R || 1) * 0.22, 1.5, q.R * 0.3) * dpr, 2);     // (by how thick the piece is: a sliver must not go black)
             q.spr = sp;
         }
         if (!q.spr || q.spr.dpr !== dpr) { drawPiece(ctx, q, lw); return; }     // over this frame's budget: drawn directly for now
-        // melting in a fire: the picture shrinks, with a glow of heat on it
-        const mk = q.burn ? clamp(q.burn / BURN_TIME, 0, 1) : 0, k = 1 - 0.4 * mk, h = q.spr.half * k;
+        // in a fire: a glow of heat on it
+        const mk = q.burn && !q.roasted ? clamp(q.burn / BURN_TIME, 0, 1) : 0, h = q.spr.half;
         ctx.drawImage(q.spr.cv, -h, -h, h * 2, h * 2);
-        if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.scale(k, k); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
+        if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
     }
     // Quality governor. The game starts at full sharpness; if the device can't hold 50 frames a
     // second for two seconds running it drops the canvas resolution a step (2x -> 1.5x -> 1x), and
@@ -2340,7 +2372,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (f.type.kind === 'grapes') R += GRAPE_R * f.r;                       // its grapes reach past the line it was parted on
         if (o && o.char) o.char = o.char.map(sg => [sg[0] - cen[0], sg[1] - cen[1], sg[2] - cen[0], sg[3] - cen[1]]);
         return Object.assign({
-            type: f.type, r: f.r, hacked: f.hacked, src: f.src, ds: f.ds || 1, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
+            type: f.type, r: f.r, hacked: f.hacked, roasted: f.roasted, steam: f.roasted ? STEAM_SECONDS : 0, src: f.src, ds: f.ds || 1, poly: body, crown: leaves, R, ox: (f.ox || 0) - cen[0], oy: (f.oy || 0) - cen[1],
             x: f.x + cen[0] * c - cen[1] * sn, y: f.y + cen[0] * sn + cen[1] * c, rot: f.rot, g: G(), fam: f.fam, t: 0,
             area: poly ? polyArea(poly) : 0
         }, o);
@@ -2611,10 +2643,10 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.rotate(ang - b.rot);
                 ctx.strokeStyle = '#263238'; ctx.lineWidth = lw * 1.8; ctx.beginPath(); ctx.moveTo(-r * 1.15, 0); ctx.lineTo(r * 1.15, 0); ctx.stroke();
                 ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = lw * 0.6; ctx.setLineDash([r * 0.12, r * 0.1]); ctx.beginPath(); ctx.moveTo(-r * 1.05, 0); ctx.lineTo(r * 1.05, 0); ctx.stroke(); ctx.setLineDash([]);
-            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2, hack: r }));     // (a half turns what it touches digital: see stepBits)
+            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2 }));
             for (let i = 0; i < 9; i++) { const k = r * rand(0.1, 0.16); bit(b.x, b.y, (ctx, lw) => { ctx.fillStyle = '#eceff1'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke(); }, { life: 1.6 }); }     // keys
             splash(b.x, b.y, '#fff59d', 14, 3);                                                                                  // sparks
-            floats.push({ x: b.x, y: b.y - r, text: 'Crack!', t: 0, hot: false });
+            digitalCloud(b.x, b.y, 'slash');
         } else {
             // the sake bottle shatters
             for (let i = 0; i < 8; i++) { const pts = shardPath(3, r * rand(0.25, 0.5)); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i === 0 ? '#a3211d' : '#f5c542', lw * 0.7)); }
@@ -2633,8 +2665,13 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     // ---------- fire breath (firefly) ----------
-    // blast = blown apart by fireworks (an explosion): same pay rule, but nothing melts and nothing is grilled
-    function burnFruit(f, mult = 1, blast = false) {
+    // a puff of steam off something hot
+    const steamPuff = (x, y, r) => bit(x + rand(-r, r) * 0.5, y, ctx => { ctx.fillStyle = 'rgba(255,255,255,.42)'; ctx.beginPath(); ctx.arc(0, 0, Math.max(3, r * 0.2), 0, 7); ctx.fill(); }, { vx: rand(-18, 18), vy: -H * rand(0.06, 0.12), g: -H * 0.05, spin: 0, life: rand(0.5, 0.9) });
+    // blast = blown apart by fireworks (an explosion): same pay rule, but nothing is roasted
+    // keep = a real fruit or piece cooked through by a flame: it pays here, once, and stays in play, roasted
+    // (ashy edges, still to be cut, hacked, copied); a flame does nothing more to it. Without keep (a power-up
+    // that burns up) there is nothing left.
+    function burnFruit(f, mult = 1, blast = false, keep = false) {
         const gain = Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * mult * timeMult(), 0.01);   // fire gets half the grade bonus
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
@@ -2656,7 +2693,15 @@ export function mountFrogGame(stage, opts = {}) {
             hud();
             return;
         }
-        // melted right through: it bursts into juice, and there is nothing left to cut
+        if (keep) {
+            f.roasted = true; f.burn = 0; f.lit = 0; if (f.spr) sprFree(f);
+            for (let k = 0; k < 5; k++) steamPuff(f.x, f.y - r * 0.3, r);
+            for (let k = 0; k < 5; k++) { const a = rand(0, 6.28), v = H * rand(0.2, 0.5); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.2, 0.3), s: rand(4, 8) }); }
+            gainPop(f.x, f.y - f.r, gain);
+            hud();
+            return;
+        }
+        // burned right through: it bursts, and there is nothing left
         const juice = f.type.juice;
         for (let k = 0; k < 30; k++) { const a = rand(0, 6.28), v = H * rand(0.12, 0.6); drops.push({ x: f.x + rand(-r, r) * 0.3, y: f.y + rand(-r, r) * 0.3, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.18, c: juice, t: 0, s: rand(3, 7) }); }
         for (let k = 0; k < 5; k++) {
@@ -2700,6 +2745,94 @@ export function mountFrogGame(stage, opts = {}) {
         o.x = cx - c * d; o.y = cy - s * d; if (o.base !== undefined) o.base = o.y;
         o.dup = 0; o.dupP = 0; o.grow = DUP_GROW; o.pushA = o.dupA + Math.PI; o.pushV = r * CELL_PUSH / DUP_GROW;
         return { x: cx + c * d, y: cy + s * d, dup: 0, dupP: 0, dupIn: false, grow: DUP_GROW, pushA: o.dupA, pushV: o.pushV, hackT: 0, hackFor: hackFor(), mark: 0, noCut: 0 };
+    }
+    // ----- the laptop's digital cloud -----
+    // A laptop that is slashed, cooked through by a plain flame or caught by fireworks goes up in a
+    // blue cloud that hangs where it was for CLOUD_SECONDS. Whatever is in it or comes into it
+    // (fruit, gulls, roast chicken, crates, power-ups, fireflies) turns digital and is copied
+    // there and then: once per cloud, and the copy is not copied again by the same cloud. Something
+    // that is digital already is copied all the same.
+    let clouds = [], cloudSeq = 0;
+    function digitalCloud(x, y, why) {
+        const R = clamp(S() * 0.32, 120, 320);
+        clouds.push({ id: ++cloudSeq, x: clamp(x, R * 0.3, W - R * 0.3), y: clamp(y, 60, seaY() - R * 0.2), R, t: 0, seed: rand(0, 100) });
+        snd('hack'); log('cloud', why, Math.round(x), Math.round(y));
+        floats.push({ x, y: y - 40, text: 'Digital cloud!', t: 0, hot: true });
+        splash(x, y, '#4fc3f7', 18, 4);
+    }
+    // a laptop gone without a blade (cooked, or blown up): keys, sparks, and the cloud
+    function laptopPop(b, why) {
+        const r = b.r;
+        snd('wreck', { kind: 'laptop' });
+        for (let i = 0; i < 9; i++) { const k = r * rand(0.1, 0.16); bit(b.x, b.y, (ctx, lw) => { ctx.fillStyle = '#eceff1'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke(); }, { life: 1.6 }); }
+        for (let i = 0; i < 4; i++) { const pts = shardPath(4, r * rand(0.3, 0.55)); bit(b.x, b.y, (ctx, lw) => fillPoly(ctx, pts, i % 2 ? C.laptop : C.laptopHi, lw * 0.7), { life: 1.6 }); }
+        splash(b.x, b.y, '#fff59d', 14, 3);
+        digitalCloud(b.x, b.y, why);
+    }
+    const cloudR = c => c.R * (0.45 + 0.55 * Math.min(1, c.t / 0.3));     // it billows out in a third of a second
+    function cloudCopy(list, o, r) {
+        o.dupA = rand(0, 6.28);                                  // which way the two part
+        if (list === fruits) {
+            if (fruits.length >= DUP_MAX) return null;
+            const at = divideAt(o, o.r), twin = newFruit(o.type, o.r, at.x, at.y, o.vx, o.vy, o.g, { entered: true });
+            Object.assign(twin, { hacked: true, hackT: 0, hackFor: at.hackFor, src: o.src, rot: o.rot, grow: at.grow, pushA: at.pushA, pushV: at.pushV, roasted: o.roasted });
+            fruits.push(twin); log('dup', o.type.kind, 'cloud'); return twin;
+        }
+        if (list.length >= (list === gulls ? GULL_MAX : list === crates ? CRATE_MAX : EXTRA_MAX)) return null;
+        const twin = Object.assign({}, o, divideAt(o, r), list === crates ? {} : { phase: rand(0, 6) }, list === gulls ? { hits: 0 } : {});
+        if (twin.base !== undefined) twin.base = twin.y;
+        list.push(twin);
+        if (list === gulls) log('gull', o.state === 'fly' ? 'dup' : 'roast-dup', 'cloud'); else log('dup', list === flies ? 'fly' : list === crates ? 'crate' : o.kind, 'cloud');
+        return twin;
+    }
+    function stepClouds(dt) {
+        clouds.forEach(c => {
+            c.t += dt;
+            if (c.t > CLOUD_SECONDS || phase !== 'play') return;
+            const R = cloudR(c);
+            let n = 0;
+            const touch = (list, o, r) => {
+                if (o.cloud === c.id || Math.hypot(o.x - c.x, o.y - c.y) > R + r) return;
+                o.cloud = c.id; o.hacked = true; o.hackT = 0; o.hackFor = hackFor(); o.burn = 0;
+                const twin = cloudCopy(list, o, r);
+                if (twin) { twin.cloud = c.id; floats.push({ x: twin.x, y: twin.y - r, text: 'x2', t: 0, hot: true }); }
+                if (n++ < 4) snd('hack');
+            };
+            fruits.slice().forEach(f => { if (f.entered) touch(fruits, f, f.r); });
+            gulls.slice().forEach(g => {
+                if (g.state === 'fly') { if (!g.hacked) log('gull', 'hacked'); touch(gulls, g, g.r); }
+                else if (g.burnt) { if (g.cloud !== c.id && Math.hypot(g.x - c.x, g.y - c.y) <= R + g.r) { g.hits = 0; g.vx = 0; g.vy = 0; g.mark = 0; } touch(gulls, g, g.r); }     // a roast chicken: as in the hacking breath
+            });
+            pickups.slice().forEach(b => touch(pickups, b, b.r));
+            flies.slice().forEach(f => touch(flies, f, f.s * 1.6));
+            crates.slice().forEach(k => touch(crates, k, k.hw));
+        });
+        clouds = clouds.filter(c => c.t < CLOUD_SECONDS + CLOUD_FADE);
+    }
+    // soft blue puffs that roll about a middle, with digits showing through; drawn under the fruit
+    let cloudPuff = null;
+    function drawClouds(tn) {
+        if (!clouds.length) return;
+        if (!cloudPuff) {
+            cloudPuff = document.createElement('canvas'); cloudPuff.width = cloudPuff.height = 128;
+            const g = cloudPuff.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+            gr.addColorStop(0, 'rgba(129,212,250,.62)'); gr.addColorStop(0.55, 'rgba(41,121,255,.3)'); gr.addColorStop(1, 'rgba(41,121,255,0)');
+            g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+        }
+        clouds.forEach(c => {
+            const R = cloudR(c), a = c.t > CLOUD_SECONDS ? 1 - (c.t - CLOUD_SECONDS) / CLOUD_FADE : Math.min(1, c.t / 0.15);
+            ctx.save(); ctx.globalAlpha = clamp(a, 0, 1);
+            for (let i = 0; i < 9; i++) {
+                const ph = c.seed + i * 2.4, d = i ? R * (0.34 + 0.2 * Math.sin(ph * 3.1)) : 0, an = ph + tn / 2600 * (i % 2 ? 1 : -1);
+                const pr = R * (i ? 0.62 + 0.12 * Math.sin(tn / 700 + ph) : 1.05);
+                ctx.drawImage(cloudPuff, c.x + Math.cos(an) * d - pr, c.y + Math.sin(an) * d * 0.8 - pr, pr * 2, pr * 2);
+            }
+            // the digits in it
+            ctx.globalAlpha = clamp(a, 0, 1) * 0.22; ctx.beginPath(); ctx.arc(c.x, c.y, R * 0.86, 0, 7); ctx.clip();
+            const slow = Math.floor(tn / 240);
+            for (let ty = c.y - R; ty < c.y + R; ty += 176) for (let tx = c.x - R; tx < c.x + R; tx += 176) ctx.drawImage(digitTile(slow + Math.round(tx + ty)), tx, ty);
+            ctx.restore();
+        });
     }
     function stepDivide(dt) {
         [fruits, gulls, pickups, flies, crates].forEach(list => list.forEach(o => {
@@ -2771,12 +2904,13 @@ export function mountFrogGame(stage, opts = {}) {
                 if (!b) continue;
                 const r = rad(b);
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
-                // the laptop is fireproof: it heats to a red glow and that is all, so it can still be taken with the tongue afterwards
                 // (sake and fireflies are never hacked: the hacking breath burns them, and is wider or copies faster for it)
                 const hacking = fireSlow && on && list !== flies && b.kind !== 'sake' && inFlame(b.x, b.y, r);
-                if (b.kind === 'laptop' && !hacking) {
-                    b.burn = Math.min((b.burn || 0) + dt * 2 * power(b), LAPTOP_HOT);
+                // the laptop in a plain flame glows red, and then goes off like a crate does: a digital cloud
+                if (b.kind === 'laptop' && !hacking && (on && inFlame(b.x, b.y, r) || sakeLeft <= 0)) {
+                    b.burn = (b.burn || 0) + dt * (on && inFlame(b.x, b.y, r) ? power(b) : 1);
                     if (Math.random() < 0.4) flames.push({ x: b.x + rand(-r, r) * 0.8, y: b.y - r * 0.4, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
+                    if (b.burn >= burnTime()) { list.splice(i, 1); laptopPop(b, 'fire'); }
                     continue;
                 }
                 // Caught in a fire blade's trail (not in a breath): the blade has cut it, wide as it is. It
@@ -2888,30 +3022,30 @@ export function mountFrogGame(stage, opts = {}) {
                     if (fruits.length < DUP_MAX) {
                         const at = divideAt(f, f.r);
                         const twin = newFruit(f.type, f.r, at.x, at.y, f.vx, f.vy, f.g, { entered: true });
-                        Object.assign(twin, { hacked: true, hackT: 0, hackFor: at.hackFor, src: f.src, rot: f.rot, grow: at.grow, pushA: at.pushA, pushV: at.pushV });
+                        Object.assign(twin, { hacked: true, hackT: 0, hackFor: at.hackFor, src: f.src, rot: f.rot, grow: at.grow, pushA: at.pushA, pushV: at.pushV, roasted: f.roasted });
                         fruits.push(twin); snd('hack'); log('dup', f.type.kind);
                         floats.push({ x: twin.x, y: twin.y - f.r, text: 'x2', t: 0, hot: true });
                     } else f.dup = 0;
                 }
             }
             if (breath && !fireSlow && f.hacked) { f.hacked = false; f.vx = 0; f.vy = 0; }     // an ordinary flame burns the digits off: it is fruit again, and it melts
-            const br = breath && !f.hacked, inside = br || inBlade(f.x, f.y, f.r);
+            const br = breath && !f.hacked, inside = !f.roasted && (br || inBlade(f.x, f.y, f.r));     // (roasted already: fire has nothing more to do to it)
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * BURN_COOL); continue; }   // out of the flame: cools fast
-            f.burn = (f.burn || 0) + dt * (br ? power(f) : BLADE_HEAT);            // the breath melts it; a fire blade's trace only warms it
-            if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
+            f.burn = (f.burn || 0) + dt * (br ? power(f) : BLADE_HEAT);            // the breath roasts it; a fire blade's trace only warms it
             if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
-            if (f.burn >= burnTime()) { fruits.splice(i, 1); burnFruit(f); }
+            if (f.burn >= burnTime()) burnFruit(f, 1, false, true);                // roasted: it pays, and stays to be cut
         }
         // cut pieces melt the same way (flame blade or breath), for what is left of their worth
         for (let i = pieces.length - 1; i >= 0; i--) {
             const q = pieces[i];
             if (!q.poly) continue;
+            if (q.steam > 0) { q.steam -= dt; if (Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot
+            if (q.roasted) continue;
             const br = on && !fireSlow && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);     // (a hacking breath hacks, it does not burn: pieces are left alone)
             // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
             if (!inside && !q.lit) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
             q.burn = (q.burn || 0) + dt * (br ? power(q) : q.lit ? 1 : BLADE_HEAT);
-            if (Math.random() < 0.35) drops.push({ x: q.x + rand(-q.R, q.R) * 0.5, y: q.y + q.R * 0.4, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: q.type.juice, t: 0, s: rand(2, 4) });
-            if (q.burn >= burnTime()) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts) * (q.lit || 1)); }
+            if (q.burn >= burnTime()) burnFruit(q, Math.pow(RECUT, q.fam.cuts) * (q.lit || 1), false, true);
         }
     }
 
@@ -3376,7 +3510,7 @@ export function mountFrogGame(stage, opts = {}) {
         // A fire blade does what the frog's own does, and then some: what it cuts is set alight, cooks
         // through and bursts, paying again as a burn (so fruit cut with fire is worth more than fruit
         // cut plain). Two or three helpers carrying fire: that much more.
-        if (summonFire) pieces.forEach(q => { if (!before.has(q) && q.poly) { q.burn = Math.max(q.burn || 0, 0.001); q.lit = LAPTOP_PAY * count('fire'); } });     // grilled, about to burst into juice
+        if (summonFire) pieces.forEach(q => { if (!before.has(q) && q.poly) { q.burn = Math.max(q.burn || 0, 0.001); q.lit = LAPTOP_PAY * count('fire'); } });     // set alight: roasted in a moment
         if (!turn) crates.slice().forEach(c => {
             if (c.y > H || c.x < 0 || c.x > W) return;
             crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY);
@@ -3425,7 +3559,7 @@ export function mountFrogGame(stage, opts = {}) {
     let punch = null;
     function stepPunch(dt) {
         if (!punch) return;
-        punch.t += dt;
+        punch.t += dt * PUNCH_SPEED;
         const k = ease(clamp(punch.t / PUNCH_LIFT, 0, 1));
         punch.c.x = lerp(punch.x0, punch.x, k); punch.c.y = lerp(punch.y0, punch.y, k);
         if (!punch.done && punch.t >= PUNCH_HIT) {
@@ -3591,7 +3725,9 @@ export function mountFrogGame(stage, opts = {}) {
             if (d < R + c.hw) { crates.splice(i, 1); breakCrate(c, d > 1 ? (c.x - x) / d : 1, d > 1 ? (c.y - y) / d : 0, c.x, c.y); }   // like a clean slice
         }
         gulls.forEach(g => { if (Math.hypot(g.x - x, g.y - y) < R + g.r) gullHit(g, 'blast'); });
-        // power-ups caught in a blast burn up for an apple's worth, like in the breath (the laptop is fireproof)
+        // a laptop caught in a blast goes up in its digital cloud
+        for (let i = pickups.length - 1; i >= 0; i--) { const b = pickups[i]; if (b.kind === 'laptop' && Math.hypot(b.x - x, b.y - y) < R + b.r) { pickups.splice(i, 1); laptopPop(b, 'fireworks'); } }
+        // other power-ups caught in a blast burn up for an apple's worth, like in the breath
         for (let i = pickups.length - 1; i >= 0; i--) { const b = pickups[i]; if (b.kind !== 'laptop' && b.kind !== 'fireworks' && Math.hypot(b.x - x, b.y - y) < R + b.r) { pickups.splice(i, 1); burnFruit({ type: APPLE, r: b.r, x: b.x, y: b.y, vx: 0, vy: 0 }, FW_BONUS, true); } }
         for (let i = flies.length - 1; i >= 0; i--) { const f = flies[i]; if (Math.hypot(f.x - x, f.y - y) < R + f.s * 1.6) { flies.splice(i, 1); burnFruit({ type: APPLE, r: f.s * 1.6, x: f.x, y: f.y, vx: 0, vy: 0 }, FW_BONUS, true); } }
     }
@@ -3736,7 +3872,7 @@ export function mountFrogGame(stage, opts = {}) {
         laptopNext = rand(...LAPTOP_FIRST); summon = null;
         fwLeft = 0; fwShots = 0; fwTint = ''; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
         gulls = []; gullOn = null; mirrorT = 0; gullCool = 0; gullT = rand(...GULL_FIRST);
-        crates = []; planks = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
+        crates = []; planks = []; clouds = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
@@ -4094,8 +4230,8 @@ export function mountFrogGame(stage, opts = {}) {
             return {
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0,
-                fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked })),
-                pieces: pieces.length,
+                fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, roasted: !!f.roasted })),
+                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
                 breath: { slow: fireSlow, wide: fireWide, fry: fireFry }, rate: r2(fruitRate()), log: trace.slice(-30)
@@ -4107,7 +4243,9 @@ export function mountFrogGame(stage, opts = {}) {
         drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; },
         roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; },
-        at(seconds) { clockT = seconds; }
+        at(seconds) { clockT = seconds; },
+        blast(x, y) { explode(x, y, S() * 0.12); },
+        cloud(x, y) { digitalCloud(x, y, 'test'); }
     };
     function playAnim(name) {
         const a = ANIMS.find(q => q.name === name);
@@ -4521,7 +4659,7 @@ export function mountFrogGame(stage, opts = {}) {
                         // A fire-enhanced release leaves fruit nearly grilled, not grilled: one more touch of
                         // flame finishes it. Fruit that was already in a flame before the clock is grilled outright.
                         if (bladeFx.fire) {
-                            if (f.burn > 0) parts.forEach(q => { const k = pieces.indexOf(q); if (k >= 0) { pieces.splice(k, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts)); } });
+                            if (f.burn > 0) parts.forEach(q => { if (pieces.includes(q) && !q.roasted) burnFruit(q, Math.pow(RECUT, q.fam.cuts), false, true); });
                             else parts.forEach(q => { q.burn = burnTime() * 0.85; });
                         }
                         markAgain.push({ again: true, parts, dx: -dy, dy: dx });
@@ -4590,7 +4728,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         // under five seconds: a heartbeat each second
         if (live && !dbg && timeLeft < LOW_TIME && Math.ceil(timeLeft) !== lowBeat) { lowBeat = Math.ceil(timeLeft); snd('lowtime'); }
-        stepFire(dt); stepDivide(dt);
+        stepFire(dt); stepClouds(wdt); stepDivide(dt);
         emptyFlash = Math.max(0, emptyFlash - dt);
         hurtFlash = Math.max(0, hurtFlash - dt);
         const floating = o => {
@@ -4610,17 +4748,6 @@ export function mountFrogGame(stage, opts = {}) {
         pickups.forEach(b => { if (floating(b)) { b.t += wdt; b.rot += b.spin * 0.25 * wdt; return; } b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
         pickups = pickups.filter(b => b.y < H + b.r * 3);
         bits.forEach(b => { b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; b.t += dt; });
-        // the two halves of a slashed laptop: whatever one touches on its way down turns digital
-        bits.forEach(b => {
-            if (!b.hack || phase !== 'play') return;
-            const touch = (o, r) => !o.hacked && Math.hypot(o.x - b.x, o.y - b.y) < b.hack + r;
-            const turn = o => { o.hacked = true; o.hackT = 0; o.hackFor = hackFor(); o.burn = 0; b.hackSnd = (b.hackSnd || 0) + 1; if (b.hackSnd < 6) snd('hack'); };
-            fruits.forEach(f => { if (f.entered && !f.burn && touch(f, f.r)) turn(f); });
-            gulls.forEach(g => { if (g.state === 'fly' && touch(g, g.r)) { turn(g); log('gull', 'hacked'); } });
-            pickups.forEach(q => { if (touch(q, q.r)) turn(q); });
-            flies.forEach(f => { if (touch(f, f.s * 1.6)) turn(f); });
-            crates.forEach(c => { if (touch(c, c.hw)) turn(c); });
-        });
         stepWarps(dt);
         bubbles.forEach(q => { q.t += dt; q.x += (q.vx + Math.sin(q.t * 9 + q.ph) * 30) * dt; q.y += q.vy * dt; });
         bubbles = bubbles.filter(q => q.t < q.life);
@@ -4784,6 +4911,7 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.globalAlpha = 1;
         // the crate and its broken planks sit behind all the fruit
         planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw); ctx.restore(); });
+        drawClouds(tn);
         crates.forEach(c => {
             if (c.mark) glow(ctx, c.x, c.y, c.hw * 2.2, '129,212,250', 0.75);        // marked during a time freeze, like fruit
             if (c.hacked) cells(c, c.hw, () => drawOutline(c.x, c.y, c.hw * 1.6, tn, g => { g.rotate(c.rot); drawCrate(g, c.hw, lw); }));
@@ -4808,20 +4936,29 @@ export function mountFrogGame(stage, opts = {}) {
             else if (f.slow) glow(ctx, f.x, f.y, f.R * 1.5 + 8, '79,195,247', 0.25 + 0.45 * f.slow);   // slowed by the flame
             if (drunk) drawEchoes(f, lw, drunk, tn);
             ctx.save(); ctx.translate(f.x, f.y); if (f.ds && f.ds !== 1) ctx.scale(f.ds, f.ds);
-            const mk = f.burn ? clamp(f.burn / BURN_TIME, 0, 1) : 0;
-            if (mk) {   // melting: it shrinks and sags, juice running off the bottom
-                const k = 1 - 0.4 * mk;
-                ctx.translate(0, f.r * 0.12 * mk); ctx.scale(k * (1 + 0.12 * mk), k * (1 - 0.1 * mk));
-                ctx.fillStyle = f.type.juice;
-                [-0.5, 0.05, 0.55].forEach((o, i) => { ctx.beginPath(); ctx.ellipse(f.r * o, f.r * (0.85 + 0.45 * mk * (1 + i % 2)), f.r * 0.13, f.r * (0.18 + 0.6 * mk), 0, 0, 7); ctx.fill(); });
+            // in a flame its edges darken as it cooks, and it ends up roasted (it keeps its size and its shape)
+            const heat = f.burn && !f.roasted ? clamp(f.burn / burnTime(), 0, 1) : 0, mk = f.roasted ? 1 : heat;
+            ctx.rotate(f.rot);
+            if (f.hacked) drawHacked(ctx, f, tn);
+            else if (mk && !f.crownCut) {
+                if (mk < 1) stampWhole(f, lw);
+                const sp = roastSprite(f, lw);
+                ctx.globalAlpha = mk; ctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2); ctx.globalAlpha = 1;
+            } else {
+                stampWhole(f, lw);
+                if (mk) {   // (a pineapple that has lost leaves is drawn afresh each frame: its roast is painted over it)
+                    ctx.save(); ctx.scale(PINE_X, PINE_Y);
+                    const gr = ctx.createRadialGradient(0, 0, f.r * 0.4, 0, 0, f.r * 1.02);
+                    gr.addColorStop(0, 'rgba(150,78,16,.26)'); gr.addColorStop(1, 'rgba(26,18,14,.9)');
+                    ctx.globalAlpha = mk; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); ctx.fill(); ctx.restore();
+                }
             }
-            ctx.rotate(f.rot); if (f.hacked) drawHacked(ctx, f, tn); else stampWhole(f, lw);
-            if (mk) {
-                // a glow of heat over it (it keeps its colour: melting is juice, not ash)
+            if (heat && !f.hacked) {
+                // a glow of heat over it while it cooks
                 if (f.type.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
-                const odd = f.type.kind === 'grapes' || f.type.kind === 'banana';     // not round: grey its own outline
+                const odd = f.type.kind === 'grapes' || f.type.kind === 'banana';     // not round: its own outline
                 const shape = () => { if (odd) pathPoly(ctx, f.poly); else { ctx.beginPath(); ctx.arc(0, 0, f.r * 1.02, 0, 7); } };
-                ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; shape(); ctx.fill();
+                ctx.globalAlpha = heat * 0.3; ctx.fillStyle = '#ff6d00'; shape(); ctx.fill();
             }
             ctx.restore();
             });

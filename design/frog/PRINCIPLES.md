@@ -86,13 +86,20 @@ blade would do):
 - A fire blade is as wide for crates, power-ups and seagulls as it is for fruit.
 - A seagull that is already out is knocked up again by anything: any blade, a flame, a blast,
   a marked cut, the helpers. The tongue ignores it.
-- An ordinary breath burns the digits off hacked fruit (it is fruit again, and melts). A hacking
+- An ordinary breath burns the digits off hacked fruit (it is fruit again, and roasts). A hacking
   breath hacks and never burns: cut pieces in it are left alone.
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)
 - A seagull slashed while the tongue is fetching a firefly does not attack: it is roasted on the spot.
-- A slashed laptop falls in two halves, and whatever a half touches on its way down turns digital (fruit, seagulls, power-ups, fireflies, crates).
+- A laptop that is slashed, cooked through by a plain flame (red hot first, then it pops in the
+  time a crate takes) or caught by fireworks leaves a blue digital cloud for 3 s, which then fades.
+  Whatever is in it or comes into it (fruit, seagulls, roast chicken, power-ups, fireflies, crates)
+  turns digital and is copied there and then: once per cloud, and a copy is not copied again by
+  the same cloud. Something digital already is copied all the same. (Marek, 2026-11-16.)
 - A crate burned down by the breath comes apart in ashen planks.
-- The laptop is fireproof: a plain flame makes it red hot (it stays glowing a moment after) and it can still be taken. The hacking breath hacks and copies it like any other item.
+- Fire roasts fruit, it does not destroy it (Marek, 2026-11-16): a fruit or piece cooked through
+  pays once, as burning used to, and stays in play with ashy edges. It can be cut (its pieces steam),
+  hacked and copied; a flame does nothing more to it. Fireworks still blow fruit apart. The hacking
+  breath hacks and copies a laptop like any other item.
 - Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
   flow. A marked bundle is set off, not paid for.
 - Fireworks take on the element of whatever sets them off (fire, sake, time): looks only, so far.
