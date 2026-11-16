@@ -63,6 +63,9 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 - 2026-11-16 | Marek's numbers for the Sensei | Five times the fruit, a third of the time for
   everything he earns, combo meter at 20%, no tongue, pale blue skin. The meter's decay when idle
   is unchanged, so high combos will be rare for him: say if that is not what was meant. | shipped
+- 2026-11-16 | Marek: the Sensei is a secret and a template for new characters | The game always
+  opens as the frog; the choice lasts one loading of the page; the chooser is hidden until the
+  panel's title is pressed five times quickly. | shipped
 - 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
   from one bundle against 13 scattered ones when slashed: likely the stronger use now, Marek: fireworks should be
   overpowered. | shipped, decided

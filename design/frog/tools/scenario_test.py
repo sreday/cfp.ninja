@@ -158,7 +158,7 @@ def main():
         fresh(g); g.js("frogPlay.sake && frogPlay.sake(3)"); time.sleep(0.6); st = g.state(); g.shot(os.path.join(a.out, 'sake-parked.png'))
         check('on sake a katana is parked in the post', st['parked'], st.get('sake'))
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
-        g.js("localStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
+        g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()
         check('old master: chosen, and five times the fruit', st['char'] == 'elder' and st['rate'] == 7.2, (st['char'], st['rate']))
         g.js("frogPlay.drop('fruit:apple', 880, 240)"); time.sleep(0.15)
@@ -168,9 +168,10 @@ def main():
         for k in range(7): g.drag([(300, 150 + k * 20), (420, 160 + k * 20), (540, 170 + k * 20)]); time.sleep(0.05)
         check('old master: slashing uses no stamina', g.state()['stamina'] == 5, g.state()['stamina'])
         g.shot(os.path.join(a.out, 'old-master.png'))
-        g.js("location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-debug-pill').click(); 1"); time.sleep(3.2); st = g.state()
+        g.js("location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.3)
+        check('old master: the next loading of the page is the frog again, and the chooser is hidden', g.state()['char'] == 'frog' and g.js("document.querySelector('.fg-chars').hidden") is True, g.state()['char'])
+        g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-debug-pill').click(); 1"); time.sleep(3.2); st = g.state()
         check('old master: the Debug button turns the game back to the frog, in debug', st['char'] == 'frog' and st['rate'] == 1.44 and g.js("document.querySelector('.fg-debug-pill').textContent") == 'Exit debug', (st['char'], st['rate']))
-        g.js("localStorage.removeItem('cfpninja.game.character')")
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()
