@@ -62,7 +62,7 @@ const MARK_REACH = 2;                            // how generous marking is duri
 const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
-const FIRE_FAR = 0.3;                            // the breath weakens with distance: full strength at the mouth, this much less at the furthest corner of the screen (burning and copying alike)
+const FIRE_FAR = 0;                              // how much weaker the breath is at the furthest corner of the screen than at the mouth. 0: the same everywhere (0.3 was tried and felt far too weak)
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
 const DUP_SLOW = 2, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everything that is not fruit takes DUP_SLOW times as long to copy; s for the two to grow back; most power-ups, fireflies, crates on screen
 const CELL_SMALL = 0.8, CELL_OFF = 0.8, CELL_PUSH = 0.45;           // dividing: the size of each of the two, how far each sits from the middle, and how far each then drifts on (in radii)
