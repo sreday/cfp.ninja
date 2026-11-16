@@ -1067,7 +1067,7 @@ export function mountFrogGame(stage, opts = {}) {
         </div>
         <div class="fg-center">
             <div class="fg-pill fg-time"><span class="fg-label">Time</span><b class="fg-clock"></b></div>
-            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}<button type="button" class="fg-pill fg-stam-lock" aria-pressed="false">Lock</button></div>
+            <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}<span class="fg-stam-left" hidden></span><button type="button" class="fg-pill fg-stam-lock" aria-pressed="false">Lock</button></div>
             <div class="fg-grade" data-g="0"><span class="fg-gain" title="Seconds gained by this burst of action (debug)">+0.0 s</span><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
         <div class="fg-count" hidden></div>
@@ -1841,6 +1841,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
     el.best.textContent = formatSurvival(best / 1000);
 
+    let stamTxt = '';
+    const stamLeftEl = $('.fg-stam-left');
     function staminaHud() {
         const gold = sakeLeft > 0, hot = fireLeft > 0 && phase === 'play';   // fire: the bars lock together, red: no slashing now
         // frozen time (the clock): marking is free too, so the bar is one solid blue block while it lasts
@@ -1853,6 +1855,10 @@ export function mountFrogGame(stage, opts = {}) {
         el.stamina.classList.toggle('flash', emptyFlash > 0);
         el.stamina.classList.toggle('stunned', stunT > 0);
         el.stamina.classList.toggle('locked', dbg && stamLock && !gold && !hot && !cold);
+        // on the glowing bar: the seconds the power-up has left (hidden with the numbers)
+        const left = hot ? fireLeft : cold ? freezeLeft : gold ? sakeLeft : 0;
+        const txt = showNums && left > 0 ? left.toFixed(1) + ' s' : '';
+        if (txt !== stamTxt) { stamTxt = txt; stamLeftEl.textContent = txt; stamLeftEl.hidden = !txt; }
     }
     // debug: stamina can be locked, so slashing never uses it (the bar becomes one glowing green block)
     let stamLock = false;

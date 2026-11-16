@@ -1720,3 +1720,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* frozen time: the stamina bar is one solid blue block, like gold on sake and red in a breath */
 .fg-stamina.frost { background: linear-gradient(#b3e5fc, #4fc3f7); border-color: #81d4fa; box-shadow: 0 0 16px 4px rgba(79,195,247,.8); animation: fg-gold 1.1s ease-in-out infinite; }
 .fg-stamina.frost i { visibility: hidden; }
+/* the seconds a power-up has left, written on the glowing bar */
+.fg-stam-left { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; font: 800 1.05rem/1 Inter, sans-serif; font-variant-numeric: tabular-nums; color: #111; }
+.fg-stam-left[hidden] { display: none; }
+@media (max-width: 575px) { .fg-stam-left { font-size: .9rem; } }
