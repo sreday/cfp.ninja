@@ -57,12 +57,12 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   grey hair, white brows, long beard, white robe (the rig redrawn in his colours with his own
   hair and beard on the front and profile heads). Rules in PRINCIPLES. Open: his runs will be
   very long (three times the fruit, two blades, no stamina, same fruit prices): nothing was
-  rebalanced. The head thrown back and the three-quarter head have no beard (he never breathes
+  rebalanced, and Marek says not to: it is a mindless fun mode (he calls it Sensei; the button says so now). The head thrown back and the three-quarter head have no beard (he never breathes
   fire). The flowered lapels are hidden under the beard from the front. The hint pictures and
   the corner icon still show the green frog. Switching reloads the page. | shipped, placeholder
 - 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
-  from one bundle against 13 scattered ones when slashed: likely the stronger use now, to check
-  against `val fireworks` once there are runs. | shipped, watch
+  from one bundle against 13 scattered ones when slashed: likely the stronger use now, Marek: fireworks should be
+  overpowered. | shipped, decided
 - 2026-11-16 | Marek: "redraw the base" | The seated frog of the start screen and the laptop
   summon is redrawn as a figure: slim torso, an upper arm from each shoulder to the elbow, thighs
   out to the knees, shins crossed under the laptop, bare feet. No longer the logo's outline.

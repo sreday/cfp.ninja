@@ -98,8 +98,8 @@ blade would do):
 - Fireworks burned by a plain or a sake breath are taken into the breath: for the rest of it, a
   rocket leaves the mouth every 0.2 s and bursts about the point aimed at, blowing up what it
   reaches (red; golden on a sake breath). A hacking breath or a fire blade only sets the bundle
-  off, as a slash does.
-- The Old Master (second character, picked on the first page of the hints; for fun, never on the
+  off, as a slash does. Marek, 2026-11-16: "fireworks should be overpowered". Leave it strong.
+- The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. Second character, picked on the first page of the hints; for fun, never on the
   scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, every
   stroke repeated by a second blade mirrored left to right, three times the fruit. His runs carry
   a `char elder` event in the log: leave them out of balance work.

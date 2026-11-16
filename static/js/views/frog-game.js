@@ -1267,8 +1267,8 @@ export function mountFrogGame(stage, opts = {}) {
                     <div class="fg-tip" data-page="0">
                         <div class="fg-chars"><b>Character</b>
                             <button type="button" class="fg-pill fg-char" data-char="frog" aria-pressed="${!elder}">Frog Ninja</button>
-                            <button type="button" class="fg-pill fg-char" data-char="elder" aria-pressed="${elder}">Old Master</button>
-                            <span>Old Master, for fun and not on the scoreboard: no stamina, no power-ups, crates or seagulls, every slash doubled and mirrored, three times the fruit. Choosing restarts the game.</span></div>
+                            <button type="button" class="fg-pill fg-char" data-char="elder" aria-pressed="${elder}">Sensei</button>
+                            <span>Sensei, a mindless fun mode, not on the scoreboard: no stamina, no power-ups, crates or seagulls, every slash doubled and mirrored, three times the fruit. Choosing restarts the game.</span></div>
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
                         <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash; a tiny twitch is not a slash and costs nothing.</span></div></div>
                         <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
