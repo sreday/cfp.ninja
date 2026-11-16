@@ -36,7 +36,18 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   5. Not digital, seen on the way: a seagull held in a flame is "hit" again every 0.36 s (up to 11
      paid hits in trace 123), each worth 0.01 s but each also a combo point.
   Runs are still long after the cut in fruit time: per use the clock was worth 14 to 26 s, sake 6.5
-  to 11.6 s, a fire breath 2.4 to 3 s. | open, needs Marek's decisions
+  to 11.6 s, a fire breath 2.4 to 3 s. | 1, 2, 3 and 5 decided and shipped (next entry); 4 open;
+  Marek: leave the power-ups for now
+- 2026-11-16 | Marek's rulings on the above | (1, 2) A plain flame no longer burns the digits off:
+  digital fruit and pieces are cut by it and stay digital, and the fire only shows once they are
+  back to normal. (3) Cut pieces turn digital when they touch a hacking breath, as in a cloud.
+  (5) A seagull keeps paying on every hit, halving each time; the combo point now halves with it
+  (it was a full point per hit). Scenario checks 5c and 5d. Not yet seen in a real run: pieces
+  cut by the sword inside a hacking breath now hang in the air instead of falling. | shipped, watch
+- 2026-11-16 | Marek: "redraw the base" | The seated frog of the start screen and the laptop
+  summon is redrawn as a figure: slim torso, an upper arm from each shoulder to the elbow, thighs
+  out to the knees, shins crossed under the laptop, bare feet. No longer the logo's outline.
+  Placeholder art. | shipped
 - 2026-11-16 | traces 122-124 | `gull hacked` was logged every frame for any flying gull while a
   cloud was up, in or out of it. Now logged once, when it happens. | fixed
 - 2026-11-16 | Marek's request | The clock's planning pose has its own drawing: cross-legged, a slim

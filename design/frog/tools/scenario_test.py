@@ -83,6 +83,17 @@ def main():
         check('pieces in a cloud turn digital, and are not copied', st['pieces'] in (2, 4) and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
         g.shot(os.path.join(a.out, 'cloud-pieces.png'))
 
+        # 5c. a plain flame cuts digital fruit and leaves it digital
+        fresh(g); g.js("frogPlay.cloud(640, 250); frogPlay.drop('fruit:apple', 640, 250)"); time.sleep(0.3)
+        n0 = len(g.state()['fruits']); g.js("frogPlay.breath({seconds: 1, wide: 2})")
+        sts = hold(g, 640, 250, 0.7, every=0.1); best = max(sts, key=lambda s2: s2['pieces'])
+        check('digital fruit in a plain flame is cut by it, and the halves stay digital', n0 == 2 and best['pieces'] >= 2 and best['hackedPieces'] == best['pieces'] and not any(f['kind'] == 'apple' and not f['hacked'] for s2 in sts for f in s2['fruits']), (n0, best['pieces'], best['hackedPieces']))
+        # 5d. a hacking breath turns cut pieces digital
+        fresh(g); g.js("frogPlay.breath({seconds: 0.5, wide: 2}); frogPlay.drop('fruit:watermelon', 640, 240)")
+        hold(g, 640, 200, 0.45, every=0.05); g.js("frogPlay.breath({seconds: 1, slow: 1, wide: 2})")
+        sts = hold(g, 640, 250, 0.5, every=0.1); st = sts[-1]
+        check('pieces in a hacking breath turn digital', st['pieces'] >= 2 and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
+
         # 6. the laptop in a plain flame: red hot, then a digital cloud that copies once
         fresh(g); g.js("frogPlay.breath({seconds: 1}); frogPlay.drop('laptop', 640, 240)")
         sts = hold(g, 640, 220, 1.3); last = sts[-1]

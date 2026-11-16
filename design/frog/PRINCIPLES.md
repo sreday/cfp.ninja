@@ -86,8 +86,12 @@ blade would do):
 - A fire blade is as wide for crates, power-ups and seagulls as it is for fruit.
 - A seagull that is already out is knocked up again by anything: any blade, a flame, a blast,
   a marked cut, the helpers. The tongue ignores it.
-- An ordinary breath burns the digits off hacked fruit (it is fruit again, and roasts). A hacking
-  breath hacks and never burns: cut pieces in it are left alone.
+- An ordinary breath leaves the digits on: digital fruit and digital pieces cook in it unseen and
+  are cut in two by it like any other, and the halves are digital too. Nothing of the fire shows
+  (flames, steam, roasted edges) until a thing is back to normal. A hacking breath hacks and never
+  burns: cut pieces that touch it turn digital and hang there, as in a cloud (they are not copied).
+- Every further hit on the same seagull is worth half the one before, in time and in combo
+  points alike (time never under 0.01 s).
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)
 - A seagull slashed while the tongue is fetching a firefly does not attack: it is roasted on the spot.
 - A laptop that is slashed, cooked through by a plain flame (red hot first, then it pops in the

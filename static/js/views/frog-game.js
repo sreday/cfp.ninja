@@ -321,7 +321,8 @@ const FROG_SVG = `
             <g transform="translate(1711 488) rotate(-145)">${katana('fg-bk2', true, BACK_K)}</g>
         </g>
         <g id="fg-body">
-            <path id="fg-robe-sit" d="M175 1260 C215 1030 380 870 575 790 L1411 790 C1606 870 1771 1030 1811 1260 L1811 1520 L175 1520 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+            <!-- seated: the same slim torso as when it stands, carried down to the hips (the laptop hides most of it) -->
+            <path id="fg-robe-sit" d="M676 800 C640 900 680 1040 700 1160 L690 1420 L1296 1420 L1286 1160 C1306 1040 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
             <g id="fg-robe-up" opacity="0">
                 <!-- standing: a slim tunic, narrow at the waist, with a short flared hem that swings -->
                 <path id="fg-hem" d="M720 1090 L1266 1090 L1392 1330 Q1200 1392 993 1350 Q786 1392 594 1330 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
@@ -333,20 +334,25 @@ const FROG_SVG = `
             <path d="M690 780 L860 915 L1126 915 L1296 780 Z" fill="${C.belly}" stroke="#000" stroke-width="18"/>
             <path d="M590 772 L652 920 M1396 772 L1334 920" stroke="#000" stroke-width="18" fill="none"/>
             <g id="fg-sleeves-sit">
-            <ellipse cx="380" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
-            <ellipse cx="1606" cy="1125" rx="150" ry="108" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <!-- seated: an upper arm in its sleeve from each shoulder out to the elbow; the forearm carries on to the laptop -->
+            <path d="M690 870 L440 1090 M1296 870 L1546 1090" stroke="#000" stroke-width="196" fill="none"/>
+            <path d="M690 870 L440 1090 M1296 870 L1546 1090" stroke="${C.red}" stroke-width="148" fill="none"/>
+            <path d="M610 850 Q500 930 420 1020 M1376 850 Q1486 930 1566 1020" stroke="${C.redHi}" stroke-width="26" fill="none"/>
             </g>
             <g id="fg-sleeves-up" opacity="0">
             <ellipse cx="672" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
             <ellipse cx="1314" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
             </g>
+            <!-- seated on the post, cross-legged with the laptop in its lap: the thighs go out to a knee on each side,
+                 the shins cross in front under the laptop, a bare foot at the end of each -->
             <g id="fg-sit">
-            <ellipse cx="345" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
-            <ellipse cx="1641" cy="1395" rx="250" ry="152" fill="${C.red}" stroke="#000" stroke-width="26"/>
-            <path d="M150 1330 Q290 1278 480 1300 M1836 1330 Q1696 1278 1506 1300" stroke="${C.redHi}" stroke-width="34" fill="none"/>
-            <path d="M530 1455 L720 1455 L700 1575 L560 1575 Z M1266 1455 L1456 1455 L1426 1575 L1286 1575 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
-            <rect x="500" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-9 980 1627)"/>
-            <rect x="526" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(9 1006 1627)"/>
+                <path d="M724 1220 C560 1248 356 1356 336 1460 C326 1554 450 1582 600 1568 L1386 1568 C1536 1582 1660 1554 1650 1460 C1630 1356 1426 1248 1262 1220 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+                <path d="M420 1430 Q520 1350 660 1320 M1566 1430 Q1466 1350 1326 1320" stroke="${C.redHi}" stroke-width="30" fill="none"/>
+                <ellipse cx="770" cy="1592" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1592)"/>
+                <path d="M1500 1508 L850 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1508 L850 1586" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <ellipse cx="1216" cy="1592" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1592)"/>
+                <path d="M486 1508 L1136 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1508 L1136 1586" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <path d="M1196 1550 L1180 1630 M1248 1548 L1240 1634 M750 1550 L766 1630" stroke="#000" stroke-width="12" fill="none"/>
             </g>
             <!-- the clock's planning: its own drawing of the frog sitting cross-legged. A slim torso and belt as
                  when it stands, the thighs spread to the knees, the shins crossed in front, a bare foot at the end of each -->
@@ -2330,12 +2336,13 @@ export function mountFrogGame(stage, opts = {}) {
             return;
         }
         const gain = Math.max(fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * Math.pow(RECUT, g.hits) * (how === 'laptop' ? LAPTOP_PAY : 1) * timeMult(), 0.01);
+        const worth = Math.pow(RECUT, g.hits);                 // every hit on the same gull is worth half the one before: its time, and its combo point
         g.hits++;
         // fire of any kind (breath, fire blade, fireworks) roasts it; everything else only knocks it out
         const roast = how === 'fire' || how === 'blast' || (how === 'boost' && !!bladeFx.fire);
         timeLeft += gain; slices++; lastSlice = performance.now();
         val(how === 'laptop' ? 'laptop' : how === 'blast' ? 'fireworks' : how === 'clock' ? 'clock' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword', gain);
-        style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+        style = Math.min(STYLE_MAX, style + worth); updateGrade(true);
         gainPop(g.x, g.y - g.r, gain);
         log('gull', how, r2(gain), g.hits);                    // (the last number: which hit on this gull it was)
         if (g.state === 'fly') {
@@ -2833,8 +2840,8 @@ export function mountFrogGame(stage, opts = {}) {
             const ox = q.x - o.x, oy = q.y - o.y, d = Math.hypot(ox, oy) || 1, fh = FH();
             q.vx += ox / d * fh * 0.1; q.vy += oy / d * fh * 0.1 - fh * 0.13; q.spin *= 1.4;
         }
-        for (let k = 0; k < 3; k++) steamPuff(o.x, o.y - o.r * 0.3, o.r);
-        for (let k = 0; k < 8; k++) { const fa = rand(0, 6.28), v = H * rand(0.25, 0.7); flames.push({ x: o.x, y: o.y, vx: Math.cos(fa) * v, vy: Math.sin(fa) * v, t: 0, life: rand(0.2, 0.35), s: rand(5, 9) }); }
+        if (!o.hacked) for (let k = 0; k < 3; k++) steamPuff(o.x, o.y - o.r * 0.3, o.r);
+        if (!o.hacked) for (let k = 0; k < 8; k++) { const fa = rand(0, 6.28), v = H * rand(0.25, 0.7); flames.push({ x: o.x, y: o.y, vx: Math.cos(fa) * v, vy: Math.sin(fa) * v, t: 0, life: rand(0.2, 0.35), s: rand(5, 9) }); }
         if (o.spr || o.hspr) sprFree(o);
         return true;
     }
@@ -2868,8 +2875,8 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (keep) {
             f.roasted = true; f.burn = 0; f.lit = 0; if (f.spr) sprFree(f);
-            for (let k = 0; k < 5; k++) steamPuff(f.x, f.y - r * 0.3, r);
-            for (let k = 0; k < 5; k++) { const a = rand(0, 6.28), v = H * rand(0.2, 0.5); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.2, 0.3), s: rand(4, 8) }); }
+            if (!f.hacked) for (let k = 0; k < 5; k++) steamPuff(f.x, f.y - r * 0.3, r);
+            if (!f.hacked) for (let k = 0; k < 5; k++) { const a = rand(0, 6.28), v = H * rand(0.2, 0.5); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.2, 0.3), s: rand(4, 8) }); }
             gainPop(f.x, f.y - f.r, gain);
             hud();
             return;
@@ -3210,11 +3217,12 @@ export function mountFrogGame(stage, opts = {}) {
                     } else f.dup = 0;
                 }
             }
-            if (breath && !fireSlow && f.hacked) { f.hacked = false; f.vx = 0; f.vy = 0; }     // an ordinary flame burns the digits off: it is fruit again, and it melts
-            const br = breath && !f.hacked, inside = (f.fireCuts || 0) < FIRE_CUTS && (br || inBlade(f.x, f.y, f.r));
+            // An ordinary flame leaves the digits on: digital fruit cooks in it unseen and is cut in two by it, like any
+            // other fruit, and the halves are digital too. The roasting shows once a thing is back to normal.
+            const br = breath && !(fireSlow && f.hacked), inside = (f.fireCuts || 0) < FIRE_CUTS && (br || inBlade(f.x, f.y, f.r));
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * BURN_COOL); continue; }   // out of the flame: cools fast
             f.burn = (f.burn || 0) + dt * (br ? power(f) : BLADE_HEAT);            // the breath roasts it; a fire blade's trace only warms it
-            if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
+            if (!f.hacked && Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
             if (f.burn >= burnTime()) {                                          // cooked through: it pops in two roasted halves
                 if (fireSplit(f)) fruits.splice(i, 1); else { burnFruit(f, 1, false, true); f.fireCuts = FIRE_CUTS; }
             }
@@ -3224,8 +3232,12 @@ export function mountFrogGame(stage, opts = {}) {
             const q = pieces[i];
             if (!q.poly) continue;
             if (q.pop > 0) q.pop = Math.max(0, q.pop - dt);
-            if (q.steam > 0) { q.steam -= dt; if (Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot
-            const br = on && !fireSlow && !q.hacked && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);     // (a hacking breath hacks, it does not burn: pieces are left alone)
+            if (q.steam > 0) { q.steam -= dt; if (!q.hacked && Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot (nothing shows while it is digital)
+            const inF = on && inFlame(q.x, q.y, q.R * 0.7);
+            // a hacking breath turns a piece digital, as a cloud does: it hangs there until it wears off (it is not copied)
+            if (inF && fireSlow && !q.lit) { if (!q.hacked || q.hackT === undefined) { q.hacked = true; q.hackT = 0; q.hackFor = hackFor(); q.burn = 0; q.vx = 0; q.vy = 0; snd('hack'); log('piece', 'hacked'); } continue; }
+            // a plain flame cooks and cuts a piece whether it is digital or not
+            const br = inF && !fireSlow, inside = br || inBlade(q.x, q.y, q.R * 0.7);
             // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
             if (!inside && !q.lit) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
             q.burn = (q.burn || 0) + dt * (br ? power(q) : q.lit ? 1 : BLADE_HEAT);
