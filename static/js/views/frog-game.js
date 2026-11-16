@@ -273,7 +273,7 @@ const FROG_SVG = `
             <circle cx="1200" cy="70" r="135" fill="#fff"/>
             <circle cx="1238" cy="78" r="90" fill="#000"/>
             <circle cx="1268" cy="24" r="38" fill="#fff"/>
-            <g class="fg-lid" opacity="0"><path d="M1059 58 A 141 141 0 0 1 1341 58 Q 1200 96 1059 58 Z" fill="${C.green}"/><path d="M1063 58 Q 1200 96 1337 58" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M1059 58 A 141 141 0 0 1 1341 58 Q 1200 96 1059 58 Z" fill="${C.green}"/><path d="M1063 58 Q 1200 96 1337 58" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1200" cy="70" r="141" fill="${C.green}"/><path d="M1075 74 Q 1200 154 1325 74" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-sideclip)">
                 <path d="M500 -420 L1640 -420 L1640 -50 L1450 -30 Q1330 70 1200 30 Q1010 -10 620 50 L500 50 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
                 <path d="M650 -60 Q1050 -150 1440 -90" stroke="${C.redHi}" stroke-width="34" fill="none"/>
@@ -297,8 +297,8 @@ const FROG_SVG = `
             <circle cx="1326" cy="32" r="96" fill="#000"/>
             <circle cx="984" cy="-2" r="30" fill="#fff"/>
             <circle cx="1350" cy="0" r="34" fill="#fff"/>
-            <g class="fg-lid" opacity="0"><path d="M791 8 A 134 134 0 0 1 1059 8 Q 925 46 791 8 Z" fill="${C.green}"/><path d="M795 8 Q 925 46 1055 8" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
-            <g class="fg-lid" opacity="0"><path d="M1137 12 A 148 148 0 0 1 1433 12 Q 1285 50 1137 12 Z" fill="${C.green}"/><path d="M1141 12 Q 1285 50 1429 12" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M791 8 A 134 134 0 0 1 1059 8 Q 925 46 791 8 Z" fill="${C.green}"/><path d="M795 8 Q 925 46 1055 8" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="925" cy="20" r="134" fill="${C.green}"/><path d="M807 24 Q 925 104 1043 24" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M1137 12 A 148 148 0 0 1 1433 12 Q 1285 50 1137 12 Z" fill="${C.green}"/><path d="M1141 12 Q 1285 50 1429 12" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1285" cy="24" r="148" fill="${C.green}"/><path d="M1153 28 Q 1285 108 1417 28" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-side3clip)">
                 <!-- the band sits on top of the eyes and dips between them, like the logo: that dip is the frown -->
                 <path d="M460 -420 L1660 -420 L1660 -118 L1470 -118 Q1300 -92 1168 8 Q1108 42 1048 8 Q930 -84 790 -118 L460 -118 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
@@ -376,8 +376,8 @@ const FROG_SVG = `
                     <circle cx="1164" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
                 </g>
                 <!-- on sake: the eyelids half down (each view of the head has its own) -->
-                <g class="fg-lid" opacity="0"><path d="M622 488 A 146 146 0 0 1 914 488 Q 768 526 622 488 Z" fill="${C.green}"/><path d="M626 488 Q 768 526 910 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
-                <g class="fg-lid" opacity="0"><path d="M1072 488 A 146 146 0 0 1 1364 488 Q 1218 526 1072 488 Z" fill="${C.green}"/><path d="M1076 488 Q 1218 526 1360 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g>
+                <g class="fg-lid" opacity="0"><path d="M622 488 A 146 146 0 0 1 914 488 Q 768 526 622 488 Z" fill="${C.green}"/><path d="M626 488 Q 768 526 910 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="768" cy="500" r="146" fill="${C.green}"/><path d="M638 504 Q 768 584 898 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+                <g class="fg-lid" opacity="0"><path d="M1072 488 A 146 146 0 0 1 1364 488 Q 1218 526 1072 488 Z" fill="${C.green}"/><path d="M1076 488 Q 1218 526 1360 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1218" cy="500" r="146" fill="${C.green}"/><path d="M1088 504 Q 1218 584 1348 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             </g>
             <g clip-path="url(#fg-headclip)">
                 <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
@@ -1370,7 +1370,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // frog pose: shoulder pivots in SVG units; katana angles are world angles (0 = blade up)
     const pose = { lRot: -30, rRot: 30, lStretch: 1, rStretch: 1, lK: -30, rK: 30, blade: 1, held: false, laptop: { x: 0, y: 0, rot: 0, gone: false },
-        bob: 0, blink: 0, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0,
+        bob: 0, blink: 0, shut: false, glint: 0, breath: 0, tilt: 0, tail: 0, lookX: 0, lookY: 0,
         // standing: up = 0 (seated) .. 1 (on its feet); lean and shift follow the blade; fall = dropping off the post
         up: 0, lean: 0, shift: 0, squash: 0, fallY: 0, fallRot: 0, face: 0,
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
@@ -1514,6 +1514,7 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.eyes, 'transform', `translate(0 ${EYE_Y}) scale(1 ${n2(1 - pose.blink * 0.92)}) translate(0 ${-EYE_Y})`);
         setA(el.pupils, 'transform', `translate(${n2(clamp(pose.lookX + (pose.up > 0.5 ? pose.face : 0) * 34, -46, 46))} ${n2(pose.lookY)})`);
         (el.lids || (el.lids = [...svg.querySelectorAll('.fg-lid')])).forEach(g => setA(g, 'opacity', drunk ? 1 : 0));
+        (el.shuts || (el.shuts = [...svg.querySelectorAll('.fg-shut')])).forEach(g => setA(g, 'opacity', pose.shut ? 1 : 0));      // the clock: eyes shut, aiming and cutting (each view has its own drawing)
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
     }
@@ -2622,7 +2623,7 @@ export function mountFrogGame(stage, opts = {}) {
             el.gradeName.textContent = G.name; el.gradeBonus.textContent = ix ? '+' + Math.round(G.bonus * 100) + '%' : '';
             if (up && announce) {
                 snd('combo', { step: ix });
-                floats.push({ x: W / 2, y: H * 0.3, text: G.name + ' +' + Math.round(G.bonus * 100) + '%', t: 0, hot: true });
+                floats.push({ x: W / 2, y: H * 0.3, text: G.name + (showNums ? ' +' + Math.round(G.bonus * 100) + '%' : ''), t: 0, hot: true, word: true });      // (Numbers off: the name alone)
                 el.grade.classList.remove('fg-grade-up'); void el.grade.offsetWidth; el.grade.classList.add('fg-grade-up');
             }
         }
@@ -4203,7 +4204,7 @@ export function mountFrogGame(stage, opts = {}) {
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
         const show = () => { pill.classList.toggle('fg-num-off', !showNums); stage.classList.toggle('fg-nonums', !showNums); pill.title = showNums ? 'Numbers and words shown' : 'Numbers and words hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
-        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });
+        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });      // (off: only the combo's name is still shown, in the meter and when a step is reached)
         show();
     })();
 
@@ -4699,13 +4700,7 @@ export function mountFrogGame(stage, opts = {}) {
             // PRINCIPLES.md 3a); its flight never changes, and slow motion does not hold it back.
             const difficulty = FRUIT_PACE;
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
-            // every fruit on screen marked (or none left): time flows again
-            // (not in debug mode: there every power-up runs its full time, even over an empty field)
-            if (!dbg && freezeLeft > 0 && !fruits.some(f => f.entered && !f.mark) && !crates.some(c => !c.mark && c.y < H)
-                && !pickups.some(b => !b.mark && b.y < H) && !flies.some(f => !f.mark && f.x > 0 && f.x < W)) {
-                if (allMarked().length) floats.push({ x: W / 2, y: H * 0.3, text: 'All marked!', t: 0, hot: true });
-                freezeLeft = 0;
-            }
+            // (the freeze always runs its full time, even with everything marked: more fruit is on its way in)
             if (wasFrozen && freezeLeft <= 0) {
                 markQueue = allMarked();
                 // The blade goes through whatever is there: fruit and pieces lying over (or under) a marked
@@ -4912,6 +4907,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (busy) dbgBusy = true;
             else if (dbgBusy) { dbgBusy = false; salad = []; }      // the sequence is over: the bowls are cleared for the next one
         }
+        pose.shut = live && (freezeLeft > 0 || markQueue.length > 0 || markAgain.length > 0);      // the alarm clock: it does all of it with its eyes closed
         const drunkNow = live && sakeLeft > 0;
         if (drunkNow !== wasDrunk) { wasDrunk = drunkNow; stage.classList.toggle('fg-drunk', drunkNow); audio.setDrunk(drunkNow); }
         // what the held blades show: sake's glow, the fire blade's flames, the chronoblade's blue
@@ -5387,7 +5383,8 @@ export function mountFrogGame(stage, opts = {}) {
             }
             ctx.restore();
         }
-        if (showNums) floats.forEach(f => {
+        floats.forEach(f => {
+            if (!showNums && !f.word) return;
             const k = f.t / 0.9;
             ctx.globalAlpha = 1 - k * k;
             ctx.font = `800 ${f.hot ? 30 : 22}px Inter, sans-serif`; ctx.textAlign = 'center';

@@ -20,6 +20,12 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | The clock's freeze always lasts its full 3 s: it no longer ends
+  the moment everything on screen is marked ("All marked!" is gone), because more fruit arrives
+  meanwhile. Makes the clock a little stronger again (it was already the most valuable item per
+  use). The frog keeps its eyes shut through the freeze and the cuts after it (a closed-eye
+  drawing for each view of the head). With Numbers off the combo meter and the combo
+  announcement stay, with the name only (no +X%). | shipped, balance unverified
 - 2026-11-16 | Marek's request | A crate in a flame now chars black as it burns (glow, embers in
   the slats), then bursts into charcoal logs that fly further, land in the sea with a hiss of
   steam and float like planks. Its time to burst is unchanged (a fruit's 0.3 s, less with
