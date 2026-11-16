@@ -20,6 +20,17 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | More fruit: 20% more from the start and 3% more every 10 s of the
+  run (core truth 1 in `PRINCIPLES.md` 3a rewritten). More fruit is more time to earn, and runs
+  were already longer than the targets (median 112 s against 60, 13 of 81 runs filled every bowl,
+  traces 1-97). The time curve (`TIME_TAU`) and the bowls were not retuned: compare the runs after
+  trace 97 with those before. | needs a decision once there is data
+- 2026-11-16 | Marek's request | The hacking breath: a roast chicken in it turns digital, hangs, is
+  copied, and the next hit on it and on each copy pays like a fresh seagull (up to 12 on screen).
+  Sake and fireflies are no longer made digital or copied by it: they burn, sake widens the cone and
+  each firefly makes everything copy 30% faster (0.6 s for fruit becomes 0.46, 0.38, 0.32...).
+  Checked with `tools/scenario_test.py`; the worth of a breath in seconds was not modelled: watch
+  `fire` in the balance table. | shipped, balance unverified
 - 2026-11-15 | traces 65, 67 (iPhone) | Nearly every slow second (22-48 frames) was inside a sake, with
   as few as 2 fruit on screen. Cause found in the stylesheet: the gold stamina bar pulsed by
   animating a brightness filter, which redraws it every frame. Now it pulses by fading. The

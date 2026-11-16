@@ -106,9 +106,12 @@ blade would do):
 
 These are fixed. Tuning serves them; the trace review measures against them.
 
-1. **The fruit never changes.** Fruit comes at the same pace from the first second to the
-   last, however long a run lasts, and slow motion does not hold it back. Difficulty is
-   never "less fruit" or "faster fruit".
+1. **The fruit's flight never changes; there is slowly more of it.** (Changed by Marek on
+   2026-11-16; until then the pace was fixed.) Fruit is thrown at 1.44 a second against the
+   first tuning (20% more than before) and 3% more of that starting rate is added for every
+   10 s the run has lasted (`FRUIT_RATE`, `FRUIT_MORE`, `FRUIT_MORE_EVERY`): +18% at a
+   minute, +36% at two, +54% at three. How a fruit flies, its size and its speed stay the
+   same from the first second to the last, and slow motion does not hold the fruit back.
 2. **What changes is what a second of earned time is worth.** Two smooth pressures
    (`timeMult` in the engine), with no cap anywhere:
    - earned time is worth more early and less the longer the run has lasted (double at the

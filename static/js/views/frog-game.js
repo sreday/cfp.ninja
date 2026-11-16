@@ -78,8 +78,10 @@ const FIRE_SPREAD = 0.38;                       // half-angle of the flame cone 
 // to the one that is running, which can never have more than its base time + POWER_BONUS_MAX left.
 const POWER_BONUS = 1, POWER_BONUS_MAX = 2;
 const FIRE_WIDE = 3, FIRE_SLOW = 0.3, FIRE_SLOW_MAX = 0.9;
-const FRUIT_PACE = 0.5;                          // how busy the sky is, 0 (calm) .. 1 (frantic): constant, start to finish
-const FRUIT_RATE = 1.2;                          // fruit thrown per second, against the first tuning
+const FRUIT_PACE = 0.5;                          // how busy the sky is, 0 (calm) .. 1 (frantic): the size of a volley, constant
+const FRUIT_RATE = 1.44;                         // fruit thrown per second, against the first tuning (1.2 until 2026-11-16, then 20% more)
+const FRUIT_MORE = 0.03, FRUIT_MORE_EVERY = 10;  // ...and 3% more of it (of the starting rate) for every 10 s the run has lasted
+const DUP_FRY = 0.3;                             // each firefly burned by a hacking breath: everything copies this much faster
 const SAKE_SECONDS = 5;                         // golden sake: free slashes, and a drunk frog
 // Drunk vision: every fruit drags five echoes close behind it (where it was 1..5 x ECHO_GAP
 // seconds ago, swaying), and all three are smeared along their flight.
@@ -1117,7 +1119,7 @@ export function mountFrogGame(stage, opts = {}) {
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s, and copies digital fruit held in it. Firefly: fruit cooks faster. Each stacks up to 10 and adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s, and copies digital things held in it, roast chicken too (cut one for full seagull time). Firefly: fruit cooks faster, and a hacking flame copies 30% faster. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. Sake: bubbles, cuts pay 10% more. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s.</span></div></div>
                     </div>
@@ -1754,14 +1756,17 @@ export function mountFrogGame(stage, opts = {}) {
     let fireTint = '', fireWide = 0, fireSlow = 0;             // sakes and clocks burned by this breath
     // The breath grows with what it meets, up to FX_STACKS of each (burned or, once it hacks, hacked):
     //   sake: a wider cone (x2, x3, x4);  clock: it hacks, and the hack lasts 0.5 s longer per extra clock;
-    //   firefly: fruit cooks 20% faster each.
+    //   firefly: fruit cooks 20% faster each, and in a hacking breath everything copies DUP_FRY faster each.
+    // A hacking breath does not turn sake and fireflies digital: it burns them, for these effects.
     let fireFry = 0;
     const fireSpread = () => Math.min(FIRE_SPREAD * (1 + fireWide), Math.PI * 0.95);     // at most nearly all the way round
     const burnTime = () => BURN_TIME * (fireFry <= 3 ? 1 - 0.2 * fireFry : 0.4 * Math.pow(0.85, fireFry - 3));     // each firefly cooks faster, never instantly
     const hackFor = () => HACK_FLOAT + 0.5 * Math.max(0, fireSlow - 1);
+    const dupTime = () => DUP_TIME / (1 + DUP_FRY * fireFry);     // a hacking breath that has burned fireflies copies faster
+    const fruitRate = () => FRUIT_RATE * (1 + FRUIT_MORE * Math.floor(clockT / FRUIT_MORE_EVERY));
     function feedFire(b, isFly) {
         const say = text => floats.push({ x: b.x, y: b.y - 34, text, t: 0, hot: true });
-        if (isFly) { if (fireFry < FX_STACKS) { fireFry++; snd('fire_feed'); say('Hotter flame!' + (fireFry > 1 ? ' x' + fireFry : '')); } }
+        if (isFly) { if (fireFry < FX_STACKS) { fireFry++; snd('fire_feed'); say((fireSlow ? 'Faster copies!' : 'Hotter flame!') + (fireFry > 1 ? ' x' + fireFry : '')); } }
         else if (b.kind === 'sake') { if (fireWide < FX_STACKS) { fireWide++; snd('fire_feed'); say('Wider flame!' + (fireWide > 1 ? ' x' + fireWide : '')); } }
         else if (b.kind === 'clock') { if (fireSlow < FX_STACKS) { fireSlow++; snd('fire_feed'); say('Hacking flame!' + (fireSlow > 1 ? ' x' + fireSlow : '')); } }
     }
@@ -2168,6 +2173,7 @@ export function mountFrogGame(stage, opts = {}) {
             g.state = 'faint'; g.hacked = false; g.burnt = roast; g.vx = g.dir * g.speed * 0.4; g.vy = -H * 0.35; g.spin = g.dir * rand(3, 6); g.mark = 0;
             snd('gull_faint');
         } else {
+            g.hacked = false;                                  // (a digital roast chicken: the hit knocks the digits off)
             g.vy = Math.min(g.vy, -FH() * 0.34); g.vx = clamp(g.vx * 0.6 + rand(-0.08, 0.08) * W, -W * 0.2, W * 0.2); if (roast) g.burnt = true;     // knocked up again on its way down
             if (g.x < g.r * 2) g.vx = Math.abs(g.vx); else if (g.x > W - g.r * 2) g.vx = -Math.abs(g.vx);      // (and kept on the screen)
             if (g.hits === 2) floats.push({ x: g.x, y: g.y - g.r - 30, text: 'Got damn seagulls!', t: 0, hot: true });     // the second hit on one that is already out
@@ -2178,8 +2184,8 @@ export function mountFrogGame(stage, opts = {}) {
     function stepGulls(dt, wdt, floating) {
         gulls.forEach(g => {
             g.t += wdt;
+            if (floating(g)) return;                           // digital (a hacked gull, or a hacked roast chicken): it hangs there
             if (g.state === 'fly') {
-                if (floating(g)) return;
                 g.x += g.dir * g.speed * wdt;
                 g.y = g.base + Math.sin(g.t * 2.3 + g.phase) * H * 0.025 + Math.sin(g.t * 17 + g.phase) * 2.5;     // a slight jitter
             } else {
@@ -2766,7 +2772,8 @@ export function mountFrogGame(stage, opts = {}) {
                 const r = rad(b);
                 if (!((on && inFlame(b.x, b.y, r)) || inBlade(b.x, b.y, r))) { if (b.burn) b.burn = Math.max(0, b.burn - dt * BURN_COOL); continue; }
                 // the laptop is fireproof: it heats to a red glow and that is all, so it can still be taken with the tongue afterwards
-                const hacking = fireSlow && on && inFlame(b.x, b.y, r);
+                // (sake and fireflies are never hacked: the hacking breath burns them, and is wider or copies faster for it)
+                const hacking = fireSlow && on && list !== flies && b.kind !== 'sake' && inFlame(b.x, b.y, r);
                 if (b.kind === 'laptop' && !hacking) {
                     b.burn = Math.min((b.burn || 0) + dt * 2 * power(b), LAPTOP_HOT);
                     if (Math.random() < 0.4) flames.push({ x: b.x + rand(-r, r) * 0.8, y: b.y - r * 0.4, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
@@ -2784,7 +2791,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (hacking) {
                     if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); feedFire(b, list === flies); b.hackFor = hackFor(); }
                     // held in it, a digital power-up divides too, in twice the time fruit takes
-                    else if (dividing(b, dt * power(b), DUP_TIME * DUP_SLOW)) {
+                    else if (dividing(b, dt * power(b), dupTime() * DUP_SLOW)) {
                         if (list.length < EXTRA_MAX) {
                             const twin = Object.assign({}, b, divideAt(b, r), { phase: rand(0, 6) });
                             if (twin.base !== undefined) twin.base = twin.y;
@@ -2794,6 +2801,7 @@ export function mountFrogGame(stage, opts = {}) {
                     }
                     continue;
                 }
+                if (b.hacked && fireSlow && on) b.hacked = false;     // (made digital by a laptop's half: the hacking breath burns it all the same)
                 b.burn = (b.burn || 0) + dt * (on && inFlame(b.x, b.y, r) ? power(b) : 1);
                 if (b.kind === 'fireworks') {   // not a power-up to burn: the flame lights the fuse and they go off
                     if (b.burn >= burnTime()) { list.splice(i, 1); breakPickup(b, 0); }
@@ -2804,7 +2812,7 @@ export function mountFrogGame(stage, opts = {}) {
                     list.splice(i, 1);
                     if (on) fireLeft = Math.min(fireLeft + POWER_BONUS, FIRE_SECONDS + POWER_BONUS_MAX);   // every power-up burned keeps the breath going longer
                     // burned sake turns the flame yellow, a burned clock turns it blue, for the rest of this breath
-                    if (b.kind === 'sake' || b.kind === 'clock') fireTint = b.kind;
+                    if ((b.kind === 'sake' || b.kind === 'clock') && !fireSlow) fireTint = b.kind;     // (a hacking breath stays blue)
                     if (on) feedFire(b, list === flies);
                     burnFruit({ type: APPLE, r, x: b.x, y: b.y, vx: b.vx || 0, vy: 0 });
                 }
@@ -2812,6 +2820,19 @@ export function mountFrogGame(stage, opts = {}) {
         };
         gulls.forEach(g => {
             if (g.state !== 'fly') {
+                // A roast chicken in the hacking breath turns digital: it hangs in the air, is copied while it is
+                // held there, and the next hit on it (and on each copy) pays like a fresh seagull.
+                if (g.burnt && fireSlow && on && inFlame(g.x, g.y, g.r)) {
+                    if (!g.hacked) { g.hacked = true; g.hackT = 0; g.hackFor = hackFor(); g.hits = 0; g.vx = 0; g.vy = 0; g.mark = 0; snd('hack'); log('gull', 'roast-hacked'); }
+                    else if (dividing(g, dt * power(g), dupTime() * DUP_SLOW)) {
+                        if (gulls.length < GULL_MAX) {
+                            const twin = Object.assign({}, g, divideAt(g, g.r), { hits: 0, vx: 0, vy: 0 });
+                            gulls.push(twin); snd('hack'); log('gull', 'roast-dup');
+                            floats.push({ x: twin.x, y: twin.y - g.r, text: 'x2', t: 0, hot: true });
+                        } else g.dup = 0;
+                    }
+                    return;
+                }
                 // already out: any flame that finds it knocks it up again (and roasts it), a few times a second at most
                 const t = performance.now();
                 if (((on && inFlame(g.x, g.y, g.r)) || inBlade(g.x, g.y, g.r)) && t - (g.fireAt || 0) > 350) { g.fireAt = t; gullHit(g, 'fire'); }
@@ -2822,7 +2843,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (inB && fireSlow) {
                 if (!g.hacked) { g.hacked = true; g.hackT = 0; g.hackFor = hackFor(); snd('hack'); log('gull', 'hacked'); }
                 // held in the hacking breath a digital gull is copied, like digital fruit (never more than GULL_MAX in the air)
-                if (dividing(g, dt * power(g), DUP_TIME * DUP_SLOW)) {
+                if (dividing(g, dt * power(g), dupTime() * DUP_SLOW)) {
                     if (gulls.length < GULL_MAX) {
                         const twin = Object.assign({}, g, divideAt(g, g.r), { phase: rand(0, 6), hits: 0 });
                         twin.base = twin.y; gulls.push(twin); snd('hack'); log('gull', 'dup');
@@ -2841,7 +2862,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!((on && inFlame(c.x, c.y, c.hw)) || inBlade(c.x, c.y, c.hw))) { if (c.burn) c.burn = Math.max(0, c.burn - dt * BURN_COOL); continue; }
             if (fireSlow && on && inFlame(c.x, c.y, c.hw)) {
                 if (!c.hacked) { c.hacked = true; c.hackT = 0; c.burn = 0; c.hackFor = hackFor(); snd('hack'); }
-                else if (dividing(c, dt * power(c), DUP_TIME * DUP_SLOW)) {
+                else if (dividing(c, dt * power(c), dupTime() * DUP_SLOW)) {
                     if (crates.length < CRATE_MAX) {
                         const twin = Object.assign({}, c, divideAt(c, c.hw));
                         crates.push(twin); snd('hack'); log('dup', 'crate');
@@ -2863,7 +2884,7 @@ export function mountFrogGame(stage, opts = {}) {
             // Held in the hacking breath, a digital fruit is copied, the way a real one held in the
             // flame melts: every DUP_TIME of exposure makes one more (the copy can be copied too).
             if (breath && fireSlow && f.hacked) {
-                if (dividing(f, dt * power(f), DUP_TIME)) {
+                if (dividing(f, dt * power(f), dupTime())) {
                     if (fruits.length < DUP_MAX) {
                         const at = divideAt(f, f.r);
                         const twin = newFruit(f.type, f.r, at.x, at.y, f.vx, f.vy, f.g, { entered: true });
@@ -4061,6 +4082,7 @@ export function mountFrogGame(stage, opts = {}) {
         gull('seagull bolting (touched while another is busy)', () => { const g = fake(); g.speed = 40; g.fast = true; gulls.push(g); }, 0.8);
         gull('seagull fainted', () => { const g = fake(); g.state = 'faint'; g.vx = 0; g.vy = -H * 0.3; gulls.push(g); }, 0.8);
         gull('seagull roasted (fire)', () => { const g = fake(); g.state = 'faint'; g.burnt = true; g.vx = 0; g.vy = -H * 0.3; gulls.push(g); }, 0.8);
+        gull('roast chicken, digital (hacking breath)', () => { const g = fake(); g.state = 'faint'; g.burnt = true; g.hacked = true; g.hackT = 0; g.vx = 0; g.vy = 0; gulls.push(g); }, 0.8);
         return out;
     })();
     // For the play-test tool (design/frog/tools/playtest.py): what is on the field right now, so a
@@ -4075,9 +4097,17 @@ export function mountFrogGame(stage, opts = {}) {
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked })),
                 pieces: pieces.length,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
-                crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r) }))
+                crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
+                breath: { slow: fireSlow, wide: fireWide, fry: fireFry }, rate: r2(fruitRate()), log: trace.slice(-30)
             };
-        }
+        },
+        // forced scenarios (design/frog/tools/scenario_test.py): debug mode running, a thing put on the
+        // field, a roast chicken, a breath of a given kind, the run's clock moved on
+        debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; },
+        drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; },
+        roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
+        breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; },
+        at(seconds) { clockT = seconds; }
     };
     function playAnim(name) {
         const a = ANIMS.find(q => q.name === name);
@@ -4341,8 +4371,8 @@ export function mountFrogGame(stage, opts = {}) {
         const wdt = (dbg && dbgFrozen) || summon ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
             if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown
-            // Core truth: the fruit comes at the same pace for the whole run, however long it lasts.
-            // What changes over a run is what a second of earned time is worth (timeMult), never the fruit.
+            // The fruit comes a little thicker as the run goes on (FRUIT_MORE every FRUIT_MORE_EVERY s, see
+            // PRINCIPLES.md 3a); its flight never changes, and slow motion does not hold it back.
             const difficulty = FRUIT_PACE;
             if (freezeLeft > 0) freezeLeft = Math.max(0, freezeLeft - dt);
             // every fruit on screen marked (or none left): time flows again
@@ -4511,7 +4541,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (spawnT <= 0) {
                 const volley = Math.random() < 0.3 + difficulty * 0.35 ? Math.floor(rand(2, 4.99)) : 1;
                 for (let i = 0; i < volley; i++) spawn(difficulty);
-                spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2) / FRUIT_RATE;
+                spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2) / fruitRate();
             }
             if (!dbg) flyT -= wdt;
             if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
@@ -4762,7 +4792,7 @@ export function mountFrogGame(stage, opts = {}) {
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         gulls.forEach(g => {
             if (g.mark) glow(ctx, g.x, g.y, g.r * 2, '129,212,250', 0.75);
-            if (g.hacked && g.state === 'fly') { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); drawGull(c, g.r, lw, { flap: -0.3, t: g.t }); })); return; }
+            if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t }); else drawRoast(c, g.r, lw); })); return; }
             ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.dir, 1);
             if (g.state !== 'fly' && g.burnt) drawRoast(ctx, g.r, lw);            // grilled: a roast chicken
             else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air

@@ -158,7 +158,7 @@ def run(w, sk, seed, patience=1.0, horizon=400, detail=None):
         if spawn_t <= 0:
             volley = int(rnd.uniform(2, 4.99)) if rnd.random() < 0.3 + 0.5 * 0.35 else 1
             for _ in range(volley): spawn(w, rnd, objs, t); n_thrown += 1
-            spawn_t = (0.9 + (0.5 - 0.9) * 0.5) * rnd.uniform(0.8, 1.2) / 1.2
+            spawn_t = (0.9 + (0.5 - 0.9) * 0.5) * rnd.uniform(0.8, 1.2) / (1.44 * (1 + 0.03 * int(t // 10)))   # FRUIT_RATE, FRUIT_MORE
         step_objs(w, objs, dt)
         if t - last_slice > 0.9: style = max(0, style - 8 * dt)
         grade = max(i for i, a in enumerate(COMBO_AT) if style >= a)
