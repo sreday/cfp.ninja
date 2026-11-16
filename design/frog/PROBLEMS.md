@@ -60,6 +60,9 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   rebalanced, and Marek says not to: it is a mindless fun mode (he calls it Sensei; the button says so now). The head thrown back and the three-quarter head have no beard (he never breathes
   fire). The flowered lapels are hidden under the beard from the front. The hint pictures and
   the corner icon still show the green frog. Switching reloads the page. | shipped, placeholder
+- 2026-11-16 | Marek's numbers for the Sensei | Five times the fruit, a third of the time for
+  everything he earns, combo meter at 20%, no tongue, pale blue skin. The meter's decay when idle
+  is unchanged, so high combos will be rare for him: say if that is not what was meant. | shipped
 - 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
   from one bundle against 13 scattered ones when slashed: likely the stronger use now, Marek: fireworks should be
   overpowered. | shipped, decided

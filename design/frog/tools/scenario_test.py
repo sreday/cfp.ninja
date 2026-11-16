@@ -160,7 +160,7 @@ def main():
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("localStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()
-        check('old master: chosen, and three times the fruit', st['char'] == 'elder' and st['rate'] == 4.32, (st['char'], st['rate']))
+        check('old master: chosen, and five times the fruit', st['char'] == 'elder' and st['rate'] == 7.2, (st['char'], st['rate']))
         g.js("frogPlay.drop('fruit:apple', 880, 240)"); time.sleep(0.15)
         f = g.state()['fruits'][0]; mx = 1280 - f['x']
         g.drag([(mx - 110, f['y'] + 4), (mx, f['y'] + 8), (mx + 110, f['y'] + 12)]); time.sleep(0.15); st = g.state()

@@ -7,7 +7,8 @@ const C = {
     green: '#98b74b', red: '#a3211d', redHi: '#ba2823', belly: '#f1eda4',
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
 };
-const ELDER_FRUIT = 3;                          // the old master gets this many times the fruit
+const ELDER_COMBO = 0.2;                         // the Sensei's combo meter fills at this much of the usual rate
+const ELDER_FRUIT = 5, ELDER_PAY = 1 / 3;        // the Sensei gets this many times the fruit, and each thing he earns is worth this much of the usual
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
 const TIME_BIG = 0.1, TIME_STEP = 0.05;         // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.15 .. 0.45)
@@ -151,7 +152,7 @@ function katana(id, withSheath, k = 1) {
 // The old master: a dark grey frog with a topknot, wild grey hair, heavy white brows and a long beard,
 // in a white robe with flowered lapels. Placeholder art, like the rest.
 const FROG = { green: C.green, red: C.red, redHi: C.redHi, belly: C.belly, band: C.red, bandHi: C.redHi };
-const ELDER = { elder: true, green: '#6b7378', red: '#f2f0ea', redHi: '#d5d1c6', belly: '#b9bfc2', band: '#c3c7cb', bandHi: '#e4e6e8' };
+const ELDER = { elder: true, green: '#a9cfe6', red: '#f2f0ea', redHi: '#d5d1c6', belly: '#dcecf5', band: '#c3c7cb', bandHi: '#e4e6e8' };
 let P = FROG;
 const HAIR = '#dfe2e4';
 // flowered lapel: a strip of orange brocade with small flowers on it (pts: the strip's outline; dots: where the flowers go)
@@ -1208,7 +1209,7 @@ const CHAR_KEY = 'cfpninja.game.character';
 export function mountFrogGame(stage, opts = {}) {
     // The second character, the old master (chosen on the first page of the hints; not the official way to
     // play, and never on the scoreboard): no stamina, no power-ups, crates or seagulls, every slash doubled and
-    // mirrored left to right, and three times the fruit.
+    // mirrored left to right, no tongue, five times the fruit and a third of the usual time for each.
     let elder = false; try { elder = localStorage.getItem(CHAR_KEY) === 'elder'; } catch (e) { /* private mode */ }
     const bestKey = BEST_KEY + (elder ? '.elder' : '');
     stage.classList.toggle('fg-elder', elder);
@@ -1268,7 +1269,7 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-chars"><b>Character</b>
                             <button type="button" class="fg-pill fg-char" data-char="frog" aria-pressed="${!elder}">Frog Ninja</button>
                             <button type="button" class="fg-pill fg-char" data-char="elder" aria-pressed="${elder}">Sensei</button>
-                            <span>Sensei, a mindless fun mode, not on the scoreboard: no stamina, no power-ups, crates or seagulls, every slash doubled and mirrored, three times the fruit. Choosing restarts the game.</span></div>
+                            <span>Sensei, a mindless fun mode, not on the scoreboard: no stamina, no tongue, no power-ups, crates or seagulls, every slash doubled and mirrored, five times the fruit at a third of the time each, and a combo meter that fills five times slower. Choosing restarts the game.</span></div>
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
                         <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash; a tiny twitch is not a slash and costs nothing.</span></div></div>
                         <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
@@ -1617,7 +1618,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
     const r2 = v => Math.round(v * 100) / 100;
     // the multiplier on every second earned right now (see TIME_EARLY above)
-    const timeMult = () => TIME_EARLY / (1 + Math.pow(clockT / TIME_TAU, TIME_POW)) / (1 + Math.max(timeLeft, 0) / TIME_BANK);
+    const styleK = elder ? ELDER_COMBO : 1;                    // how much of each combo point the meter takes
+    const timeMult = () => (elder ? ELDER_PAY : 1) * TIME_EARLY / (1 + Math.pow(clockT / TIME_TAU, TIME_POW)) / (1 + Math.max(timeLeft, 0) / TIME_BANK);
     // What each source of time was worth in this run, for balancing: uses, and seconds gained
     // (for the clock, the seconds the countdown stood still count too).
     // base = plain slashing; fire, sake, clock, fireworks = while that power-up did the work;
@@ -2421,7 +2423,7 @@ export function mountFrogGame(stage, opts = {}) {
         const roast = how === 'fire' || how === 'blast' || (how === 'boost' && !!bladeFx.fire);
         timeLeft += gain; slices++; lastSlice = performance.now();
         val(how === 'laptop' ? 'laptop' : how === 'blast' ? 'fireworks' : how === 'clock' ? 'clock' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword', gain);
-        style = Math.min(STYLE_MAX, style + worth); updateGrade(true);
+        style = Math.min(STYLE_MAX, style + styleK * (worth)); updateGrade(true);
         gainPop(g.x, g.y - g.r, gain);
         log('gull', how, r2(gain), g.hits);                    // (the last number: which hit on this gull it was)
         if (g.state === 'fly') {
@@ -2540,7 +2542,7 @@ export function mountFrogGame(stage, opts = {}) {
         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult * timeMult();
         timeLeft += gain; slices++; lastSlice = performance.now();
         use('crate'); val('crate', gain);
-        style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+        style = Math.min(STYLE_MAX, style + styleK * (1)); updateGrade(true);
         for (let i = 0; i < CRATE_FRUIT; i++) {
             const type = pick(FRUIT_BAG), g = G();
             // a fan upwards, wide enough to fill the screen, high enough to be cut
@@ -2635,14 +2637,14 @@ export function mountFrogGame(stage, opts = {}) {
             val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
             snd('burn'); addToSalad(f.type, true); log('burn', f.type.kind, r2(gain), f.fam.cuts);
             gainPop(f.x, f.y - f.r, gain);
-            style = Math.min(STYLE_MAX, style + 0.5);
+            style = Math.min(STYLE_MAX, style + styleK * (0.5));
         } else {
         val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
         addToSalad(f.type, (bladeFx.fire && fxOn()) || summonFire || !!(f.char && f.char.length));
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         gainPop(f.x, f.y - f.r, gain, chain, hit.clean || chain > 0);
-        style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
+        style = Math.min(STYLE_MAX, style + styleK * ((f.fam.cuts === 1 ? 1 : 0.5)));
         }
         updateGrade(true);
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
@@ -2954,7 +2956,7 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain; slices++;                               // burned fruit counts as a cut
         val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
         log(blast ? 'blast' : 'burn', f.type.kind, r2(gain)); if (!blast) snd('burn'); addToSalad(f.type, !blast);
-        style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);   // and half a style point
+        style = Math.min(STYLE_MAX, style + styleK * (0.5)); updateGrade(true);   // and half a style point
         const r = f.r, col = f.type.flesh, skin = f.type.skin;
         if (blast) {
             // chunks of fruit thrown in all directions
@@ -3609,6 +3611,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- the tongue ----------
     function shootTongue(x, y) {
+        if (elder && !dbg) return;                             // the Sensei has no tongue move (nothing for it to fetch)
         if (phase !== 'play' || stunT > 0 || tongue || fwBusy() || summon) return;
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
@@ -3819,7 +3822,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (b.kind === 'fireworks') return;                // those just go off
                 const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * timeMult();
                 timeLeft += gain; slices++; lastSlice = performance.now(); val('laptop', gain);
-                style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+                style = Math.min(STYLE_MAX, style + styleK * (1)); updateGrade(true);
                 gainPop(b.x, b.y - 24, gain);
             });
             // Every firefly, sake and clock the first blow destroyed goes into a helper's blade: dealt
@@ -4964,7 +4967,7 @@ export function mountFrogGame(stage, opts = {}) {
                         const chain = markCut.hits++;
                         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
                         timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
-                        style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
+                        style = Math.min(STYLE_MAX, style + styleK * (1)); updateGrade(true);
                         gainPop(f.x, f.y - 24, gain, chain);
                         slashes.push({ x: f.x, y: f.y, a: ang, r: 34, t: 0 });
                         markFrom = { x: f.x, y: f.y };
@@ -4977,7 +4980,7 @@ export function mountFrogGame(stage, opts = {}) {
                         const chain = markCut.hits++;
                         const gain = fruitTime(APPLE) * RECUT * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
                         timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
-                        style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);
+                        style = Math.min(STYLE_MAX, style + styleK * (0.5)); updateGrade(true);
                         gainPop(f.x, f.y + 6, gain);
                         slashes.push({ x: f.x, y: f.y, a: f.ang, r: 40, t: 0 });
                         seqFlash(f.x, f.y, Math.cos(f.ang), Math.sin(f.ang), 46);

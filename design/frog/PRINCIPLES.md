@@ -100,8 +100,9 @@ blade would do):
   reaches (red; golden on a sake breath). A hacking breath or a fire blade only sets the bundle
   off, as a slash does. Marek, 2026-11-16: "fireworks should be overpowered". Leave it strong.
 - The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. Second character, picked on the first page of the hints; for fun, never on the
-  scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, every
-  stroke repeated by a second blade mirrored left to right, three times the fruit. His runs carry
+  scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, no tongue, every
+  stroke repeated by a second blade mirrored left to right, five times the fruit, and everything
+  he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. His runs carry
   a `char elder` event in the log: leave them out of balance work.
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).
