@@ -20,6 +20,12 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | The start screen is now four pictures with a line each (katana:
+  hold to slash; tongue: quick tap or right click; a heap of fruit and power-ups; the frog going
+  off the post: survive) and a Play button. The pages of detail are behind "All hints" on the
+  pause and game-over menus only. Green buttons are darker with white text and a pulsing glow.
+  The falling frog is a copy of the rig in its fall pose (placeholder art). Seen in headless
+  Chrome at 1280x800 and 390x664, not on a phone. | shipped
 - 2026-11-16 | Marek's request | Quarters popped by fire now burst into juice when cooked a third
   time, each for a quarter of a fruit's time. A fruit held in the flame to the end pays 1 + 0.5 +
   0.25 + 4 x 0.25 = 2.75 times its time (burning it used to pay 1). The pieces of a fire split

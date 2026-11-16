@@ -1133,10 +1133,16 @@ export function mountFrogGame(stage, opts = {}) {
             <button type="button" class="fg-pill fg-debug-fold">Hide items</button>
             <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="gull" title="seagull"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-anims">Animations</button></div>
         </div>
-        <div class="fg-overlay">
+        <div class="fg-overlay fg-first">
             <div class="fg-panel">
                 <h2 class="fg-title">Frog Ninja</h2>
                 <p class="fg-sub" hidden></p>
+                <div class="fg-hints">
+                    <div class="fg-hint"><canvas data-hint="katana"></canvas><b>${touch ? 'Tap and hold to slash' : 'Click and hold to slash'}</b></div>
+                    <div class="fg-hint"><canvas data-hint="tongue"></canvas><b>${touch ? 'Quick tap to fetch with the tongue' : 'Quick click / right click to fetch with the tongue'}</b></div>
+                    <div class="fg-hint fg-hint-wide"><canvas data-hint="stack"></canvas><b>Cut fruit, catch power-ups, mix and match for different combos</b></div>
+                    <div class="fg-hint fg-hint-wide"><span class="fg-hint-frog"></span><b>Survive as long as possible!</b></div>
+                </div>
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
@@ -1228,6 +1234,41 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'gull') { x.translate(S / 2 - 2, S / 2 + 2); drawGull(x, 13, 1.6, { flap: -0.5 }); }
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
+        });
+        // the start screen's pictures: a katana mid-slash, the tongue on a firefly, a heap of fruit and power-ups
+        const big = (c, w, h) => { c.width = w * k; c.height = h * k; c.style.width = w + 'px'; c.style.height = h + 'px'; const x = c.getContext('2d'); x.scale(k, k); x.lineJoin = 'round'; return x; };
+        stage.querySelectorAll('canvas[data-hint]').forEach(c => {
+            const kind = c.dataset.hint;
+            if (kind === 'katana') {
+                const x = big(c, 96, 72), L = 74;
+                x.save(); x.translate(50, 38); x.rotate(-0.5);
+                x.beginPath(); x.arc(0, 0, 34, -1.15, 1.15); x.arc(-9, 0, 32, 1.0, -1.0, true); x.closePath();
+                x.fillStyle = '#fff'; x.fill(); x.lineWidth = 2; x.strokeStyle = C.green; x.stroke();
+                x.restore();
+                x.save(); x.translate(48, 37); x.rotate(Math.PI + 0.95); x.translate(0, L * 0.47);
+                x.strokeStyle = '#000'; x.lineWidth = 1.6;
+                x.fillStyle = C.blade; x.beginPath(); x.rect(-L * 0.035, -L * 0.62, L * 0.07, L * 0.62); x.fill(); x.stroke();
+                x.fillStyle = '#6b6e74'; x.beginPath(); x.rect(-L * 0.09, -L * 0.66, L * 0.18, L * 0.05); x.fill(); x.stroke();
+                x.fillStyle = C.steel; x.beginPath(); x.rect(-L * 0.05, -L * 0.94, L * 0.1, L * 0.28); x.fill(); x.stroke();
+                x.restore();
+            } else if (kind === 'tongue') {
+                const x = big(c, 96, 72), line = w => { x.lineWidth = w; x.beginPath(); x.moveTo(8, 66); x.quadraticCurveTo(40, 58, 62, 30); x.stroke(); };
+                x.lineCap = 'round'; x.strokeStyle = '#000'; line(12); x.strokeStyle = '#e57373'; line(8.5);
+                x.fillStyle = '#ef9a9a'; x.strokeStyle = '#000'; x.lineWidth = 1.6; x.beginPath(); x.arc(62, 30, 8, 0, 7); x.fill(); x.stroke();
+                drawFly(x, { x: 66, y: 27, dir: 1, phase: 0 }, 6.5, 0.26);
+            } else {
+                const x = big(c, 176, 84); x.translate(0, 8); const at = (px, py, fn) => { x.save(); x.translate(px, py); fn(); x.restore(); };
+                const fr = kindOf => FRUITS.find(t => t.kind === kindOf) || FRUITS[0];
+                at(40, 46, () => drawWhole(x, { type: fr('watermelon') }, 26, 2));
+                at(96, 34, () => drawWhole(x, { type: fr('pineapple') }, 21, 2));
+                at(140, 52, () => drawWhole(x, { type: fr('orange') }, 17, 2));
+                at(72, 58, () => drawWhole(x, { type: fr('apple') }, 14, 2));
+                at(114, 60, () => drawWhole(x, { type: fr('plum') }, 11, 2));
+                drawClock(x, { x: 26, y: 24, r: 11, rot: -0.2, t: 0.3 }, 2);
+                drawSake(x, { x: 160, y: 24, r: 14, rot: 0.25, t: 0 }, 2);
+                drawFireworks(x, { x: 66, y: 22, r: 12, rot: -0.3, t: 0 }, 1.6);
+                drawFly(x, { x: 124, y: 20, dir: 1, phase: 0 }, 5, 0.26);
+            }
         });
         const seen = new Set(), box = stage.querySelector('.fg-fruits');
         FRUITS.slice().sort((a, b) => a.r - b.r).forEach(t => {
@@ -3893,9 +3934,26 @@ export function mountFrogGame(stage, opts = {}) {
         tipsPage = open ? page : -1;
         el.tips.hidden = !open;
         el.pages.forEach((p, i) => { p.hidden = i !== page; });
-        el.skip.textContent = !open ? (el.overlay.classList.contains('fg-paused') ? 'Hints' : 'Show tips') : page < el.pages.length - 1 ? `Next tip (${page + 1}/${el.pages.length})` : 'Hide tips';
+        el.skip.textContent = !open ? 'All hints' : page < el.pages.length - 1 ? `Next hint (${page + 1}/${el.pages.length})` : 'Hide hints';
     }
     showTips(-1);
+    // The start screen's last picture is the frog itself, going off the post: the rig is put in its
+    // falling pose for a moment, copied, and put back. (The copy keeps no ids: there is one rig.)
+    (function fallPicture() {
+        const was = JSON.parse(JSON.stringify(pose));
+        Object.assign(pose, { up: 1, held: true, noBlades: true, side: 0, squash: 0, lean: 0, shift: 0, fallRot: -62, fallY: 1, lRot: 170, rRot: -170, lookY: -20 });
+        pose.laptop.gone = true;
+        try {
+            applyPose();
+            const copy = svg.cloneNode(true);
+            copy.querySelectorAll('defs').forEach(d => d.remove());
+            copy.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+            copy.setAttribute('class', ''); copy.setAttribute('viewBox', '300 150 1400 1600');
+            $('.fg-hint-frog').appendChild(copy);
+        } catch (e) { log('hintfrog', String(e)); }
+        Object.keys(was).forEach(k => { if (was[k] && typeof was[k] === 'object') Object.assign(pose[k], was[k]); else pose[k] = was[k]; });
+        applyPose();
+    })();
     $('.fg-anykey').hidden = touch;
     // Warm-up: the first time anything is drawn it costs (shapes are compiled, text is laid out,
     // sprites are built), and on a phone that showed as a slow second at the start of the first
@@ -3944,7 +4002,7 @@ export function mountFrogGame(stage, opts = {}) {
     function start() {
         if (dprCap !== 2) { dprCap = 2; wholeSprites.clear(); resize(); }      // every run starts at full sharpness
         warmUp();
-        el.overlay.hidden = true; el.save.innerHTML = '';
+        el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = '';
         stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
         dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;

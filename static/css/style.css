@@ -1480,10 +1480,24 @@ a:hover {
 .fg-sub { color: var(--text-secondary); margin: 0 0 1rem; }
 .fg-start { min-width: 160px; }
 /* the one big button: frog green */
-.fg-play { display: block; margin: 6px auto 0; min-width: 240px; padding: 14px 28px; border: 2px solid #000; border-radius: 16px; background: #98b74b; color: #000;
-    font-size: 1.5rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 4px 0 #000; transition: background .15s ease, transform .05s ease; }
-.fg-play:hover, .fg-play:focus-visible { background: #b0cf62; color: #000; border-color: #000; }
-.fg-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #000; background: #b0cf62; color: #000; border-color: #000; }
+.fg-play { display: block; margin: 6px auto 0; min-width: 240px; padding: 14px 28px; border: 2px solid #000; border-radius: 16px; background: #4f7a1c; color: #fff;
+    font-size: 1.5rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; box-shadow: 0 4px 0 #000, 0 0 22px 5px rgba(152,183,75,.85); transition: background .15s ease, transform .05s ease;
+    animation: fg-play-glow 1.8s ease-in-out infinite; }
+.fg-play:hover, .fg-play:focus-visible { background: #5f9024; color: #fff; border-color: #000; }
+.fg-play:active { transform: translateY(3px); box-shadow: 0 1px 0 #000, 0 0 22px 5px rgba(152,183,75,.85); background: #5f9024; color: #fff; border-color: #000; animation: none; }
+@keyframes fg-play-glow { 0%, 100% { box-shadow: 0 4px 0 #000, 0 0 16px 3px rgba(152,183,75,.65); } 50% { box-shadow: 0 4px 0 #000, 0 0 30px 9px rgba(152,183,75,.95); } }
+@media (prefers-reduced-motion: reduce) { .fg-play { animation: none; } }
+/* the start screen: four pictures and a line each, then Play. The pages of detail are behind "All hints" on the pause and game-over menus */
+.fg-hints { display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin: .6rem 0 1rem; }
+.fg-first:not(.fg-paused) .fg-hints { display: grid; }
+.fg-first:not(.fg-paused) .fg-skip { display: none; }
+.fg-hint { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 8px 10px; border: 1px solid var(--border); border-radius: 14px; background: color-mix(in srgb, var(--surface) 70%, transparent); }
+.fg-hint b { font-size: .92rem; line-height: 1.25; }
+.fg-hint-wide { grid-column: 1 / -1; flex-direction: row; gap: 12px; text-align: left; padding: 6px 12px; }
+.fg-hint-wide canvas { flex: 0 0 auto; }
+.fg-hint-frog { flex: 0 0 176px; height: 84px; display: block; }
+.fg-hint-frog svg { width: 100%; height: 100%; overflow: visible; display: block; }
+@media (max-width: 575px), (max-height: 720px) { .fg-hint b { font-size: .82rem; } .fg-hint-wide canvas { width: 132px !important; height: 63px !important; } .fg-hint-frog { flex-basis: 132px; height: 66px; } .fg-hints { margin: .4rem 0 .7rem; gap: 6px; } }
 .fg-anykey { margin: 8px 0 0; font-size: .78rem; color: var(--text-light); }
 .fg-anykey[hidden] { display: none; }
 .fg-skip { display: block; margin: 14px auto 0; min-width: 150px; }
@@ -1686,7 +1700,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 
 /* the pause menu: Resume (green), Play again (red), Hints (white); the field is hidden behind it */
 .fg-overlay.fg-paused { background: color-mix(in srgb, var(--background) 94%, transparent); z-index: 7; }
-.fg-again { background: #e53935; color: #fff; margin-top: 12px; }
+.fg-again { background: #e53935; color: #fff; margin-top: 12px; box-shadow: 0 4px 0 #000; animation: none; }
 .fg-again[hidden] { display: none; }
 .fg-again:hover, .fg-again:focus-visible, .fg-again:active { background: #f0554f; color: #fff; }
 .fg-paused .fg-skip { min-width: 240px; padding: 14px 28px; border: 2px solid #000; border-radius: 16px; background: #fff; color: #000; font-size: 1.25rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; box-shadow: 0 4px 0 #000; }
