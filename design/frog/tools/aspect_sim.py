@@ -16,7 +16,7 @@ FRUITS = [('watermelon', 1.62, 2), ('orange', 0.83, 3), ('pineapple', 1.3, 3), (
 RMIN, RMAX = 0.34, 1.62
 BAG = [f for f in FRUITS for _ in range(f[2])]
 RANK = sorted((f[1] for f in FRUITS), reverse=True)
-def fruit_time(r): return round(0.1 + 0.1 * RANK.index(r), 2)      # watermelon 0.1 s .. plum 0.8 s
+def fruit_time(r): return round(0.1 + 0.05 * RANK.index(r), 2)     # watermelon 0.1 s .. plum 0.45 s
 COMBO_AT = [0, 4, 9, 15, 22, 30, 39, 49, 60, 72, 85]
 clamp = lambda v, a, b: max(a, min(b, v))
 

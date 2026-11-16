@@ -9,7 +9,7 @@ const C = {
 };
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
-const TIME_BIG = 0.1, TIME_STEP = 0.1;          // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.2 .. 0.8)
+const TIME_BIG = 0.1, TIME_STEP = 0.05;         // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.15 .. 0.45)
 // What a second of earned time is really worth. Two smooth pressures, no cap anywhere:
 //  - it is worth more early and less the longer the run has lasted (TIME_EARLY at the start,
 //    1 at about a minute, 0.43 at two, 0.19 at three, 0.1 at four);

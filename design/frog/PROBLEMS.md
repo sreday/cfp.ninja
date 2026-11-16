@@ -20,6 +20,11 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek: "the game session is too long now" | Fruit now buys 0.1 s (watermelon) to
+  0.45 s (plum) in steps of 0.05 (was 0.1 to 0.8 in steps of 0.1): the average fruit buys about
+  40% less. Everything priced in fruit follows (crate, gull, burnt power-ups: an apple's worth,
+  now 0.3 s). The time curve and the bowls were not touched. Compare run lengths in the traces
+  from this change on with the median of 112 s before it. | shipped, balance unverified
 - 2026-11-16 | Marek's request | The clock's freeze always lasts its full 3 s: it no longer ends
   the moment everything on screen is marked ("All marked!" is gone), because more fruit arrives
   meanwhile. Makes the clock a little stronger again (it was already the most valuable item per
