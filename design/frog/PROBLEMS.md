@@ -4,7 +4,7 @@ A living log. The 6-hourly trace review appends to it; whoever resumes work on t
 reads it first. Newest entries at the top of each section. When something is fixed, move it
 to "Fixed" with the commit, don't delete it.
 
-Last trace id reviewed: 124
+Last trace id reviewed: 127
 
 Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | what | status`
 
@@ -44,6 +44,15 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   (5) A seagull keeps paying on every hit, halving each time; the combo point now halves with it
   (it was a full point per hit). Scenario checks 5c and 5d. Not yet seen in a real run: pieces
   cut by the sword inside a hacking breath now hang in the air instead of falling. | shipped, watch
+- 2026-11-16 | Marek's requests; traces 125-127 (his, mouse, 142 s, 172 s, 34 s) | (a) The breath
+  snuffs green leaves at once. (b) A roast chicken is carved like an apple. (c) A level stroke
+  through the frog itself: the run log has no poses, so reproduced in headless Chrome. The frog
+  held its level-cut pose or, with the blade over its head, the facing-us jump with legs tucked
+  (the "idle with lifted legs"). Now two poses of their own, held for the whole stroke: ducks
+  under a blade at head height, hops over one lower down. (d) Under five seconds it no longer
+  stands on one foot rocking (that was the front drawing tilted): seen from the side it goes over
+  backward in four held drawings, arms wheeling, faster as time runs out; only while idle.
+  Not done: the fall at time-up is still the front drawing tumbling. | shipped, placeholder art
 - 2026-11-16 | Marek: "redraw the base" | The seated frog of the start screen and the laptop
   summon is redrawn as a figure: slim torso, an upper arm from each shoulder to the elbow, thighs
   out to the knees, shins crossed under the laptop, bare feet. No longer the logo's outline.

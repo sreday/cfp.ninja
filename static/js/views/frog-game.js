@@ -254,6 +254,8 @@ const FROG_SVG = `
         <g id="fg-sl-tuck" opacity="0" stroke-linecap="round" stroke-linejoin="round"><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/></g>
         <g id="fg-sl-lunge" opacity="0"><ellipse cx="520" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1350" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-leap" opacity="0"><ellipse cx="470" cy="1470" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(38 470 1470)"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1230" cy="1300" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-20 1230 1300)"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <!-- losing its footing: back on the heel of one foot (toes up), the other leg kicked out in front for balance -->
+        <g id="fg-sl-teeter" opacity="0"><ellipse cx="1420" cy="1330" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-52 1420 1330)"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="860" cy="1650" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-16 860 1650)"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         </g>
         <g id="fg-side-top">
@@ -470,7 +472,7 @@ function bananaPoly(r) {
     return out;
 }
 function fruitPoly(type, r) {
-    return type.kind === 'pineapple' ? polyOval(r * PINE_X, r * PINE_Y) : type.kind === 'grapes' ? grapesPoly(r) : type.kind === 'banana' ? bananaPoly(r) : polyOval(r, r);
+    return type.kind === 'chicken' ? polyOval(r * 0.92, r * 0.58) : type.kind === 'pineapple' ? polyOval(r * PINE_X, r * PINE_Y) : type.kind === 'grapes' ? grapesPoly(r) : type.kind === 'banana' ? bananaPoly(r) : polyOval(r, r);
 }
 const ICON_K = kind => kind === 'pineapple' ? 0.85 : kind === 'banana' ? 0.62 : kind === 'grapes' ? 0.9 : 1;   // so the long ones fit an icon
 const fruitReach = (type, r) => type.kind === 'pineapple' ? r * 2.1 : type.kind === 'banana' ? r * 2.2 : type.kind === 'grapes' ? r * 1.25 : r;
@@ -593,13 +595,16 @@ function drawCrown(ctx, leaves, r, lw, col) {
 }
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
 const APPLE = FRUITS.find(f => f.kind === 'apple');   // a power-up burned by the fire breath counts as one
+// A roast chicken (a seagull that fire has had) that a blade finds is on the board from then on: it is cut,
+// cut again, cooked and paid for by the rules of an apple. It is never thrown and never goes in the salad.
+const CHICKEN = { kind: 'chicken', pay: 'apple', r: APPLE.r, skin: '#c8742a', flesh: '#f6e3c5', ring: '#e0a45a', juice: '#e8b877', w: 0 };
 
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
     lw = Math.min(lw, Math.max(1.2, r * 0.2));
     if (t.kind === 'grapes') {
         // the stem and the leaf: whatever the blade has left of them (f.crown), or all of them on an icon
-        const top = f.poly ? f.crown : grapeTop(r);           // (an icon has no outline of its own: it gets the full top)
+        const top = f.bare ? null : f.poly ? f.crown : grapeTop(r);           // (an icon has no outline of its own: it gets the full top)
         if (top) drawCrown(ctx, top, r, lw, TOP_COL.grapes);
         drawGrapes(ctx, r, lw);
         return;
@@ -609,7 +614,8 @@ function drawWhole(ctx, f, r, lw) {
         pathPoly(ctx, bananaPoly(r)); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
         return;
     }
-    if (t.kind === 'pineapple') drawCrown(ctx, f.crown || crownLeaves(r), r, lw);   // behind the body
+    if (t.kind === 'chicken') { drawRoast(ctx, r, lw); return; }       // a roast chicken on the board (see CHICKEN)
+    if (t.kind === 'pineapple' && !f.bare) drawCrown(ctx, f.crown || crownLeaves(r), r, lw);   // behind the body (bare: a flame has had its leaves)
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
@@ -640,7 +646,7 @@ function drawWhole(ctx, f, r, lw) {
     if (t.kind === 'apple' || t.kind === 'plum') {
         ctx.lineWidth = lw; ctx.strokeStyle = C.ink; ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(0, -r * 0.9); ctx.quadraticCurveTo(r * 0.05, -r * 1.25, r * 0.18, -r * 1.35); ctx.stroke();
-        if (t.kind === 'apple') {
+        if (t.kind === 'apple' && !f.bare) {
             ctx.fillStyle = '#7cb342';
             ctx.beginPath(); ctx.ellipse(r * 0.38, -r * 1.12, r * 0.28, r * 0.13, -0.5, 0, 7); ctx.fill(); ctx.stroke();
         }
@@ -651,6 +657,12 @@ function drawWhole(ctx, f, r, lw) {
 function drawFace(ctx, t, r) {
     if (t.kind === 'grapes') { drawGrapes(ctx, r, Math.max(1.2, r * 0.06)); return; }
     if (t.kind === 'banana') { drawBanana(ctx, t, r); return; }     // the peel; drawPiece adds the pale flesh along the cut
+    if (t.kind === 'chicken') {      // carved: browned skin, white meat, the bone in the middle
+        const oval = (rx, ry, col) => { ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.fillStyle = col; ctx.fill(); };
+        oval(r * 0.92, r * 0.58, t.skin); oval(r * 0.82, r * 0.48, t.ring); oval(r * 0.76, r * 0.42, t.flesh); oval(r * 0.1, r * 0.1, '#fffaf0');
+        ctx.strokeStyle = '#8a4a17'; ctx.lineWidth = Math.max(1, r * 0.04); ctx.beginPath(); ctx.arc(0, 0, r * 0.1, 0, 7); ctx.stroke();
+        return;
+    }
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
     const disc = (rad, col) => { ctx.beginPath(); ctx.arc(0, 0, rad, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill(); };
@@ -1099,7 +1111,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 // seconds a fruit buys: watermelon 0.1 s, then 0.1 s more for each smaller kind, up to plum 0.8 s
 const FRUIT_RANK = FRUITS.slice().sort((a, b) => b.r - a.r).map(f => f.kind);       // biggest first
-const fruitTime = type => Math.round((TIME_BIG + TIME_STEP * FRUIT_RANK.indexOf(type.kind)) * 100) / 100;
+const fruitTime = type => Math.round((TIME_BIG + TIME_STEP * FRUIT_RANK.indexOf(type.pay || type.kind)) * 100) / 100;
 // 65.3 s -> "1:05.3", 12.4 s -> "12.4"
 export function formatSurvival(sec) {
     sec = Math.max(0, sec);
@@ -1273,7 +1285,7 @@ export function mountFrogGame(stage, opts = {}) {
         smile: $('#fg-smile'), mouthOpen: $('#fg-mouth-open'), sideSmile: $('#fg-side-smile'), sideMouthOpen: $('#fg-side-mouth-open'),
         headUp: $('#fg-headup'), headP: $('#fg-side-headP'), headQ: $('#fg-side-headQ'), sideLegs: $('#fg-side-legs'),
         side: $('#fg-side'), sideTop: $('#fg-side-top'), sideTail: $('#fg-side-tail'), sideHem: $('#fg-side-hem'),
-        sLegs: { level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck'), lunge: $('#fg-sl-lunge'), leap: $('#fg-sl-leap') },
+        sLegs: { teeter: $('#fg-sl-teeter'), level: $('#fg-sl-level'), down: $('#fg-sl-down'), up: $('#fg-sl-up'), tuck: $('#fg-sl-tuck'), lunge: $('#fg-sl-lunge'), leap: $('#fg-sl-leap') },
         sF: { g: $('#fg-sarmF'), limb: $('#fg-sarmF .fg-limb'), held: $('#fg-sarmF .fg-held'), blade: $('#fg-sarmF .fg-blade') },
         sB: { g: $('#fg-sarmB'), limb: $('#fg-sarmB .fg-limb'), held: $('#fg-sarmB .fg-held'), blade: $('#fg-sarmB .fg-blade') },
         robeSit: $('#fg-robe-sit'), robeUp: $('#fg-robe-up'), hem: $('#fg-hem'), sleevesSit: $('#fg-sleeves-sit'), sleevesUp: $('#fg-sleeves-up'), legL: $('#fg-legL'), legR: $('#fg-legR'), laptop: $('#fg-laptop'), back: $('#fg-back'), eyes: $('#fg-eyes'),
@@ -1620,13 +1632,13 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.drawImage(sp.cv, -sp.half, -sp.half, sp.half * 2, sp.half * 2);
     }
     function wholeSprite(f, lw) {
-        const key = f.type.kind + '|' + Math.round(f.r * 2) + '|' + dpr;
+        const key = f.type.kind + (f.bare ? '|bare|' : '|') + Math.round(f.r * 2) + '|' + dpr;
         let sp = wholeSprites.get(key);
         if (!sp) {
             const half = Math.ceil((f.R || f.r) * 1.2 + lw * 2 + 2), cv = document.createElement('canvas');
             cv.width = cv.height = Math.ceil(half * 2 * dpr);
             const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, half * dpr, half * dpr);
-            drawWhole(c, { type: f.type, crown: topOf(f.type, f.r) }, f.r, lw);
+            drawWhole(c, { type: f.type, crown: f.bare ? null : topOf(f.type, f.r), bare: f.bare }, f.r, lw);
             sp = { cv, half }; wholeSprites.set(key, sp);
             if (wholeSprites.size > 60) wholeSprites.delete(wholeSprites.keys().next().value);
         }
@@ -1634,7 +1646,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // the same picture, roasted (see charEdges)
     function roastSprite(f, lw) {
-        const key = 'roast|' + f.type.kind + '|' + Math.round(f.r * 2) + '|' + dpr;
+        const key = 'roast|' + f.type.kind + (f.bare ? '|bare|' : '|') + Math.round(f.r * 2) + '|' + dpr;
         let sp = wholeSprites.get(key);
         if (!sp) {
             const src = wholeSprite(f, lw), cv = document.createElement('canvas');
@@ -1718,6 +1730,7 @@ export function mountFrogGame(stage, opts = {}) {
     const mixHex = (a, b, k) => '#' + [1, 3, 5].map(i => Math.round(lerp(parseInt(a.slice(i, i + 2), 16), parseInt(b.slice(i, i + 2), 16), k)).toString(16).padStart(2, '0')).join('');
     let salad = [];                                            // { c: flesh colour, k: skin colour, g: grilled }
     function addToSalad(type, grilled) {
+        if (type.kind === 'chicken') return;
         if (salad.length < BOWLS * BOWL_HOLDS) salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() });
     }
     // where the bowls stand: a pyramid on each side of the post. Filled from the frog outwards, the two sides in turn, the bottom rows first.
@@ -2131,6 +2144,7 @@ export function mountFrogGame(stage, opts = {}) {
     const DIRS = 8, SMEAR = 0.05, HOLD = 0.16, SETTLE = 0.07;
     const JUMP_UP = 45;           // how far a jump lifts the frog (drawing units, front view; the profile uses 4x): a small, held lift, not an arc
     let poseAcc = 0;
+    let lowSide = 0;              // under five seconds: which way it is facing while it teeters (held for the whole spell)
     let swing = null;             // { a: heading (rad, snapped to 8), side: 'L'|'R', t, live }
     let windUp = false;
     function swingTo(dx, dy, x, y) {
@@ -2146,14 +2160,19 @@ export function mountFrogGame(stage, opts = {}) {
         // whichever way the blade is travelling: the frog bends over it, katanas crossed underneath
         const low = y !== undefined && y > frogPoint(993, 1380).y && Math.abs(x - W / 2) < fbox.w * 0.6;
         const under = !over && ((Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42) || low);
-        if (swing && swing.live && swing.a === a && swing.side === side && !!swing.under === under) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
+        // a level stroke right through the frog itself (between its head and its knees): it gets out of the blade's
+        // way, and stays out for the rest of that stroke. Head height: it ducks under. Lower: it hops over.
+        const top = frogPoint(993, 60).y, mid = frogPoint(993, 820).y;
+        const through = over || under || y === undefined || Math.abs(Math.sin(a)) > 0.4 || Math.abs(x - W / 2) > fbox.w * 0.45 || y < top || y > frogPoint(993, 1380).y ? '' : y < mid ? 'duck' : 'hop';
+        if (swing && swing.live && swing.through && swing.a === a) return;
+        if (swing && swing.live && swing.a === a && swing.side === side && !!swing.under === under && !through) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
         // a stroke straight down, right in front of it: both blades come down together
         // far out toward a corner (well to the side, and well above the head or down by the feet):
         // a thrust, the whole frog thrown at it, blade first
         const h0 = frogPoint(993, 300), wide = Math.abs(x - W / 2) > fbox.w * 1.6;
         const thrust = y === undefined || !wide ? '' : y < h0.y - fbox.w * 0.9 ? 'up' : y > h0.y + fbox.w * 0.95 ? 'down' : '';
         if (swing && swing.live && swing.thrust && swing.thrust === thrust && swing.side === side) { swing.tx = x; swing.ty = y; return; }     // the same thrust, followed
-        swing = { a, side, t: 0, live: true, near, high, over, under, thrust, tx: x, ty: y };
+        swing = { a, side, t: 0, live: true, near, high, over, under, thrust: through ? '' : thrust, through, tx: x, ty: y };
     }
     function stepSwing(dt) {
         if (!swing) return;
@@ -2191,6 +2210,23 @@ export function mountFrogGame(stage, opts = {}) {
             if (smear) { pose.sF = arm2(-115, -60, 2.0); pose.sB = arm2(-125, -70, 1.8); }       // both blades up and back over the shoulder
             else { pose.sF = arm2(118, 62, 1.5); pose.sB = arm2(62, 118, 1.5); }                  // both arms down, the blades crossed in an X under the chest
             pose.tilt = 0; pose.lookY = 22;
+            return;
+        }
+        if (s.through && !settling) {
+            // The blade is coming level through where the frog stands. Two drawings of their own, in profile,
+            // facing the way the blade travels. Duck: right down on its haunches, head low, the katana swept
+            // flat over its own head. Hop: off the post with its knees up, the katana swept flat under its feet.
+            const smear = s.t < SMEAR, arm2 = (armDir, bladeDir, st) => ({ rot: armDir - 90 - pose.sRot, k: bladeDir + 90 - pose.sRot, stretch: st });
+            pose.side = cx < 0 ? -1 : 1; pose.sQ = false; pose.face = pose.side; pose.lean = 0; pose.shift = 0; pose.tilt = 0;
+            if (s.through === 'duck') {
+                pose.sLegs = 'down'; pose.sDrop = 200; pose.sRot = 50; pose.sHop = 0; pose.lookY = 18;
+                pose.sF = arm2(smear ? -150 : -62, smear ? -178 : -8, smear ? 2.2 : 1.7);       // from behind the head to out in front, the blade flat above it
+                pose.sB = arm2(150, -172, 1.2);                                                // the other arm back, its blade flat behind
+            } else {
+                pose.sLegs = 'tuck'; pose.sDrop = 0; pose.sRot = 22; pose.sHop = JUMP_UP * 4; pose.lookY = 14;
+                pose.sF = arm2(smear ? 150 : 104, smear ? 176 : -6, smear ? 2.4 : 2.3);          // down past its feet, the blade flat underneath
+                pose.sB = arm2(-150, -120, 1.2);                                               // the other arm thrown up behind for balance
+            }
             return;
         }
         const lead = s.side === 'L' ? 'l' : 'r', off = s.side === 'L' ? 'r' : 'l';
@@ -2705,6 +2741,15 @@ export function mountFrogGame(stage, opts = {}) {
             if (g.noCut === id && now - (g.cutAt || 0) < 250) return;
             const boost = fxOn() || cut === warpCut || !!g.hacked;
             g.noCut = id; g.cutAt = now;
+            // a roast chicken is carved: from the first blade it is a thing to cut up, by the rules of an apple
+            if (g.state !== 'fly' && g.burnt && !g.hacked) {
+                gulls.splice(gulls.indexOf(g), 1);
+                const f = newFruit(CHICKEN, g.r, g.x, g.y, g.vx || 0, g.vy || 0, G(), { entered: true, rot: 0, spin: rand(-3, 3) });
+                const hit = strike(f, ax, ay, bx, by, dx, dy);
+                log('gull', 'carved');
+                if (!(hit && hit.kind === 'cut' && cutFruit(f, hit, dx, dy, g.x, g.y))) { f.noCut = id; f.cutAt = now; fruits.push(f); }
+                return;
+            }
             // One that is already out (on its back, or a roast chicken) can be kept in the air for as long
             // as the blade keeps finding it, boosted or not: every hit knocks it back up and pays half the last.
             // slashed while the tongue is fetching a firefly: the fire is already on its way, so the
@@ -2847,6 +2892,11 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // a puff of steam off something hot
     const steamPuff = (x, y, r) => bit(x + rand(-r, r) * 0.5, y, ctx => { ctx.fillStyle = 'rgba(255,255,255,.42)'; ctx.beginPath(); ctx.arc(0, 0, Math.max(3, r * 0.2), 0, 7); ctx.fill(); }, { vx: rand(-18, 18), vy: -H * rand(0.06, 0.12), g: -H * 0.05, spin: 0, life: rand(0.5, 0.9) });
+    // green leaves caught by the breath: a lick of flame and a few black flakes
+    const leafPuff = (x, y, r) => {
+        for (let k = 0; k < 4; k++) flames.push({ x: x + rand(-r, r) * 0.4, y, vx: rand(-30, 30), vy: -H * rand(0.15, 0.3), t: 0, life: 0.3, s: rand(4, 7) });
+        for (let k = 0; k < 4; k++) { const s2 = Math.max(2, r * rand(0.06, 0.12)); bit(x + rand(-r, r) * 0.4, y, ctx => { ctx.fillStyle = '#1b1a19'; ctx.beginPath(); ctx.ellipse(0, 0, s2 * 1.6, s2 * 0.6, 0, 0, 7); ctx.fill(); }, { vx: rand(-40, 40), vy: -H * rand(0.03, 0.1), g: H * 0.12, life: rand(0.5, 0.9) }); }
+    };
     // blast = blown apart by fireworks (an explosion): same pay rule, but nothing is roasted
     // keep = a real fruit or piece cooked through by a flame: it pays here, once, and stays in play, roasted
     // (ashy edges, still to be cut, hacked, copied); a flame does nothing more to it. Without keep (a power-up
@@ -3220,6 +3270,11 @@ export function mountFrogGame(stage, opts = {}) {
             // An ordinary flame leaves the digits on: digital fruit cooks in it unseen and is cut in two by it, like any
             // other fruit, and the halves are digital too. The roasting shows once a thing is back to normal.
             const br = breath && !(fireSlow && f.hacked), inside = (f.fireCuts || 0) < FIRE_CUTS && (br || inBlade(f.x, f.y, f.r));
+            // the breath takes every green leaf off at the first touch (a pineapple's crown, the grapes' leaf, an apple's): gone in a puff
+            if (br && !f.bare && !f.hacked) {
+                f.bare = true;
+                if (f.crown || f.type.kind === 'apple') { leafPuff(f.x, f.y - f.r * (f.type.kind === 'pineapple' ? 1.6 : 1), f.r); f.crown = null; f.crownCut = false; }
+            }
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * BURN_COOL); continue; }   // out of the flame: cools fast
             f.burn = (f.burn || 0) + dt * (br ? power(f) : BLADE_HEAT);            // the breath roasts it; a fire blade's trace only warms it
             if (!f.hacked && Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
@@ -3230,6 +3285,11 @@ export function mountFrogGame(stage, opts = {}) {
         // cut pieces melt the same way (flame blade or breath), for what is left of their worth
         for (let i = pieces.length - 1; i >= 0; i--) {
             const q = pieces[i];
+            // leaves on a piece (or loose ones a blade took off) go the same way in a plain breath
+            if (q.crown && !q.hacked && on && !fireSlow && inFlame(q.x, q.y, q.R * 0.7)) {
+                leafPuff(q.x, q.y, q.r * 0.6); q.crown = null; sprFree(q);
+                if (!q.poly) { pieces.splice(i, 1); continue; }
+            }
             if (!q.poly) continue;
             if (q.pop > 0) q.pop = Math.max(0, q.pop - dt);
             if (q.steam > 0) { q.steam -= dt; if (!q.hacked && Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot (nothing shows while it is digital)
@@ -4156,7 +4216,7 @@ export function mountFrogGame(stage, opts = {}) {
         dropped = [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
         pose.noBlades = true;
         // (it was teetering on one foot: that foot slips, and it goes over as it stands, the other leg still up)
-        pose.side = 0; pose.slip = pose.oneFoot; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
+        pose.side = 0; pose.slip = !!pose.low; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
         el.count.textContent = formatSurvival(clockT) + ' s'; el.count.hidden = false; el.count.classList.remove('pop'); el.count.classList.add('fg-final');
     }
     el.start.addEventListener('click', () => {
@@ -4385,6 +4445,10 @@ export function mountFrogGame(stage, opts = {}) {
         const DIRN = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
         DIRN.forEach((n, i) => cutAnim('cut ' + n + ', far', i * Math.PI / 4, () => ({ x: W / 2 + (Math.cos(i * Math.PI / 4) < -0.3 ? -1 : 1) * fw() * 1.4, y: head().y + fw() * 0.5 })));
         DIRN.forEach((n, i) => cutAnim('cut ' + n + ', near', i * Math.PI / 4, () => ({ x: W / 2 + (Math.cos(i * Math.PI / 4) < -0.3 ? -1 : 1) * fw() * 0.3, y: head().y + fw() * 0.5 })));
+        cutAnim('cut level through itself, head height, to the right (ducks under)', 0, () => ({ x: W / 2, y: frogPoint(993, 400).y }));
+        cutAnim('cut level through itself, head height, to the left (ducks under)', Math.PI, () => ({ x: W / 2, y: frogPoint(993, 400).y }));
+        cutAnim('cut level through itself, body height, to the right (hops over)', 0, () => ({ x: W / 2, y: frogPoint(993, 1100).y }));
+        cutAnim('cut level through itself, body height, to the left (hops over)', Math.PI, () => ({ x: W / 2, y: frogPoint(993, 1100).y }));
         cutAnim('cut high, right (jump)', 0, () => ({ x: W / 2 + fw() * 1.2, y: head().y - fw() * 0.9 }));
         cutAnim('cut high, left (jump)', Math.PI, () => ({ x: W / 2 - fw() * 1.2, y: head().y - fw() * 0.9 }));
         [['up-right', 1, -1], ['up-left', -1, -1], ['down-right', 1, 1], ['down-left', -1, 1]].forEach(([n, sx, sy]) =>
@@ -4423,7 +4487,7 @@ export function mountFrogGame(stage, opts = {}) {
         planAt('clock: planning, points left and down', () => ({ x: W / 2 - fw() * 1.6, y: head().y + fw() * 0.9 }));
         planAt('clock: planning, points straight up', () => ({ x: W / 2, y: head().y - fw() * 1.5 }));
         planAt('clock: planning, points up-right', () => ({ x: W / 2 + fw() * 1.5, y: head().y - fw() * 0.6 }));
-        out.push({ name: 'under five seconds (one foot)', low: true, dur: 0.9, tick() { timeLeft = 3; }, end() { timeLeft = START_SECONDS; hud(); } });
+        out.push({ name: 'under five seconds (losing its footing, going over backward)', low: true, dur: 0.9, tick() { timeLeft = 3; }, end() { timeLeft = START_SECONDS; hud(); } });
         out.push({ name: 'laptop: the team is called', dur: 5, start() { startSummon(); } });
         const gull = (name, setup, dur = 1.2) => out.push({ name, dur, start() { gulls = []; gullOn = null; setup(); }, end() { gulls = []; gullOn = null; stunT = 0; mirrorT = 0; gullCool = 0; } });
         const near = () => ({ x: W / 2 - fbox.w * 1.0, y: frogPoint(993, 300).y + fbox.w * 0.1 });      // beside the frog, where a close-up still shows it
@@ -4447,7 +4511,7 @@ export function mountFrogGame(stage, opts = {}) {
             return {
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0,
-                fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, roasted: !!f.roasted })),
+                fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
                 pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
@@ -4685,8 +4749,21 @@ export function mountFrogGame(stage, opts = {}) {
         // the summon: the frog sits back down with its laptop while the friends work
         if (summon) { pose.up = 0; pose.side = 0; pose.held = false; pose.laptop.gone = false; pose.laptop.x = 0; pose.laptop.y = 0; pose.laptop.rot = 0; pose.lRot = REST.l; pose.rRot = REST.r; pose.lean = 0; pose.shift = 0; pose.squash = 0; }
         // under five seconds: on one foot, wobbling more the closer it gets
-        pose.oneFoot = (phase === 'over' && !!pose.slip) || phase === 'play' && (!dbg || (demo && demo.a.low)) && timeLeft < LOW_TIME && pose.up > 0.5;
-        if (pose.oneFoot) { const w = 1 - timeLeft / LOW_TIME; pose.lean += Math.sin(idleT * 7) * (4 + 9 * w); pose.shift += Math.sin(idleT * 7) * 30 * w; }
+        // Under five seconds: it is losing its footing. Seen from the side, it goes over backward in four held
+        // drawings (upright, back, right back on one heel with the other leg kicked out, caught again), the arms
+        // wheeling, faster the less time there is. Only while it has nothing else to do: a cut or a breath is its own pose.
+        const lowNow = phase === 'play' && (!dbg || (demo && demo.a.low)) && timeLeft < LOW_TIME && pose.up > 0.5;
+        if (!lowNow) lowSide = 0; else if (!lowSide) lowSide = aim && aim.x < W / 2 ? -1 : 1;
+        pose.low = lowNow;
+        pose.oneFoot = phase === 'over' && !!pose.slip;
+        if (lowNow && pose.held && !swing && !windUp && !pose.side && !pose.plan && !summon && !tongue && !punch && !(fireLeft > 0)) {
+            const w = 1 - timeLeft / LOW_TIME, fr = Math.floor(idleT * (2.5 + 4 * w)) % 4;
+            const T = [[-6, 'up', -20, -70, 160, -150], [-20, 'teeter', -60, -110, 120, -174], [-32, 'teeter', -112, -160, 62, -6], [-16, 'up', -50, -100, 140, -160]][fr];
+            pose.side = lowSide; pose.sQ = false; pose.sHop = 0; pose.sDrop = 0; pose.sTurn = 1; pose.face = lowSide; pose.lean = 0; pose.shift = 0; pose.squash = 0;
+            pose.sRot = T[0]; pose.sLegs = T[1];
+            pose.sF = { rot: T[2] - 90 - T[0], k: T[3] + 90 - T[0], stretch: 1.5 };
+            pose.sB = { rot: T[4] - 90 - T[0], k: T[5] + 90 - T[0], stretch: 1.3 };
+        }
         pose.breath = Math.sin(idleT * 1.7);
         // the bandana tails trail behind the body: they whip the other way when it leans
         pose.tail = Math.sin(idleT * 5.3) * 5 + Math.sin(idleT * 11.7) * 2 - pose.lean * 2.2;

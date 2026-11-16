@@ -94,6 +94,18 @@ def main():
         sts = hold(g, 640, 250, 0.5, every=0.1); st = sts[-1]
         check('pieces in a hacking breath turn digital', st['pieces'] >= 2 and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
 
+        # 5e. the breath takes the leaves off at the first touch
+        fresh(g); g.js("frogPlay.breath({seconds: 1, wide: 2}); frogPlay.drop('fruit:pineapple', 640, 240)")
+        sts = hold(g, 640, 240, 0.2, every=0.05)
+        check('a pineapple in the breath loses its leaves at once', any(f['bare'] for f in sts[1]['fruits']) or sts[1]['pieces'] > 0, sts[1]['fruits'])
+        g.shot(os.path.join(a.out, 'bare-pineapple.png'))
+        # 5f. a roast chicken is carved by a blade, like an apple
+        fresh(g); g.js("frogPlay.roast(640, 240)"); time.sleep(0.1)
+        q = g.state()['gulls'][0]; g.drag([(q['x'] - 120, q['y'] + 10), (q['x'], q['y'] + 14), (q['x'] + 120, q['y'] + 18)]); time.sleep(0.15); st = g.state()
+        carved = [e for e in st['log'] if e[1] == 'cut' and e[2] == 'chicken']
+        check('a roast chicken is cut in two and paid as an apple', len(st['gulls']) == 0 and st['pieces'] >= 2 and bool(carved), (len(st['gulls']), st['pieces'], carved))
+        g.shot(os.path.join(a.out, 'carved-chicken.png'))
+
         # 6. the laptop in a plain flame: red hot, then a digital cloud that copies once
         fresh(g); g.js("frogPlay.breath({seconds: 1}); frogPlay.drop('laptop', 640, 240)")
         sts = hold(g, 640, 220, 1.3); last = sts[-1]

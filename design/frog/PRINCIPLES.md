@@ -90,6 +90,11 @@ blade would do):
   are cut in two by it like any other, and the halves are digital too. Nothing of the fire shows
   (flames, steam, roasted edges) until a thing is back to normal. A hacking breath hacks and never
   burns: cut pieces that touch it turn digital and hang there, as in a cloud (they are not copied).
+- A plain breath takes every green leaf off fruit at the first touch (a pineapple's crown, the
+  grapes' leaf, an apple's), on whole fruit and on pieces. No time for it.
+- A roast chicken that a blade finds is carved: from then on it is cut, recut, cooked and paid by
+  the rules of an apple. It never goes in the salad. (A digital roast chicken, and a seagull out
+  cold but not roasted, are still knocked up by a hit as before.)
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)
