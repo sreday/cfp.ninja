@@ -348,6 +348,21 @@ const FROG_SVG = `
             <rect x="500" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-9 980 1627)"/>
             <rect x="526" y="1588" width="960" height="78" rx="39" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(9 1006 1627)"/>
             </g>
+            <!-- the clock's planning: its own drawing of the frog sitting cross-legged. A slim torso and belt as
+                 when it stands, the thighs spread to the knees, the shins crossed in front, a bare foot at the end of each -->
+            <g id="fg-plan" opacity="0">
+                <path d="M724 1090 C560 1118 356 1226 336 1330 C326 1424 450 1452 600 1438 L1386 1438 C1536 1452 1660 1424 1650 1330 C1630 1226 1426 1118 1262 1090 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
+                <path d="M420 1300 Q520 1220 660 1190 M1566 1300 Q1466 1220 1326 1190" stroke="${C.redHi}" stroke-width="30" fill="none"/>
+                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+                <path d="M700 900 Q740 980 760 1050" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+                <path d="M712 1066 L1274 1066 L1266 1126 L720 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
+                <path d="M900 1126 L870 1250 L930 1236 Z M956 1126 L990 1262 L1030 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
+                <ellipse cx="770" cy="1462" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1462)"/>
+                <path d="M1500 1378 L850 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1378 L850 1456" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <ellipse cx="1216" cy="1462" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1462)"/>
+                <path d="M486 1378 L1136 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1378 L1136 1456" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <path d="M1196 1420 L1180 1500 M1248 1418 L1240 1504 M750 1420 L766 1500" stroke="#000" stroke-width="12" fill="none"/>
+            </g>
         </g>
         <g id="fg-tail">
             <path d="M622 248 L305 192 L380 318 L565 302 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
@@ -1436,7 +1451,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (hand) setA(hand, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
             setA(blade, 'transform', `translate(0 -38) scale(1 ${n2(pose.blade)}) translate(0 38)`);
         };
-        const upNow = pose.up > 0.5, EL = upNow ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
+        const upNow = pose.up > 0.5, EL = upNow || pose.plan ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
         // turned: the near shoulder comes forward and the far one tucks in behind the body
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
         setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK, { rot: -112, stretch: 1.3, k: 10 });     // (its own left hand: on our right when it faces us)
@@ -1472,9 +1487,10 @@ export function mountFrogGame(stage, opts = {}) {
         // the upper body: up on its feet, leaning into the cut, squashing before a move; or tumbling off the post
         const rise = pose.up * RISE;
         setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${pose.fallRot ? 1000 : 1300}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
-        setA(el.sit, 'opacity', pose.up > 0.5 ? 0 : 1);
-        setA(el.robeSit, 'opacity', upNow ? 0 : 1); setA(el.sleevesSit, 'opacity', upNow ? 0 : 1);
-        setA(el.robeUp, 'opacity', upNow ? 1 : 0); setA(el.sleevesUp, 'opacity', upNow ? 1 : 0);
+        const plan = !!pose.plan;
+        setA(el.sit, 'opacity', pose.up > 0.5 || plan ? 0 : 1); setA(el.plan || (el.plan = $('#fg-plan')), 'opacity', plan ? 1 : 0);
+        setA(el.robeSit, 'opacity', upNow || plan ? 0 : 1); setA(el.sleevesSit, 'opacity', upNow || plan ? 0 : 1);
+        setA(el.robeUp, 'opacity', upNow ? 1 : 0); setA(el.sleevesUp, 'opacity', upNow || plan ? 1 : 0);
         // the turn: the body narrows a touch and slides under the head, the hem swings out behind
         setA(el.robeUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.38)} 1) translate(-993 0)`);
         setA(el.sleevesUp, 'transform', `translate(${n2(turn * 30)} 0) translate(993 0) scale(${n2(1 - Math.abs(turn) * 0.38)} 1) translate(-993 0)`);
@@ -2957,7 +2973,7 @@ export function mountFrogGame(stage, opts = {}) {
             };
             fruits.slice().forEach(f => { if (f.entered) touch(fruits, f, f.r); });
             gulls.slice().forEach(g => {
-                if (g.state === 'fly') { if (!g.hacked) log('gull', 'hacked'); touch(gulls, g, g.r); }
+                if (g.state === 'fly') { const was = g.hacked; touch(gulls, g, g.r); if (!was && g.hacked) log('gull', 'hacked'); }
                 else if (g.burnt) { if (g.cloud !== c.id && Math.hypot(g.x - c.x, g.y - c.y) <= R + g.r) { g.hits = 0; g.vx = 0; g.vy = 0; g.mark = 0; } touch(gulls, g, g.r); }     // a roast chicken: as in the hacking breath
             });
             pickups.slice().forEach(b => touch(pickups, b, b.r));
@@ -4688,11 +4704,11 @@ export function mountFrogGame(stage, opts = {}) {
             pose.plan = true; pose.up = 0; pose.side = 0; pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.jump = 0; pose.face = 0; pose.tilt = 0; pose.headUp = false; pose.chop = false;
             pose.laptop.gone = true;
             pose.bob = -JUMP_UP + Math.round(Math.sin(idleT * 1.4) * 2) * 2;                    // (a slow hover, in steps)
-            const sh = frogPoint(ELBOW.L[0], ELBOW.L[1]), p = aim || { x: sh.x - 10, y: sh.y - 100 };
+            const sh = frogPoint(UP_ELBOW.L[0], UP_ELBOW.L[1]), p = aim || { x: sh.x - 10, y: sh.y - 100 };
             let th = Math.atan2(-(p.x - sh.x), p.y - sh.y) * 180 / Math.PI;                     // 0 = hanging down, 90 = out to our left, 180 = straight up
             if (th < -50) th += 360;                                                            // to our right it reaches over the top, not across its lap
-            pose.lRot = Math.round(th / 15) * 15; pose.lStretch = 2.1;                          // (held directions, 15 degrees apart)
-            pose.rRot = 24; pose.rStretch = 0.9;                                                // the other hand rests in its lap
+            pose.lRot = Math.round(th / 15) * 15; pose.lStretch = 1.7;                          // (held directions, 15 degrees apart)
+            pose.rRot = -31; pose.rStretch = 1.55;                                             // the other hand rests on its knee
         } else if (pose.plan) { pose.plan = false; pose.up = 1; pose.lStretch = pose.rStretch = 1; }
         stepFall(dt);
         dimStep(now);

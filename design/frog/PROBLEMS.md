@@ -4,7 +4,7 @@ A living log. The 6-hourly trace review appends to it; whoever resumes work on t
 reads it first. Newest entries at the top of each section. When something is fixed, move it
 to "Fixed" with the commit, don't delete it.
 
-Last trace id reviewed: 0
+Last trace id reviewed: 124
 
 Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | what | status`
 
@@ -20,6 +20,29 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | traces 122-124 (Marek, mouse, 143 s, 160 s, 179 s; all after the fruit-time cut) |
+  Digital fruit against fire, read from the runs and the code. Flagged, not changed:
+  1. A laptop cooked in a plain flame makes its cloud inside that flame (all three runs: `cloud
+     fire`). The cloud turns fruit digital and copies it, and the same plain flame burns the digits
+     off at once (and stops the fruit dead: `vx = vy = 0`), so inside the cone the cloud does
+     nothing lasting. The two effects cancel exactly where the player is looking.
+  2. Digital whole fruit loses its digits in a plain flame, but digital cut pieces (from a cloud)
+     are untouched by it: neither burned nor turned back.
+  3. A hacking (clock-fed) breath ignores cut pieces altogether: not burned, not made digital.
+     Whole fruit that was already warming keeps cooking in it and pops, and its halves then stop.
+  4. A hacking breath pays far less from the flame itself (0.7 to 2.3 s of `burn` per breath
+     against 3.6 to 8.2 s for a plain one early in the same runs); its worth is in the 45 to 77 cuts
+     that follow. Intended, but unmeasured as a whole.
+  5. Not digital, seen on the way: a seagull held in a flame is "hit" again every 0.36 s (up to 11
+     paid hits in trace 123), each worth 0.01 s but each also a combo point.
+  Runs are still long after the cut in fruit time: per use the clock was worth 14 to 26 s, sake 6.5
+  to 11.6 s, a fire breath 2.4 to 3 s. | open, needs Marek's decisions
+- 2026-11-16 | traces 122-124 | `gull hacked` was logged every frame for any flying gull while a
+  cloud was up, in or out of it. Now logged once, when it happens. | fixed
+- 2026-11-16 | Marek's request | The clock's planning pose has its own drawing: cross-legged, a slim
+  torso and belt, thighs out to the knees, shins crossed, bare feet, one hand on the knee and the
+  right hand pointing. The seated frog of the start screen and the laptop summon is unchanged (it
+  is the logo's pose). Placeholder art. | shipped
 - 2026-11-16 | Marek's request | The clock's freeze is now "time-stop planning": the frog sits
   cross-legged in the air at jump height, eyes shut, both katanas hanging beside it, and its
   right hand (on our left) points at the pointer in held directions 15 degrees apart. When time
