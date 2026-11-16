@@ -95,6 +95,14 @@ blade would do):
 - A roast chicken that a blade finds is carved: from then on it is cut, recut, cooked and paid by
   the rules of an apple. It never goes in the salad. (A digital roast chicken, and a seagull out
   cold but not roasted, are still knocked up by a hit as before.)
+- Fireworks burned by a plain or a sake breath are taken into the breath: for the rest of it, a
+  rocket leaves the mouth every 0.2 s and bursts about the point aimed at, blowing up what it
+  reaches (red; golden on a sake breath). A hacking breath or a fire blade only sets the bundle
+  off, as a slash does.
+- The Old Master (second character, picked on the first page of the hints; for fun, never on the
+  scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, every
+  stroke repeated by a second blade mirrored left to right, three times the fruit. His runs carry
+  a `char elder` event in the log: leave them out of balance work.
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)

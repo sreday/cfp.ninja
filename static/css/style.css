@@ -1554,6 +1554,16 @@ a:hover {
 .fg-stamina b { display: block; height: 100%; width: 100%; background: linear-gradient(#b6d36a, #98b74b); }
 .fg-stamina.empty { border-color: #e53935; box-shadow: 0 0 14px 3px rgba(229,57,53,.75); animation: fg-empty 0.9s ease-in-out infinite; }
 .fg-stamina.flash { animation: fg-flash .25s linear 2; }   /* out of stamina: it flashes red, it never moves */
+/* the old master has no stamina: one plain grey bar */
+.fg-elder .fg-stamina i { border-radius: 0; margin: 0 -5px; border-color: #777; border-left-color: transparent; border-right-color: transparent; }
+.fg-elder .fg-stamina i:first-child { border-radius: 7px 0 0 7px; margin-left: 0; border-left-color: #777; }
+.fg-elder .fg-stamina i:last-of-type { border-radius: 0 7px 7px 0; margin-right: 0; border-right-color: #777; }
+.fg-elder .fg-stamina b { background: #8a8f93; width: 100% !important; }
+.fg-elder .fg-stam-lock { display: none; }
+.fg-chars { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 0 0 10px; margin-bottom: 8px; border-bottom: 1px solid var(--border); }
+.fg-chars span { flex: 1 1 100%; color: var(--text-secondary); font-size: .85rem; line-height: 1.3; }
+.fg-char { cursor: pointer; }
+.fg-char[aria-pressed="true"] { background: #4f7a1c; color: #fff; border-color: #4f7a1c; }
 .fg-stamina.gold { border-color: #f5c542; box-shadow: 0 0 16px 4px rgba(245,197,66,.8); }
 .fg-stamina.gold b { background: linear-gradient(#ffe082, #f5c542); }
 /* sake: the five bars slide together into one glowing bar (and apart again when it ends) */

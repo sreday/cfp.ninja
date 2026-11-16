@@ -53,6 +53,16 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   stands on one foot rocking (that was the front drawing tilted): seen from the side it goes over
   backward in four held drawings, arms wheeling, faster as time runs out; only while idle.
   Not done: the fall at time-up is still the front drawing tumbling. | shipped, placeholder art
+- 2026-11-16 | Marek's request | Second character, the Old Master: dark grey frog, topknot, wild
+  grey hair, white brows, long beard, white robe (the rig redrawn in his colours with his own
+  hair and beard on the front and profile heads). Rules in PRINCIPLES. Open: his runs will be
+  very long (three times the fruit, two blades, no stamina, same fruit prices): nothing was
+  rebalanced. The head thrown back and the three-quarter head have no beard (he never breathes
+  fire). The flowered lapels are hidden under the beard from the front. The hint pictures and
+  the corner icon still show the green frog. Switching reloads the page. | shipped, placeholder
+- 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
+  from one bundle against 13 scattered ones when slashed: likely the stronger use now, to check
+  against `val fireworks` once there are runs. | shipped, watch
 - 2026-11-16 | Marek: "redraw the base" | The seated frog of the start screen and the laptop
   summon is redrawn as a figure: slim torso, an upper arm from each shoulder to the elbow, thighs
   out to the knees, shins crossed under the laptop, bare feet. No longer the logo's outline.

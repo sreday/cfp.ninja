@@ -7,6 +7,7 @@ const C = {
     green: '#98b74b', red: '#a3211d', redHi: '#ba2823', belly: '#f1eda4',
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
 };
+const ELDER_FRUIT = 3;                          // the old master gets this many times the fruit
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
 const TIME_BIG = 0.1, TIME_STEP = 0.05;         // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.15 .. 0.45)
@@ -28,6 +29,7 @@ const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops,
 // and can't slash or use the tongue meanwhile. The breath lights them, a clock can mark
 // them, and one blast sets off any other bundle it reaches. A blast burns fruit outright for FW_BONUS more
 // time than a normal burn, and breaks crates open.
+const FW_BREATH_EVERY = 0.2;                     // a breath that burned fireworks: seconds between the rockets it shoots
 const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 10, FW_SHOT_GAP = 0.04, FW_BONUS = 1.5;
 const FW_FIRST = [26, 40], FW_NEXT = [42, 65];
 // The CFP.ninja laptop: twice as rare as the crate and the fireworks. Slashed, it is wrecked like
@@ -145,12 +147,40 @@ function katana(id, withSheath, k = 1) {
     </g></g>`;
 }
 
+// The rig is drawn in one character's colours at a time (P): the frog ninja's, or the old master's.
+// The old master: a dark grey frog with a topknot, wild grey hair, heavy white brows and a long beard,
+// in a white robe with flowered lapels. Placeholder art, like the rest.
+const FROG = { green: C.green, red: C.red, redHi: C.redHi, belly: C.belly, band: C.red, bandHi: C.redHi };
+const ELDER = { elder: true, green: '#6b7378', red: '#f2f0ea', redHi: '#d5d1c6', belly: '#b9bfc2', band: '#c3c7cb', bandHi: '#e4e6e8' };
+let P = FROG;
+const HAIR = '#dfe2e4';
+// flowered lapel: a strip of orange brocade with small flowers on it (pts: the strip's outline; dots: where the flowers go)
+const lapel = (d, dots) => `<path d="${d}" fill="#e8963a" stroke="#000" stroke-width="16"/>` + dots.map(([x, y], i) => `<circle cx="${x}" cy="${y}" r="20" fill="${['#3f6fb5', '#fff7e0', '#c8402f', '#5d9b4a'][i % 4]}"/><circle cx="${x}" cy="${y}" r="7" fill="#f6d04d"/>`).join('');
+const ELDER_FRONT_BACK = () => !P.elder ? '' : `
+            <path d="M540 360 L372 470 L470 486 L360 640 L500 600 L452 730 L600 610 Z M1446 360 L1614 470 L1516 486 L1626 640 L1486 600 L1534 730 L1386 610 Z" fill="${HAIR}" stroke="#000" stroke-width="18"/>
+            <ellipse cx="993" cy="88" rx="104" ry="96" fill="${P.band}" stroke="#000" stroke-width="22"/>
+            <path d="M925 150 L1061 150 L1052 196 L934 196 Z" fill="#8d2f2a" stroke="#000" stroke-width="14"/>`;
+const ELDER_FRONT = () => !P.elder ? '' : `
+            <g class="fg-elder-face">
+            <path d="M700 742 Q993 866 1286 742 Q1262 1010 1110 1190 Q1046 1290 993 1340 Q940 1290 876 1190 Q724 1010 700 742 Z" fill="${HAIR}" stroke="#000" stroke-width="22"/>
+            <path d="M860 900 Q900 1060 960 1200 M993 880 L993 1250 M1126 900 Q1086 1060 1026 1200" stroke="#9aa0a5" stroke-width="12" fill="none"/>
+            <path d="M993 668 Q850 676 730 800 Q880 786 993 730 Q1106 786 1256 800 Q1136 676 993 668 Z" fill="#fff" stroke="#000" stroke-width="18"/>
+            <path d="M548 452 Q700 330 936 430 Q760 404 600 506 Z M1438 452 Q1286 330 1050 430 Q1226 404 1386 506 Z" fill="#fff" stroke="#000" stroke-width="16"/>
+            </g>`;
+const ELDER_SIDE = () => !P.elder ? '' : `
+            <path d="M650 40 L470 150 L590 160 L500 310 L690 210 Z" fill="${HAIR}" stroke="#000" stroke-width="18"/>
+            <ellipse cx="980" cy="-316" rx="100" ry="92" fill="${P.band}" stroke="#000" stroke-width="22"/>
+            <path d="M920 -262 L1040 -262 L1034 -222 L926 -222 Z" fill="#8d2f2a" stroke="#000" stroke-width="14"/>
+            <path d="M1040 318 Q1300 350 1500 190 Q1570 520 1400 830 Q1356 920 1320 980 Q1250 860 1190 640 Q1120 470 1040 318 Z" fill="${HAIR}" stroke="#000" stroke-width="22"/>
+            <path d="M1240 420 Q1290 640 1330 860 M1400 360 Q1420 560 1380 760" stroke="#9aa0a5" stroke-width="12" fill="none"/>
+            <path d="M1320 176 Q1470 96 1572 196 Q1568 330 1506 430 Q1492 304 1372 276 Z" fill="#fff" stroke="#000" stroke-width="16"/>
+            <path d="M1010 -30 Q1180 -120 1380 -40 Q1200 -50 1050 30 Z" fill="#fff" stroke="#000" stroke-width="16"/>`;
 function arm(id) {
     // a forearm from the elbow; the held katana sits in the hand
     return `<g id="${id}"><g transform="scale(${ARM_K})">
         <g class="fg-limb">
-            <rect x="-19" y="-8" width="38" height="58" rx="17" fill="${C.red}" stroke="#000" stroke-width="7"/>
-            <ellipse cx="0" cy="58" rx="18" ry="16" fill="${C.green}" stroke="#000" stroke-width="7"/>
+            <rect x="-19" y="-8" width="38" height="58" rx="17" fill="${P.red}" stroke="#000" stroke-width="7"/>
+            <ellipse cx="0" cy="58" rx="18" ry="16" fill="${P.green}" stroke="#000" stroke-width="7"/>
         </g>
         <g class="fg-held" opacity="0">${katana(id + '-k', false, BACK_K / ARM_K)}</g>
         <!-- on sake: the bottle, gripped round the neck (the same tokkuri as the power-up) -->
@@ -161,7 +191,7 @@ function arm(id) {
             <rect x="-9.5" y="-52" width="19" height="8" fill="#6d4c41" stroke="#000" stroke-width="4"/>
         </g></g>
         <!-- the hand again, over the grip: green fingers closed round the katana -->
-        <g class="fg-hand"><ellipse cx="0" cy="0" rx="19" ry="15" fill="${C.green}" stroke="#000" stroke-width="7"/><path d="M-11 -5 L11 -5 M-12 3 L12 3" stroke="#000" stroke-width="3" stroke-linecap="round" opacity=".45"/></g>
+        <g class="fg-hand"><ellipse cx="0" cy="0" rx="19" ry="15" fill="${P.green}" stroke="#000" stroke-width="7"/><path d="M-11 -5 L11 -5 M-12 3 L12 3" stroke="#000" stroke-width="3" stroke-linecap="round" opacity=".45"/></g>
     </g></g>`;
 }
 
@@ -223,25 +253,25 @@ const POLE_SVG = `
     <ellipse cx="50" cy="14" rx="11" ry="2.6" fill="none" stroke="#6f6359" stroke-width="2" vector-effect="non-scaling-stroke"/>
 </svg>`;
 
-const FROG_SVG = `
+const frogSvg = pal => { P = pal; const svg = `
 <svg class="fg-frog" viewBox="0 0 1986 1876" aria-hidden="true">
     <defs><clipPath id="fg-headclip"><path d="${HEAD}"/></clipPath><clipPath id="fg-side3clip"><path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z"/></clipPath><clipPath id="fg-sideclip"><path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z"/></clipPath></defs>
     <ellipse id="fg-shadow" cx="993" cy="1700" rx="905" ry="80" fill="#000"/>
     <g id="fg-stand" opacity="0" stroke-linejoin="round">
         <g id="fg-legL">
-        <ellipse cx="820" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
-        <path d="M716 860 L940 860 L906 1630 L758 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
-        <path d="M756 1560 L910 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+        <ellipse cx="820" cy="1668" rx="190" ry="58" fill="${P.green}" stroke="#000" stroke-width="22"/>
+        <path d="M716 860 L940 860 L906 1630 L758 1630 Z" fill="${P.red}" stroke="#000" stroke-width="22"/>
+        <path d="M756 1560 L910 1560" stroke="${P.redHi}" stroke-width="26" fill="none"/>
         </g>
         <g id="fg-legR">
-        <ellipse cx="1166" cy="1668" rx="190" ry="58" fill="${C.green}" stroke="#000" stroke-width="22"/>
-        <path d="M1046 860 L1270 860 L1228 1630 L1080 1630 Z" fill="${C.red}" stroke="#000" stroke-width="22"/>
-        <path d="M1076 1560 L1232 1560" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+        <ellipse cx="1166" cy="1668" rx="190" ry="58" fill="${P.green}" stroke="#000" stroke-width="22"/>
+        <path d="M1046 860 L1270 860 L1228 1630 L1080 1630 Z" fill="${P.red}" stroke="#000" stroke-width="22"/>
+        <path d="M1076 1560 L1232 1560" stroke="${P.redHi}" stroke-width="26" fill="none"/>
         </g>
         <!-- in the air: each leg bent its own amount (the outlines are written afresh for every jump, see airLegs) -->
         <g id="fg-jumplegs" opacity="0" stroke-linecap="round" stroke-linejoin="round">
-            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${C.red}" stroke-width="132"/><path fill="none" stroke="${C.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/>
-            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${C.red}" stroke-width="132"/><path fill="none" stroke="${C.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/>
+            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${P.red}" stroke-width="132"/><path fill="none" stroke="${P.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${P.green}" stroke="#000" stroke-width="22"/>
+            <path fill="none" stroke="#000" stroke-width="176"/><path fill="none" stroke="${P.red}" stroke-width="132"/><path fill="none" stroke="${P.redHi}" stroke-width="26" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${P.green}" stroke="#000" stroke-width="22"/>
         </g>
     </g>
 
@@ -249,39 +279,39 @@ const FROG_SVG = `
          Three sets of legs (a lunge, a crouch, a stretch) and a top half that rotates at the hip. -->
     <g id="fg-side" opacity="0" stroke-linejoin="round" stroke-linecap="round">
         <g id="fg-side-legs">
-        <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
-        <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
-        <g id="fg-sl-tuck" opacity="0" stroke-linecap="round" stroke-linejoin="round"><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${C.red}" stroke-width="112"/><path fill="none" stroke="${C.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${C.green}" stroke="#000" stroke-width="22"/></g>
-        <g id="fg-sl-lunge" opacity="0"><ellipse cx="520" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1350" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
-        <g id="fg-sl-leap" opacity="0"><ellipse cx="470" cy="1470" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(38 470 1470)"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1230" cy="1300" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-20 1230 1300)"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-level"><ellipse cx="560" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L770 1290 L590 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1290 1250 L1250 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-down" opacity="0"><ellipse cx="640" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1000 L690 1260 L650 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1300" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1000 L1350 1250 L1250 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-tuck" opacity="0" stroke-linecap="round" stroke-linejoin="round"><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${P.red}" stroke-width="112"/><path fill="none" stroke="${P.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${P.green}" stroke="#000" stroke-width="22"/><path fill="none" stroke="#000" stroke-width="158"/><path fill="none" stroke="${P.red}" stroke-width="112"/><path fill="none" stroke="${P.redHi}" stroke-width="22" stroke-linecap="butt"/><ellipse rx="170" ry="54" fill="${P.green}" stroke="#000" stroke-width="22"/></g>
+        <g id="fg-sl-lunge" opacity="0"><ellipse cx="520" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 1060 L770 1400 L560 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1350" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 1060 L1390 1290 L1300 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-leap" opacity="0"><ellipse cx="470" cy="1470" rx="170" ry="56" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(38 470 1470)"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L760 1180 L540 1420" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1230" cy="1300" rx="170" ry="56" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(-20 1230 1300)"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1330 1040 L1250 1280" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         <!-- losing its footing: back on the heel of one foot (toes up), the other leg kicked out in front for balance -->
-        <g id="fg-sl-teeter" opacity="0"><ellipse cx="1420" cy="1330" rx="170" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-52 1420 1330)"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="860" cy="1650" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-16 860 1650)"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
-        <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${C.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${C.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-teeter" opacity="0"><ellipse cx="1420" cy="1330" rx="170" ry="56" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(-52 1420 1330)"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1010 900 L1250 1120 L1370 1370" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="860" cy="1650" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(-16 860 1650)"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L900 1290 L840 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g id="fg-sl-up" opacity="0"><ellipse cx="880" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M980 900 L930 1290 L900 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="1090" cy="1668" rx="185" ry="56" fill="${P.green}" stroke="#000" stroke-width="22"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="#000" stroke-width="158" stroke-linecap="round" stroke-linejoin="round"/><path d="M1020 900 L1080 1290 L1060 1630" fill="none" stroke="${P.red}" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/></g>
         </g>
         <g id="fg-side-top">
             ${arm('fg-sarmB')}
-            <path id="fg-side-hem" d="M880 850 L1120 850 L1250 1090 Q1010 1150 790 1080 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-            <path d="M880 330 C846 500 872 700 896 890 L1112 890 C1150 700 1164 500 1104 330 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-            <path d="M1010 340 L1108 340 L1112 500 Z" fill="${C.belly}" stroke="#000" stroke-width="14"/>
+            <path id="fg-side-hem" d="M880 850 L1120 850 L1250 1090 Q1010 1150 790 1080 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
+            <path d="M880 330 C846 500 872 700 896 890 L1112 890 C1150 700 1164 500 1104 330 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
+            <path d="M1010 340 L1108 340 L1112 500 Z" fill="${P.belly}" stroke="#000" stroke-width="14"/>
             <path d="M884 836 L1122 836 L1116 900 L892 900 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
             <path d="M900 900 L850 1040 L920 1020 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
-            <path d="M900 460 Q884 620 900 780" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+            <path d="M900 460 Q884 620 900 780" stroke="${P.redHi}" stroke-width="26" fill="none"/>
             <g id="fg-side-tail">
-                <path d="M670 -50 L330 -120 L400 16 L620 24 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
-                <path d="M660 20 L370 110 L490 196 L640 104 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+                <path d="M670 -50 L330 -120 L400 16 L620 24 Z" fill="${P.band}" stroke="#000" stroke-width="18"/>
+                <path d="M660 20 L370 110 L490 196 L640 104 Z" fill="${P.band}" stroke="#000" stroke-width="18"/>
             </g>
             <g id="fg-side-headP">
-            <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="${C.green}"/>
+            <path d="M640 80 C640 -140 860 -290 1090 -280 C1300 -272 1420 -150 1450 -20 C1540 10 1560 150 1470 230 C1380 330 1100 390 900 370 C740 350 640 230 640 80 Z" fill="${P.green}"/>
             <circle cx="1200" cy="70" r="135" fill="#fff"/>
             <circle cx="1238" cy="78" r="90" fill="#000"/>
             <circle cx="1268" cy="24" r="38" fill="#fff"/>
-            <g class="fg-lid" opacity="0"><path d="M1059 58 A 141 141 0 0 1 1341 58 Q 1200 96 1059 58 Z" fill="${C.green}"/><path d="M1063 58 Q 1200 96 1337 58" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1200" cy="70" r="141" fill="${C.green}"/><path d="M1075 74 Q 1200 154 1325 74" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M1059 58 A 141 141 0 0 1 1341 58 Q 1200 96 1059 58 Z" fill="${P.green}"/><path d="M1063 58 Q 1200 96 1337 58" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1200" cy="70" r="141" fill="${P.green}"/><path d="M1075 74 Q 1200 154 1325 74" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-sideclip)">
-                <path d="M500 -420 L1640 -420 L1640 -50 L1450 -30 Q1330 70 1200 30 Q1010 -10 620 50 L500 50 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
-                <path d="M650 -60 Q1050 -150 1440 -90" stroke="${C.redHi}" stroke-width="34" fill="none"/>
-                <path d="M800 250 Q1160 330 1520 130 L1600 420 L700 440 Z" fill="${C.belly}"/>
+                <path d="M500 -420 L1640 -420 L1640 -50 L1450 -30 Q1330 70 1200 30 Q1010 -10 620 50 L500 50 Z" fill="${P.band}" stroke="#000" stroke-width="20"/>
+                <path d="M650 -60 Q1050 -150 1440 -90" stroke="${P.bandHi}" stroke-width="34" fill="none"/>
+                <path d="M800 250 Q1160 330 1520 130 L1600 420 L700 440 Z" fill="${P.belly}"/>
             </g>
-            <path id="fg-side-smile" d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>
+            <path id="fg-side-smile" d="M930 262 Q1220 300 1500 138" stroke="#000" stroke-width="22" fill="none"/>${ELDER_SIDE()}
             <!-- breathing fire, in profile: the jaws apart at the front -->
             <g id="fg-side-mouth-open" opacity="0">
                 <path d="M1090 262 Q1300 232 1502 128 Q1492 214 1410 268 Q1260 334 1090 262 Z" fill="#5a1010" stroke="#000" stroke-width="20"/>
@@ -292,28 +322,28 @@ const FROG_SVG = `
             </g>
             <!-- the three-quarter head, for cuts close to the frog: both eyes, the near one bigger -->
             <g id="fg-side-headQ" opacity="0">
-            <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="${C.green}"/>
+            <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="${P.green}"/>
             <circle cx="925" cy="20" r="128" fill="#fff"/>
             <circle cx="1285" cy="24" r="142" fill="#fff"/>
             <circle cx="962" cy="28" r="86" fill="#000"/>
             <circle cx="1326" cy="32" r="96" fill="#000"/>
             <circle cx="984" cy="-2" r="30" fill="#fff"/>
             <circle cx="1350" cy="0" r="34" fill="#fff"/>
-            <g class="fg-lid" opacity="0"><path d="M791 8 A 134 134 0 0 1 1059 8 Q 925 46 791 8 Z" fill="${C.green}"/><path d="M795 8 Q 925 46 1055 8" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="925" cy="20" r="134" fill="${C.green}"/><path d="M807 24 Q 925 104 1043 24" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
-            <g class="fg-lid" opacity="0"><path d="M1137 12 A 148 148 0 0 1 1433 12 Q 1285 50 1137 12 Z" fill="${C.green}"/><path d="M1141 12 Q 1285 50 1429 12" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1285" cy="24" r="148" fill="${C.green}"/><path d="M1153 28 Q 1285 108 1417 28" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M791 8 A 134 134 0 0 1 1059 8 Q 925 46 791 8 Z" fill="${P.green}"/><path d="M795 8 Q 925 46 1055 8" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="925" cy="20" r="134" fill="${P.green}"/><path d="M807 24 Q 925 104 1043 24" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+            <g class="fg-lid" opacity="0"><path d="M1137 12 A 148 148 0 0 1 1433 12 Q 1285 50 1137 12 Z" fill="${P.green}"/><path d="M1141 12 Q 1285 50 1429 12" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1285" cy="24" r="148" fill="${P.green}"/><path d="M1153 28 Q 1285 108 1417 28" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             <g clip-path="url(#fg-side3clip)">
                 <!-- the band sits on top of the eyes and dips between them, like the logo: that dip is the frown -->
-                <path d="M460 -420 L1660 -420 L1660 -118 L1470 -118 Q1300 -92 1168 8 Q1108 42 1048 8 Q930 -84 790 -118 L460 -118 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M460 -420 L1660 -420 L1660 -118 L1470 -118 Q1300 -92 1168 8 Q1108 42 1048 8 Q930 -84 790 -118 L460 -118 Z" fill="${P.band}" stroke="#000" stroke-width="20"/>
                 <path d="M640 -190 Q1050 -230 1460 -190" stroke="#000" stroke-width="16" fill="none"/>
-                <path d="M650 -158 Q1050 -196 1450 -158" stroke="${C.redHi}" stroke-width="34" fill="none"/>
-                <path d="M720 240 Q1140 340 1530 150 L1620 430 L640 450 Z" fill="${C.belly}"/>
+                <path d="M650 -158 Q1050 -196 1450 -158" stroke="${P.redHi}" stroke-width="34" fill="none"/>
+                <path d="M720 240 Q1140 340 1530 150 L1620 430 L640 450 Z" fill="${P.belly}"/>
             </g>
             <path d="M790 250 Q1170 320 1510 152" stroke="#000" stroke-width="22" fill="none"/>
             <ellipse cx="1404" cy="118" rx="12" ry="18" fill="#000" transform="rotate(-20 1404 118)"/>
             <ellipse cx="1462" cy="100" rx="12" ry="18" fill="#000" transform="rotate(25 1462 100)"/>
             <path d="M600 70 C600 -150 820 -290 1060 -285 C1290 -280 1450 -170 1490 -10 C1560 60 1550 190 1470 250 C1360 340 1080 390 880 368 C700 345 600 220 600 70 Z" fill="none" stroke="#000" stroke-width="26"/>
             </g>
-            <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${C.red}" stroke="#000" stroke-width="22"/>
+            <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${P.red}" stroke="#000" stroke-width="22"/>
             ${arm('fg-sarmF')}
         </g>
     </g>
@@ -324,71 +354,72 @@ const FROG_SVG = `
         </g>
         <g id="fg-body">
             <!-- seated: the same slim torso as when it stands, carried down to the hips (the laptop hides most of it) -->
-            <path id="fg-robe-sit" d="M676 800 C640 900 680 1040 700 1160 L690 1420 L1296 1420 L1286 1160 C1306 1040 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+            <path id="fg-robe-sit" d="M676 800 C640 900 680 1040 700 1160 L690 1420 L1296 1420 L1286 1160 C1306 1040 1346 900 1310 800 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
             <g id="fg-robe-up" opacity="0">
                 <!-- standing: a slim tunic, narrow at the waist, with a short flared hem that swings -->
-                <path id="fg-hem" d="M720 1090 L1266 1090 L1392 1330 Q1200 1392 993 1350 Q786 1392 594 1330 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
+                <path id="fg-hem" d="M720 1090 L1266 1090 L1392 1330 Q1200 1392 993 1350 Q786 1392 594 1330 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
+                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
                 <path d="M712 1066 L1274 1066 L1266 1126 L720 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
                 <path d="M900 1126 L870 1250 L930 1236 Z M956 1126 L990 1262 L1030 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
-                <path d="M700 900 Q740 980 760 1050" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+                <path d="M700 900 Q740 980 760 1050" stroke="${P.redHi}" stroke-width="26" fill="none"/>
             </g>
-            <path d="M690 780 L860 915 L1126 915 L1296 780 Z" fill="${C.belly}" stroke="#000" stroke-width="18"/>
+            <path d="M690 780 L860 915 L1126 915 L1296 780 Z" fill="${P.belly}" stroke="#000" stroke-width="18"/>
             <path d="M590 772 L652 920 M1396 772 L1334 920" stroke="#000" stroke-width="18" fill="none"/>
+            ${P.elder ? lapel('M690 780 L770 780 L960 1056 L880 1056 Z', [[752, 830], [806, 908], [860, 986]]) + lapel('M1296 780 L1216 780 L1026 1056 L1106 1056 Z', [[1234, 830], [1180, 908], [1126, 986]]) : ''}
             <g id="fg-sleeves-sit">
             <!-- seated: an upper arm in its sleeve from each shoulder out to the elbow; the forearm carries on to the laptop -->
             <path d="M690 870 L440 1090 M1296 870 L1546 1090" stroke="#000" stroke-width="196" fill="none"/>
-            <path d="M690 870 L440 1090 M1296 870 L1546 1090" stroke="${C.red}" stroke-width="148" fill="none"/>
-            <path d="M610 850 Q500 930 420 1020 M1376 850 Q1486 930 1566 1020" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+            <path d="M690 870 L440 1090 M1296 870 L1546 1090" stroke="${P.red}" stroke-width="148" fill="none"/>
+            <path d="M610 850 Q500 930 420 1020 M1376 850 Q1486 930 1566 1020" stroke="${P.redHi}" stroke-width="26" fill="none"/>
             </g>
             <g id="fg-sleeves-up" opacity="0">
-            <ellipse cx="672" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
-            <ellipse cx="1314" cy="900" rx="96" ry="86" fill="${C.red}" stroke="#000" stroke-width="22"/>
+            <ellipse cx="672" cy="900" rx="96" ry="86" fill="${P.red}" stroke="#000" stroke-width="22"/>
+            <ellipse cx="1314" cy="900" rx="96" ry="86" fill="${P.red}" stroke="#000" stroke-width="22"/>
             </g>
             <!-- seated on the post, cross-legged with the laptop in its lap: the thighs go out to a knee on each side,
                  the shins cross in front under the laptop, a bare foot at the end of each -->
             <g id="fg-sit">
-                <path d="M724 1220 C560 1248 356 1356 336 1460 C326 1554 450 1582 600 1568 L1386 1568 C1536 1582 1660 1554 1650 1460 C1630 1356 1426 1248 1262 1220 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
-                <path d="M420 1430 Q520 1350 660 1320 M1566 1430 Q1466 1350 1326 1320" stroke="${C.redHi}" stroke-width="30" fill="none"/>
-                <ellipse cx="770" cy="1592" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1592)"/>
-                <path d="M1500 1508 L850 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1508 L850 1586" stroke="${C.red}" stroke-width="112" fill="none"/>
-                <ellipse cx="1216" cy="1592" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1592)"/>
-                <path d="M486 1508 L1136 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1508 L1136 1586" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <path d="M724 1220 C560 1248 356 1356 336 1460 C326 1554 450 1582 600 1568 L1386 1568 C1536 1582 1660 1554 1650 1460 C1630 1356 1426 1248 1262 1220 Z" fill="${P.red}" stroke="#000" stroke-width="26"/>
+                <path d="M420 1430 Q520 1350 660 1320 M1566 1430 Q1466 1350 1326 1320" stroke="${P.redHi}" stroke-width="30" fill="none"/>
+                <ellipse cx="770" cy="1592" rx="112" ry="64" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1592)"/>
+                <path d="M1500 1508 L850 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1508 L850 1586" stroke="${P.red}" stroke-width="112" fill="none"/>
+                <ellipse cx="1216" cy="1592" rx="112" ry="64" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1592)"/>
+                <path d="M486 1508 L1136 1586" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1508 L1136 1586" stroke="${P.red}" stroke-width="112" fill="none"/>
                 <path d="M1196 1550 L1180 1630 M1248 1548 L1240 1634 M750 1550 L766 1630" stroke="#000" stroke-width="12" fill="none"/>
             </g>
             <!-- the clock's planning: its own drawing of the frog sitting cross-legged. A slim torso and belt as
                  when it stands, the thighs spread to the knees, the shins crossed in front, a bare foot at the end of each -->
             <g id="fg-plan" opacity="0">
-                <path d="M724 1090 C560 1118 356 1226 336 1330 C326 1424 450 1452 600 1438 L1386 1438 C1536 1452 1660 1424 1650 1330 C1630 1226 1426 1118 1262 1090 Z" fill="${C.red}" stroke="#000" stroke-width="26"/>
-                <path d="M420 1300 Q520 1220 660 1190 M1566 1300 Q1466 1220 1326 1190" stroke="${C.redHi}" stroke-width="30" fill="none"/>
-                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${C.red}" stroke="#000" stroke-width="24"/>
-                <path d="M700 900 Q740 980 760 1050" stroke="${C.redHi}" stroke-width="26" fill="none"/>
+                <path d="M724 1090 C560 1118 356 1226 336 1330 C326 1424 450 1452 600 1438 L1386 1438 C1536 1452 1660 1424 1650 1330 C1630 1226 1426 1118 1262 1090 Z" fill="${P.red}" stroke="#000" stroke-width="26"/>
+                <path d="M420 1300 Q520 1220 660 1190 M1566 1300 Q1466 1220 1326 1190" stroke="${P.redHi}" stroke-width="30" fill="none"/>
+                <path d="M676 800 C640 900 690 1010 724 1100 L1262 1100 C1296 1010 1346 900 1310 800 Z" fill="${P.red}" stroke="#000" stroke-width="24"/>
+                <path d="M700 900 Q740 980 760 1050" stroke="${P.redHi}" stroke-width="26" fill="none"/>
                 <path d="M712 1066 L1274 1066 L1266 1126 L720 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="14"/>
                 <path d="M900 1126 L870 1250 L930 1236 Z M956 1126 L990 1262 L1030 1126 Z" fill="#1c1c1c" stroke="#000" stroke-width="12"/>
-                <ellipse cx="770" cy="1462" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1462)"/>
-                <path d="M1500 1378 L850 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1378 L850 1456" stroke="${C.red}" stroke-width="112" fill="none"/>
-                <ellipse cx="1216" cy="1462" rx="112" ry="64" fill="${C.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1462)"/>
-                <path d="M486 1378 L1136 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1378 L1136 1456" stroke="${C.red}" stroke-width="112" fill="none"/>
+                <ellipse cx="770" cy="1462" rx="112" ry="64" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(8 770 1462)"/>
+                <path d="M1500 1378 L850 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M1500 1378 L850 1456" stroke="${P.red}" stroke-width="112" fill="none"/>
+                <ellipse cx="1216" cy="1462" rx="112" ry="64" fill="${P.green}" stroke="#000" stroke-width="22" transform="rotate(-8 1216 1462)"/>
+                <path d="M486 1378 L1136 1456" stroke="#000" stroke-width="160" fill="none"/><path d="M486 1378 L1136 1456" stroke="${P.red}" stroke-width="112" fill="none"/>
                 <path d="M1196 1420 L1180 1500 M1248 1418 L1240 1504 M750 1420 L766 1500" stroke="#000" stroke-width="12" fill="none"/>
             </g>
         </g>
         <g id="fg-tail">
-            <path d="M622 248 L305 192 L380 318 L565 302 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
-            <path d="M592 318 L352 386 L462 466 L578 376 Z" fill="${C.red}" stroke="#000" stroke-width="18"/>
+            <path d="M622 248 L305 192 L380 318 L565 302 Z" fill="${P.band}" stroke="#000" stroke-width="18"/>
+            <path d="M592 318 L352 386 L462 466 L578 376 Z" fill="${P.band}" stroke="#000" stroke-width="18"/>
         </g>
         <g id="fg-headup" opacity="0">
             <!-- head thrown right back, seen from the front: the pale throat fills the view, the open mouth is at the top, the eyes are two bumps behind it -->
-            <circle cx="800" cy="262" r="92" fill="${C.green}" stroke="#000" stroke-width="22"/>
-            <circle cx="1186" cy="262" r="92" fill="${C.green}" stroke="#000" stroke-width="22"/>
-            <path d="M548 520 Q548 250 993 236 Q1438 250 1438 520 Q1438 800 993 850 Q548 800 548 520 Z" fill="${C.green}" stroke="#000" stroke-width="26"/>
-            <path d="M600 540 Q600 330 993 318 Q1386 330 1386 540 Q1386 770 993 812 Q600 770 600 540 Z" fill="${C.belly}" stroke="#000" stroke-width="18"/>
+            <circle cx="800" cy="262" r="92" fill="${P.green}" stroke="#000" stroke-width="22"/>
+            <circle cx="1186" cy="262" r="92" fill="${P.green}" stroke="#000" stroke-width="22"/>
+            <path d="M548 520 Q548 250 993 236 Q1438 250 1438 520 Q1438 800 993 850 Q548 800 548 520 Z" fill="${P.green}" stroke="#000" stroke-width="26"/>
+            <path d="M600 540 Q600 330 993 318 Q1386 330 1386 540 Q1386 770 993 812 Q600 770 600 540 Z" fill="${P.belly}" stroke="#000" stroke-width="18"/>
             <path d="M720 610 Q993 700 1266 610" stroke="#000" stroke-width="14" fill="none" opacity=".35"/>
             <path d="M780 700 Q993 760 1206 700" stroke="#000" stroke-width="14" fill="none" opacity=".35"/>
             <ellipse cx="993" cy="330" rx="270" ry="92" fill="#5a1010" stroke="#000" stroke-width="22"/>
             <ellipse cx="993" cy="352" rx="170" ry="48" fill="#e57373"/>
         </g>
-        <g id="fg-head">
-            <path d="${HEAD}" fill="${C.green}"/>
+        <g id="fg-head">${ELDER_FRONT_BACK()}
+            <path d="${HEAD}" fill="${P.green}"/>
             <g id="fg-eyes">
                 <circle cx="768" cy="${EYE_Y}" r="140" fill="#fff"/>
                 <circle cx="1218" cy="${EYE_Y}" r="140" fill="#fff"/>
@@ -399,16 +430,16 @@ const FROG_SVG = `
                     <circle cx="1164" cy="${EYE_Y - 50}" r="40" fill="#fff"/>
                 </g>
                 <!-- on sake: the eyelids half down (each view of the head has its own) -->
-                <g class="fg-lid" opacity="0"><path d="M622 488 A 146 146 0 0 1 914 488 Q 768 526 622 488 Z" fill="${C.green}"/><path d="M626 488 Q 768 526 910 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="768" cy="500" r="146" fill="${C.green}"/><path d="M638 504 Q 768 584 898 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
-                <g class="fg-lid" opacity="0"><path d="M1072 488 A 146 146 0 0 1 1364 488 Q 1218 526 1072 488 Z" fill="${C.green}"/><path d="M1076 488 Q 1218 526 1360 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1218" cy="500" r="146" fill="${C.green}"/><path d="M1088 504 Q 1218 584 1348 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+                <g class="fg-lid" opacity="0"><path d="M622 488 A 146 146 0 0 1 914 488 Q 768 526 622 488 Z" fill="${P.green}"/><path d="M626 488 Q 768 526 910 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="768" cy="500" r="146" fill="${P.green}"/><path d="M638 504 Q 768 584 898 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
+                <g class="fg-lid" opacity="0"><path d="M1072 488 A 146 146 0 0 1 1364 488 Q 1218 526 1072 488 Z" fill="${P.green}"/><path d="M1076 488 Q 1218 526 1360 488" stroke="#000" stroke-width="18" fill="none" stroke-linecap="round"/></g><g class="fg-shut" opacity="0"><circle cx="1218" cy="500" r="146" fill="${P.green}"/><path d="M1088 504 Q 1218 584 1348 504" stroke="#000" stroke-width="20" fill="none" stroke-linecap="round"/></g>
             </g>
             <g clip-path="url(#fg-headclip)">
-                <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${C.red}" stroke="#000" stroke-width="20"/>
+                <path d="M300 0 L1700 0 L1700 362 L1392 362 Q1220 390 1066 478 Q993 512 920 478 Q766 390 594 362 L300 362 Z" fill="${P.band}" stroke="#000" stroke-width="20"/>
                 <path d="M590 262 Q993 232 1396 262" stroke="#000" stroke-width="16" fill="none"/>
-                <path d="M605 296 Q993 268 1381 296" stroke="${C.redHi}" stroke-width="34" fill="none"/>
-                <path d="M597 642 Q993 770 1389 642 Q1376 724 1290 772 Q1150 840 993 846 Q836 840 696 772 Q610 724 597 642 Z" fill="${C.belly}"/>
+                <path d="M605 296 Q993 268 1381 296" stroke="${P.bandHi}" stroke-width="34" fill="none"/>
+                <path d="M597 642 Q993 770 1389 642 Q1376 724 1290 772 Q1150 840 993 846 Q836 840 696 772 Q610 724 597 642 Z" fill="${P.belly}"/>
             </g>
-            <path id="fg-smile" d="M610 632 Q993 772 1376 632" stroke="#000" stroke-width="22" fill="none"/>
+            <path id="fg-smile" d="M610 632 Q993 772 1376 632" stroke="#000" stroke-width="22" fill="none"/>${ELDER_FRONT()}
             <!-- breathing fire: the mouth wide open, the nostrils above it -->
             <g id="fg-mouth-open" opacity="0">
                 <path d="M640 668 Q993 640 1346 668 Q1300 772 993 780 Q686 772 640 668 Z" fill="#5a1010" stroke="#000" stroke-width="22"/>
@@ -428,7 +459,7 @@ const FROG_SVG = `
             <rect x="575" y="1408" width="836" height="40" rx="20" fill="${C.laptopHi}" stroke="#000" stroke-width="16"/>
         </g>
     </g>
-</svg>`;
+</svg>`; P = FROG; return svg; };
 
 // ---------- fruit ----------
 // The watermelon is as big as the frog's head; each fruit down the line is 20% smaller
@@ -1173,7 +1204,14 @@ const mouseIcon = side => `<svg class="fg-mouse" viewBox="0 0 40 56" aria-hidden
 
 const SOUND_KEY = 'cfpninja.game.sound';
 
+const CHAR_KEY = 'cfpninja.game.character';
 export function mountFrogGame(stage, opts = {}) {
+    // The second character, the old master (chosen on the first page of the hints; not the official way to
+    // play, and never on the scoreboard): no stamina, no power-ups, crates or seagulls, every slash doubled and
+    // mirrored left to right, and three times the fruit.
+    let elder = false; try { elder = localStorage.getItem(CHAR_KEY) === 'elder'; } catch (e) { /* private mode */ }
+    const bestKey = BEST_KEY + (elder ? '.elder' : '');
+    stage.classList.toggle('fg-elder', elder);
     // sound: off until the megaphone is clicked, then remembered on this device
     const audio = createAudio();
     // Every sound is also noted in the run's log, whether or not the device is playing sound:
@@ -1193,7 +1231,7 @@ export function mountFrogGame(stage, opts = {}) {
         ${BEACH_SVG}
         <canvas class="fg-canvas-back"></canvas>
         ${POLE_SVG}
-        ${FROG_SVG}
+        ${frogSvg(elder ? ELDER : FROG)}
         <canvas class="fg-canvas"></canvas>
         <div class="fg-hud">
             <div class="fg-pill fg-mini"><span class="fg-label">Survived</span><b class="fg-score">0</b></div>
@@ -1227,6 +1265,10 @@ export function mountFrogGame(stage, opts = {}) {
                 </div>
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
+                        <div class="fg-chars"><b>Character</b>
+                            <button type="button" class="fg-pill fg-char" data-char="frog" aria-pressed="${!elder}">Frog Ninja</button>
+                            <button type="button" class="fg-pill fg-char" data-char="elder" aria-pressed="${elder}">Old Master</button>
+                            <span>Old Master, for fun and not on the scoreboard: no stamina, no power-ups, crates or seagulls, every slash doubled and mirrored, three times the fruit. Choosing restarts the game.</span></div>
                         <p class="fg-tip-lead">The clock never stops. Fruit buys time. Survive as long as you can.</p>
                         <div class="fg-row">${mouseIcon('L')}<div><b>${touch ? 'Swipe' : 'Left-drag'}: slash</b><span>Each slash uses a green stamina bar and lasts ${CUT_TIME} s at most, so slash fast. A sharp turn starts a new slash; a tiny twitch is not a slash and costs nothing.</span></div></div>
                         <div class="fg-row">${mouseIcon('LR')}<div><b>${touch ? 'Tap' : 'Click'}: tongue</b><span>${touch ? 'Tap without sliding.' : 'A left click without moving the mouse, or a right click.'} Grab power-ups with it. Swallowing fruit stuns you.</span></div></div>
@@ -1864,7 +1906,7 @@ export function mountFrogGame(stage, opts = {}) {
     let timeLeft = START_SECONDS;     // clockT = seconds survived
     let countT = 0, introOn = false, countShown = '';   // the 3-2-1 before a run
     let tipsPage = 0, hurtFlash = 0, style = 0, gradeIx = 0, gradeBarW = '';
-    let best = store.get(BEST_KEY), slices = 0;
+    let best = store.get(bestKey), slices = 0;
     let fruits = [], halves = [], pieces = [], drops = [], floats = [], trail = [], slashes = [];
     // The "+0.4s" above a cut. The player can switch these off (the Numbers pill). When three or
     // more fresh ones are already up, a new one joins the nearest of them instead of adding
@@ -1942,6 +1984,7 @@ export function mountFrogGame(stage, opts = {}) {
         sake: ['rgba(255,253,231,.9)', 'rgba(255,235,59,.75)', 'rgba(251,192,45,.45)'],
         clock: ['rgba(225,245,254,.9)', 'rgba(79,195,247,.75)', 'rgba(41,121,255,.45)']
     };
+    let fireFw = false, fireFwT = 0;                           // this breath burned fireworks: it shoots rockets along its aim for as long as it lasts
     let fireTint = '', fireWide = 0, fireSlow = 0;             // sakes and clocks burned by this breath
     // The breath grows with what it meets, up to FX_STACKS of each (burned or, once it hacks, hacked):
     //   sake: a wider cone (x2, x3, x4);  clock: it hacks, and the hack lasts 0.5 s longer per extra clock;
@@ -1952,7 +1995,7 @@ export function mountFrogGame(stage, opts = {}) {
     const burnTime = () => BURN_TIME * (fireFry <= 3 ? 1 - 0.2 * fireFry : 0.4 * Math.pow(0.85, fireFry - 3));     // each firefly cooks faster, never instantly
     const hackFor = () => HACK_FLOAT + 0.5 * Math.max(0, fireSlow - 1);
     const dupTime = () => DUP_TIME / (1 + DUP_FRY * fireFry);     // a hacking breath that has burned fireflies copies faster
-    const fruitRate = () => FRUIT_RATE * (1 + FRUIT_MORE * Math.floor(clockT / FRUIT_MORE_EVERY));
+    const fruitRate = () => FRUIT_RATE * (elder ? ELDER_FRUIT : 1) * (1 + FRUIT_MORE * Math.floor(clockT / FRUIT_MORE_EVERY));
     function feedFire(b, isFly) {
         const say = text => floats.push({ x: b.x, y: b.y - 34, text, t: 0, hot: true });
         if (isFly) { if (fireFry < FX_STACKS) { fireFry++; snd('fire_feed'); say((fireSlow ? 'Faster copies!' : 'Hotter flame!') + (fireFry > 1 ? ' x' + fireFry : '')); } }
@@ -2693,7 +2736,12 @@ export function mountFrogGame(stage, opts = {}) {
         if (w !== gradeBarW) { el.gradeBar.style.width = gradeBarW = w; }
     }
 
+    // (the old master's second blade: the same stroke, mirrored left to right)
     function hitTest(ax, ay, bx, by, hx, hy) {
+        hitTest1(ax, ay, bx, by, hx, hy);
+        if (elder) hitTest1(W - ax, ay, W - bx, by, -(hx || 0), hy);
+    }
+    function hitTest1(ax, ay, bx, by, hx, hy) {
         if (phase !== 'play') return;
         // the blade's heading: this move's, or the stroke's when the move is too short to tell
         let dx = bx - ax, dy = by - ay;
@@ -2769,7 +2817,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15 + wideBy) { if (b.kind === 'fireworks') spared++; breakPickup(pickups.splice(i, 1)[0], ang); }
         }
         const lost = wrecked - flies.length - pickups.length - spared;
-        if (lost && sakeLeft <= 0 && !(dbg && stamLock)) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
+        if (lost && sakeLeft <= 0 && !elder && !(dbg && stamLock)) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
     }
 
     // ---------- debris ----------
@@ -3095,9 +3143,20 @@ export function mountFrogGame(stage, opts = {}) {
         const m = on ? (atUs ? frogPoint(993, MOUTH_Y) : mouthPoint()) : null;
         let aimA = 0, reach = 0;
         if (on) {
-            fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) snd('fire_end');
+            fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) { snd('fire_end'); fireFw = false; }
             const ax = aim ? aim.x : W / 2, ay = aim ? aim.y : 0;
             aimA = Math.atan2(ay - m.y, ax - m.x);
+            if (fireFw && !slowNow && !summon) {
+                fireFwT -= dt;
+                while (fireFwT <= 0) {
+                    fireFwT += FW_BREATH_EVERY;
+                    // out of the mouth along the aim: each bursts somewhere about the point aimed at, a little short or long, a little to either side
+                    const d = Math.max(S() * 0.2, Math.hypot(ax - m.x, ay - m.y) * rand(0.6, 1.25)), a2 = aimA + rand(-0.14, 0.14);
+                    const tx = clamp(m.x + Math.cos(a2) * d, 20, W - 20), ty = clamp(m.y + Math.sin(a2) * d, 20, seaY());
+                    rockets.push({ x0: m.x, y0: m.y, tx, ty, t: 0, dur: clamp(Math.hypot(tx - m.x, ty - m.y) / (H * 2.4), 0.1, 0.4), c: fwPal()[Math.floor(rand(0, 6))], R: S() * rand(0.09, 0.13) });
+                    snd('spit');
+                }
+            }
             reach = Math.hypot(W, H);
             fireEmit += dt * 160;
             while (fireEmit >= 1) {
@@ -3172,7 +3231,18 @@ export function mountFrogGame(stage, opts = {}) {
                 if (b.hacked && fireSlow && on) b.hacked = false;     // (made digital by a laptop's half: the hacking breath burns it all the same)
                 b.burn = (b.burn || 0) + dt * (on && inFlame(b.x, b.y, r) ? power(b) : 1);
                 if (b.kind === 'fireworks') {   // not a power-up to burn: the flame lights the fuse and they go off
-                    if (b.burn >= burnTime()) { list.splice(i, 1); breakPickup(b, 0); }
+                    if (b.burn >= burnTime()) {
+                        list.splice(i, 1);
+                        if (on && !fireSlow) {
+                            // A plain or a sake breath takes the fireworks in: for the rest of that breath it shoots
+                            // rockets where it is aimed, and they blow up what they reach. (A hacking breath, or a
+                            // fire blade, only sets the bundle off as a slash does.)
+                            log('wreck', 'fireworks', 0); snd('power_fireworks'); fwInfuse(b); if (fireTint === 'sake') fwTint = 'bubbles'; use('fireworks');
+                            fireFw = true; fireFwT = 0; log('fw', 'breath');
+                            floats.push({ x: b.x, y: b.y - 30, text: 'Fireworks breath!', t: 0, hot: true, word: true });
+                            if (!slowNow && !summon) explode(b.x, b.y, S() * 0.12);
+                        } else breakPickup(b, 0);
+                    }
                     continue;
                 }
                 if (Math.random() < 0.5) flames.push({ x: b.x + rand(-r, r) * 0.6, y: b.y - r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
@@ -3494,7 +3564,7 @@ export function mountFrogGame(stage, opts = {}) {
         else {
             cut.pend.push([lx, ly, ex, ey]);
             if (cut.len + (done ? left : seg) >= minCut()) {
-                if (!freeCut() && !(dbg && stamLock)) stamina = Math.max(0, stamina - 1);
+                if (!freeCut() && !elder && !(dbg && stamLock)) stamina = Math.max(0, stamina - 1);
                 sig.slashes++; swingTo(ex - cut.sx, ey - cut.sy, ex, ey);
                 snd('slash', { kind: sakeLeft > 0 || fxLeft > 0 ? (bladeFx.fire ? 'fire' : bladeFx.frost ? 'frost' : 'sake') : '', power: clamp(bladeSpeed / (H * 3), 0, 1) });
                 cut.paid = true;
@@ -3578,7 +3648,7 @@ export function mountFrogGame(stage, opts = {}) {
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
             flyCatches++;
-            fireLeft = FIRE_SECONDS; fireEmit = 0; fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
+            fireLeft = FIRE_SECONDS; fireEmit = 0; fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
             down = false; cut = null; press = null;             // the blades rest while the frog breathes fire
             floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
             hopT = 0.5;
@@ -4134,7 +4204,7 @@ export function mountFrogGame(stage, opts = {}) {
         laptopNext = rand(...LAPTOP_FIRST); summon = null;
         fwLeft = 0; fwShots = 0; fwTint = ''; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
         gulls = []; gullOn = null; mirrorT = 0; gullCool = 0; gullT = rand(...GULL_FIRST);
-        crates = []; planks = []; clouds = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0;
+        crates = []; planks = []; clouds = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null;
         hud();
@@ -4142,7 +4212,7 @@ export function mountFrogGame(stage, opts = {}) {
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'load'; loadT = 0; loadN = Math.max(1, warmQ.length); audioWas = '';
         salad = []; trace = []; worth = {}; sndCount = {};
-        sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
+        sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); if (elder) log('char', 'elder'); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
     function stepCount(dt) {
         countT -= dt;
@@ -4199,7 +4269,7 @@ export function mountFrogGame(stage, opts = {}) {
         const ms = Math.round(clockT * 1000);
         const isBest = ms > best;
         snd(isBest ? 'best' : 'over');
-        if (isBest) { best = ms; store.set(BEST_KEY, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
+        if (isBest) { best = ms; store.set(bestKey, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
         el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
         el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (touch ? '' : '');
         el.start.textContent = 'Play again';
@@ -4208,7 +4278,7 @@ export function mountFrogGame(stage, opts = {}) {
         // an alarm clock as 3 (it holds the countdown for 3 s)
         logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('signals', sig); log('over', ms, slices, gradeIx);
         if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: fitTrace(trace) });
-        if (opts.onGameOver) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
+        if (opts.onGameOver && !elder) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
         // its katanas are left behind: they drop and stick, point down, in the top of the post
@@ -4225,6 +4295,11 @@ export function mountFrogGame(stage, opts = {}) {
         showTips(-1); start();
     });
     el.skip.addEventListener('click', () => { snd('ui'); showTips(tipsPage + 1); });
+    stage.querySelectorAll('.fg-char').forEach(b => b.addEventListener('click', () => {
+        if ((b.dataset.char === 'elder') === elder) return;
+        try { localStorage.setItem(CHAR_KEY, b.dataset.char); } catch (e) { return; }
+        location.reload();
+    }));
     let overAt = 0;
     // ---------- pause ----------
     // Escape during a run: everything stops and a menu comes up. Resume (green), Play again (red),
@@ -4516,7 +4591,7 @@ export function mountFrogGame(stage, opts = {}) {
                 pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
-                breath: { slow: fireSlow, wide: fireWide, fry: fireFry }, rate: r2(fruitRate()), log: trace.slice(-30)
+                breath: { slow: fireSlow, wide: fireWide, fry: fireFry, fw: fireFw }, char: elder ? 'elder' : 'frog', stamina: r2(stamina), rate: r2(fruitRate()), log: trace.slice(-30)
             };
         },
         // forced scenarios (design/frog/tools/scenario_test.py): debug mode running, a thing put on the
@@ -4524,7 +4599,7 @@ export function mountFrogGame(stage, opts = {}) {
         debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; },
         drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; },
         roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
-        breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; },
+        breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
         at(seconds) { clockT = seconds; },
         blast(x, y) { explode(x, y, S() * 0.12); },
         cloud(x, y) { digitalCloud(x, y, 'test'); },
@@ -4994,6 +5069,7 @@ export function mountFrogGame(stage, opts = {}) {
                 for (let i = 0; i < volley; i++) spawn(difficulty);
                 spawnT = lerp(0.9, 0.5, difficulty) * rand(0.8, 1.2) / fruitRate();
             }
+            if (elder) { flyT = laptopNext = fwNext = crateT = gullT = 9; for (const k in pickT) pickT[k] = 9; }     // the old master: fruit only
             if (!dbg) flyT -= wdt;
             if (flyT <= 0) { spawnFly(); flyT = rand(8, 13); }
             if (!dbg) { laptopNext -= wdt; if (laptopNext <= 0) { spawnPickup('laptop'); laptopNext = rand(...LAPTOP_NEXT); } }
@@ -5483,6 +5559,8 @@ export function mountFrogGame(stage, opts = {}) {
             // after, bent at the sample itself (the two ends of a cut stay straight).
             const strokeAll = (c2, glow) => {
                 c2.lineCap = 'round'; c2.lineJoin = 'round';
+                for (let m = 0; m < (elder ? 2 : 1); m++) {
+                if (m) { c2.save(); c2.translate(W, 0); c2.scale(-1, 1); }
                 for (let i = 0; i < trail.length; i++) {
                     const b = trail[i];
                     if (b.dull) continue;
@@ -5498,10 +5576,12 @@ export function mountFrogGame(stage, opts = {}) {
                     else c2.lineTo(b.x, b.y);
                     c2.stroke();
                 }
+                if (m) c2.restore();
+                }
             };
             gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
             gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            gctx.strokeStyle = fx ? fx.glow : '#98b74b'; strokeAll(gctx, true);
+            gctx.strokeStyle = fx ? fx.glow : elder ? '#cfd8dc' : '#98b74b'; strokeAll(gctx, true);
             ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fx ? fx.alpha : 0.42; ctx.drawImage(glowCv, 0, 0); ctx.restore();
             ctx.save(); ctx.strokeStyle = fx ? fx.core : '#fff'; strokeAll(ctx, false);
             // out of stamina: a thin dark-red trace that cuts nothing

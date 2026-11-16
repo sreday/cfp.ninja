@@ -145,6 +145,9 @@ def main():
         fresh(g); g.js("frogPlay.breath({seconds: 1, wide: 1}); frogPlay.drop('fireworks', 640, 240)")
         hold(g, 640, 220, 0.7); st = g.state(); g.shot(os.path.join(a.out, 'fire-fireworks.png'))
         check('fireworks lit by the breath are fire fireworks', st['fw'] == 'fire', st['fw'])
+        booms = [e for e in st['log'] if e[1] == 'boom']
+        check('and the rest of that breath shoots rockets along its aim', st['breath']['fw'] and len(booms) >= 1, (st['breath'], len(booms)))
+        time.sleep(0.6); check('the rockets stop with the breath', not g.state()['breath']['fw'], g.state()['breath'])
         # 11. a crate in a plain flame chars, then bursts into charcoal logs
         fresh(g); g.js("frogPlay.breath({seconds: 1.2}); frogPlay.drop('crate', 640, 240)")
         sts = hold(g, 640, 230, 0.8, every=0.04); g.shot(os.path.join(a.out, 'crate-logs.png'))
@@ -154,6 +157,18 @@ def main():
         # 12. on sake the second katana stands in the post
         fresh(g); g.js("frogPlay.sake && frogPlay.sake(3)"); time.sleep(0.6); st = g.state(); g.shot(os.path.join(a.out, 'sake-parked.png'))
         check('on sake a katana is parked in the post', st['parked'], st.get('sake'))
+        # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
+        g.js("localStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
+        st = g.state()
+        check('old master: chosen, and three times the fruit', st['char'] == 'elder' and st['rate'] == 4.32, (st['char'], st['rate']))
+        g.js("frogPlay.drop('fruit:apple', 880, 240)"); time.sleep(0.15)
+        f = g.state()['fruits'][0]; mx = 1280 - f['x']
+        g.drag([(mx - 110, f['y'] + 4), (mx, f['y'] + 8), (mx + 110, f['y'] + 12)]); time.sleep(0.15); st = g.state()
+        check('old master: a stroke on the left cuts the fruit on the right (mirrored blade)', len(st['fruits']) == 0 and st['pieces'] >= 2, (len(st['fruits']), st['pieces']))
+        for k in range(7): g.drag([(300, 150 + k * 20), (420, 160 + k * 20), (540, 170 + k * 20)]); time.sleep(0.05)
+        check('old master: slashing uses no stamina', g.state()['stamina'] == 5, g.state()['stamina'])
+        g.shot(os.path.join(a.out, 'old-master.png'))
+        g.js("localStorage.removeItem('cfpninja.game.character')")
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()
