@@ -1072,7 +1072,7 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
-        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers on</button><button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button></div>
+        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button></div>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
@@ -3847,7 +3847,7 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- numbers on or off ----------
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
-        const show = () => { pill.textContent = showNums ? 'Numbers on' : 'Numbers off'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
+        const show = () => { pill.classList.toggle('fg-num-off', !showNums); pill.title = showNums ? 'Numbers shown' : 'Numbers hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
         pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = floats.filter(f => !f.gain); show(); });
         show();
     })();
