@@ -90,6 +90,8 @@ blade would do):
   breath hacks and never burns: cut pieces in it are left alone.
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)
 - A seagull slashed while the tongue is fetching a firefly does not attack: it is roasted on the spot.
+- A slashed laptop falls in two halves, and whatever a half touches on its way down turns digital (fruit, seagulls, power-ups, fireflies, crates).
+- A crate burned down by the breath comes apart in ashen planks.
 - The laptop is fireproof: a plain flame makes it red hot (it stays glowing a moment after) and it can still be taken. The hacking breath hacks and copies it like any other item.
 - Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
   flow. A marked bundle is set off, not paid for.

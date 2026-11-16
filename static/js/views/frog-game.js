@@ -682,11 +682,17 @@ function drawHacked(ctx, o, tn, still) {
     const rnd = n => { const v = Math.sin((tick + n) * 12.9898 + seed) * 43758.5453; return v - Math.floor(v); };
     ctx.save();
     if (!still && rnd(1) < 0.22) ctx.translate((rnd(2) - 0.5) * 10, 0);          // a glitch: the whole thing jumps
-    const shapes = (o.poly ? [o.poly] : []).concat(o.crown || []);
+    // a bunch of grapes is its berries, not the line around them: each one is a round outline of its own
+    const grapes = o.type && o.type.kind === 'grapes' && o.poly ? (o.ox !== undefined ? grapesIn(o.poly, o.r, o.ox, o.oy) : GRAPES) : null;
+    const gx = grapes ? (o.ox || 0) : 0, gy = grapes ? (o.oy || 0) : 0;
+    const berry = ([x, y]) => { ctx.beginPath(); ctx.arc(x * o.r + gx, y * o.r + gy, GRAPE_R * o.r, 0, 7); };
+    const bunch = () => { ctx.beginPath(); grapes.forEach(([x, y]) => { ctx.moveTo(x * o.r + gx + GRAPE_R * o.r, y * o.r + gy); ctx.arc(x * o.r + gx, y * o.r + gy, GRAPE_R * o.r, 0, 7); }); };
+    const shapes = (o.poly && !grapes ? [o.poly] : []).concat(o.crown || []);
     ctx.lineJoin = 'round';
     shapes.forEach(sh => { pathPoly(ctx, sh); ctx.fillStyle = 'rgba(8,30,60,.45)'; ctx.fill(); });
+    if (grapes) { bunch(); ctx.fillStyle = 'rgba(8,30,60,.45)'; ctx.fill(); }
     if (o.poly) {
-        ctx.save(); pathPoly(ctx, o.poly); ctx.clip();
+        ctx.save(); if (grapes) bunch(); else pathPoly(ctx, o.poly); ctx.clip();
         const R = o.R || o.r, slow = Math.floor(tn / 220 + seed);
         // the digits change a few times a second (a different tile), and now and then a band of them tears sideways
         ctx.drawImage(digitTile(slow), -88, -88);
@@ -699,6 +705,10 @@ function drawHacked(ctx, o, tn, still) {
         ctx.strokeStyle = 'rgba(79,195,247,.28)'; ctx.lineWidth = 9; ctx.stroke();
         ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 2.2; ctx.stroke();
     });
+    if (grapes) {
+        bunch(); ctx.strokeStyle = 'rgba(79,195,247,.28)'; ctx.lineWidth = 9; ctx.stroke();
+        grapes.forEach(g => { berry(g); ctx.strokeStyle = '#81d4fa'; ctx.lineWidth = 2; ctx.stroke(); });
+    }
     ctx.restore();
 }
 
@@ -758,6 +768,7 @@ function drawPieceBody(ctx, p, lw) {
 }
 
 // one plank: a rounded board with a grain line and a nail at each end (w x h, centred)
+const ASH = { dark: '#33312f', mid: '#56524e', pale: '#7d7873' };      // the planks of a crate that burned
 function drawPlank(ctx, w, h, col, lw) {
     ctx.fillStyle = col; ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
@@ -2242,7 +2253,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (pl.col === WOOD.inside) return;
             const a = rand(0, 6.28), v = rand(0.25, 0.75) * H;
             planks.push({
-                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: pl.col,
+                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: c.ash ? (pl.col === WOOD.dark ? ASH.dark : Math.random() < 0.5 ? ASH.mid : ASH.pale) : pl.col,     // (burnt down: the wood comes away ashen)
                 vx: c.vx * 0.4 + Math.cos(a) * v + dx * drag, vy: c.vy * 0.4 + Math.sin(a) * v - H * 0.25 + dy * drag,
                 g: G(), rot: c.rot, spin: rand(-9, 9), t: 0, sea: rand(0.08, 0.6), ph: rand(0, 6)
             });
@@ -2250,7 +2261,7 @@ export function mountFrogGame(stage, opts = {}) {
         // splinters
         for (let i = 0; i < 16; i++) {
             const a = rand(0, 6.28), v = rand(0.2, 0.7) * H;
-            drops.push({ x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: i % 2 ? WOOD.face : WOOD.dark, t: 0, s: rand(2, 4) });
+            drops.push({ x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: c.ash ? (i % 2 ? ASH.mid : ASH.dark) : i % 2 ? WOOD.face : WOOD.dark, t: 0, s: rand(2, 4) });
         }
         const base = clamp(S() * 0.055, 16, 60);
         // where on the crate the blade went, in the crate's own frame (-1..1 each way)
@@ -2594,7 +2605,7 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.rotate(ang - b.rot);
                 ctx.strokeStyle = '#263238'; ctx.lineWidth = lw * 1.8; ctx.beginPath(); ctx.moveTo(-r * 1.15, 0); ctx.lineTo(r * 1.15, 0); ctx.stroke();
                 ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = lw * 0.6; ctx.setLineDash([r * 0.12, r * 0.1]); ctx.beginPath(); ctx.moveTo(-r * 1.05, 0); ctx.lineTo(r * 1.05, 0); ctx.stroke(); ctx.setLineDash([]);
-            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2 }));
+            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2, hack: r }));     // (a half turns what it touches digital: see stepBits)
             for (let i = 0; i < 9; i++) { const k = r * rand(0.1, 0.16); bit(b.x, b.y, (ctx, lw) => { ctx.fillStyle = '#eceff1'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke(); }, { life: 1.6 }); }     // keys
             splash(b.x, b.y, '#fff59d', 14, 3);                                                                                  // sparks
             floats.push({ x: b.x, y: b.y - r, text: 'Crack!', t: 0, hot: false });
@@ -2841,7 +2852,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             c.burn = (c.burn || 0) + dt * (on && inFlame(c.x, c.y, c.hw) ? power(c) : 1);
             if (Math.random() < 0.6) flames.push({ x: c.x + rand(-c.hw, c.hw) * 0.7, y: c.y - c.hw * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(5, 9) });
-            if (c.burn >= burnTime()) { crates.splice(i, 1); breakCrate(c, 1, 0, c.x, c.y); }
+            if (c.burn >= burnTime()) { crates.splice(i, 1); c.ash = true; breakCrate(c, 1, 0, c.x, c.y); }
         }
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
@@ -4569,6 +4580,17 @@ export function mountFrogGame(stage, opts = {}) {
         pickups.forEach(b => { if (floating(b)) { b.t += wdt; b.rot += b.spin * 0.25 * wdt; return; } b.t += wdt; b.vy += b.g * wdt; b.x += b.vx * wdt; b.y += b.vy * wdt; b.rot += b.spin * wdt; });
         pickups = pickups.filter(b => b.y < H + b.r * 3);
         bits.forEach(b => { b.vy += b.g * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += b.spin * dt; b.t += dt; });
+        // the two halves of a slashed laptop: whatever one touches on its way down turns digital
+        bits.forEach(b => {
+            if (!b.hack || phase !== 'play') return;
+            const touch = (o, r) => !o.hacked && Math.hypot(o.x - b.x, o.y - b.y) < b.hack + r;
+            const turn = o => { o.hacked = true; o.hackT = 0; o.hackFor = hackFor(); o.burn = 0; b.hackSnd = (b.hackSnd || 0) + 1; if (b.hackSnd < 6) snd('hack'); };
+            fruits.forEach(f => { if (f.entered && !f.burn && touch(f, f.r)) turn(f); });
+            gulls.forEach(g => { if (g.state === 'fly' && touch(g, g.r)) { turn(g); log('gull', 'hacked'); } });
+            pickups.forEach(q => { if (touch(q, q.r)) turn(q); });
+            flies.forEach(f => { if (touch(f, f.s * 1.6)) turn(f); });
+            crates.forEach(c => { if (touch(c, c.hw)) turn(c); });
+        });
         stepWarps(dt);
         bubbles.forEach(q => { q.t += dt; q.x += (q.vx + Math.sin(q.t * 9 + q.ph) * 30) * dt; q.y += q.vy * dt; });
         bubbles = bubbles.filter(q => q.t < q.life);
