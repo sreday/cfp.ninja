@@ -70,6 +70,12 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
   The fruit, juice, bump and hat are painted on the canvas over the frog, placed by `headTop()`;
   in a fall or the planning pose the hat and bump sit only roughly. The head still jitters by
   tilting while stunned (older code, a tilted drawing). Placeholder art. | shipped
+- 2026-11-16 | Marek's bug reports | (a) A roast chicken was still knocked about by the clock, by
+  boosted blades, helpers, blasts and flames: all of them now treat it as food (PRINCIPLES).
+  In a flame a gull turns to food the moment it is roasted. (b) Clock cuts go through every depth.
+  (c) The chopping hand was painted over everything in the air while the frog was under it: it is
+  now painted first on the front canvas, so fruit covers it as it covers the frog. (d) Planning:
+  katanas on the back, not floating. (e) A hacking breath copies slices. | shipped
 - 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
   from one bundle against 13 scattered ones when slashed: likely the stronger use now, Marek: fireworks should be
   overpowered. | shipped, decided

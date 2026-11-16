@@ -92,9 +92,17 @@ blade would do):
   burns: cut pieces that touch it turn digital and hang there, as in a cloud (they are not copied).
 - A plain breath takes every green leaf off fruit at the first touch (a pineapple's crown, the
   grapes' leaf, an apple's), on whole fruit and on pieces. No time for it.
-- A roast chicken that a blade finds is carved: from then on it is cut, recut, cooked and paid by
-  the rules of an apple. It never goes in the salad. (A digital roast chicken, and a seagull out
-  cold but not roasted, are still knocked up by a hit as before.)
+- A roast chicken is food, not a seagull: whatever reaches it next treats it as an apple. Any blade
+  (plain, boosted, the clock's marked cut, a helper's) cuts it in two, a blast blows it up, a flame
+  cooks it; from then on it is cut, recut, cooked and paid by the rules of an apple. It never goes
+  in the salad. A digital roast chicken is still a seagull until a hit knocks the digits off; a
+  seagull out cold but not roasted is still knocked up by a hit.
+- The clock's marked cut goes through the whole depth of the scene: anything else lying on that
+  stroke where it crosses the marked fruit, in front of it or far behind, is cut too (and gets
+  the crosswise second cut with it).
+- Held in a hacking breath, a digital cut piece is copied like digital fruit (never past 120
+  pieces on screen). A cloud still does not copy pieces.
+- While the clock's time is stopped the katanas are sheathed, crossed on the frog's back.
 - Fireworks burned by a plain or a sake breath are taken into the breath: for the rest of it, a
   rocket leaves the mouth every 0.2 s and bursts about the point aimed at, blowing up what it
   reaches (red; golden on a sake breath). A hacking breath or a fire blade only sets the bundle

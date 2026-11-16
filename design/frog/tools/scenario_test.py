@@ -91,8 +91,10 @@ def main():
         # 5d. a hacking breath turns cut pieces digital
         fresh(g); g.js("frogPlay.breath({seconds: 0.5, wide: 2}); frogPlay.drop('fruit:watermelon', 640, 240)")
         hold(g, 640, 200, 0.45, every=0.05); g.js("frogPlay.breath({seconds: 1, slow: 1, wide: 2})")
-        sts = hold(g, 640, 250, 0.5, every=0.1); st = sts[-1]
+        sts = hold(g, 640, 250, 0.4, every=0.1); st = sts[-1]
         check('pieces in a hacking breath turn digital', st['pieces'] >= 2 and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
+        g.js("frogPlay.breath({seconds: 1.2, slow: 1, wide: 2})"); more = hold(g, 640, 250, 1.0, every=0.1)[-1]
+        check('and held in it they are copied', more['pieces'] > st['pieces'] and more['hackedPieces'] == more['pieces'], (st['pieces'], more['pieces']))
 
         # 5e. the breath takes the leaves off at the first touch
         fresh(g); g.js("frogPlay.breath({seconds: 1, wide: 2}); frogPlay.drop('fruit:pineapple', 640, 240)")
@@ -132,8 +134,9 @@ def main():
         # 8. a seagull in a plain flame takes as long to roast as a fruit (0.3 s), not an instant
         fresh(g); g.js("frogPlay.breath({seconds: 1.2}); frogPlay.drop('gull', 640, 240)")
         sts = hold(g, 640, 230, 0.9, every=0.05)
-        first = next((i for i, s in enumerate(sts) if any(q['state'] != 'fly' for q in s['gulls'])), None)
-        check('the gull is still flying after the first instant in the flame, and roasted soon after', first is not None and first >= 3 and sts[-1]['gulls'] and sts[-1]['gulls'][0]['burnt'], (first, sts[-1]['gulls']))
+        first = next((i for i, s in enumerate(sts) if not any(q['state'] == 'fly' for q in s['gulls'])), None)
+        carved = [e for s2 in sts for e in s2['log'] if e[1] == 'gull' and e[2] == 'carved']
+        check('the gull is still flying after the first instant in the flame, then roasted, and from then on it is food', first is not None and first >= 3 and bool(carved) and not sts[-1]['gulls'], (first, carved[:1], sts[-1]['gulls']))
 
         # 9. a sake marked and cut in a time freeze: half a sake once time flows again
         fresh(g); g.js("frogPlay.drop('sake', 640, 260)"); time.sleep(0.25); g.js("frogPlay.freeze(1.2)"); time.sleep(0.1)
@@ -157,6 +160,12 @@ def main():
         # 12. on sake the second katana stands in the post
         fresh(g); g.js("frogPlay.sake && frogPlay.sake(3)"); time.sleep(0.6); st = g.state(); g.shot(os.path.join(a.out, 'sake-parked.png'))
         check('on sake a katana is parked in the post', st['parked'], st.get('sake'))
+        # 12b. the chopping hand, the clock and a roast chicken: any blade carves it
+        fresh(g); g.js("frogPlay.roast(640, 240)"); time.sleep(0.1)
+        g.js("frogPlay.blast && 0"); q = g.state()['gulls'][0]
+        g.js("frogPlay.freeze && frogPlay.freeze(0.6)"); time.sleep(0.1); g.mouse("mouseMoved", q['x'] - 60, q['y'], 0); g.mouse("mouseMoved", q['x'], q['y'], 0); g.mouse("mouseMoved", q['x'] + 60, q['y'], 0); time.sleep(1.6); st = g.state()
+        check('a roast chicken marked with the clock is cut, not knocked about', len(st['gulls']) == 0 and any(e[1] == 'cut' and e[2] == 'chicken' for e in st['log']), (len(st['gulls']), st['pieces'], [e for e in st['log'] if e[1] in ('gull', 'cut', 'release')][-6:]))
+
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()

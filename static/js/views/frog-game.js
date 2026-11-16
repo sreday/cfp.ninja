@@ -30,6 +30,7 @@ const FREEZE_SECONDS = 3;                       // alarm clock: countdown stops,
 // and can't slash or use the tongue meanwhile. The breath lights them, a clock can mark
 // them, and one blast sets off any other bundle it reaches. A blast burns fruit outright for FW_BONUS more
 // time than a normal burn, and breaks crates open.
+const PIECE_DUP_MAX = 120;                       // a hacking breath stops copying cut pieces past this many on screen
 const FW_BREATH_EVERY = 0.2;                     // a breath that burned fireworks: seconds between the rockets it shoots
 const FW_SECONDS = 3, FW_EVERY = 0.22, FW_SHOTS = 10, FW_SHOT_GAP = 0.04, FW_BONUS = 1.5;
 const FW_FIRST = [26, 40], FW_NEXT = [42, 65];
@@ -1546,7 +1547,7 @@ export function mountFrogGame(stage, opts = {}) {
             setA(el.sideTail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} 660 0)`);       // the tails lag the turn
             setA(el.sideHem, 'transform', `translate(1000 850) skewX(${n2(pose.sRot * 0.5)}) translate(-1000 -850)`);
         }
-        setA(el.back, 'opacity', pose.held || pose.noBlades ? 0 : 1);
+        setA(el.back, 'opacity', (pose.held && !pose.plan) || pose.noBlades ? 0 : 1);     // (planning with the clock: sheathed, crossed on its back)
         const L = pose.laptop;
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
         if (!L.gone) setA(el.laptop, 'transform', `translate(${n2(L.x * U)} ${n2(L.y * U)}) rotate(${n2(L.rot)} 993 1160)`);
@@ -2421,6 +2422,19 @@ export function mountFrogGame(stage, opts = {}) {
             floats.push({ x: g.x, y: g.y - g.r, text: 'Uh-oh...', t: 0 });
             return;
         }
+        // A roast chicken is food, not a seagull: whatever reaches it next treats it as an apple. A blade of any
+        // kind (boosted, the clock's, a helper's) cuts it clean in two; a blast blows it up; a flame cooks it.
+        // (A digital one is still a seagull until a hit knocks the digits off.)
+        if (g.state !== 'fly' && g.burnt && !g.hacked && gulls.includes(g)) {
+            gulls.splice(gulls.indexOf(g), 1);
+            const f = newFruit(CHICKEN, g.r, g.x, g.y, g.vx || 0, g.vy || 0, G(), { entered: true, rot: 0, spin: rand(-3, 3) });
+            log('gull', 'carved', how);
+            if (how === 'blast') { burnFruit(f, FW_BONUS, true); return; }
+            if (how === 'fire') { fruits.push(f); return; }
+            const a = rand(0, 6.28), dx = Math.cos(a), dy = Math.sin(a);
+            if (!cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -dy, ny: dx }, dx, dy, g.x, g.y)) fruits.push(f);
+            return;
+        }
         const gain = Math.max(fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * Math.pow(RECUT, g.hits) * (how === 'laptop' ? LAPTOP_PAY : 1) * timeMult(), 0.01);
         const worth = Math.pow(RECUT, g.hits);                 // every hit on the same gull is worth half the one before: its time, and its combo point
         g.hits++;
@@ -3124,7 +3138,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
     }
     function stepDivide(dt) {
-        [fruits, gulls, pickups, flies, crates].forEach(list => list.forEach(o => {
+        [fruits, gulls, pickups, flies, crates, pieces].forEach(list => list.forEach(o => {
             if (o.dupIn) o.dupIn = false;
             else if (o.dup) { o.dup = Math.max(0, o.dup - dt * 2); o.dupP = o.dupP * (o.dup ? 1 - Math.min(1, dt * 4) : 0); }
             if (o.grow > 0) {
@@ -3372,7 +3386,16 @@ export function mountFrogGame(stage, opts = {}) {
             if (q.steam > 0) { q.steam -= dt; if (!q.hacked && Math.random() < 9 * dt) steamPuff(q.x, q.y - q.R * 0.3, q.R); }     // cut from roasted fruit: still hot (nothing shows while it is digital)
             const inF = on && inFlame(q.x, q.y, q.R * 0.7);
             // a hacking breath turns a piece digital, as a cloud does: it hangs there until it wears off (it is not copied)
-            if (inF && fireSlow && !q.lit) { if (!q.hacked || q.hackT === undefined) { q.hacked = true; q.hackT = 0; q.hackFor = hackFor(); q.burn = 0; q.vx = 0; q.vy = 0; snd('hack'); log('piece', 'hacked'); } continue; }
+            if (inF && fireSlow && !q.lit) { if (!q.hacked || q.hackT === undefined) { q.hacked = true; q.hackT = 0; q.hackFor = hackFor(); q.burn = 0; q.vx = 0; q.vy = 0; snd('hack'); log('piece', 'hacked'); }
+                // ... and held in it, a digital piece is copied like digital fruit: a slice makes another slice
+                else if (dividing(q, dt * power(q), dupTime())) {
+                    if (pieces.length < PIECE_DUP_MAX) {
+                        const twin = Object.assign({}, q, divideAt(q, q.R), { spr: null, hspr: null, fam: { cuts: q.fam.cuts } });
+                        pieces.push(twin); snd('hack'); log('dup', 'piece');
+                        floats.push({ x: twin.x, y: twin.y - q.R, text: 'x2', t: 0, hot: true });
+                    } else q.dup = 0;
+                }
+                continue; }
             // a plain flame cooks and cuts a piece whether it is digital or not
             const br = inF && !fireSlow, inside = br || inBlade(q.x, q.y, q.R * 0.7);
             // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
@@ -5050,7 +5073,7 @@ export function mountFrogGame(stage, opts = {}) {
                         continue;
                     }
                     if (gulls.includes(f)) {   // a marked seagull: struck, not cut
-                        f.mark = 0; markCut.hits++; gullHit(f, 'clock'); markAgain.push({ again: true, gull: f });
+                        f.mark = 0; markCut.hits++; { const mine = cut; cut = markCut; gullHit(f, 'clock'); cut = mine; } markAgain.push({ again: true, gull: f });
                         slashes.push({ x: f.x, y: f.y, a: 0, r: 34, t: 0 }); markFrom = { x: f.x, y: f.y };
                         continue;
                     }
@@ -5143,8 +5166,24 @@ export function mountFrogGame(stage, opts = {}) {
                     const done = cutFruit(f, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, f.x, f.y);
                     cut = mine;
                     if (done) {
-                        const parts = pieces.slice(n0);            // (taken before f itself is removed from the list)
+                        let parts = pieces.slice(n0);            // (taken before f itself is removed from the list)
                         if (ix >= 0) fruits.splice(ix, 1); else pieces.splice(pcx, 1);
+                        // The clock's cut goes through the whole depth of the scene: whatever else lies on that stroke
+                        // where it crosses the marked fruit, in front of it or far behind it, is cut by it too.
+                        {
+                            const had = new Set(pieces), L = Math.max(f.R || f.r, f.r) * 1.15, x0 = f.x - dx * L, y0 = f.y - dy * L, x1 = f.x + dx * L, y1 = f.y + dy * L;
+                            const mine2 = cut; cut = markCut;
+                            [fruits, pieces].forEach(list => {
+                                for (let k = list.length - 1; k >= 0; k--) {
+                                    const o = list[k];
+                                    if (parts.includes(o) || (list === fruits ? !o.entered : !o.live || !o.poly || !had.has(o))) continue;
+                                    const hit = strike(o, x0, y0, x1, y1, dx, dy);
+                                    if (hit && hit.kind === 'cut' && cutFruit(o, hit, dx, dy, o.x, o.y)) { list.splice(k, 1); o.mark = 0; log('cut', 'through'); }
+                                }
+                            });
+                            cut = mine2;
+                            parts = parts.concat(pieces.filter(q => !had.has(q)));
+                        }
                         // A fire-enhanced release leaves fruit nearly grilled, not grilled: one more touch of
                         // flame finishes it. Fruit that was already in a flame before the clock is grilled outright.
                         if (bladeFx.fire) {
@@ -5368,6 +5407,8 @@ export function mountFrogGame(stage, opts = {}) {
     function draw(tn) {
         ctx.clearRect(0, 0, W, H);
         bctx.clearRect(0, 0, W, H);
+        // the chopping hand belongs to the frog: it is painted first, so whatever flies in front of the frog is in front of the hand too
+        if (punch) drawPunch(clamp(W / 260, 2.5, 4), tn);
         sprBuilt = 0;
         // planks on the water (behind the frog and its post): lying flat, bobbing, then slipping under
         planks.forEach(q => {
@@ -5561,7 +5602,6 @@ export function mountFrogGame(stage, opts = {}) {
                 else { ctx.save(); ctx.translate(x, y); ctx.rotate(c.obj.rot); drawWhole(ctx, c.obj, c.obj.r, lw); ctx.restore(); }
             }
         }
-        if (punch) drawPunch(lw, tn);
         if (phase === 'play' && sakeLeft <= 0 && stamina < 1 && stunT <= 0) {
             // tired: a sweat drop slides down the side of the head
             const k = (tn / 900) % 1, sp = frogPoint(1430, 330 + k * 260), r = S() * 0.012 + 3;
@@ -5600,12 +5640,6 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // breathing fire: both katanas stand in the top of the post, one at each side of the frog
         const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
-        // the clock's planning: both katanas hang in the air beside the frog, points down, turning a little
-        if (pose.plan && !stuckNow.length && !dropped.length) [-1, 1].forEach(sd => {
-            const at = frogPoint(993 + sd * 1150, 1250), bobY = Math.round(Math.sin(tn / 700 + sd) * 2) * fbox.w * 0.012;
-            glow(ctx, at.x, at.y - fbox.w * 0.2 + bobY, fbox.w * 0.36, '129,212,250', 0.55);
-            stuckNow.push({ x: at.x, y: at.y + bobY, rot: sd * 0.12, stuck: 0 });
-        });
         // on sake the hand with the bottle has put its katana down: it stands in the top of the post, leaning out at 45 degrees
         const parked = !stuckNow.length && !dropped.length && !pose.plan && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
         parkT = parked ? parkT + 1 / 60 : 0;
