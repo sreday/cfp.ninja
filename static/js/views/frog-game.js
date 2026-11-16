@@ -1212,7 +1212,7 @@ export function mountFrogGame(stage, opts = {}) {
     // mirrored left to right, no tongue, five times the fruit and a third of the usual time for each.
     // He is a secret, and the template for other characters to come: the game always opens as the frog, whatever
     // was played before. The choice lasts for one loading of the page only (a note in sessionStorage that is
-    // used up at once), and the chooser itself stays hidden until the panel's title is pressed five times.
+    // used up at once). He is picked on the first page of the hints.
     let elder = false;
     try { elder = sessionStorage.getItem(CHAR_KEY) === 'elder'; sessionStorage.removeItem(CHAR_KEY); localStorage.removeItem(CHAR_KEY); } catch (e) { /* private mode */ }
     const bestKey = BEST_KEY + (elder ? '.elder' : '');
@@ -1270,7 +1270,7 @@ export function mountFrogGame(stage, opts = {}) {
                 </div>
                 <div class="fg-tips">
                     <div class="fg-tip" data-page="0">
-                        <div class="fg-chars"${elder ? '' : ' hidden'}><b>Character</b>
+                        <div class="fg-chars"><b>Character</b>
                             <button type="button" class="fg-pill fg-char" data-char="frog" aria-pressed="${!elder}">Frog Ninja</button>
                             <button type="button" class="fg-pill fg-char" data-char="elder" aria-pressed="${elder}">Sensei</button>
                             <span>Sensei, a mindless fun mode, not on the scoreboard: no stamina, no tongue, no power-ups, crates or seagulls, every slash doubled and mirrored, five times the fruit at a third of the time each, and a combo meter that fills five times slower. Choosing restarts the game.</span></div>
@@ -4307,11 +4307,6 @@ export function mountFrogGame(stage, opts = {}) {
         try { if (b.dataset.char === 'elder') sessionStorage.setItem(CHAR_KEY, 'elder'); } catch (e) { return; }
         location.reload();
     }));
-    let secretN = 0, secretAt = 0;
-    el.title.addEventListener('click', () => {
-        const t = performance.now(); secretN = t - secretAt < 600 ? secretN + 1 : 1; secretAt = t;
-        if (secretN >= 5) { secretN = 0; stage.querySelector('.fg-chars').hidden = false; stage.querySelector('.fg-first, .fg-overlay').classList.remove('fg-first'); showTips(0); }
-    });
     let overAt = 0;
     // ---------- pause ----------
     // Escape during a run: everything stops and a menu comes up. Resume (green), Play again (red),

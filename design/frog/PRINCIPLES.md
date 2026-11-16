@@ -99,7 +99,7 @@ blade would do):
   rocket leaves the mouth every 0.2 s and bursts about the point aimed at, blowing up what it
   reaches (red; golden on a sake breath). A hacking breath or a fire blade only sets the bundle
   off, as a slash does. Marek, 2026-11-16: "fireworks should be overpowered". Leave it strong.
-- The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. A secret, and the template for other characters (Marek, 2026-11-16): the game always opens as the frog, the choice lasts one loading of the page, and the chooser (first page of the hints) only appears after five quick presses on the panel's title; for fun, never on the
+- The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. A secret, and the template for other characters (Marek, 2026-11-16): the game always opens as the frog, the choice lasts one loading of the page, and he is picked on the first page of the hints (Marek: keep him pickable there, just never the default); for fun, never on the
   scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, no tongue, every
   stroke repeated by a second blade mirrored left to right, five times the fruit, and everything
   he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry

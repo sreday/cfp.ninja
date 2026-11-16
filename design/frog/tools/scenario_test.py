@@ -169,7 +169,7 @@ def main():
         check('old master: slashing uses no stamina', g.state()['stamina'] == 5, g.state()['stamina'])
         g.shot(os.path.join(a.out, 'old-master.png'))
         g.js("location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.3)
-        check('old master: the next loading of the page is the frog again, and the chooser is hidden', g.state()['char'] == 'frog' and g.js("document.querySelector('.fg-chars').hidden") is True, g.state()['char'])
+        check('old master: the next loading of the page is the frog again', g.state()['char'] == 'frog', g.state()['char'])
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-debug-pill').click(); 1"); time.sleep(3.2); st = g.state()
         check('old master: the Debug button turns the game back to the frog, in debug', st['char'] == 'frog' and st['rate'] == 1.44 and g.js("document.querySelector('.fg-debug-pill').textContent") == 'Exit debug', (st['char'], st['rate']))
         errs = g.errors(); check('no page errors', not errs, errs)
