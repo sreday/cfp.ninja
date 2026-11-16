@@ -1591,10 +1591,13 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* the sound pill: a megaphone, crossed out while sound is off */
 .fg-sound-pill { position: absolute; top: 12px; right: 136px; z-index: 6; width: 46px; height: 38px; padding: 0; align-items: center; justify-content: center; font-size: 1.05rem; line-height: 1; cursor: pointer; transition: background .15s ease; }
 .fg-sound-pill:hover { background: var(--border-light); }
-.fg-full-pill { position: absolute; top: 12px; right: 190px; z-index: 6; height: 38px; padding: 0 14px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
+.fg-top-pills { position: absolute; top: 12px; right: 190px; z-index: 6; display: flex; gap: 8px; }
+.fg-full-pill, .fg-num-pill { height: 38px; padding: 0 14px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease, opacity .15s ease; }
 .fg-full-pill[hidden] { display: none; }
-.fg-full-pill:hover { background: var(--border-light); }
-@media (max-width: 575px) { .fg-full-pill { top: auto; bottom: 8px; right: auto; left: 56px; height: 30px; font-size: .7rem; padding: 0 10px; } }
+.fg-full-pill:hover, .fg-num-pill:hover { background: var(--border-light); }
+/* a narrower window has no room for them beside the combo meter: a second row, top right */
+@media (min-width: 576px) and (max-width: 1459px) { .fg-top-pills { top: 58px; right: 12px; } }
+@media (max-width: 575px) { .fg-top-pills { top: auto; bottom: 8px; right: auto; left: 56px; gap: 6px; } .fg-full-pill, .fg-num-pill { height: 30px; font-size: .7rem; padding: 0 10px; } }
 /* the interface fades while the blade works next to it */
 .fg-pill, .fg-stamina, .fg-grade, .fg-debug-tray, .fg-debug-title { transition: opacity .15s ease; }
 .fg-dim { opacity: .18 !important; }

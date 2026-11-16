@@ -50,6 +50,8 @@ const GULL_IN = 0.35, GULL_OUT = 0.6;           // the flight onto the frog, and
 const PLANK_FLOAT = 2.6, PLANK_SINK = 1.1;      // a broken crate's planks on the water: afloat, then going under (seconds)
 const CRATE_FRUIT = 10, CRATE_FIRST = [22, 34], CRATE_EVERY = [38, 60];   // seconds
 const WOOD = { face: '#c9a36b', dark: '#a9834f', back: '#8d6b3f', inside: '#5d452a' };
+const NUMS_KEY = 'frogNinjaNumbersOff';
+const NUM_BUSY = 3, NUM_MERGE = 3;               // with 3 fresh numbers up, the next joins one of them; a label sums up to 3
 const HACK_FLOAT = 5;                            // seconds a hacked fruit floats; then it is a normal fruit again and falls
 // Depth is a hint, not a hazard: a fruit's size never changes by more than 10% in all (5% either
 // side of its real size), so what you aim at is what you hit.
@@ -1056,7 +1058,7 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
-        <button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button>
+        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers on</button><button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button></div>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
@@ -1646,6 +1648,19 @@ export function mountFrogGame(stage, opts = {}) {
     let tipsPage = 0, hurtFlash = 0, style = 0, gradeIx = 0, gradeBarW = '';
     let best = store.get(BEST_KEY), slices = 0;
     let fruits = [], halves = [], pieces = [], drops = [], floats = [], trail = [], slashes = [];
+    // The "+0.4s" above a cut. The player can switch these off (the Numbers pill). When three or
+    // more fresh ones are already up, a new one joins the nearest of them instead of adding
+    // another: one label then shows the sum of up to NUM_MERGE gains.
+    let showNums = store.get(NUMS_KEY) !== 1;
+    function gainPop(x, y, gain, chain = 0, hot = true) {
+        if (!showNums) return;
+        const nums = floats.filter(f => f.gain && f.t < 0.45);
+        let to = null, far = S() * 0.7;
+        if (nums.length >= NUM_BUSY) nums.forEach(f => { const d = Math.hypot(f.x - x, f.y - y); if (f.n < NUM_MERGE && f.t < 0.3 && d < far) { far = d; to = f; } });
+        if (to) { to.x = (to.x * to.n + x) / (to.n + 1); to.y = (to.y * to.n + y) / (to.n + 1); to.n++; to.gain += gain; to.chain = Math.max(to.chain, chain); to.hot = to.hot || hot; }
+        else floats.push(to = { x, y, text: '', t: 0, hot, gain, chain, n: 1 });
+        to.text = '+' + to.gain.toFixed(2).replace(/0$/, '') + 's' + (to.chain ? ' x' + (to.chain + 1) : '');
+    }
     let slash = null;             // { side, t }
     let blinkAt = 2, hopT = 0, pointer = null;
     let flies = [], pickups = [], stars = [], flyT = 6, flyCatches = 0, clockCatches = 0;
@@ -2113,7 +2128,7 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain; slices++; lastSlice = performance.now();
         val(how === 'laptop' ? 'laptop' : how === 'blast' ? 'fireworks' : how === 'clock' ? 'clock' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword', gain);
         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
-        floats.push({ x: g.x, y: g.y - g.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+        gainPop(g.x, g.y - g.r, gain);
         log('gull', how, r2(gain), g.hits);                    // (the last number: which hit on this gull it was)
         if (g.state === 'fly') {
             // out cold: it drops into the sea, on its back, or as a roast chicken if fire did it
@@ -2240,7 +2255,7 @@ export function mountFrogGame(stage, opts = {}) {
                 Object.assign({ entered: true, src: 'crate', noCut: cut ? cut.id : 0, cutAt: performance.now() },
                     c.hacked ? { hacked: true, hackT: c.hackT, hackFor: c.hackFor || HACK_FLOAT } : {})));   // the stroke that opened the crate can't cut what's inside
         }
-        floats.push({ x: c.x, y: c.y - c.hw, text: 'Fruit crate! +' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+        floats.push({ x: c.x, y: c.y - c.hw, text: 'Fruit crate!' + (showNums ? ' +' + gain.toFixed(2).replace(/0$/, '') + 's' : ''), t: 0, hot: true });
         hud();
         slashes.push({ x: c.x, y: c.y, a: Math.atan2(dy, dx), r: c.hw * 1.5, t: 0 });
         slash = { side: c.x < W / 2 ? 'L' : 'R', t: 0 };
@@ -2317,7 +2332,7 @@ export function mountFrogGame(stage, opts = {}) {
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
         addToSalad(f.type, (bladeFx.fire && fxOn()) || summonFire || !!(f.char && f.char.length));
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: hit.clean || chain > 0 });
+        gainPop(f.x, f.y - f.r, gain, chain, hit.clean || chain > 0);
         style = Math.min(STYLE_MAX, style + (f.fam.cuts === 1 ? 1 : 0.5));
         updateGrade(true);
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
@@ -2594,7 +2609,7 @@ export function mountFrogGame(stage, opts = {}) {
                     ctx.beginPath(); ctx.moveTo(-cr, cr * 0.5); ctx.lineTo(cr, cr * 0.5); ctx.lineWidth = Math.max(2, cr * 0.3); ctx.strokeStyle = skin; ctx.stroke();
                 }, { vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, life: 1.2 });
             }
-            floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: true });
+            gainPop(f.x, f.y - f.r, gain);
             splash(f.x, f.y, f.type.juice, 22, 6);
             hud();
             return;
@@ -2607,7 +2622,7 @@ export function mountFrogGame(stage, opts = {}) {
             bit(f.x, f.y, ctx => { ctx.fillStyle = juice; ctx.beginPath(); ctx.ellipse(0, 0, br, br * 0.72, 0, 0, 7); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.45)'; ctx.beginPath(); ctx.arc(-br * 0.3, -br * 0.25, br * 0.22, 0, 7); ctx.fill(); },
                 { vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.2, life: 0.9 });
         }
-        floats.push({ x: f.x, y: f.y - f.r, text: '+' + gain.toFixed(gain * 10 % 1 ? 2 : 1) + 's', t: 0, hot: true });
+        gainPop(f.x, f.y - f.r, gain);
         splash(f.x, f.y, juice, 24, 6);
         for (let k = 0; k < 8; k++) { const a = rand(0, 6.28), v = H * rand(0.3, 0.8); flames.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.2, 0.35), s: rand(5, 9) }); }
         hud();
@@ -3216,7 +3231,7 @@ export function mountFrogGame(stage, opts = {}) {
                 const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * timeMult();
                 timeLeft += gain; slices++; lastSlice = performance.now(); val('laptop', gain);
                 style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
-                floats.push({ x: b.x, y: b.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+                gainPop(b.x, b.y - 24, gain);
             });
             // Every firefly, sake and clock the first blow destroyed goes into a helper's blade: dealt
             // out at random, one to a helper. More than three: three of them, picked at random.
@@ -3752,6 +3767,14 @@ export function mountFrogGame(stage, opts = {}) {
         }
     })();
 
+    // ---------- numbers on or off ----------
+    (function numbersToggle() {
+        const pill = $('.fg-num-pill');
+        const show = () => { pill.textContent = showNums ? 'Numbers on' : 'Numbers off'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
+        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = floats.filter(f => !f.gain); show(); });
+        show();
+    })();
+
     // ---------- full screen ----------
     (function fullScreen() {
         const pill = $('.fg-full-pill'), root = document.documentElement;
@@ -3822,7 +3845,7 @@ export function mountFrogGame(stage, opts = {}) {
     function dimMeasure() {
         dimEls.length = 0;
         const page = stage.closest('.game-page') || stage, sb = canvas.getBoundingClientRect();
-        page.querySelectorAll('.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-debug-pill, .fg-sound-pill, .fg-full-pill, .game-notch, .fg-debug-tray, .fg-debug-title').forEach(n => {
+        page.querySelectorAll('.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-debug-pill, .fg-sound-pill, .fg-full-pill, .fg-num-pill, .game-notch, .fg-debug-tray, .fg-debug-title').forEach(n => {
             const r = n.getBoundingClientRect();
             if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: n.classList.contains('fg-dim') });      // (the list is rebuilt now and then: a part that is dimmed stays known as dimmed, or it would never come back)
         });
@@ -4285,7 +4308,7 @@ export function mountFrogGame(stage, opts = {}) {
                         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
                         timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
                         style = Math.min(STYLE_MAX, style + 1); updateGrade(true);
-                        floats.push({ x: f.x, y: f.y - 24, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's' + (chain ? ' x' + (chain + 1) : ''), t: 0, hot: true });
+                        gainPop(f.x, f.y - 24, gain, chain);
                         slashes.push({ x: f.x, y: f.y, a: ang, r: 34, t: 0 });
                         markFrom = { x: f.x, y: f.y };
                         // like fruit, a marked power-up is cut twice: the second cut comes with the second pass, crosswise
@@ -4298,7 +4321,7 @@ export function mountFrogGame(stage, opts = {}) {
                         const gain = fruitTime(APPLE) * RECUT * (1 + GRADES[gradeIx].bonus) * (1 + Math.min(MULTI * chain, MULTI_MAX)) * timeMult();
                         timeLeft += gain; slices++; lastSlice = performance.now(); val('clock', gain);
                         style = Math.min(STYLE_MAX, style + 0.5); updateGrade(true);
-                        floats.push({ x: f.x, y: f.y + 6, text: '+' + gain.toFixed(2).replace(/0$/, '') + 's', t: 0, hot: true });
+                        gainPop(f.x, f.y + 6, gain);
                         slashes.push({ x: f.x, y: f.y, a: f.ang, r: 40, t: 0 });
                         seqFlash(f.x, f.y, Math.cos(f.ang), Math.sin(f.ang), 46);
                         splash(f.x, f.y, f.power === 'fire' ? '#ff8a65' : f.power === 'frost' ? '#b3e5fc' : '#fff3c4', 10, 4);
