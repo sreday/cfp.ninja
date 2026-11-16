@@ -2492,7 +2492,10 @@ export function mountFrogGame(stage, opts = {}) {
             g.noCut = id; g.cutAt = now;
             // One that is already out (on its back, or a roast chicken) can be kept in the air for as long
             // as the blade keeps finding it, boosted or not: every hit knocks it back up and pays half the last.
-            gullHit(g, boost ? 'boost' : g.state !== 'fly' ? 'juggle' : 'plain');
+            // slashed while the tongue is fetching a firefly: the fire is already on its way, so the
+            // gull gets no chance to attack. It is roasted on the spot.
+            const flyOnTongue = tongue && ((tongue.caught && tongue.caught.kind === 'fly') || (!tongue.caught && flies.some(f => Math.hypot(f.x - tongue.tx, f.y - tongue.ty) < f.s * 4 + 20)));
+            gullHit(g, boost ? 'boost' : g.state !== 'fly' ? 'juggle' : flyOnTongue ? 'fire' : 'plain');
         });
         // the blade wrecks pickups (they're for the tongue), and each one wrecked costs a stamina bar
         const wrecked = flies.length + pickups.length; let spared = 0;
