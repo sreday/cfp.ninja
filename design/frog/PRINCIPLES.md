@@ -104,6 +104,11 @@ blade would do):
   stroke repeated by a second blade mirrored left to right, five times the fruit, and everything
   he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry
   a `char elder` event in the log: leave them out of balance work.
+- Swallowing a fruit is always the same stun (stars, the same time by size), but each fruit plays
+  its own joke so it is less obvious: watermelon and pineapple jam on the head in place of it and
+  drop off in two when the stun ends; grapes and orange burst over the face (it can't see);
+  an apple bounces off in two and leaves a bump for 5 s after the stun; a banana is worn as a hat
+  for 5 s after; kiwi and plum are simply eaten, chewing. The bump and the hat are looks only.
 - Every further hit on the same seagull is worth half the one before, in time and in combo
   points alike (time never under 0.01 s).
 - The breath is as strong far away as at the frog's mouth. (Weakening it with distance, 30% at the far corner, was tried and felt far too weak; the switch is `FIRE_FAR`.)

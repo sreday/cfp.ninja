@@ -66,6 +66,10 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 - 2026-11-16 | Marek: the Sensei is a secret and a template for new characters | The game always
   opens as the frog; the choice lasts one loading of the page; the chooser stays on the first page
   of the hints (a five-press secret was tried and dropped the same day). | shipped
+- 2026-11-16 | Marek's request | Stun jokes per fruit (see PRINCIPLES), logged as `stun kind mode`.
+  The fruit, juice, bump and hat are painted on the canvas over the frog, placed by `headTop()`;
+  in a fall or the planning pose the hat and bump sit only roughly. The head still jitters by
+  tilting while stunned (older code, a tilted drawing). Placeholder art. | shipped
 - 2026-11-16 | Marek's request | Fireworks breath (see PRINCIPLES). Up to about 19 aimed rockets
   from one bundle against 13 scattered ones when slashed: likely the stronger use now, Marek: fireworks should be
   overpowered. | shipped, decided
