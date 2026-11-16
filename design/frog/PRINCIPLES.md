@@ -70,8 +70,11 @@ file is the source of truth, this document explains the intent.
 | CFP.ninja laptop | every 84-130 s (very rare) | slash: wrecked; tongue: time stops, the frog sits and three of its friends (monkey, llama, platypus, corgi) slash everything on screen twice, at 75% pay. Each firefly, sake and clock the first slash destroys goes into one helper's blade, dealt at random, one each (three at most): on the second slash a sake blade pays 10% more, a fire blade sets what it cuts alight (it cooks through and bursts, paying again as a burn, more for each helper carrying fire), a chronoblade adds one more cut |
 
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
-breath + sake (wide), breath + clock (hacks fruit, and copies digital fruit and digital seagulls held in it: one
-copy per 0.6 s of exposure, up to 36 fruit on screen), sake + firefly / clock / sake (fire
+breath + sake (wide), breath + clock (hacks what it touches, and copies every digital thing held in it by dividing it
+like a living cell: it shrinks a little, becomes two joined ones, then two that grow back and
+drift apart about the spot where the one was. Fruit takes 0.6 s; seagulls, power-ups, fireflies,
+crates and the laptop take twice that. Never more than 36 fruit, 12 gulls, 12 power-ups, 12
+fireflies or 6 crates on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 
 **What meets what** (checked pair by pair on 2026-11-15; anything not listed does what a plain
@@ -85,7 +88,7 @@ blade would do):
   a marked cut, the helpers. The tongue ignores it.
 - An ordinary breath burns the digits off hacked fruit (it is fruit again, and melts). A hacking
   breath hacks and never burns: cut pieces in it are left alone.
-- The laptop is fireproof and can't be hacked: flames and blasts only make it glow.
+- The laptop is fireproof: a plain flame makes it red hot (it stays glowing a moment after) and it can still be taken. The hacking breath hacks and copies it like any other item.
 - Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
   flow. A marked bundle is set off, not paid for.
 - Fireworks take on the element of whatever sets them off (fire, sake, time): looks only, so far.
