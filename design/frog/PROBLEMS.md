@@ -20,6 +20,12 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | The clock's freeze is now "time-stop planning": the frog sits
+  cross-legged in the air at jump height, eyes shut, both katanas hanging beside it, and its
+  right hand (on our left) points at the pointer in held directions 15 degrees apart. When time
+  flows again it is standing with the blades in hand and cuts as before (a snap, no drawing-of-
+  swords frames). Placeholder: the seated drawing with one arm stretched; pointing to our right
+  the arm passes in front of the face. Needs real art (`ASSETS.md`). | shipped
 - 2026-11-16 | Marek: "the game session is too long now" | Fruit now buys 0.1 s (watermelon) to
   0.45 s (plum) in steps of 0.05 (was 0.1 to 0.8 in steps of 0.1): the average fruit buys about
   40% less. Everything priced in fruit follows (crate, gull, burnt power-ups: an apple's worth,

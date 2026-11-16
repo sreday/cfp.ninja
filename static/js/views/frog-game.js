@@ -1422,7 +1422,7 @@ export function mountFrogGame(stage, opts = {}) {
         // arm on the far side, behind the body.
         const drunk = stage.classList.contains('fg-drunk'), tip = drunk ? Math.round(Math.sin(performance.now() / 420) * 2) * 6 : 0;
         const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld, bottleArm) => {
-            const armed = pose.held && !pose.noBlades && !pose.stuck, withBottle = !!bottleArm && drunk && armed;
+            const armed = pose.held && !pose.noBlades && !pose.stuck && !pose.plan, withBottle = !!bottleArm && drunk && armed;
             if (withBottle) { rot = bottleArm.rot; stretch = bottleArm.stretch; kWorld = bottleArm.k + tip; }
             setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
@@ -4390,6 +4390,11 @@ export function mountFrogGame(stage, opts = {}) {
         drunkCut('drunk: cut straight down', Math.PI / 2, () => ({ x: W / 2, y: head().y + fw() * 0.5 }));
         drunkCut('drunk: thrust far up-right', Math.atan2(-1, 1), () => ({ x: W / 2 + fw() * 2.1, y: head().y - fw() * 1.4 }));
         out.push({ name: 'time freeze', dur: 0.7, tick() { freezeLeft = Math.max(freezeLeft, 0.3); }, end() { freezeLeft = 0; } });
+        const planAt = (name, where) => out.push({ name, dur: 0.7, tick() { freezeLeft = Math.max(freezeLeft, 0.3); aim = where(); }, end() { freezeLeft = 0; } });
+        planAt('clock: planning, points up-left', () => ({ x: W / 2 - fw() * 1.5, y: head().y - fw() * 0.8 }));
+        planAt('clock: planning, points left and down', () => ({ x: W / 2 - fw() * 1.6, y: head().y + fw() * 0.9 }));
+        planAt('clock: planning, points straight up', () => ({ x: W / 2, y: head().y - fw() * 1.5 }));
+        planAt('clock: planning, points up-right', () => ({ x: W / 2 + fw() * 1.5, y: head().y - fw() * 0.6 }));
         out.push({ name: 'under five seconds (one foot)', low: true, dur: 0.9, tick() { timeLeft = 3; }, end() { timeLeft = START_SECONDS; hud(); } });
         out.push({ name: 'laptop: the team is called', dur: 5, start() { startSummon(); } });
         const gull = (name, setup, dur = 1.2) => out.push({ name, dur, start() { gulls = []; gullOn = null; setup(); }, end() { gulls = []; gullOn = null; stunT = 0; mirrorT = 0; gullCool = 0; } });
@@ -4675,6 +4680,20 @@ export function mountFrogGame(stage, opts = {}) {
         if (hopT > 0) { hopT = Math.max(0, hopT - dt); pose.bob -= 14 * Math.sin((1 - hopT / 0.5) * Math.PI); }
         blinkAt -= dt;
         if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
+        // The alarm clock, time stopped: the frog plans. It sits in the air at the height of its jump,
+        // eyes shut, its katanas hanging beside it, and its right hand (on our left) points out each
+        // thing to be cut. When time flows again it is on its feet with the blades in hand, as before.
+        const planNow = phase === 'play' && freezeLeft > 0 && !summon && !tongue && !punch;
+        if (planNow) {
+            pose.plan = true; pose.up = 0; pose.side = 0; pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.jump = 0; pose.face = 0; pose.tilt = 0; pose.headUp = false; pose.chop = false;
+            pose.laptop.gone = true;
+            pose.bob = -JUMP_UP + Math.round(Math.sin(idleT * 1.4) * 2) * 2;                    // (a slow hover, in steps)
+            const sh = frogPoint(ELBOW.L[0], ELBOW.L[1]), p = aim || { x: sh.x - 10, y: sh.y - 100 };
+            let th = Math.atan2(-(p.x - sh.x), p.y - sh.y) * 180 / Math.PI;                     // 0 = hanging down, 90 = out to our left, 180 = straight up
+            if (th < -50) th += 360;                                                            // to our right it reaches over the top, not across its lap
+            pose.lRot = Math.round(th / 15) * 15; pose.lStretch = 2.1;                          // (held directions, 15 degrees apart)
+            pose.rRot = 24; pose.rStretch = 0.9;                                                // the other hand rests in its lap
+        } else if (pose.plan) { pose.plan = false; pose.up = 1; pose.lStretch = pose.rStretch = 1; }
         stepFall(dt);
         dimStep(now);
         // The frog is drawn in held poses, not tweened: at rest a new "drawing" about 12 times a
@@ -5289,8 +5308,14 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // breathing fire: both katanas stand in the top of the post, one at each side of the frog
         const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
+        // the clock's planning: both katanas hang in the air beside the frog, points down, turning a little
+        if (pose.plan && !stuckNow.length && !dropped.length) [-1, 1].forEach(sd => {
+            const at = frogPoint(993 + sd * 1150, 1250), bobY = Math.round(Math.sin(tn / 700 + sd) * 2) * fbox.w * 0.012;
+            glow(ctx, at.x, at.y - fbox.w * 0.2 + bobY, fbox.w * 0.36, '129,212,250', 0.55);
+            stuckNow.push({ x: at.x, y: at.y + bobY, rot: sd * 0.12, stuck: 0 });
+        });
         // on sake the hand with the bottle has put its katana down: it stands in the top of the post, leaning out at 45 degrees
-        const parked = !stuckNow.length && !dropped.length && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
+        const parked = !stuckNow.length && !dropped.length && !pose.plan && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
         parkT = parked ? parkT + 1 / 60 : 0;
         if (parked) stuckNow.push({ x: W / 2 + fbox.w * 0.17, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: Math.PI / 4, stuck: Math.max(parkT, 0.0001) });
         dropped.concat(stuckNow).forEach(k => {   // a katana, point down: falling, then quivering in the wood
