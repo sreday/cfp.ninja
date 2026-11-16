@@ -122,6 +122,15 @@ def main():
         fresh(g); g.js("frogPlay.breath({seconds: 1, wide: 1}); frogPlay.drop('fireworks', 640, 240)")
         hold(g, 640, 220, 0.7); st = g.state(); g.shot(os.path.join(a.out, 'fire-fireworks.png'))
         check('fireworks lit by the breath are fire fireworks', st['fw'] == 'fire', st['fw'])
+        # 11. a crate in a plain flame chars, then bursts into charcoal logs
+        fresh(g); g.js("frogPlay.breath({seconds: 1.2}); frogPlay.drop('crate', 640, 240)")
+        sts = hold(g, 640, 230, 0.8, every=0.04); g.shot(os.path.join(a.out, 'crate-logs.png'))
+        chars = [s['crateChar'][0] for s in sts if s['crateChar']]
+        check('the crate chars in the flame before it bursts', any(0.2 < c < 1 for c in chars), chars)
+        check('it bursts into charcoal logs only', sts[-1]['planks'] > 0 and sts[-1]['logs'] == sts[-1]['planks'], (sts[-1]['planks'], sts[-1]['logs']))
+        # 12. on sake the second katana stands in the post
+        fresh(g); g.js("frogPlay.sake && frogPlay.sake(3)"); time.sleep(0.6); st = g.state(); g.shot(os.path.join(a.out, 'sake-parked.png'))
+        check('on sake a katana is parked in the post', st['parked'], st.get('sake'))
         errs = g.errors(); check('no page errors', not errs, errs)
     finally:
         g.close()

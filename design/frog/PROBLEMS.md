@@ -20,6 +20,11 @@ Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | 
 
 ## Less obvious problems (not auto-fixed)
 
+- 2026-11-16 | Marek's request | A crate in a flame now chars black as it burns (glow, embers in
+  the slats), then bursts into charcoal logs that fly further, land in the sea with a hiss of
+  steam and float like planks. Its time to burst is unchanged (a fruit's 0.3 s, less with
+  fireflies), so the charring is brief: say if it should burn longer. On sake the second katana
+  stands in the top of the post, leaning out at 45 degrees, while the frog holds the bottle. | shipped
 - 2026-11-16 | Marek's request | The start screen is now four pictures with a line each (katana:
   hold to slash; tongue: quick tap or right click; a heap of fruit and power-ups; the frog eating
   a slice of watermelon among bowls: "Prepare a fruit salad and survive as long as you can!") and a Play button. The pages of detail are behind "All hints" on the

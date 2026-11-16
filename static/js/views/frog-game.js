@@ -810,7 +810,24 @@ function drawPieceBody(ctx, p, lw) {
 
 // one plank: a rounded board with a grain line and a nail at each end (w x h, centred)
 const ASH = { dark: '#33312f', mid: '#56524e', pale: '#7d7873' };      // the planks of a crate that burned
-function drawPlank(ctx, w, h, col, lw) {
+const COAL = ['#1b1a19', '#262321', '#141312'];                         // the logs a burnt crate bursts into
+// a colour on its way to charcoal: k = 0 as it is .. 1 black
+function charCol(col, k) {
+    if (k <= 0) return col;
+    const n = parseInt(col.slice(1), 16), t = [27, 26, 25], m = (v, i) => Math.round(v + (t[i] - v) * Math.min(1, k));
+    return `rgb(${m(n >> 16 & 255, 0)},${m(n >> 8 & 255, 1)},${m(n & 255, 2)})`;
+}
+function drawPlank(ctx, w, h, col, lw, ember) {
+    if (ember) {      // a charcoal log: black, a crack of live ember along it, no nails
+        ctx.fillStyle = col; ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.lineJoin = 'round';
+        ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+        const L = Math.max(w, h), T = Math.min(w, h), wide = w >= h;
+        ctx.strokeStyle = ember > 0.5 ? '#ff7a1a' : '#b23b12'; ctx.lineWidth = Math.max(1.2, T * 0.14); ctx.lineCap = 'round';
+        ctx.beginPath();
+        [[-0.36, -0.1], [-0.16, 0.16], [0.04, -0.12], [0.2, 0.1], [0.36, -0.06]].forEach(([a, b], i) => { const x = wide ? a * L : b * T, y = wide ? b * T : a * L; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+        ctx.stroke();
+        return;
+    }
     ctx.fillStyle = col; ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.lineJoin = 'round';
     ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.lineWidth = Math.max(1, lw * 0.45);
@@ -830,8 +847,9 @@ function cratePlanks(hw) {
     [-1, 1].forEach(s => out.push({ x: s * (hw - post / 2), y: 0, w: post, h: hh * 2.08, col: WOOD.dark }));
     return out;
 }
-function drawCrate(ctx, hw, lw) {
-    cratePlanks(hw).forEach(pl => { ctx.save(); ctx.translate(pl.x, pl.y); drawPlank(ctx, pl.w, pl.h, pl.col, lw); ctx.restore(); });
+// char = 0 fresh wood .. 1 burnt black, with embers showing in the slats once it is well alight
+function drawCrate(ctx, hw, lw, char = 0) {
+    cratePlanks(hw).forEach((pl, i) => { ctx.save(); ctx.translate(pl.x, pl.y); drawPlank(ctx, pl.w, pl.h, charCol(pl.col, char * (0.75 + (i % 3) * 0.125)), lw, char > 0.55 && !pl.back ? char : 0); ctx.restore(); });
 }
 
 // a soft glow without shadowBlur: one radial gradient disc
@@ -2396,24 +2414,25 @@ export function mountFrogGame(stage, opts = {}) {
         const cs = Math.cos(c.rot), sn = Math.sin(c.rot), drag = Math.min(bladeSpeed, H * 3) * 0.12;
         cratePlanks(c.hw).forEach(pl => {
             if (pl.col === WOOD.inside) return;
-            const a = rand(0, 6.28), v = rand(0.25, 0.75) * H;
+            const a = rand(0, 6.28), v = rand(0.25, 0.75) * H * (c.ash ? 1.5 : 1);
             planks.push({
-                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: c.ash ? (pl.col === WOOD.dark ? ASH.dark : Math.random() < 0.5 ? ASH.mid : ASH.pale) : pl.col,     // (burnt down: the wood comes away ashen)
-                vx: c.vx * 0.4 + Math.cos(a) * v + dx * drag, vy: c.vy * 0.4 + Math.sin(a) * v - H * 0.25 + dy * drag,
+                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: c.ash ? pick(COAL) : pl.col, log: !!c.ash,     // (burnt through: it bursts into charcoal logs)
+                vx: c.vx * 0.4 + Math.cos(a) * v + (c.ash ? 0 : dx * drag), vy: c.vy * 0.4 + Math.sin(a) * v - H * 0.25 + (c.ash ? 0 : dy * drag),
                 g: G(), rot: c.rot, spin: rand(-9, 9), t: 0, sea: rand(0.08, 0.6), ph: rand(0, 6)
             });
         });
         // splinters
         for (let i = 0; i < 16; i++) {
             const a = rand(0, 6.28), v = rand(0.2, 0.7) * H;
-            drops.push({ x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: c.ash ? (i % 2 ? ASH.mid : ASH.dark) : i % 2 ? WOOD.face : WOOD.dark, t: 0, s: rand(2, 4) });
+            drops.push({ x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: c.ash ? (i % 3 ? COAL[0] : '#ff7a1a') : i % 2 ? WOOD.face : WOOD.dark, t: 0, s: rand(2, 4) });
         }
         const base = clamp(S() * 0.055, 16, 60);
         // where on the crate the blade went, in the crate's own frame (-1..1 each way)
         const ic = Math.cos(-c.rot), is = Math.sin(-c.rot);
         const ux = ((hx - c.x) * ic - (hy - c.y) * is) / c.hw, uy = ((hx - c.x) * is + (hy - c.y) * ic) / (c.hw * CRATE_TALL);
         const omni = Math.hypot(ux, uy) < 0.38, outA = Math.atan2(hy - c.y, hx - c.x);
-        log('crate', omni ? 1 : 0, cone ? 1 : 0); snd('crate');
+        if (c.ash) for (let i = 0; i < 22; i++) { const a = rand(0, 6.28), v = rand(0.1, 0.5) * H; flames.push({ x: c.x, y: c.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.25, 0.5), s: rand(7, 13) }); }
+        log('crate', omni ? 1 : 0, cone ? 1 : 0, c.ash ? 'burnt' : ''); snd('crate');
         // breaking a crate is worth an apple
         const gain = fruitTime(APPLE) * (1 + GRADES[gradeIx].bonus) * mult * timeMult();
         timeLeft += gain; slices++; lastSlice = performance.now();
@@ -3152,7 +3171,7 @@ export function mountFrogGame(stage, opts = {}) {
                 continue;
             }
             c.burn = (c.burn || 0) + dt * (on && inFlame(c.x, c.y, c.hw) ? power(c) : 1);
-            if (Math.random() < 0.6) flames.push({ x: c.x + rand(-c.hw, c.hw) * 0.7, y: c.y - c.hw * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(5, 9) });
+            for (let n = 0; n < 2; n++) if (Math.random() < 0.6) flames.push({ x: c.x + rand(-c.hw, c.hw) * 0.9, y: c.y + rand(-c.hw, c.hw * 0.3), vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(5, 9) });
             if (c.burn >= burnTime()) { crates.splice(i, 1); c.ash = true; breakCrate(c, 1, 0, c.x, c.y); }
         }
         for (let i = fruits.length - 1; i >= 0; i--) {
@@ -4051,7 +4070,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     const OVER_WAIT = 2;
-    let overT = 0, splashed = false, splashT = 0, dropped = [], breathT = 0;
+    let overT = 0, splashed = false, splashT = 0, dropped = [], breathT = 0, parkT = 0;
     function stepFall(dt) {
         dropped.forEach(k => {
             if (k.stuck) { k.stuck += dt; return; }
@@ -4396,7 +4415,7 @@ export function mountFrogGame(stage, opts = {}) {
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
-                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length,
+                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
                 breath: { slow: fireSlow, wide: fireWide, fry: fireFry }, rate: r2(fruitRate()), log: trace.slice(-30)
@@ -4411,7 +4430,8 @@ export function mountFrogGame(stage, opts = {}) {
         at(seconds) { clockT = seconds; },
         blast(x, y) { explode(x, y, S() * 0.12); },
         cloud(x, y) { digitalCloud(x, y, 'test'); },
-        freeze(seconds) { freezeLeft = seconds; }
+        freeze(seconds) { freezeLeft = seconds; },
+        sake(seconds) { sakeLeft = seconds; }
     };
     function playAnim(name) {
         const a = ANIMS.find(q => q.name === name);
@@ -4940,6 +4960,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (q.vy > 0 && q.y >= top) {
                     q.afloat = 0; q.y = top; q.drift = clamp(q.vx * 0.06, -14, 14);
                     ripples.push({ x: q.x, y: q.y, r: q.w * 0.6, t: 0 });
+                    if (q.log) { for (let d = 0; d < 2; d++) steamPuff(q.x + rand(-8, 8), q.y, Math.max(q.w, q.h) * 0.5); q.log = 0.4; }     // hot wood in the sea: a hiss of steam, the ember dims
                     for (let d = 0; d < 4; d++) seaDrops.push({ x: q.x + rand(-6, 6), y: q.y, vx: rand(-60, 60), vy: -rand(0.08, 0.22) * H, t: 0, s: rand(1.5, 3) });
                 }
             } else { q.afloat += dt; q.x += q.drift * dt; }
@@ -5049,7 +5070,7 @@ export function mountFrogGame(stage, opts = {}) {
             bctx.save(); bctx.globalAlpha = 1 - sink;
             bctx.translate(q.x, q.y + Math.sin(q.afloat * 3 + q.ph) * 2 + sink * thin * 1.2);
             bctx.beginPath(); bctx.rect(-flat, -thin * 2, flat * 2, thin * 2.2 - sink * thin * 0.5); bctx.clip();      // the waterline hides what is under
-            drawPlank(bctx, flat, thin, q.col, clamp(W / 260, 2.5, 4));
+            drawPlank(bctx, flat, thin, q.col, clamp(W / 260, 2.5, 4), q.log ? 0.4 : 0);
             bctx.strokeStyle = '#9fc3d3'; bctx.lineWidth = 1.5; bctx.globalAlpha = 0.6 * (1 - sink); bctx.beginPath(); bctx.ellipse(0, thin * 0.2, flat * 0.62, thin * 0.22, 0, 0, 7); bctx.stroke();
             bctx.restore();
         });
@@ -5095,12 +5116,16 @@ export function mountFrogGame(stage, opts = {}) {
         }
         ctx.globalAlpha = 1;
         // the crate and its broken planks sit behind all the fruit
-        planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw); ctx.restore(); });
+        planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw, q.log ? 1 : 0); ctx.restore(); });
         drawClouds(tn);
         crates.forEach(c => {
             if (c.mark) glow(ctx, c.x, c.y, c.hw * 2.2, '129,212,250', 0.75);        // marked during a time freeze, like fruit
             if (c.hacked) cells(c, c.hw, () => drawOutline(c.x, c.y, c.hw * 1.6, tn, g => { g.rotate(c.rot); drawCrate(g, c.hw, lw); }));
-            else { ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw); ctx.restore(); }
+            else {
+                const char = c.burn ? clamp(c.burn / burnTime(), 0, 1) : 0;
+                if (char) glow(ctx, c.x, c.y, c.hw * (1.8 + char), '255,120,30', 0.35 + 0.4 * char);
+                ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.rot); drawCrate(ctx, c.hw, lw, char); ctx.restore();
+            }
         });
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         gulls.forEach(g => {
@@ -5268,6 +5293,10 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // breathing fire: both katanas stand in the top of the post, one at each side of the frog
         const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
+        // on sake the hand with the bottle has put its katana down: it stands in the top of the post, leaning out at 45 degrees
+        const parked = !stuckNow.length && !dropped.length && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
+        parkT = parked ? parkT + 1 / 60 : 0;
+        if (parked) stuckNow.push({ x: W / 2 + fbox.w * 0.17, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: Math.PI / 4, stuck: Math.max(parkT, 0.0001) });
         dropped.concat(stuckNow).forEach(k => {   // a katana, point down: falling, then quivering in the wood
             const L = fbox.w * 0.42, wob = k.stuck ? Math.sin(k.stuck * 40) * 0.12 * Math.exp(-k.stuck * 6) : 0;
             ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.rot + wob);
