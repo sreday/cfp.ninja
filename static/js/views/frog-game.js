@@ -1070,6 +1070,7 @@ export function mountFrogGame(stage, opts = {}) {
             <div class="fg-stamina" title="Stamina: each slash uses a bar">${'<i><b></b></i>'.repeat(STAMINA_BARS)}<span class="fg-stam-left" hidden></span><button type="button" class="fg-pill fg-stam-lock" aria-pressed="false">Lock</button></div>
             <div class="fg-grade" data-g="0"><span class="fg-gain" title="Seconds gained by this burst of action (debug)">+0.0 s</span><span class="fg-grade-top"><span class="fg-grade-name"></span><span class="fg-grade-bonus"></span></span><i><s></s></i></div>
         </div>
+        <div class="fg-fps" aria-hidden="true"></div>
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
@@ -3860,8 +3861,8 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- numbers on or off ----------
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
-        const show = () => { pill.classList.toggle('fg-num-off', !showNums); pill.title = showNums ? 'Numbers shown' : 'Numbers hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
-        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = floats.filter(f => !f.gain); show(); });
+        const show = () => { pill.classList.toggle('fg-num-off', !showNums); stage.classList.toggle('fg-nonums', !showNums); pill.title = showNums ? 'Numbers and words shown' : 'Numbers and words hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
+        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });
         show();
     })();
 
@@ -4203,12 +4204,19 @@ export function mountFrogGame(stage, opts = {}) {
         if (dead) return;
         const t0 = performance.now();
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
+        // debug: frames a second, big, top left; green at 60, red at 30 and under
+        fpsN++;
+        if (t0 - fpsAt >= 500) {
+            const fps = Math.round(fpsN * 1000 / (t0 - fpsAt)); fpsN = 0; fpsAt = t0;
+            if (dbg) { fpsEl.textContent = fps; fpsEl.style.color = `hsl(${Math.round(clamp((fps - 30) / 30, 0, 1) * 120)}, 85%, 55%)`; }
+        }
         try { frameBody(now); }
         catch (err) { crashed(err); if (crashes > 30) { dead = true; return; } }
         frameJs += performance.now() - t0;
         if (!dead) raf = requestAnimationFrame(frame);
     }
-    let frameAt = 0, frameGap = 0, frameJs = 0;
+    let frameAt = 0, frameGap = 0, frameJs = 0, fpsN = 0, fpsAt = 0;
+    const fpsEl = $('.fg-fps');
     function frameBody(now) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
@@ -4976,7 +4984,7 @@ export function mountFrogGame(stage, opts = {}) {
             }
             ctx.restore();
         }
-        floats.forEach(f => {
+        if (showNums) floats.forEach(f => {
             const k = f.t / 0.9;
             ctx.globalAlpha = 1 - k * k;
             ctx.font = `800 ${f.hot ? 30 : 22}px Inter, sans-serif`; ctx.textAlign = 'center';
