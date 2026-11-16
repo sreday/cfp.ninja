@@ -1724,7 +1724,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-stam-left { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; pointer-events: none; font: 800 1.05rem/1 Inter, sans-serif; font-variant-numeric: tabular-nums; color: #111; }
 .fg-stam-left[hidden] { display: none; }
 /* Numbers off: no words or numbers over the game, the combo meter keeps only its bar */
-.fg-nonums .fg-grade-top { visibility: hidden; }
+.fg-nonums .fg-grade-top, .fg-nonums .fg-hud, .fg-nonums .fg-time, .fg-nonums .fg-gain { visibility: hidden; }
 /* debug: frames a second */
 .fg-fps { display: none; position: absolute; left: 16px; top: 60px; z-index: 6; pointer-events: none; font: 900 3rem/1 Inter, sans-serif; font-variant-numeric: tabular-nums; color: #7ed957; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
 .fg-debugging .fg-fps { display: block; }
