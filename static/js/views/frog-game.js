@@ -62,6 +62,7 @@ const MARK_REACH = 2;                            // how generous marking is duri
 const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
+const FIRE_FAR = 0.3;                            // the breath weakens with distance: full strength at the mouth, this much less at the furthest corner of the screen (burning and copying alike)
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
 const DUP_SLOW = 2, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everything that is not fruit takes DUP_SLOW times as long to copy; s for the two to grow back; most power-ups, fireflies, crates on screen
 const CELL_SMALL = 0.8, CELL_OFF = 0.8, CELL_PUSH = 0.45;           // dividing: the size of each of the two, how far each sits from the middle, and how far each then drifts on (in radii)
@@ -2732,6 +2733,9 @@ export function mountFrogGame(stage, opts = {}) {
             let da = Math.abs(Math.atan2(dy, dx) - aimA); if (da > Math.PI) da = 2 * Math.PI - da;
             return d < reach && da < fireSpread() + Math.atan2(r, Math.max(d, 1));
         };
+        // how strong the breath is at a point: 1 at the mouth, 1 - FIRE_FAR at the furthest corner of the screen
+        const far = on ? Math.max(Math.hypot(m.x, m.y), Math.hypot(W - m.x, m.y), Math.hypot(m.x, H - m.y), Math.hypot(W - m.x, H - m.y)) : 1;
+        const power = o => (on && !atUs ? 1 - FIRE_FAR * clamp(Math.hypot(o.x - m.x, o.y - m.y) / far, 0, 1) : 1);
         // Power-ups burn too (no tongue while breathing fire, so they'd be wasted): each one
         // that stays in the flame for BURN_TIME goes up like a fruit and pays like a burned apple.
         const burnExtras = (list, rad) => {
@@ -2743,7 +2747,7 @@ export function mountFrogGame(stage, opts = {}) {
                 // the laptop is fireproof: it heats to a red glow and that is all, so it can still be taken with the tongue afterwards
                 const hacking = fireSlow && on && inFlame(b.x, b.y, r);
                 if (b.kind === 'laptop' && !hacking) {
-                    b.burn = Math.min((b.burn || 0) + dt * 2, LAPTOP_HOT);
+                    b.burn = Math.min((b.burn || 0) + dt * 2 * power(b), LAPTOP_HOT);
                     if (Math.random() < 0.4) flames.push({ x: b.x + rand(-r, r) * 0.8, y: b.y - r * 0.4, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
                     continue;
                 }
@@ -2759,7 +2763,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (hacking) {
                     if (!b.hacked) { b.hacked = true; b.hackT = 0; b.burn = 0; snd('hack'); feedFire(b, list === flies); b.hackFor = hackFor(); }
                     // held in it, a digital power-up divides too, in twice the time fruit takes
-                    else if (dividing(b, dt, DUP_TIME * DUP_SLOW)) {
+                    else if (dividing(b, dt * power(b), DUP_TIME * DUP_SLOW)) {
                         if (list.length < EXTRA_MAX) {
                             const twin = Object.assign({}, b, divideAt(b, r), { phase: rand(0, 6) });
                             if (twin.base !== undefined) twin.base = twin.y;
@@ -2769,7 +2773,7 @@ export function mountFrogGame(stage, opts = {}) {
                     }
                     continue;
                 }
-                b.burn = (b.burn || 0) + dt;
+                b.burn = (b.burn || 0) + dt * (on && inFlame(b.x, b.y, r) ? power(b) : 1);
                 if (b.kind === 'fireworks') {   // not a power-up to burn: the flame lights the fuse and they go off
                     if (b.burn >= burnTime()) { list.splice(i, 1); breakPickup(b, 0); }
                     continue;
@@ -2797,7 +2801,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (inB && fireSlow) {
                 if (!g.hacked) { g.hacked = true; g.hackT = 0; g.hackFor = hackFor(); snd('hack'); log('gull', 'hacked'); }
                 // held in the hacking breath a digital gull is copied, like digital fruit (never more than GULL_MAX in the air)
-                if (dividing(g, dt, DUP_TIME * DUP_SLOW)) {
+                if (dividing(g, dt * power(g), DUP_TIME * DUP_SLOW)) {
                     if (gulls.length < GULL_MAX) {
                         const twin = Object.assign({}, g, divideAt(g, g.r), { phase: rand(0, 6), hits: 0 });
                         twin.base = twin.y; gulls.push(twin); snd('hack'); log('gull', 'dup');
@@ -2816,7 +2820,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!((on && inFlame(c.x, c.y, c.hw)) || inBlade(c.x, c.y, c.hw))) { if (c.burn) c.burn = Math.max(0, c.burn - dt * BURN_COOL); continue; }
             if (fireSlow && on && inFlame(c.x, c.y, c.hw)) {
                 if (!c.hacked) { c.hacked = true; c.hackT = 0; c.burn = 0; c.hackFor = hackFor(); snd('hack'); }
-                else if (dividing(c, dt, DUP_TIME * DUP_SLOW)) {
+                else if (dividing(c, dt * power(c), DUP_TIME * DUP_SLOW)) {
                     if (crates.length < CRATE_MAX) {
                         const twin = Object.assign({}, c, divideAt(c, c.hw));
                         crates.push(twin); snd('hack'); log('dup', 'crate');
@@ -2825,7 +2829,7 @@ export function mountFrogGame(stage, opts = {}) {
                 }
                 continue;
             }
-            c.burn = (c.burn || 0) + dt;
+            c.burn = (c.burn || 0) + dt * (on && inFlame(c.x, c.y, c.hw) ? power(c) : 1);
             if (Math.random() < 0.6) flames.push({ x: c.x + rand(-c.hw, c.hw) * 0.7, y: c.y - c.hw * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(5, 9) });
             if (c.burn >= burnTime()) { crates.splice(i, 1); breakCrate(c, 1, 0, c.x, c.y); }
         }
@@ -2838,7 +2842,7 @@ export function mountFrogGame(stage, opts = {}) {
             // Held in the hacking breath, a digital fruit is copied, the way a real one held in the
             // flame melts: every DUP_TIME of exposure makes one more (the copy can be copied too).
             if (breath && fireSlow && f.hacked) {
-                if (dividing(f, dt, DUP_TIME)) {
+                if (dividing(f, dt * power(f), DUP_TIME)) {
                     if (fruits.length < DUP_MAX) {
                         const at = divideAt(f, f.r);
                         const twin = newFruit(f.type, f.r, at.x, at.y, f.vx, f.vy, f.g, { entered: true });
@@ -2851,7 +2855,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (breath && !fireSlow && f.hacked) { f.hacked = false; f.vx = 0; f.vy = 0; }     // an ordinary flame burns the digits off: it is fruit again, and it melts
             const br = breath && !f.hacked, inside = br || inBlade(f.x, f.y, f.r);
             if (!inside) { if (f.burn) f.burn = Math.max(0, f.burn - dt * BURN_COOL); continue; }   // out of the flame: cools fast
-            f.burn = (f.burn || 0) + dt * (br ? 1 : BLADE_HEAT);            // the breath melts it; a fire blade's trace only warms it
+            f.burn = (f.burn || 0) + dt * (br ? power(f) : BLADE_HEAT);            // the breath melts it; a fire blade's trace only warms it
             if (Math.random() < 0.5) drops.push({ x: f.x + rand(-f.r, f.r) * 0.7, y: f.y + f.r * 0.6, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: f.type.juice, t: 0, s: rand(2, 4) });
             if (Math.random() < 0.5) flames.push({ x: f.x + rand(-f.r, f.r) * 0.6, y: f.y - f.r * 0.3, vx: rand(-20, 20), vy: -H * rand(0.2, 0.4), t: 0, life: 0.35, s: rand(4, 8) });
             if (f.burn >= burnTime()) { fruits.splice(i, 1); burnFruit(f); }
@@ -2863,7 +2867,7 @@ export function mountFrogGame(stage, opts = {}) {
             const br = on && !fireSlow && inFlame(q.x, q.y, q.R * 0.7), inside = br || inBlade(q.x, q.y, q.R * 0.7);     // (a hacking breath hacks, it does not burn: pieces are left alone)
             // (set alight by a helper's fire blade: it cooks through by itself, wherever it is, and pays for it)
             if (!inside && !q.lit) { if (q.burn) q.burn = Math.max(0, q.burn - dt * BURN_COOL); continue; }
-            q.burn = (q.burn || 0) + dt * (br || q.lit ? 1 : BLADE_HEAT);
+            q.burn = (q.burn || 0) + dt * (br ? power(q) : q.lit ? 1 : BLADE_HEAT);
             if (Math.random() < 0.35) drops.push({ x: q.x + rand(-q.R, q.R) * 0.5, y: q.y + q.R * 0.4, vx: rand(-15, 15), vy: H * rand(0.05, 0.2), c: q.type.juice, t: 0, s: rand(2, 4) });
             if (q.burn >= burnTime()) { pieces.splice(i, 1); burnFruit(q, Math.pow(RECUT, q.fam.cuts) * (q.lit || 1)); }
         }
@@ -3738,7 +3742,7 @@ export function mountFrogGame(stage, opts = {}) {
                 splashed = true; snd('splash'); splashT = 0.0001;
                 for (let i = 0; i < 60; i++) {
                     const a = rand(3.6, 5.8), v = rand(0.35, 1.1) * H, sd = i % 2 ? 1 : -1;
-                    drops.push({ x: W / 2 + sd * rand(fbox.w * 0.1, fbox.w * 0.5), y: sea, vx: Math.cos(a) * v * 0.5 + sd * 60, vy: Math.sin(a) * v, c: i % 3 ? '#4f7f96' : '#cfe8f3', t: 0, s: rand(3, 9) });
+                    seaDrops.push({ x: W / 2 + sd * rand(fbox.w * 0.1, fbox.w * 0.5), y: sea, vx: Math.cos(a) * v * 0.5 + sd * 60, vy: Math.sin(a) * v * 0.6, t: 0, s: rand(2.5, 7) });     // (behind the post too)
                 }
             }
         }
@@ -4668,6 +4672,20 @@ export function mountFrogGame(stage, opts = {}) {
             bctx.strokeStyle = '#9fc3d3'; bctx.lineWidth = 1.5; bctx.globalAlpha = 0.6 * (1 - sink); bctx.beginPath(); bctx.ellipse(0, thin * 0.2, flat * 0.62, thin * 0.22, 0, 0, 7); bctx.stroke();
             bctx.restore();
         });
+        if (splashT > 0 && splashT < 0.9) {   // the frog's splash, behind the post like everything that lands in the sea: two sheets of water thrown up either side of the post, and rings spreading
+            splashT += 1 / 60;
+            const k = splashT / 0.9, sea = H * 0.9, up = Math.sin(Math.min(1, k * 1.6) * Math.PI) * H * 0.2;
+            bctx.save(); bctx.globalAlpha = 1 - k;
+            [-1, 1].forEach(sd => {
+                const x0 = W / 2 + sd * fbox.w * 0.2;
+                bctx.beginPath(); bctx.moveTo(x0, sea); bctx.quadraticCurveTo(x0 + sd * fbox.w * 0.25, sea - up * 1.6, x0 + sd * fbox.w * (0.55 + k * 0.3), sea - up * 0.5);
+                bctx.quadraticCurveTo(x0 + sd * fbox.w * 0.45, sea - up * 0.3, x0 + sd * fbox.w * 0.5, sea); bctx.closePath();
+                bctx.fillStyle = '#cfe8f3'; bctx.fill(); bctx.lineWidth = clamp(W / 260, 2.5, 4) * 0.8; bctx.strokeStyle = '#000'; bctx.stroke();
+            });
+            bctx.strokeStyle = '#cfe8f3'; bctx.lineWidth = 3;
+            [0.5, 0.9].forEach(m => { bctx.beginPath(); bctx.ellipse(W / 2, sea, fbox.w * (0.4 + k * m), fbox.w * 0.05 * (1 + k), 0, 0, 7); bctx.stroke(); });
+            bctx.restore();
+        }
         // fruit landing in the sea: the ring and the spray are behind the frog and its post
         if (ripples.length || seaDrops.length) {
             bctx.save(); bctx.strokeStyle = '#9fc3d3'; bctx.lineWidth = 2;
@@ -4857,20 +4875,6 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.globalAlpha = 1 - k; ctx.lineWidth = 5 * (1 - k) + 1; ctx.stroke();
             ctx.restore();
         });
-        if (splashT > 0 && splashT < 0.9) {   // the splash: two sheets of water thrown up either side of the post, and rings spreading
-            splashT += 1 / 60;
-            const k = splashT / 0.9, sea = H * 0.9, up = Math.sin(Math.min(1, k * 1.6) * Math.PI) * H * 0.2;
-            ctx.save(); ctx.globalAlpha = 1 - k;
-            [-1, 1].forEach(sd => {
-                const x0 = W / 2 + sd * fbox.w * 0.2;
-                ctx.beginPath(); ctx.moveTo(x0, sea); ctx.quadraticCurveTo(x0 + sd * fbox.w * 0.25, sea - up * 1.6, x0 + sd * fbox.w * (0.55 + k * 0.3), sea - up * 0.5);
-                ctx.quadraticCurveTo(x0 + sd * fbox.w * 0.45, sea - up * 0.3, x0 + sd * fbox.w * 0.5, sea); ctx.closePath();
-                ctx.fillStyle = '#cfe8f3'; ctx.fill(); ctx.lineWidth = lw * 0.8; ctx.strokeStyle = '#000'; ctx.stroke();
-            });
-            ctx.strokeStyle = '#cfe8f3'; ctx.lineWidth = 3;
-            [0.5, 0.9].forEach(m => { ctx.beginPath(); ctx.ellipse(W / 2, sea, fbox.w * (0.4 + k * m), fbox.w * 0.05 * (1 + k), 0, 0, 7); ctx.stroke(); });
-            ctx.restore();
-        }
         // breathing fire: both katanas stand in the top of the post, one at each side of the frog
         const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
         dropped.concat(stuckNow).forEach(k => {   // a katana, point down: falling, then quivering in the wood

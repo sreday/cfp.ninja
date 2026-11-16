@@ -88,6 +88,7 @@ blade would do):
   a marked cut, the helpers. The tongue ignores it.
 - An ordinary breath burns the digits off hacked fruit (it is fruit again, and melts). A hacking
   breath hacks and never burns: cut pieces in it are left alone.
+- The breath weakens with distance: full strength at the frog's mouth, 30% slower at the furthest corner of the screen, for burning and for copying alike. Fire blades are not affected.
 - The laptop is fireproof: a plain flame makes it red hot (it stays glowing a moment after) and it can still be taken. The hacking breath hacks and copies it like any other item.
 - Fireworks set off while time is stopped (a clock, or the helpers at work) wait for time to
   flow. A marked bundle is set off, not paid for.
