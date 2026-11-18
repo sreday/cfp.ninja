@@ -7,6 +7,9 @@ behaviour.
 
 Status key: `placeholder` = drawn in code, needs art. `none` = doesn't exist yet.
 
+The working status of each element during the overhaul (prompts, candidates, picks) is in
+`art/manifest.json`; `tools/art_seed.py` refreshes it from this file. Process: `art/README.md`.
+
 ## 1. The frog
 
 | # | Element | Notes | Status |
@@ -106,10 +109,14 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 
 | # | Element | Notes | Status |
 |---|---|---|---|
-| 5.1 | Beach background | dusk to night, sea, sand, party lights; dark and low-contrast so fruit reads; must work from a 390 px wide phone to a wide monitor (the shore line stays at the same height from the bottom) | placeholder (dark cloudy beach) |
-| 5.2 | Mooring post | weathered wood, stretches in height, stands in the shallows | placeholder |
-| 5.3 | Party layer | lights, a disco ball, bunting, the dance floor in the distance | none |
-| 5.4 | Foreground | pebbles, foam line, maybe drink cups in the sand | placeholder (pebbles) |
+Three depths (Marek, 2026-11-18), static images vectorized, plus the post:
+
+| # | Element | Notes | Status |
+|---|---|---|---|
+| 5.1 | Far layer: sky and the beach bar | dusk to night, the beach bar with party lights, a disco ball, bunting, the animals dancing far away; dark and low-contrast so fruit reads | placeholder (dark cloudy beach) |
+| 5.2 | Middle layer: the sea | the water between the post and the beach; sea-bound fruit falls into it behind the frog | placeholder |
+| 5.3 | Near layer: foreground decorations | shallows, pebbles, foam line, maybe drink cups in the sand; must work from a 390 px wide phone to a wide monitor (the shore line stays at the same height from the bottom) | placeholder (pebbles) |
+| 5.4 | Mooring post | weathered wood, stretches in height, stands in the shallows | placeholder |
 
 ## 6. The cast (other animals)
 

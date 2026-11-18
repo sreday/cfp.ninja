@@ -54,12 +54,44 @@ logo from memory; trace it.
   eyes with one white highlight each, and a bandana whose lower edge dips in a V between
   the eyes: that V is the frown, and it is the frog's whole attitude. A cheek-to-cheek
   smile under it. Friendly and deadly at once.
-- **Shading:** at most one flat highlight shape per form (the stripe on the bandana, the
-  top of a knee). No soft shadows, no rim light. The only shadow is a flat black ellipse
-  on the ground.
+- **Shading (v2, 2026-11-18): cel shading.** One flat shadow tone and one flat highlight
+  per form, hard edges, like a polished 2D animated film: no airbrushed gradients, no
+  texture, no rim light. The shapes, palette and thick black line stay exactly the logo's.
+  The ground shadow is a flat dark ellipse.
 
 Everything else in the game is drawn to sit next to this frog: same line, same flatness,
 same limited palette per object.
+
+## Version 2: the overhaul (Marek, 2026-11-18)
+
+The placeholders are being replaced with generated art (pipeline in `art/README.md`, every
+element and its status in `art/manifest.json`). What changed from version 1:
+
+**Look.** A polished 2D animated film built on the sticker: the logo's shapes, palette and
+outline, plus cel shading. Stylized and bold, never bland. Fruit, power-ups and items get a
+cartoony fake-3D look: rounded volume from the cel shading, a clear top-left light.
+
+**Cut fruit is real fruit.** A cut piece keeps its skin. The cut face is the cross-section
+seen slightly from the side: tilted 15-25 degrees off the camera and shifted a little, so a
+half looks like a half (a sliver of flesh, a lip of rind), not a flat disc of insides.
+
+**Tone: wholesome unhinged.** Like the Duolingo owl on social media: the character is pushed
+to cartoon extremes, the comedy is loud, but nothing is cruel. Every power-up state goes all
+the way (see "Character variants" below). Never crossed: gore, injury beyond cartoon soot,
+bumps and stars, vomit, drinking shown as a good idea, anything sexual, political or
+religious, other companies' brands. The spice goes on the frog and the effects, never over
+the fruit or the blade (readability order below).
+
+**Two tiers per request.** Every element is generated as 2 faithful candidates (closest to
+the logo frog) and 2 unhinged ones (the same frog, pushed further). Marek picks per tier.
+
+**Few drawings, many frames.** A new image only when the silhouette or the expression
+changes. Between key poses the same drawing is moved by its rig parts (head, each arm and
+hand, each katana, bandana tails): a slash is one body drawing with the arm and katana going
+from high to low, the smear drawn in code. Tilting or squeezing a whole drawing to fake a pose
+is still not allowed. To keep images close to each other, every generation gets reference
+images (the logo, the chosen style anchor, the master of that state), new key poses are made
+as edits of the master, and poses that belong together come from one model sheet.
 
 ## How it should move
 
@@ -152,17 +184,20 @@ post, and an effect lasts only as long as the thing that caused it.
 
 ## Character variants (power-ups change the frog)
 
+Version 2: every state is pushed to its cartoon extreme (the "unhinged" tier goes furthest).
+
 | State | What changes on the frog |
 |---|---|
-| Normal | the logo frog, katanas drawn |
-| Fire breath (firefly) | cheeks puffed, bandana singed and glowing at the edges, smoke from the nostrils |
-| Drunk (sake) | half-lidded eyes, flushed cheeks, a sway, golden glow on the blades |
-| Time freeze (clock) | calm, eyes closed or glowing blue, bandana tails frozen mid-air |
-| Fireworks | a rocket between the teeth, soot on the face, delighted |
-| Stunned (swallowed fruit) | crossed eyes, stars, fruit pulp on the head |
-| Tired (no stamina) | sweat drop, drooping blades |
-| Punch (crate) | one fist forward, a red mitten like its own gi |
-| Hacking breath / chronoblade | blue outline look, digits, a glitch in the bandana |
+| Normal | the logo frog, katanas drawn, the bandana V frowning |
+| Fire breath (firefly) | old-cartoon fire-breathing: eyes bulging, cheeks ballooning, steam from the ears, a roaring flame bigger than the frog that pushes it back; afterwards a sooty face, a smoking mouth, a cough of smoke |
+| Fire-eater (sake fed to a breath) | the torch held up like a fire-eater, flame rolling off it, showman grin |
+| Drunk (sake) | REALLY drunk: spiral eyes, heavy lids, glowing red nose and cheeks, hiccup bubbles, the bandana slid over one eye, swaying and leaning on the post, a dopey grin, little stars or hearts |
+| Time freeze (clock) | frozen mid-move, eyes huge, motion-blur ghosts, bandana tails stopped in the air |
+| Fireworks | a rocket between the teeth, soot on the face, delighted, hair-raising recoil on each spit |
+| Stunned (swallowed fruit) | crossed eyes, stars and little birds circling, tongue lolling, pulp on the head |
+| Tired (no stamina) | sweat drops flying, blades drooping, knees shaking |
+| Punch (crate) | squash-and-stretch fist the size of its head, impact lines |
+| Hacking breath / chronoblade | blue outline look, digits, a glitch tearing through the bandana |
 
 ## The cast
 
