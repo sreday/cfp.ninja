@@ -219,7 +219,7 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Only behind ?art=frog until the cutting poses are rebuilt too (a frog that changes style
     // between standing and cutting reads as a bug).
-    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.8d400759ae.json' : null
+    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.8c3ef74bec.json' : null
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -372,6 +372,7 @@ const frogSvg = pal => { P = pal; const svg = `
             <ellipse cx="1000" cy="470" rx="92" ry="84" fill="${P.red}" stroke="#000" stroke-width="22"/>
             ${arm('fg-sarmF')}
         </g>
+        <g id="fg-art-side"></g>
     </g>
     <g id="fg-all" stroke-linejoin="round" stroke-linecap="round">
         <g id="fg-back">
@@ -1501,7 +1502,22 @@ export function mountFrogGame(stage, opts = {}) {
                 <g class="fg-art-head">${im(p.head, p.head.x, p.head.y)}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
                 return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
-            artFrog = { g, root, on: false, body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
+            // the profile: legs (one set shown), then the top half turning at the hip: far arm, torso, tails, head, near arm
+            let side = null;
+            if (g.side) {
+                const sroot = $('#fg-art-side'), sw = p.sword, armOf = (n, cls) => { const q = p['p-' + n];
+                    return `<g class="${cls}"><g class="fg-art-limb">${im(q, -q.pivot[0], -q.pivot[1])}</g>
+                        <g class="fg-art-held"><g transform="rotate(90)">${im(sw, -sw.grip[0], -sw.grip[1])}</g></g>
+                        <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`; };
+                const at = n => { const q = p['p-' + n]; return im(q, q.x, q.y); };
+                sroot.innerHTML = Object.keys(g.side.legs).map(n => `<g class="fg-art-legs-${n}" opacity="0">${at(n)}</g>`).join('') +
+                    `<g class="fg-art-top">${armOf('armF', 'fg-art-armB')}${at('torso')}<g class="fg-art-tail">${at('tails')}</g>${at('head')}${armOf('armN', 'fg-art-armF')}</g>`;
+                const a2 = cls => { const a = sroot.querySelector('.' + cls); return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist') }; };
+                side = { root: sroot, on: false, legsNow: null, top: sroot.querySelector('.fg-art-top'), tail: sroot.querySelector('.fg-art-tail'),
+                    legs: Object.fromEntries(Object.keys(g.side.legs).map(n => [n, sroot.querySelector('.fg-art-legs-' + n)])),
+                    armB: { ...a2('fg-art-armB'), reach: p['p-armF'].reach }, armF: { ...a2('fg-art-armF'), reach: p['p-armN'].reach } };
+            }
+            artFrog = { g, root, on: false, side, body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
     })();
@@ -1811,6 +1827,7 @@ export function mountFrogGame(stage, opts = {}) {
         const on = upNow && !sideOn && !jumping && !drunk && !pose.headUp && !pose.noHead && !pose.mouthOpen && !pose.shut && !pose.fallY &&
             !pose.oneFoot && !pose.chop && !pose.plan && !pose.stuck && !(stunT > 0);
         if (on !== A.on) { A.on = on; svg.classList.toggle('fg-art-on', on); }
+        artSide(sideOn, drunk);
         if (!on) return;
         const G = A.g, armed = pose.held && !pose.noBlades;
         // drawn standing: undo the rise the drawn frog makes as it gets up (the feet stay on the post)
@@ -1828,6 +1845,33 @@ export function mountFrogGame(stage, opts = {}) {
         };
         arm(A.armL, G.shoulderL, pose.lRot, pose.lStretch, pose.lK);
         arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
+    }
+    // the drawn profile's seven leg sets, played by the four drawn for the art
+    const ART_LEGS = { level: 'level', up: 'level', down: 'crouch', tuck: 'tuck', lunge: 'lunge', leap: 'lunge' };
+    function artArm(a, at, rot, stretch, k, armed) {
+        setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
+        const s = clamp(stretch, 0.85, 1.15);
+        setA(a.limb, 'transform', `scale(1 ${n2(s)})`);
+        const hand = `translate(0 ${n2(a.reach * s)}) rotate(${n2(k - rot)})`;
+        setA(a.held, 'transform', hand); setA(a.held, 'opacity', armed ? 1 : 0);
+        setA(a.fist, 'transform', hand); setA(a.fist, 'opacity', armed ? 0 : 1);
+    }
+    // In profile (cutting) the art stands in for the drawn frog the same way: every leg set but the
+    // teeter, the top half turning at the hip, two arms each with its katana. Breathing fire, drunk,
+    // stunned and falling are still the drawn frog.
+    function artSide(sideOn, drunk) {
+        const A = artFrog, S = A.side, legs = ART_LEGS[pose.sLegs];
+        const on = !!S && sideOn && !!legs && !drunk && !pose.mouthOpen && !pose.shut && !pose.fallY && !pose.stuck && !(stunT > 0);
+        if (on !== S.on) { S.on = on; svg.classList.toggle('fg-art-side-on', on); }
+        if (!on) return;
+        const G = A.g.side;
+        setA(S.root, 'transform', `translate(${G.hipX} ${G.legs[legs]})`);
+        if (S.legsNow !== legs) { for (const k in S.legs) setA(S.legs[k], 'opacity', k === legs ? 1 : 0); S.legsNow = legs; }
+        setA(S.top, 'transform', `rotate(${n2(pose.sRot)})`);
+        setA(S.tail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} ${G.knot[0]} ${G.knot[1]})`);
+        const armed = pose.held && !pose.noBlades && !pose.plan;
+        artArm(S.armB, G.shoulder, pose.sB.rot, pose.sB.stretch, pose.sB.k, armed);
+        artArm(S.armF, G.shoulder, pose.sF.rot, pose.sF.stretch, pose.sF.k, armed);
     }
 
     applyPose(); // the resting pose before the first frame (the arms would sit at 0,0)

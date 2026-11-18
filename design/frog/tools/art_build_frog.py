@@ -62,6 +62,45 @@ def vector(png_img, tmpdir, name):
     return open(s).read()
 
 
+# ---- the profile (1.2): parts cut off profile sheet D (art_cut_frog.py --set side) ----
+# Joints in 2x part px, read off the parts: each set of legs hangs from its waistband, the torso
+# stands on its hip, the head sits on the torso's neck, the tails tie on behind the bandana.
+KS = 1.5                # frog units per 2x part px for the body, arms and legs
+KH = KS * 1.15          # the head a touch bigger: close to the front head's size when the view switches
+S_TORSO = {'hip': (300, 520), 'neck': (262, 40), 'shoulder': (215, 150)}
+S_HEAD = {'neck': (285, 415), 'knot': (30, 184)}
+S_TAILS_KNOT = (505, 174)
+S_LEGS = {'lunge': (560, 40), 'level': (230, 40), 'tuck': (229, 40), 'crouch': (163, 45)}
+
+
+def build_side(geo, put, P, tmp):
+    """geometry relative to the hip (0, 0); legs[name].hipY says where the hip is (feet on y 1700)"""
+    P = os.path.abspath(P)
+    S = geo['side'] = {'hipX': 1000, 'legs': {}}
+    def size(n): return Image.open(os.path.join(P, n + '.png')).size
+    def svg(n): return open(os.path.join(P, n + '.svg')).read()
+    for n, (hx, hy) in S_LEGS.items():
+        w, h = size(n)
+        put('p-' + n, svg(n), w * KS, h * KS, x=round(-hx * KS, 1), y=round(-hy * KS, 1))
+        S['legs'][n] = round(1700 - (h - hy) * KS, 1)
+    w, h = size('torso'); th = S_TORSO['hip']
+    put('p-torso', svg('torso'), w * KS, h * KS, x=round(-th[0] * KS, 1), y=round(-th[1] * KS, 1))
+    neck = ((S_TORSO['neck'][0] - th[0]) * KS, (S_TORSO['neck'][1] - th[1]) * KS)
+    w, h = size('head'); hx0, hy0 = neck[0] - S_HEAD['neck'][0] * KH, neck[1] - S_HEAD['neck'][1] * KH
+    put('p-head', svg('head'), w * KH, h * KH, x=round(hx0, 1), y=round(hy0, 1))
+    knot = (hx0 + S_HEAD['knot'][0] * KH, hy0 + S_HEAD['knot'][1] * KH)
+    w, h = size('tails')
+    put('p-tails', svg('tails'), w * KH, h * KH, x=round(knot[0] - S_TAILS_KNOT[0] * KH, 1), y=round(knot[1] - S_TAILS_KNOT[1] * KH, 1))
+    S['knot'] = [round(knot[0], 1), round(knot[1], 1)]
+    S['shoulder'] = [round((S_TORSO['shoulder'][0] - th[0]) * KS, 1), round((S_TORSO['shoulder'][1] - th[1]) * KS, 1)]
+    for n in ('armN', 'armF'):
+        im = Image.open(os.path.join(P, n + '.png')).convert('RGBA')
+        a = np.asarray(im)[..., 3] > 128; ys, xs = np.nonzero(a)
+        top_mid = xs[ys < ys.min() + 40].mean()
+        w, h = im.width * KS, im.height * KS; cap = w * 0.4
+        put('p-' + n, svg(n), w, h, pivot=[round(top_mid * KS, 1), round(cap, 1)], reach=round(h - cap - w * 0.1, 1))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--parts', default=os.path.expanduser('~/Desktop/Frog Ninja art desk/candidates/1.1-rig/parts'))
@@ -98,6 +137,7 @@ def main():
     im = Image.open(os.path.join(P, 'fist.png'))
     put('fist', open(os.path.join(P, 'fist.svg')).read(), im.width * K / 2, im.height * K / 2,
         grip=[round(im.width * K / 4, 1), round(im.height * K / 4, 1)])
+    build_side(geo, put, os.path.join(os.path.dirname(P.rstrip('/')), '..', '1.2-profile', 'parts'), tmp)
     data = json.dumps(geo, separators=(',', ':')).encode()
     url = hashed('frog', data, 'json')
     total = sum(os.path.getsize(os.path.join(REPO, 'static', p['href'].lstrip('/'))) for p in geo['parts'].values())

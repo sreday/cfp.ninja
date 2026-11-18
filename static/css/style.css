@@ -1791,3 +1791,6 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog.fg-art-on #fg-art { display: inline; }
 .fg-frog.fg-art-on #fg-head, .fg-frog.fg-art-on #fg-tail, .fg-frog.fg-art-on #fg-body, .fg-frog.fg-art-on #fg-armL, .fg-frog.fg-art-on #fg-armR,
 .fg-frog.fg-art-on #fg-stand, .fg-frog.fg-art-on #fg-back, .fg-frog.fg-art-on #fg-laptop, .fg-frog.fg-art-on #fg-sit, .fg-frog.fg-art-on #fg-headup { visibility: hidden; }
+.fg-frog #fg-art-side { display: none; }
+.fg-frog.fg-art-side-on #fg-art-side { display: inline; }
+.fg-frog.fg-art-side-on #fg-side > :not(#fg-art-side) { visibility: hidden; }
