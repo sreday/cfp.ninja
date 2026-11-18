@@ -1933,6 +1933,9 @@ export function mountFrogGame(stage, opts = {}) {
         });
     }
     let dbg = false, dbgFrozen = false;                        // debug mode, and its stand-still before the first touch
+    // debug: the world stays still for DBG_WAKE s after the first action, so a small thing can be grabbed or cut where it hangs
+    const DBG_WAKE = 0.5; let dbgWake = 0;
+    const wakeDebug = () => { if (dbgFrozen && !dbgWake) dbgWake = DBG_WAKE; };
     let phaseT = 0, clockT = 0, spawnT = 0, combo = 0, lastSlice = -1;
     let timeLeft = START_SECONDS;     // clockT = seconds survived
     let countT = 0, introOn = false, countShown = '';   // the 3-2-1 before a run
@@ -3479,7 +3482,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'load' || phase === 'over' || (phase === 'count' && !pose.held)) return;
         if (phase === 'count' && introOn) { readyPose(); introOn = false; }      // blades already out: the rest of the flourish is skipped, the frog is the player's
         noteInput(e);
-        if (dbg) dbgFrozen = false;                          // debug: the first touch of the field sets the world going
+        if (dbg) wakeDebug();                                // debug: the first touch of the field sets the world going, 0.5 s later
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
         // (a breath can't be put out early: it runs its course)
         if (fireLeft > 0 || fwBusy() || summon) return;                // breathing fire or spitting fireworks: no slashing, no tongue
@@ -3559,7 +3562,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (!down && !auto) { if (autoCut) { cut = null; autoCut = false; } return; }
         if (fireLeft > 0 || fwBusy() || summon) { down = false; cut = null; press = null; autoCut = false; return; }
         pointer = { x, y };
-        if (auto && dbg) dbgFrozen = false;
+        if (auto && dbg) wakeDebug();
         if (auto && !cut) { autoCut = true; startCut(x, y, false); lx = x; ly = y; return; }
         if (touchDown && down) touchDown.far = Math.max(touchDown.far, Math.hypot(x - touchDown.x, y - touchDown.y));
         if (press) {
@@ -4397,7 +4400,7 @@ export function mountFrogGame(stage, opts = {}) {
         warmUp();
         el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = '';
         stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
-        dbg = false; dbgFrozen = false; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
+        dbg = false; dbgFrozen = false; dbgWake = 0; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
         fruits = []; halves = []; pieces = []; drops = []; floats = [];
         flies = []; pickups = []; stars = []; flyT = rand(5, 8); flyCatches = 0; clockCatches = 0;
@@ -4696,7 +4699,7 @@ export function mountFrogGame(stage, opts = {}) {
     const dbgEl = $('.fg-debug');
     function startDebug() {
         start();
-        dbg = true; dbgFrozen = true; log('debug');
+        dbg = true; dbgFrozen = true; dbgWake = 0; log('debug');
         if (!pose.held) readyPose();
         introOn = false; phase = 'play'; el.count.hidden = true;
         stage.classList.add('fg-debugging'); dbgEl.hidden = false; $('.fg-debug-pill').textContent = 'Exit debug';
@@ -4796,7 +4799,7 @@ export function mountFrogGame(stage, opts = {}) {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
-                sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue,
+                sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
                 pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
@@ -4807,8 +4810,9 @@ export function mountFrogGame(stage, opts = {}) {
         },
         // forced scenarios (design/frog/tools/scenario_test.py): debug mode running, a thing put on the
         // field, a roast chicken, a breath of a given kind, the run's clock moved on
-        debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; },
-        drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; },
+        debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; dbgWake = 0; },
+        drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; dbgWake = 0; },
+        still() { dbgFrozen = true; dbgWake = 0; },                // debug: back to the stand-still before the first touch
         roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
         at(seconds) { clockT = seconds; },
@@ -4822,7 +4826,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (!a) return false;
         if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); }
         if (demo && demo.a.end) demo.a.end();
-        dbgFrozen = false; demo = { a, t: 0 }; if (a.start) a.start();
+        dbgFrozen = false; dbgWake = 0; demo = { a, t: 0 }; if (a.start) a.start();
         return true;
     }
     function stepDemo(dt) {
@@ -4834,7 +4838,7 @@ export function mountFrogGame(stage, opts = {}) {
     function exitDebug() {
         if (demo && demo.a.end) demo.a.end(); demo = null; demoQueue = [];
         sendDebugTrace();
-        dbg = false; dbgFrozen = false; phase = 'idle';
+        dbg = false; dbgFrozen = false; dbgWake = 0; phase = 'idle';
         fruits = []; pieces = []; pickups = []; flies = []; crates = []; gulls = []; gullOn = null; freezeLeft = 0; fireLeft = 0; sakeLeft = 0; markQueue = []; markAgain = []; clearBladeFx();
         stage.classList.remove('fg-debugging'); dbgEl.hidden = true; $('.fg-debug-pill').textContent = 'Debug';
         el.title.textContent = 'Frog Ninja'; el.sub.hidden = true; el.start.textContent = 'Play'; showTips(-1); timeLeft = START_SECONDS; hud();
@@ -4858,7 +4862,7 @@ export function mountFrogGame(stage, opts = {}) {
             const r = clamp(S() * 0.05, 20, 38) * PICK_SIZE[kind];
             pickups.push({ kind, x, y, vx: 0, vy: -toss, g: G() * 0.55, r, rot: 0, spin: rand(-1, 1), t: 0 });
         }
-        dbgFrozen = true;
+        dbgFrozen = true; dbgWake = 0;
     }
     (function debugTray() {
         const k = Math.min(window.devicePixelRatio || 1, 2) * 2, S = 44;     // drawn at twice the size of the tips icons
@@ -4869,7 +4873,7 @@ export function mountFrogGame(stage, opts = {}) {
             const b = document.createElement('button'); b.type = 'button'; b.className = 'fg-debug-100'; b.textContent = '100'; b.title = '100 x ' + (c.title || c.dataset.spawn);
             b.addEventListener('pointerdown', ev => ev.stopPropagation());
             b.addEventListener('click', ev => {
-                ev.stopPropagation(); dbgFrozen = false;
+                ev.stopPropagation(); dbgFrozen = false; dbgWake = 0;
                 for (let i = 0; i < 100; i++) spawnDebug(c.dataset.spawn, rand(W * 0.06, W * 0.94), rand(H * 0.12, H * 0.62), true);
                 log('place', c.dataset.spawn + ' x100'); snd('place');
             });
@@ -5114,6 +5118,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (frozen) slowTail = SLOW_TAIL; else if (slowTail > 0) slowTail = Math.max(0, slowTail - dt);
         stepSummon(dt);
         const slowed = frozen || slowTail > 0 || !!summon;
+        if (dbg && dbgFrozen && dbgWake > 0 && (dbgWake -= dt) <= 0) { dbgFrozen = false; dbgWake = 0; }
         const wdt = (dbg && dbgFrozen) || summon ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
             if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown

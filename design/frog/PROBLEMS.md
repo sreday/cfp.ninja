@@ -261,6 +261,9 @@ are at least 30 uses of each item.
 
 ## Fixed
 
+- 2026-11-18 | Marek's play-test | Debug: small things were hard to grab because the first
+  touch set the world going at once. The world now stays still for 0.5 s more after the first
+  action (DBG_WAKE), so the tongue or blade reaches a thing where it hangs; scenario check added.
 - 2026-11-18 | Marek's play-test | Fixed:
   1. Multi-touch broke sake: a second finger's press and moves made the blade jump between the
      fingers. Only the first finger counts now (`isPrimary`); scenario check added.

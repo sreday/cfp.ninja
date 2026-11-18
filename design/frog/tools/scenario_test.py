@@ -193,6 +193,12 @@ def main():
         time.sleep(0.05); after = g.state()['tongue']
         check('clock: no tongue during the time freeze, the tongue again after it', not frozen and after, (frozen, after))
 
+        # 12f. debug: the world stays still until the first action, then 0.5 s more
+        fresh(g); g.js("frogPlay.still()"); time.sleep(0.3); before = g.state()['still']
+        g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0)
+        time.sleep(0.2); held = g.state()['still']; time.sleep(0.6); moving = not g.state()['still']
+        check('debug: still before the first action, still 0.2 s after it, moving by 0.8 s', before and held and moving, (before, held, moving))
+
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()
