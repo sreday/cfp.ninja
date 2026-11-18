@@ -18,9 +18,9 @@ CROP = (390, 240, 890, 690)     # around the frog and its post
 CELL = (300, 270)
 
 
-def run(base, steps):
+def run(base, steps, query=''):
     f = tempfile.NamedTemporaryFile('w', suffix='.json', delete=False); json.dump(steps, f); f.close()
-    out = subprocess.run([sys.executable, os.path.join(HERE, 'cdp.py'), base + '/game', str(W), str(H), f.name], capture_output=True, text=True).stdout
+    out = subprocess.run([sys.executable, os.path.join(HERE, 'cdp.py'), base + '/game' + query, str(W), str(H), f.name], capture_output=True, text=True).stdout
     os.unlink(f.name)
     return out
 
@@ -29,10 +29,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--base', default='http://127.0.0.1:8701')
     ap.add_argument('--out', default=os.path.join(tempfile.gettempdir(), 'frog-anims'))
+    ap.add_argument('--query', default='', help="appended to /game, e.g. '?art=frog'")
     ap.add_argument('--only', default='', help='only animations whose name contains this')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
-    out = run(a.base, [{'wait': 2}, {'js': 'JSON.stringify(window.frogAnims.info())', 'max': 100000}])
+    out = run(a.base, [{'wait': 2}, {'js': 'JSON.stringify(window.frogAnims.info())', 'max': 100000}], a.query)
     line = [l for l in out.splitlines() if l.startswith('js:')][-1]
     names = [(n, d) for n, d in json.loads(json.loads(line[3:])) if a.only.lower() in n.lower()]
     steps = [{'wait': 2}, {'js': "window.frogAnims.play('ready (idle)'); document.querySelector('.fg-debug').style.opacity = 0; 1"}, {'wait': 0.8}]
@@ -42,7 +43,7 @@ def main():
         mid = min(max(dur * 0.55 - 0.1, 0.05), 1.2)      # the second look: partway through, and never after it has ended
         steps += [{'js': f'window.frogAnims.play({json.dumps(n)})'}, {'wait': 0.1}, {'shot': p1}, {'wait': mid}, {'shot': p2}, {'wait': max(dur - 0.1 - mid, 0) + 0.35}]
         shots.append((n, p1, p2))
-    log = run(a.base, steps)
+    log = run(a.base, steps, a.query)
     for l in log.splitlines():
         if l.startswith(('EXC', 'CONSOLE')): print(l)
     per = 12                                         # animations per sheet: 4 columns of pairs, 3 rows

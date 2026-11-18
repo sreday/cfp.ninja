@@ -16,7 +16,7 @@ Prints one line per second (time left, stamina, what is on screen), any page err
 the pictures are. The game only exposes what the hand needs (window.frogPlay) to a browser
 that says it is automated.
 """
-import argparse, base64, json, math, os, random, socket, struct, subprocess, sys, tempfile, time, shutil, urllib.request
+import os, argparse, base64, json, math, os, random, socket, struct, subprocess, sys, tempfile, time, shutil, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -75,7 +75,7 @@ class Game:
         g.ws = WS([t for t in tabs if t['type'] == 'page'][0]['webSocketDebuggerUrl'])
         g.ws.send("Runtime.enable"); g.ws.send("Log.enable")
         g.ws.send("Emulation.setDeviceMetricsOverride", {"width": W, "height": H, "deviceScaleFactor": 1, "mobile": touch})
-        g.ws.send("Page.navigate", {"url": f"http://127.0.0.1:{g.port}/game"}); time.sleep(2.5)
+        g.ws.send("Page.navigate", {"url": f"http://127.0.0.1:{g.port}/game" + os.environ.get("FROG_QUERY", "")}); time.sleep(2.5)
     def js(g, expr):
         r = g.ws.send("Runtime.evaluate", {"expression": expr, "returnByValue": True})
         return r.get('result', {}).get('value')

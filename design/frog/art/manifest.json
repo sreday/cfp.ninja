@@ -370,7 +370,7 @@
    "notes": "traced from `static/img/cfpninja_full.png` (see `SPEC.md`), layered: head, eyes, pupils, brow V, bandana knot and tails, torso, each arm with hand, each katana, legs, ground shadow",
    "phase": 3,
    "format": "svg",
-   "status": "picked",
+   "status": "in game (flag)",
    "current": "current/1.1.png",
    "prompts": [
     {
@@ -396,13 +396,24 @@
      "at": "2026-11-18",
      "tier": "unhinged",
      "text": "Same sprite at max expression in the faithful style: deeper stance, one katana high, one level at viewer, fierce narrowed eyes, closed smirk, tails flicking."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "1.1 unhinged-2 (generation nnNhGtPoovF2IF8XKo2C)"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 609,
+     "at": "2026-11-18",
+     "tier": "rig",
+     "text": "Puppet cut-out sheet of THIS frog on magenta, same scale and front view: head without tails, two loose bandana tails, torso+legs without arms, each arm straight with open hand, bare fist, fist on a grip, fist holding the katana, bare katana. Then Topaz 2x (CGI)."
     }
    ],
    "candidates": [
     {
      "file": "faithful-1.png",
      "tier": "faithful",
-     "verdict": "",
+     "verdict": "pick",
      "note": ""
     },
     {
@@ -424,12 +435,27 @@
      "note": ""
     }
    ],
-   "pick": "unhinged-2.png",
+   "pick": "faithful-1.png",
    "module_key": true,
    "picks": {
-    "unhinged": "unhinged-2.png"
+    "unhinged": "unhinged-2.png",
+    "faithful": "faithful-1.png"
    },
-   "picked_at": "2026-11-18 14:38"
+   "picked_at": "2026-11-18 16:12",
+   "rig": {
+    "sheets": "candidates/1.1-rig/ (sheet-a..d; built from C, bare katana from A; 2x upscales sheet-a-2x, sheet-c-2x)",
+    "tools": "design/frog/tools/art_cut_frog.py (cut + vtracer) -> art_build_frog.py (hashed SVG parts + frog.<h>.json)",
+    "scale": "K=3.45 frog units per 1x px: the art head lands on the drawn head, so gameplay points (head top, MOUTH_Y, stun spots) are unchanged",
+    "groups": {
+     "front standing (ready, idle, wind-up, tongue)": "in game behind ?art=frog",
+     "profile cuts": "todo: new silhouette (edit of the pick)",
+     "breath (front, profile, head back, at camera, torch)": "todo",
+     "drunk": "todo",
+     "stunned": "todo",
+     "seated with laptop / planning": "todo",
+     "jump legs, falling, one foot": "todo"
+    }
+   }
   },
   {
    "id": "1.2",

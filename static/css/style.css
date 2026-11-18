@@ -1785,3 +1785,9 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-title-art { display: none; width: min(100%, 380px); height: auto; margin: 0 auto .5rem; }
 .fg-first .fg-title-art { display: block; }
 .fg-first .fg-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* still read out, the lockup shows instead */
+
+/* the generated frog (ART.frog, route B): its parts stand in for the drawn frog's while it stands facing us */
+.fg-frog #fg-art { display: none; }
+.fg-frog.fg-art-on #fg-art { display: inline; }
+.fg-frog.fg-art-on #fg-head, .fg-frog.fg-art-on #fg-tail, .fg-frog.fg-art-on #fg-body, .fg-frog.fg-art-on #fg-armL, .fg-frog.fg-art-on #fg-armR,
+.fg-frog.fg-art-on #fg-stand, .fg-frog.fg-art-on #fg-back, .fg-frog.fg-art-on #fg-laptop, .fg-frog.fg-art-on #fg-sit, .fg-frog.fg-art-on #fg-headup { visibility: hidden; }

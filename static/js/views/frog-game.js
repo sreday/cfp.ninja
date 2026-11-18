@@ -215,7 +215,11 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
     bg: '/img/game/bg/bg.220ca2dba3.json',
-    title: '/img/game/ui/title.5c35ca5e51.webp'          // the FROG NINJA lockup (7.9) on the first panel
+    title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
+    // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
+    // Only behind ?art=frog until the cutting poses are rebuilt too (a frog that changes style
+    // between standing and cutting reads as a bug).
+    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.8d400759ae.json' : null
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -473,6 +477,7 @@ const frogSvg = pal => { P = pal; const svg = `
         </g>
         ${arm('fg-armL')}
         ${arm('fg-armR')}
+        <g id="fg-art"></g>
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
@@ -1472,6 +1477,34 @@ export function mountFrogGame(stage, opts = {}) {
             }
         }
     }
+    // ---------- the generated frog (ART.frog) ----------
+    // Route B (design/frog/art/README.md): the picked frog cut into rig parts (head, two bandana
+    // tails, body with legs, a sleeve per arm, a fist with its katana, a bare fist), each a vector
+    // drawing placed where it sat in the picked image. The pose code turns them on the same pivots
+    // as the drawn frog's parts; artPose() decides when the art stands in for the drawn frog.
+    if (ART.frog) (async () => {
+        try {
+            const g = await (await fetch(ART.frog)).json(), p = g.parts;
+            // load every part first, so the frog never shows half drawn
+            await Promise.all(Object.values(p).map(q => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = q.href; })));
+            if (dead) return;
+            const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
+            const armSvg = s => {
+                const q = p['sleeve' + s], flip = s === 'L' ? ' transform="scale(1 -1)"' : '';     // the left fist mirrored across the blade
+                return `<g class="fg-art-arm${s}"><g class="fg-art-limb">${im(q, -q.pivot[0], -q.pivot[1])}</g>
+                    <g class="fg-art-held"><g transform="rotate(90)"><g${flip}>${im(p.sword, -p.sword.grip[0], -p.sword.grip[1])}</g></g></g>
+                    <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
+            };
+            const root = $('#fg-art');
+            root.innerHTML = `<g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
+                <g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}
+                <g class="fg-art-head">${im(p.head, p.head.x, p.head.y)}</g>`;
+            const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
+                return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
+            artFrog = { g, root, on: false, body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
+            applyPose();
+        } catch (e) { console.warn('frog art', e); }
+    })();
     // ---------- the generated background (ART.bg) ----------
     // The plate covers the stage from the bottom up (the shore stays at the same height from the
     // bottom). The party is cut out and placed by screen shape: at its own place on a wide screen,
@@ -1642,6 +1675,8 @@ export function mountFrogGame(stage, opts = {}) {
         put(t, 0, bentLeg(985, 900, rand(-48, 4), rand(-82, -24), 1));       // (negative: swung back, the shin further back still)
         put(t, 4, bentLeg(1015, 900, rand(48, 92), rand(-34, 22), 1));
     }
+    // the generated frog (ART.frog): filled in when its parts have loaded, see below
+    let artFrog = null;
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
     // write an SVG attribute only when its (rounded) value changed: fewer style/paint invalidations
@@ -1766,6 +1801,33 @@ export function mountFrogGame(stage, opts = {}) {
         (el.shuts || (el.shuts = [...svg.querySelectorAll('.fg-shut')])).forEach(g => setA(g, 'opacity', pose.shut ? 1 : 0));      // the clock: eyes shut, aiming and cutting (each view has its own drawing)
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
+        if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
+    }
+    // The generated frog takes the place of the drawn one while it stands facing us with nothing
+    // special going on; every other pose (seated with the laptop, cutting in profile, breathing fire,
+    // drunk, stunned, falling...) is still the drawn frog until its own art is built.
+    function artPose(upNow, sideOn, jumping, drunk, hx, loll) {
+        const A = artFrog;
+        const on = upNow && !sideOn && !jumping && !drunk && !pose.headUp && !pose.noHead && !pose.mouthOpen && !pose.shut && !pose.fallY &&
+            !pose.oneFoot && !pose.chop && !pose.plan && !pose.stuck && !(stunT > 0);
+        if (on !== A.on) { A.on = on; svg.classList.toggle('fg-art-on', on); }
+        if (!on) return;
+        const G = A.g, armed = pose.held && !pose.noBlades;
+        // drawn standing: undo the rise the drawn frog makes as it gets up (the feet stay on the post)
+        setA(A.root, 'transform', `translate(0 ${n2(pose.up * RISE)})`);
+        setA(A.body, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
+        setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})`);
+        setA(A.tail, 'transform', `translate(${n2(hx * 0.6)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} ${G.knot[0]} ${G.knot[1]})`);
+        const arm = (a, at, rot, stretch, k) => {
+            setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
+            const s = clamp(stretch, 0.85, 1.15);           // a drawn sleeve only stretches so far
+            setA(a.limb, 'transform', `scale(1 ${n2(s)})`);
+            const hand = `translate(0 ${n2(a.reach * s)}) rotate(${n2(k - rot)})`;
+            setA(a.held, 'transform', hand); setA(a.held, 'opacity', armed ? 1 : 0);
+            setA(a.fist, 'transform', hand); setA(a.fist, 'opacity', armed ? 0 : 1);
+        };
+        arm(A.armL, G.shoulderL, pose.lRot, pose.lStretch, pose.lK);
+        arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
     }
 
     applyPose(); // the resting pose before the first frame (the arms would sit at 0,0)
