@@ -6,8 +6,9 @@ Marek picks. Plan approved 2026-11-18. Look and tone: `../STYLE.md` (version 2).
 
 ## The loop
 1. **Prompt.** Claude writes prompts from STYLE.md v2 and the element's notes, always two tiers:
-   2 *faithful* (closest to the logo frog) and 2 *unhinged* (same frog, pushed to the cartoon
-   extreme). Reference images go with every request: the logo (`static/img/cfpninja_full.png`),
+   2 *faithful* (closest to the logo frog) and 2 *unhinged* (the faithful style at its maximum
+   expression: stronger pose, eyes, V and smile pushed as far as the logo's own shapes allow;
+   never speed-line bursts, glow trails or a different, louder style; STYLE.md). Reference images go with every request: the logo (`static/img/cfpninja_full.png`),
    the chosen style anchor (element 0.1), and the picked master of that state.
 2. **Generate.** Nano Banana 2 (`gemini-3.1-flash-image`) through the ElevenLabs connector
    (claude.ai custom connector `https://api.elevenlabs.io/v1/mcp`), paid from ElevenLabs

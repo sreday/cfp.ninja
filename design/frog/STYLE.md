@@ -83,7 +83,17 @@ religious, other companies' brands. The spice goes on the frog and the effects, 
 the fruit or the blade (readability order below).
 
 **Two tiers per request.** Every element is generated as 2 faithful candidates (closest to
-the logo frog) and 2 unhinged ones (the same frog, pushed further). Marek picks per tier.
+the logo frog) and 2 unhinged ones. Marek picks per tier.
+
+**Unhinged = the faithful style at its maximum expression** (Marek, 2026-11-18, after the first
+round). Not a different, louder style: no manga speed-line bursts, no rubber-hose distortion,
+no glow trails, no toothy maniac grins that break the logo's face. The same drawing language
+as the faithful pick (the logo's proportions, the bandana V, the smile shape, the line weight,
+the cel shading), with everything it can carry pushed to the top: a stronger pose and a clear
+line of action, a bigger squash and stretch within the character's shapes, the eyes, the V of
+the bandana and the smile pushed as far as they go while still being the logo's eyes, V and
+smile, the bandana tails and props acting, small in-style accents (a sweat drop, a flying
+splinter, a hiccup bubble). The extreme power-up states below get there the same way.
 
 **Few drawings, many frames.** A new image only when the silhouette or the expression
 changes. Between key poses the same drawing is moved by its rig parts (head, each arm and
@@ -184,7 +194,7 @@ post, and an effect lasts only as long as the thing that caused it.
 
 ## Character variants (power-ups change the frog)
 
-Version 2: every state is pushed to its cartoon extreme (the "unhinged" tier goes furthest).
+Version 2: every state is pushed to its cartoon extreme, inside the faithful style (the "unhinged" tier is that style at its maximum expression, never a different style).
 
 | State | What changes on the frog |
 |---|---|

@@ -16,11 +16,138 @@
    "notes": "Key frame that fixes the look: logo sticker + cel shading, the party in the back. Becomes the reference image for everything after.",
    "phase": 1,
    "format": "webp",
-   "status": "todo",
+   "status": "picked",
    "current": "current/0.1.png",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768 (1K, 16:9)",
+     "credits_each": 609,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Logo frog standing in a ready stance on the mooring post, both katanas out to the sides, beach at dusk, beach bar with string lights + disco ball + dancing animal silhouettes; sticker look + cel shading; dark low-contrast background; 16:9, empty sky above."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768 (1K, 16:9)",
+     "credits_each": 609,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same frog leaping off the post mid crossing slash, smear arc + speed lines, squash-and-stretch, wild battle grin, watermelon/pineapple/orange flying, one sliced with juice; beach party at dusk behind; 16:9; bold, no gore."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (picked anchor)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same frame as the anchor; frog stays on the post in a deep battle crouch, katanas crossed overhead in an X with a glint, wild toothy grin, tiny pupils, sweat bead, speed lines + dust burst."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (picked anchor)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same scene and camera; frog sprung above the post mid-slash with a white smear arc, watermelon cut in two (rind outside, flesh on the cut face seen slightly from the side), orange tumbling, manic grin, animals cheering."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (picked anchor)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Edit of the anchor, unhinged redefined as max expression inside the faithful style: battle-ready pose, one katana high, one level at the viewer, eyes narrowed, V pressed harder, closed confident smirk, bandana tails curling. No speed lines/glow."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (picked anchor)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "size": "1376x768",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Edit of the anchor: follow-through after a cut on the post, watermelon halves (rind + flesh face seen from the side) in the same flat cel style, sideways glance with one eye narrowed, smug closed smile. No speed lines/glow/smear."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "reject",
+     "note": ""
+    },
+    {
+     "file": "unhinged-1.png",
+     "tier": "unhinged",
+     "verdict": "reject",
+     "note": ""
+    },
+    {
+     "file": "unhinged-2.png",
+     "tier": "unhinged",
+     "verdict": "reject",
+     "note": ""
+    },
+    {
+     "file": "unhinged-3.png",
+     "tier": "unhinged",
+     "verdict": "reject",
+     "note": ""
+    },
+    {
+     "file": "unhinged-4.png",
+     "tier": "unhinged",
+     "verdict": "reject",
+     "note": ""
+    },
+    {
+     "file": "unhinged-5.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-6.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-1.png",
+   "picked_at": "2026-11-18 12:57"
   },
   {
    "id": "5.1",
@@ -1093,5 +1220,8 @@
    "candidates": [],
    "pick": null
   }
- ]
+ ],
+ "pipeline_notes": {
+  "generation": "ElevenLabs creative_generate_image returns signed URLs (expire ~2.5 h): download at once into the desk. Reference images work (upload to the flow, pass the node in connect_from). Nano Banana 2 at 1K 16:9 = 1376x768, 609 credits (about $0.10) per image. Two references (anchor + logo) cost 812 credits per image instead of 609."
+ }
 }
