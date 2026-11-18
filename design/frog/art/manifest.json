@@ -370,11 +370,66 @@
    "notes": "traced from `static/img/cfpninja_full.png` (see `SPEC.md`), layered: head, eyes, pupils, brow V, bandana knot and tails, torso, each arm with hand, each katana, legs, ground shadow",
    "phase": 3,
    "format": "svg",
-   "status": "todo",
+   "status": "picked",
    "current": "current/1.1.png",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "0.1 anchor (faithful-1)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Module key piece: in-game frog sprite, full body, front, ready stance, katanas out level, on magenta."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "0.1 anchor (faithful-1)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same sprite at max expression in the faithful style: deeper stance, one katana high, one level at viewer, fierce narrowed eyes, closed smirk, tails flicking."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-1.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-2.png",
+     "tier": "unhinged",
+     "verdict": "pick",
+     "note": ""
+    }
+   ],
+   "pick": "unhinged-2.png",
+   "module_key": true,
+   "picks": {
+    "unhinged": "unhinged-2.png"
+   },
+   "picked_at": "2026-11-18 14:38"
   },
   {
    "id": "1.2",
@@ -1177,11 +1232,13 @@
    "notes": "\"+0.45s\", \"x3\", \"Great!\", \"Fire blade!\": lettering style",
    "phase": 7,
    "format": "webp",
-   "status": "todo",
+   "status": "in game",
    "current": "",
    "prompts": [],
    "candidates": [],
-   "pick": null
+   "pick": null,
+   "picked_by": "Claude (module tone: 7.9 faithful-2)",
+   "built": "CSS/canvas restyle from 7.9"
   },
   {
    "id": "6.1",
@@ -1249,11 +1306,13 @@
    "notes": "Survived, Best, Time, Debug: one pill style",
    "phase": 8,
    "format": "webp",
-   "status": "todo",
+   "status": "in game",
    "current": "",
    "prompts": [],
    "candidates": [],
-   "pick": null
+   "pick": null,
+   "picked_by": "Claude (module tone: 7.9 faithful-2)",
+   "built": "CSS/canvas restyle from 7.9"
   },
   {
    "id": "7.3",
@@ -1309,11 +1368,13 @@
    "notes": "countdown lettering",
    "phase": 8,
    "format": "webp",
-   "status": "todo",
+   "status": "in game",
    "current": "",
    "prompts": [],
    "candidates": [],
-   "pick": null
+   "pick": null,
+   "picked_by": "Claude (module tone: 7.9 faithful-2)",
+   "built": "CSS/canvas restyle from 7.9"
   },
   {
    "id": "7.8",
@@ -1333,11 +1394,67 @@
    "notes": "\"Frog Ninja\" logo lockup",
    "phase": 8,
    "format": "webp",
-   "status": "todo",
+   "status": "in game",
    "current": "",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "0.1 anchor (faithful-1)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Interface module key piece: title lockup FROG NINJA, PLAY button, TIME pill, 3-2-1-GO lettering, sticker style, on magenta."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "0.1 anchor (faithful-1)",
+      "static/img/cfpninja_full.png"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same kit at max expression: bouncing letters, NINJA sliced by a katana with juice, watermelon on the O, frog eyes peeking over PLAY, GO! slashed."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "unhinged-1.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-2.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-2.png",
+   "module_key": true,
+   "picks": {
+    "faithful": "faithful-2.png"
+   },
+   "picked_at": "2026-11-18 14:38",
+   "built": "title lockup cut to static/img/game/ui/; pills, PLAY, countdown, title and pop-up lettering restyled in CSS/canvas (Fredoka) from the pick"
   },
   {
    "id": "8.1",

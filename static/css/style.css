@@ -1765,3 +1765,23 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-debugging .fg-fps { display: block; }
 @media (max-width: 575px) { .fg-fps { left: 10px; top: 98px; font-size: 2.2rem; } }
 @media (max-width: 575px) { .fg-stam-left { font-size: .9rem; } }
+
+/* ---- Frog Ninja interface, art v2 (element 7.9, Marek's pick: the sticker lettering) ----
+   Heavy rounded type (Fredoka) in white with a black outline and a hard deep-red shadow; pills in
+   dark teal with a cream border and a black outline; the PLAY button frog green with a light top
+   band and a hard dark-green edge that presses down. Pill text stays full white. */
+.fg-stage { --fg-font: 'Fredoka', Inter, sans-serif; }
+.fg-stage .fg-pill { background: #173d45; border: 2px solid #f1eda4; box-shadow: 0 0 0 2px #000, 0 3px 0 2px #000; color: #fff; font-family: var(--fg-font); }
+.fg-stage button.fg-pill:hover, .fg-stage button.fg-pill:focus-visible { background: #21525c; color: #fff; }
+.fg-stage .fg-pill b { font-family: var(--fg-font); font-weight: 700; color: #fff; }
+.fg-stage .fg-label { font-family: var(--fg-font); font-weight: 600; color: #fff; letter-spacing: .08em; }
+.fg-stage .fg-play { font-family: var(--fg-font); font-weight: 700; letter-spacing: .06em; background: #98b74b; border: 3px solid #000; border-radius: 18px;
+    color: #fff; -webkit-text-stroke: 2px #000; paint-order: stroke fill; text-shadow: 0 3px 0 #000;
+    box-shadow: inset 0 7px 0 rgba(255,255,255,.3), 0 6px 0 #4d6b22, 0 6px 0 3px #000, 0 0 24px 4px rgba(152,183,75,.55); animation: none; }
+.fg-stage .fg-play:hover, .fg-stage .fg-play:focus-visible { background: #a9c75c; color: #fff; border-color: #000; }
+.fg-stage .fg-play:active { transform: translateY(5px); background: #a9c75c; box-shadow: inset 0 7px 0 rgba(255,255,255,.3), 0 1px 0 #4d6b22, 0 1px 0 3px #000, 0 0 24px 4px rgba(152,183,75,.55); }
+.fg-stage .fg-count { font-family: var(--fg-font); font-weight: 700; -webkit-text-stroke: 8px #000; paint-order: stroke fill; text-shadow: 0 .07em 0 #a3211d; }
+.fg-stage .fg-title { font-family: var(--fg-font); font-weight: 700; color: #fff; -webkit-text-stroke: 3px #000; paint-order: stroke fill; text-shadow: 0 3px 0 #a3211d; letter-spacing: .02em; }
+.fg-title-art { display: none; width: min(100%, 380px); height: auto; margin: 0 auto .5rem; }
+.fg-first .fg-title-art { display: block; }
+.fg-first .fg-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }   /* still read out, the lockup shows instead */

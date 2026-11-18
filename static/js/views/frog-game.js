@@ -214,7 +214,8 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.2075f15c51.json'
+    bg: '/img/game/bg/bg.2075f15c51.json',
+    title: '/img/game/ui/title.dc9db8deec.webp'          // the FROG NINJA lockup (7.9) on the first panel
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -1051,8 +1052,8 @@ function drawLaptop(ctx, b, lw) {
     ctx.fillStyle = C.laptop; ctx.beginPath(); ctx.moveTo(-r * 1.15, -r * 0.8); ctx.lineTo(r * 1.15, -r * 0.8); ctx.lineTo(r, r * 0.55); ctx.lineTo(-r, r * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = C.laptopHi; ctx.lineWidth = Math.max(1, lw * 0.5); ctx.strokeRect(-r * 0.98, -r * 0.68, r * 1.96, r * 1.1);
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `900 ${Math.round(r * 0.56)}px Inter, Arial Black, sans-serif`; ctx.fillText('CFP', 0, -r * 0.36);          // the whole name, as on the logo
-    ctx.font = `900 ${Math.round(r * 0.42)}px Inter, Arial Black, sans-serif`; ctx.fillText('.NINJA', 0, r * 0.14);
+    ctx.font = `900 ${Math.round(r * 0.56)}px Fredoka, Inter, Arial Black, sans-serif`; ctx.fillText('CFP', 0, -r * 0.36);          // the whole name, as on the logo
+    ctx.font = `900 ${Math.round(r * 0.42)}px Fredoka, Inter, Arial Black, sans-serif`; ctx.fillText('.NINJA', 0, r * 0.14);
     ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = C.laptopHi;
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
@@ -1132,8 +1133,8 @@ function drawPickup(ctx, b, lw) {
             ctx.globalAlpha = 0.6 * hot; ctx.fillStyle = '#ffd54f'; ctx.fillRect(-r * 0.55, -r * 0.4, r * 1.1, r * 0.54);
             ctx.globalAlpha = hot; ctx.strokeStyle = '#000'; ctx.lineWidth = lw; body(); ctx.stroke(); ctx.strokeRect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18);
             ctx.fillStyle = '#fffde7'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.font = `900 ${Math.round(r * 0.56)}px Inter, Arial Black, sans-serif`; ctx.fillText('CFP', 0, -r * 0.36);
-            ctx.font = `900 ${Math.round(r * 0.42)}px Inter, Arial Black, sans-serif`; ctx.fillText('.NINJA', 0, r * 0.14);
+            ctx.font = `900 ${Math.round(r * 0.56)}px Fredoka, Inter, Arial Black, sans-serif`; ctx.fillText('CFP', 0, -r * 0.36);
+            ctx.font = `900 ${Math.round(r * 0.42)}px Fredoka, Inter, Arial Black, sans-serif`; ctx.fillText('.NINJA', 0, r * 0.14);
             ctx.restore();
         }
     }
@@ -1252,6 +1253,11 @@ export function mountFrogGame(stage, opts = {}) {
     // the tips name the controls of the device in hand
     const touch = !!(window.matchMedia && matchMedia('(hover: none) and (pointer: coarse)').matches);
     stage.classList.add('fg-stage');
+    // the game's lettering (art v2): Fredoka, loaded once for the page
+    if (!document.querySelector('link[data-fg-font]')) {
+        const l = document.createElement('link'); l.rel = 'stylesheet'; l.dataset.fgFont = '1';
+        l.href = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap'; document.head.appendChild(l);
+    }
     stage.innerHTML = `
         ${BEACH_SVG}
         <canvas class="fg-bg fg-bg-art" hidden></canvas>
@@ -1281,7 +1287,7 @@ export function mountFrogGame(stage, opts = {}) {
         </div>
         <div class="fg-overlay fg-first">
             <div class="fg-panel">
-                <h2 class="fg-title">Frog Ninja</h2>
+                ${ART.title ? `<img class="fg-title-art" src="${ART.title}" alt="">` : ''}<h2 class="fg-title">Frog Ninja</h2>
                 <p class="fg-sub" hidden></p>
                 <div class="fg-hints">
                     <div class="fg-hint"><canvas data-hint="katana"></canvas><b>${touch ? 'Tap and hold to slash' : 'Click and hold to slash'}</b></div>
@@ -2748,7 +2754,7 @@ export function mountFrogGame(stage, opts = {}) {
             x += Math.sin(u * 70) * 2; y += Math.sin(u * 55) * 2; o.head = 'yell'; o.open = true; o.flap = -0.5 + Math.sin(u * 30) * 0.3;
             ctx.save(); ctx.translate(x + dir * r * 1.6, y - r * 1.2 + Math.sin(u * 30) * 3);
             const sz = Math.round(r * (0.55 + 0.1 * Math.sin(u * 18)));
-            ctx.font = `900 ${sz}px Inter, Arial Black, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+            ctx.font = `900 ${sz}px Fredoka, Inter, Arial Black, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
             ctx.lineWidth = Math.max(3, sz * 0.22); ctx.strokeStyle = '#000'; ctx.strokeText('AAAA!', 0, 0); ctx.fillStyle = '#ffeb3b'; ctx.fillText('AAAA!', 0, 0);
             ctx.restore();
         }
@@ -4618,7 +4624,7 @@ export function mountFrogGame(stage, opts = {}) {
         on(() => drawFly(c, { x: 0, y: 0, dir: 1, phase: 0 }, 9, 0.2));
         on(() => drawCrate(c, 40, lw));
         on(() => { drawGull(c, 40, lw, {}); drawRoast(c, 40, lw); });
-        on(() => { c.font = '900 28px Inter, Arial Black, sans-serif'; c.lineWidth = 5; c.strokeText('+0.45s x3', 0, 0); c.fillText('+0.45s x3', 0, 0); glow(c, 0, 0, 60, '129,212,250', 0.5); });
+        on(() => { c.font = '700 28px Fredoka, Inter, Arial Black, sans-serif'; c.lineWidth = 5; c.strokeText('+0.45s x3', 0, 0); c.fillText('+0.45s x3', 0, 0); glow(c, 0, 0, 60, '129,212,250', 0.5); });
     }
     function start() {
         if (dprCap !== 2) { dprCap = 2; wholeSprites.clear(); resize(); }      // every run starts at full sharpness
@@ -6069,7 +6075,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!showNums && !f.word) return;
             const k = f.t / 0.9;
             ctx.globalAlpha = 1 - k * k;
-            ctx.font = `800 ${f.hot ? 30 : 22}px Inter, sans-serif`; ctx.textAlign = 'center';
+            ctx.font = `700 ${f.hot ? 32 : 24}px Fredoka, Inter, sans-serif`; ctx.textAlign = 'center';
             ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeText(f.text, f.x, f.y - k * 50);
             ctx.fillStyle = f.hot ? '#ffd54f' : '#fff'; ctx.fillText(f.text, f.x, f.y - k * 50);
         });
