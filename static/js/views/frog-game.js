@@ -214,8 +214,8 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.2075f15c51.json',
-    title: '/img/game/ui/title.dc9db8deec.webp'          // the FROG NINJA lockup (7.9) on the first panel
+    bg: '/img/game/bg/bg.220ca2dba3.json',
+    title: '/img/game/ui/title.5c35ca5e51.webp'          // the FROG NINJA lockup (7.9) on the first panel
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.

@@ -64,7 +64,8 @@ def keyed(path, box=None, grow=3):
     mag = np.sqrt(((D - np.array([255, 0, 255])) ** 2).sum(2))
     al = np.clip((mag - 70) / 80.0, 0, 1)
     al = np.asarray(Image.fromarray((al * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))).astype(np.float32) / 255
-    pink = (((D[..., 0] + D[..., 2]) / 2 - D[..., 1]) > 45) & (al > 0)
+    # magenta spill only: red AND blue both high, green well below both (deep red, orange, pink stay)
+    pink = (D[..., 0] > 110) & (D[..., 2] > 110) & (D[..., 1] < 0.65 * np.minimum(D[..., 0], D[..., 2])) & (al > 0)
     D = D.copy(); D[pink] = np.array([20, 24, 28], np.int16)
     img = Image.fromarray(np.dstack([D.clip(0, 255).astype(np.uint8), (al * 255).astype(np.uint8)]), 'RGBA')
     return img.crop(img.getbbox())
@@ -172,7 +173,7 @@ def main():
     soft = np.clip((mag - 70) / 80.0, 0, 1)
     # despill: pull magenta-tinted edge pixels toward the figure's dark colour
     Dd = D.copy()
-    pink = (((Dd[..., 0] + Dd[..., 2]) / 2 - Dd[..., 1]) > 45)            # magenta-tinted pixels (the fringe)
+    pink = (Dd[..., 0] > 110) & (Dd[..., 2] > 110) & (Dd[..., 1] < 0.65 * np.minimum(Dd[..., 0], Dd[..., 2]))   # magenta-tinted pixels (the fringe)
     edge = ((soft < 0.98) & fig) | (pink & fig)
     Dd[edge] = np.array([34, 30, 40], np.int16)
     for row in rows:
