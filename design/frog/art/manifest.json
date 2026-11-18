@@ -485,14 +485,98 @@
   {
    "id": "1.4",
    "name": "Slash, left and right",
-   "notes": "wind-up, smear, follow-through; the blade swings toward the cut",
+   "notes": "wind-up, smear, follow-through; the blade swings toward the cut | 2026-11-18: full profile (1.2-profile rig) rejected by Marek: off-model, a different, less faithful style. Direction: three-quarter view built from the pick only.",
    "phase": 3,
    "format": "svg",
-   "status": "todo",
+   "status": "picked",
    "current": "current/1.4.png",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "1.1 unhinged-2 (pick)",
+      "1.1 rig sheet C"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Three-quarter view facing right (~45 deg, both eyes), mid cut, same squat proportions, line weight, face and colours as the pick; low wide stance leaning into the cut, near katana out right, far katana back and up."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "1.1 unhinged-2 (pick)",
+      "1.1 rig sheet C"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same three-quarter cut at max expression in the faithful style: explosive lunge, curved line of action, squash/stretch in limbs, slit eyes, determined toothy grin, tails whipping."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "1.1 unhinged-2 (pick)",
+      "1.1 rig sheet C"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Fully turned side view facing right (pure profile), same squat proportions, line weight, face and colours as the pick; mid cut to the right, near katana out right, far katana back and up. 3 faithful (unhinged tier dropped)."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-1.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-2.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "side-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "side-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": "near katana held backwards"
+    },
+    {
+     "file": "side-3.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": "recommended"
+    }
+   ],
+   "pick": "side-3.png",
+   "picks": {
+    "faithful": "side-3.png"
+   },
+   "picked_at": "2026-11-18 23:22"
   },
   {
    "id": "1.5",

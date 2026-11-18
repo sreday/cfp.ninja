@@ -1457,6 +1457,19 @@ export function mountFrogGame(stage, opts = {}) {
         const w = Math.min(W, H * 16 / 9), h = Math.min(H, W * 16 / 9);
         return 0.75 * Math.sqrt(Math.max(1, w * h));
     };
+    // The frog stands ON the post: its feet (y 1700 of the frog's drawing) go on the middle of the post's
+    // top (the cut face of the generated post is about the top 100/413 of its width). The frog and the post
+    // are sized by different rules, so the gap differs per screen: measured and closed on every resize.
+    const POST_CAP = 72 / 413;      // a little in front of the middle of the cut face: the soles sit on it, not on its back rim
+    function snapToPost() {
+        const pe = artBg && artBg.postEl;
+        svg.style.translate = '';
+        if (!pe) return;
+        const f = svg.getBoundingClientRect(), pb = pe.getBoundingClientRect();
+        if (!f.height || !pb.width) return;
+        const dy = pb.top + pb.width * POST_CAP - (f.top + f.height * 1700 / 1876);
+        svg.style.translate = `0 ${Math.round(dy * 10) / 10}px`;
+    }
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, dprCap);
         W = stage.clientWidth; H = stage.clientHeight;
@@ -1465,6 +1478,7 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         glowCv.width = canvas.width; glowCv.height = canvas.height;
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
+        snapToPost();
         measureFrog();
         if (artBg) {
             const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0;
@@ -1601,11 +1615,8 @@ export function mountFrogGame(stage, opts = {}) {
             const lr = R.rocks_l, rr = R.rocks_r;
             put('rocks_l', lr[2] * ks * 0.42, H - lr[3] * ks * 0.32, ks, 0, 0);
             put('rocks_r', W - rr[2] * ks * 0.42, H - rr[3] * ks * 0.3, ks, 0, 1);
-            const clear = x => Math.abs(x - W / 2) > fbox.w * 0.75;
-            const sea = H - seaTop;
-            [['coconut', 0.16, 0.3, 0.11], ['ball', 0.8, 0.2, 0.09], ['cup', 0.33, 0.5, 0.08]].forEach(([key, fx, fy, kk], i) => {
-                const x = W * fx; if (clear(x)) put(key, x, seaTop + sea * fy, sz * kk / R[key][2] * 2.2, 0.05, i + 2);
-            });
+            // (the party leftovers that bobbed on the sea are gone: what floats there now is the player's own
+            // fruit salad, in its bowls, see drawFloatingSalad)
         }
         // lights twinkle, the bonfire flickers (added light)
         c.globalCompositeOperation = 'lighter';
@@ -2152,6 +2163,25 @@ export function mountFrogGame(stage, opts = {}) {
     // where bowl b stands, and how big bowls are
     function bowlGeo() {
         const n = bowlBase(), slots = bowlSlots(n);
+        if (artBg) {
+            // Afloat on the generated sea: two flotillas, one each side of the post, three rows going back
+            // over the water (the sea in front of the beach is shallow on a wide screen: more rows would
+            // pile up into a wall). Front row low on the screen and biggest; each row behind it higher up,
+            // a little smaller (k) and half a bowl along. Filled from the front row, near the post first.
+            const g = artBg.g, sc = Math.max(W / g.w, H / g.h), seaTop = H - g.h * sc + 1170 * sc;
+            const bottom = H - (dbg ? dbgEl.offsetHeight + 4 : 0), post = fbox.w * 0.42, side = (W - post * 2) / 2;
+            const perSide = n * (n + 1) / 2, m = Math.ceil((perSide + 3) / 3);            // rows of m, m-1, m-2
+            const bw = clamp(side / (m + 0.3), 20, 110), bh = bw * 0.5;
+            const yFront = bottom - bh * 0.75, yBack = Math.min(yFront, seaTop + bh * 0.9);
+            const kOf = row => Math.pow(0.86, row);
+            const slot = i => { let r = 0; while (i >= m - r && r < 2) { i -= m - r; r++; } return [i + r * 0.5, r]; };
+            return { bw, bh, afloat: true, row: b => slot(Math.floor(b / 2))[1], col: b => slot(Math.floor(b / 2))[0],
+                k: b => kOf(slot(Math.floor(b / 2))[1]),
+                at: b => { const [col, row] = slot(Math.floor(b / 2)), sd = b % 2 ? 1 : -1, k = kOf(row);
+                    // each bowl drifts a little off its row (always the same way for the same bowl): a loose flotilla, not a shelf
+                    const jx = ((b * 7919) % 11 / 10 - 0.5) * bw * k * 0.22, jy = ((b * 104729) % 13 / 12 - 0.5) * bh * k * 0.7;
+                    return [W / 2 + sd * (post + bw * k * 0.62 + col * bw * k * 1.06) + jx, lerp(yFront, yBack, row / 2) + jy]; } };
+        }
         const post = fbox.w * 0.36, side = (W - post * 2) / 2, bw = clamp(side / (n + 0.5), 20, 104), bh = bw * 0.5, base = H - bh - 8 - (dbg ? dbgEl.offsetHeight + 4 : 0);
         return { bw, bh, row: b => slots[Math.floor(b / 2)][1], col: b => slots[Math.floor(b / 2)][0], at: b => { const [col, row] = slots[Math.floor(b / 2)], sd = b % 2 ? 1 : -1; return [W / 2 + sd * (post + bw * 0.62 + col * bw * 1.04), base - row * bh * 0.98]; } };
     }
@@ -2159,9 +2189,39 @@ export function mountFrogGame(stage, opts = {}) {
     // something in it is still dropping in); every frame just stamps that picture, and draws the steam.
     const saladCv = document.createElement('canvas'), saladCtx = saladCv.getContext('2d');
     let saladKey = '';
+    // afloat: each bowl is its own little picture (repainted only when its salad changes or is still
+    // dropping in), stamped every frame with its own bob and roll, back rows first
+    const bowlSprites = [];
+    function drawFloatingSalad(lw, tn) {
+        const n = bowlsShown(), G = bowlGeo(), { bw, bh } = G, still = dbgFrozen || !!freezeLeft, t = tn / 1000;
+        const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => G.row(b) - G.row(a));
+        for (const b of order) {
+            const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
+            const moving = tn - mine[mine.length - 1].t < 300 || tn - mine[0].t < 300;
+            const key = mine.length + '|' + bw + '|' + dpr;
+            let sp = bowlSprites[b];
+            const cw = Math.ceil(bw * 1.4 * dpr), ch = Math.ceil(bh * 3.2 * dpr);
+            if (!sp) sp = bowlSprites[b] = { c: document.createElement('canvas'), key: '' };
+            if (moving || sp.key !== key) {
+                if (sp.c.width !== cw || sp.c.height !== ch) { sp.c.width = cw; sp.c.height = ch; }
+                const K = sp.c.getContext('2d'); K.setTransform(1, 0, 0, 1, 0, 0); K.clearRect(0, 0, cw, ch); K.setTransform(dpr, 0, 0, dpr, 0, 0);
+                paintBowl(K, b, bw * 0.7, bh * 2.1, bw, bh, lw, tn, false, true);
+                sp.key = moving ? '' : key;
+            }
+            const [x, y] = G.at(b), k = G.k(b);
+            const bob = still ? 0 : Math.sin(t * 1.6 + b * 1.7) * bh * 0.06, roll = still ? 0 : Math.sin(t * 1.1 + b * 2.3) * 0.05;
+            ctx.save(); ctx.translate(x, y + bob); ctx.rotate(roll); ctx.scale(k, k);
+            ctx.drawImage(sp.c, -bw * 0.7, -bh * 2.1, cw / dpr, ch / dpr);
+            // where it sits in the water: a light ring of foam round its waist
+            ctx.strokeStyle = 'rgba(240,250,245,.55)'; ctx.lineWidth = Math.max(1.5, bh * 0.07);
+            ctx.beginPath(); ctx.ellipse(0, bh * 0.62, bw * 0.48, bh * 0.16, 0, 0.15, Math.PI - 0.15); ctx.stroke();
+            ctx.restore();
+        }
+    }
     function drawSalad(lw, tn) {
         const n = bowlsShown();
         if (!n) { saladKey = ''; return; }
+        if (artBg) { drawFloatingSalad(lw, tn); return; }
         const last = salad[salad.length - 1], moving = tn - last.t < 300 || tn - salad[(n - 1) * BOWL_HOLDS].t < 300;
         const key = salad.length + '|' + W + '|' + H + '|' + dpr + '|' + (dbg ? 1 : 0);
         if (moving || key !== saladKey) {
@@ -2200,11 +2260,14 @@ export function mountFrogGame(stage, opts = {}) {
         // back to front: the higher a bowl stands the further back it is, so the top row is
         // painted first and each row below it sits in front
         const order = Array.from({ length: n }, (_, b) => b).sort((a, b) => row(b) - row(a));
-        order.forEach(b => {
-            const [x, y] = at(b);
+        order.forEach(b => { const [x, y] = at(b); paintBowl(K, b, x, y, bw, bh, lw, tn, under(b), false); });
+    }
+    // one bowl and its heap, rim centred on x, y. Afloat (on the generated sea) its foot is under water.
+    function paintBowl(K, b, x, y, bw, bh, lw, tn, low, afloat) {
+        {
             const mine = salad.slice(b * BOWL_HOLDS, (b + 1) * BOWL_HOLDS);
             // the heap shows up to BOWL_SHOWN pieces, more of them as the bowl fills, picked across what went in
-            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * (under(b) ? 5 : BOWL_SHOWN)));
+            const shown = Math.max(1, Math.ceil(mine.length / BOWL_HOLDS * (low ? 5 : BOWL_SHOWN)));
             const chunks = Array.from({ length: shown }, (_, i) => mine[Math.min(mine.length - 1, Math.floor(i * mine.length / shown))]);
             const pop = clamp((tn - mine[0].t) / 220, 0, 1), sc = 0.6 + 0.4 * (1 - Math.pow(1 - pop, 3));   // a new bowl pops in
             K.save(); K.translate(x, y); K.scale(sc, sc);
@@ -2230,9 +2293,9 @@ export function mountFrogGame(stage, opts = {}) {
             // the bowl in front of it: Japanese ceramics, each a different glaze and pattern
             const G = BOWL_GLAZES[b % BOWL_GLAZES.length];
             const bowlPath = () => { K.beginPath(); K.moveTo(-bw / 2, 0); K.quadraticCurveTo(-bw * 0.46, bh * 0.82, -bw * 0.16, bh * 0.86); K.lineTo(bw * 0.16, bh * 0.86); K.quadraticCurveTo(bw * 0.46, bh * 0.82, bw / 2, 0); K.closePath(); };
-            // the foot ring it stands on
+            // the foot ring it stands on (afloat: under the water)
             K.fillStyle = G.foot; K.lineWidth = lw * 0.8; K.strokeStyle = C.ink; K.lineJoin = 'round';
-            K.beginPath(); K.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.2); K.fill(); K.stroke();
+            if (!afloat) { K.beginPath(); K.rect(-bw * 0.17, bh * 0.82, bw * 0.34, bh * 0.2); K.fill(); K.stroke(); }
             bowlPath(); K.fillStyle = G.body; K.fill();
             K.save(); bowlPath(); K.clip();
             K.strokeStyle = G.mark; K.fillStyle = G.mark; K.lineWidth = Math.max(1.2, bh * 0.05);
@@ -2259,7 +2322,7 @@ export function mountFrogGame(stage, opts = {}) {
             // the rim, in its own colour
             K.beginPath(); K.moveTo(-bw / 2, 0); K.lineTo(bw / 2, 0); K.lineWidth = Math.max(2, bh * 0.1); K.strokeStyle = G.rim; K.stroke();
             K.restore();
-        });
+        }
     }
     let dbg = false, dbgFrozen = false;                        // debug mode, and its stand-still before the first touch
     // debug: the world stays still for DBG_WAKE s after the first action, so a small thing can be grabbed or cut where it hangs

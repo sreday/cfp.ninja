@@ -1415,7 +1415,7 @@ a:hover {
 .fg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
 .fg-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .fg-has-art-bg svg.fg-bg, .fg-has-art-bg svg.fg-pole { display: none; }   /* the generated background (ART.bg) has loaded: the drawn beach and post step aside */
-.fg-pole-art { object-fit: cover; object-position: 50% 0; }
+.fg-pole.fg-pole-art { object-fit: cover; object-position: 50% 0; width: calc(var(--fg-s, 800px) * 0.3 * 0.8); }   /* wide enough that both of the frog's feet stand on its top */
 .fg-post-ring { position: absolute; z-index: 0; pointer-events: none; animation: fg-ring-swell 3.2s ease-in-out infinite; }
 .fg-water-front { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 @keyframes fg-ring-swell { 0%, 100% { transform: scale(1, 1); opacity: .9; } 50% { transform: scale(1.06, 1.12); opacity: 1; } }
@@ -1794,3 +1794,4 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog #fg-art-side { display: none; }
 .fg-frog.fg-art-side-on #fg-art-side { display: inline; }
 .fg-frog.fg-art-side-on #fg-side > :not(#fg-art-side) { visibility: hidden; }
+.fg-has-art-bg #fg-shadow { display: none; }   /* on the generated post the frog stands on its top: no shadow under it */
