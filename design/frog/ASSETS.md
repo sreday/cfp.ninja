@@ -116,6 +116,7 @@ Three depths (Marek, 2026-11-18), static images vectorized, plus the post:
 | 5.1 | Far layer: sky and the beach bar | dusk to night, the beach bar with party lights, a disco ball, bunting, the animals dancing far away; dark and low-contrast so fruit reads | placeholder (dark cloudy beach) |
 | 5.2 | Middle layer: the sea | the water between the post and the beach; sea-bound fruit falls into it behind the frog | placeholder |
 | 5.3 | Near layer: foreground decorations | shallows, pebbles, foam line, maybe drink cups in the sand; must work from a 390 px wide phone to a wide monitor (the shore line stays at the same height from the bottom) | placeholder (pebbles) |
+| 5.5 | The party: beach bar and crowd | its own piece on the far layer's beach line, placed by screen shape: far right on wide screens, nearer the middle on a phone held upright, never behind the frog | none |
 | 5.4 | Mooring post | weathered wood, stretches in height, stands in the shallows | placeholder |
 
 ## 6. The cast (other animals)

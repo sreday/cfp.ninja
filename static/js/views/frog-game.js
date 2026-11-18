@@ -209,6 +209,14 @@ function arm(id) {
 }
 
 const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 110 1346 180 1386 360 C1426 400 1516 470 1481 600 C1460 700 1300 760 993 792 C686 760 526 700 505 600 Z';
+// Generated art (the visual overhaul, design/frog/art/README.md): each entry swaps one element's
+// code drawing for a picked, built asset; leave an entry out (or null) and the code drawing stays.
+// bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
+// (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
+const ART = {
+    bg: '/img/game/bg/bg.386287682e.json'
+};
+const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
 const BEACH_SVG = `
@@ -1246,6 +1254,7 @@ export function mountFrogGame(stage, opts = {}) {
     stage.classList.add('fg-stage');
     stage.innerHTML = `
         ${BEACH_SVG}
+        <canvas class="fg-bg fg-bg-art" hidden></canvas>
         <canvas class="fg-canvas-back"></canvas>
         ${POLE_SVG}
         ${frogSvg(elder ? ELDER : FROG)}
@@ -1445,6 +1454,73 @@ export function mountFrogGame(stage, opts = {}) {
         glowCv.width = canvas.width; glowCv.height = canvas.height;
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
         measureFrog();
+        if (artBg) { const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; }
+    }
+    // ---------- the generated background (ART.bg) ----------
+    // The plate covers the stage from the bottom up (the shore stays at the same height from the
+    // bottom). The party is cut out and placed by screen shape: at its own place on a wide screen,
+    // smaller and just right of the frog on a narrow one, its cut-off right edge always past the
+    // screen's. Dancers loop two frames each at their own beat, more join as the run goes on; the
+    // string lights twinkle and the bonfire flickers. Redrawn about 14 times a second.
+    const artCv = $('.fg-bg-art'), actx = artCv.getContext('2d');
+    let artBg = null;
+    function glowSprite(rgb) {
+        const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+        const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gr.addColorStop(0, `rgba(${rgb},0.9)`); gr.addColorStop(0.35, `rgba(${rgb},0.35)`); gr.addColorStop(1, `rgba(${rgb},0)`);
+        g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return c;
+    }
+    if (ART.bg) (async () => {
+        try {
+            const g = await (await fetch(ART.bg)).json();
+            const img = u => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = u; });
+            const [plate, party, dancers] = await Promise.all([img(g.plate), img(g.party.url), img(g.dancers.url)]);
+            if (dead) return;
+            artBg = { g, plate, party, dancers, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
+                seed: g.lights.map((_, i) => [1.5 + (i * 7919 % 13) / 6, (i * 104729 % 628) / 100]) };
+            artCv.hidden = false; stage.classList.add('fg-has-art-bg');
+            resize();
+        } catch (e) { log('bug', 'art-bg', String(e).slice(0, 80)); }
+    })();
+    function drawArtBg(now) {
+        const a = artBg, g = a.g, c = actx, t = now / 1000;
+        c.setTransform(a.k, 0, 0, a.k, 0, 0);
+        const s = Math.max(W / g.w, H / g.h), ox = (W - g.w * s) / 2, oy = H - g.h * s;
+        c.drawImage(a.plate, ox, oy, g.w * s, g.h * s);
+        // the party: smaller on narrow screens, right of the frog, right edge past the screen's
+        const pk = clamp(0.45 + 0.35 * W / H, 0.6, 1), ps = s * pk;
+        const pw = g.party.w * ps, ph = g.party.h * ps;
+        const right = ox + (g.party.x + g.party.w) * s, bottom = oy + (g.party.y + g.party.h) * s;
+        // where it stands in the picture, unless that puts the bonfire (the heart of the party) past 85%
+        // of the screen: then it slides left until the bonfire is there; never so far that its cut-off
+        // right edge shows, never with the bonfire left of the frog
+        const focus = ((g.fire ? g.fire[0] : g.party.x + g.party.w / 2) - g.party.x) * ps;
+        let px = Math.min(right - pw, W * 0.85 - focus);
+        px = Math.max(px, W - pw, fbox.x + fbox.w + 10 - focus);
+        const py = bottom - ph;
+        c.drawImage(a.party, px, py, pw, ph);
+        const X = x => px + (x - g.party.x) * ps, Y = y => py + (y - g.party.y) * ps;
+        const still = reduced;
+        // dancers: two frames each, their own beat; more of them as the run goes on
+        const n = Math.min(g.spots.length, ART_BG_START + (phase === 'play' && !dbg ? Math.floor(clockT / ART_BG_JOIN) : 0));
+        const D = g.dancers;
+        for (let i = 0; i < n; i++) {
+            const [sx, sy, sh] = g.spots[i], pair = D.pairs[(i * 5) % D.pairs.length];
+            const beat = still ? 0 : Math.floor(t * (1.7 + (i % 3) * 0.25) + i * 0.37) % 2;
+            const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3];
+            c.drawImage(a.dancers, f[0], f[1], f[2], f[3], X(sx) - w / 2, Y(sy) - h - (beat ? h * 0.03 : 0), w, h);
+        }
+        // lights twinkle, the bonfire flickers (added light)
+        c.globalCompositeOperation = 'lighter';
+        g.lights.forEach(([lx, ly, lr], i) => {
+            const [sp, ph0] = a.seed[i], al = still ? 0.45 : 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(t * sp + ph0));
+            const r = lr * ps * 2.2; c.globalAlpha = al; c.drawImage(a.warm, X(lx) - r, Y(ly) - r, r * 2, r * 2);
+        });
+        if (g.fire) {
+            const fl = still ? 1 : 1 + 0.12 * Math.sin(t * 11) + 0.08 * Math.sin(t * 17.3 + 1), r = g.fire[2] * ps * 1.4 * fl;
+            c.globalAlpha = 0.45 * fl; c.drawImage(a.fire, X(g.fire[0]) - r, Y(g.fire[1]) - r * 0.85, r * 2, r * 2);
+        }
+        c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     }
     // the trail's glow is drawn opaque here, then laid over the game at one alpha
     // (overlapping translucent strokes would double up into beads)
@@ -5054,6 +5130,7 @@ export function mountFrogGame(stage, opts = {}) {
     function frame(now) {
         if (warmQ.length) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }     // one piece of warm-up a frame
         if (dead) return;
+        if (artBg && now - artBg.at > 70) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
         const t0 = performance.now();
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         // debug: frames a second, big, top left; green at 60, red at 30 and under

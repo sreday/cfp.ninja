@@ -21,9 +21,11 @@ PHASES = {1: 'Style anchor', 2: 'Background', 3: 'Frog', 4: 'Blades', 5: 'Fruit'
 # Elements the overhaul adds or reshapes (Marek, 2026-11-18)
 EXTRA = [
     ('0.1', 'Style anchor: the frog on its post, beach at dusk', 'Key frame that fixes the look: logo sticker + cel shading, the party in the back. Becomes the reference image for everything after.', 1, 'webp'),
-    ('5.1', 'Far layer: sky and the beach bar', 'Back depth: dusk-to-night sky, the beach bar with party lights, a disco ball, the animals dancing far away. Dark and low-contrast so fruit reads. Static, vectorized.', 2, 'svg'),
+    ('5.1', 'Far layer: sky and the beach bar', 'Back depth: dusk-to-night sky and the empty beach (the party is its own piece, 5.5). Dark and low-contrast so fruit reads. Static, vectorized.', 2, 'svg'),
     ('5.2', 'Middle layer: the sea', 'The body of water between the post and the beach: sea-bound fruit falls into it behind the frog. Static, vectorized.', 2, 'svg'),
     ('5.3', 'Near layer: foreground decorations', 'First plan: shallows, pebbles, foam line, maybe drink cups in the sand. In front of the sea, behind the frog. Must work from a 390 px phone to a wide monitor (shore line at a fixed height from the bottom).', 2, 'svg'),
+    ('5.5', 'The party: beach bar and crowd, placed by screen shape', 'Its own cut-out piece on the beach line of the far layer (Marek 2026-11-18: "the party can be dynamic, it can move with ratio change"): far right on wide screens, nearer the middle on a phone held upright, never behind the frog. Cut from the picked background plate; 5.1 then becomes the empty sky and beach.', 2, 'webp'),
+    ('5.6', 'Party dancers: animated animal silhouettes', 'Sprite sheet, two dance frames per animal, cut from a flat magenta background; placed on the party set and looped (Marek 2026-11-18: animate the dancers and lights, more party guests). The string lights twinkle in code.', 2, 'sheet'),
     ('5.4', 'Mooring post', 'Weathered wood post the frog stands on; stretches in height; in the shallows.', 2, 'svg'),
     ('1.18', 'Fire-eater (sake fed to a breath)', 'The torch held up like a fire-eater, flame rolling off it, showman grin.', 3, 'svg'),
     ('3.8', 'CFP.ninja laptop', 'The rare laptop: tongued, the frog sits down with it and calls its friends; slashed, it is wrecked.', 6, 'webp'),

@@ -100,7 +100,7 @@
     {
      "file": "faithful-1.png",
      "tier": "faithful",
-     "verdict": "pick",
+     "verdict": "",
      "note": ""
     },
     {
@@ -142,32 +142,103 @@
     {
      "file": "unhinged-6.png",
      "tier": "unhinged",
-     "verdict": "",
+     "verdict": "pick",
      "note": ""
     }
    ],
-   "pick": "faithful-1.png",
-   "picked_at": "2026-11-18 12:57"
+   "pick": "unhinged-6.png",
+   "picked_at": "2026-11-18 13:04",
+   "picks": {
+    "unhinged": "unhinged-6.png"
+   }
   },
   {
    "id": "5.1",
    "name": "Far layer: sky and the beach bar",
-   "notes": "Back depth: dusk-to-night sky, the beach bar with party lights, a disco ball, the animals dancing far away. Dark and low-contrast so fruit reads. Static, vectorized.",
+   "notes": "Back depth: dusk-to-night sky and the empty beach (the party is its own piece, 5.5). Dark and low-contrast so fruit reads. Static, vectorized.",
    "phase": 2,
    "format": "svg",
-   "status": "todo",
+   "status": "in game",
    "current": "current/5.1.png",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (style anchor)"
+     ],
+     "flow": "FgWs968GnZw8sT3PxpoR",
+     "size": "1376x768",
+     "credits_each": 609,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Edit of the anchor: remove frog, katanas, post and ripples; continue sky, sea and beach; keep everything else. Clean plate, to be split locally into 5.1 far (sky, beach, bar) and 5.2 sea."
+    },
+    {
+     "model": "gemini-3.1-flash-image (Nano Banana 2, via ElevenLabs)",
+     "refs": [
+      "candidates/0.1/faithful-1.png (style anchor)"
+     ],
+     "flow": "FgWs968GnZw8sT3PxpoR",
+     "size": "1376x768",
+     "credits_each": 609,
+     "at": "2026-11-18",
+     "tier": "unhinged",
+     "text": "Same clean plate with the party at max expression in the same style: more string lights to palm trees, paper lanterns, bonfire with dancers, more party animals, disco light spots on the sand, tiki torches."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "unhinged-1.png",
+     "tier": "unhinged",
+     "verdict": "pick",
+     "note": "animate partying animal silhouettes, and lights, get more party members"
+    },
+    {
+     "file": "unhinged-2.png",
+     "tier": "unhinged",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-3.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "faithful-4.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "pick": "unhinged-1.png",
+   "picks": {
+    "unhinged": "unhinged-1.png",
+    "faithful": "faithful-3.png"
+   },
+   "picked_at": "2026-11-18 13:07",
+   "built": "static/img/game/bg/ via tools/art_build_bg.py (Topaz 2x upscale)"
   },
   {
    "id": "5.2",
    "name": "Middle layer: the sea",
-   "notes": "The body of water between the post and the beach: sea-bound fruit falls into it behind the frog. Static, vectorized.",
+   "notes": "The body of water between the post and the beach: sea-bound fruit falls into it behind the frog. Static, vectorized. Built together with 5.1: the sea is part of the plate (one image).",
    "phase": 2,
    "format": "svg",
-   "status": "todo",
+   "status": "in game",
    "current": "current/5.2.png",
    "prompts": [],
    "candidates": [],
@@ -196,6 +267,66 @@
    "prompts": [],
    "candidates": [],
    "pick": null
+  },
+  {
+   "id": "5.5",
+   "name": "The party: beach bar and crowd, placed by screen shape",
+   "notes": "Its own cut-out piece on the beach line of the far layer (Marek 2026-11-18: \"the party can be dynamic, it can move with ratio change\"): far right on wide screens, nearer the middle on a phone held upright, never behind the frog. Cut from the picked background plate; 5.1 then becomes the empty sky and beach.",
+   "phase": 2,
+   "format": "webp",
+   "status": "in game",
+   "current": "",
+   "prompts": [],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-1.png",
+   "picks": {
+    "faithful": "faithful-1.png"
+   },
+   "picked_at": "2026-11-18 13:27",
+   "built": "static/img/game/bg/ via tools/art_build_bg.py"
+  },
+  {
+   "id": "5.6",
+   "name": "Party dancers: animated animal silhouettes",
+   "notes": "Sprite sheet, two dance frames per animal, cut from a flat magenta background; placed on the party set and looped (Marek 2026-11-18: animate the dancers and lights, more party guests). The string lights twinkle in code.",
+   "phase": 2,
+   "format": "sheet",
+   "status": "in game",
+   "current": "",
+   "prompts": [],
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": "very cool"
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-1.png",
+   "picks": {
+    "faithful": "faithful-1.png"
+   },
+   "picked_at": "2026-11-18 13:27",
+   "built": "static/img/game/bg/ via tools/art_build_bg.py"
   },
   {
    "id": "1.1",
@@ -1220,8 +1351,5 @@
    "candidates": [],
    "pick": null
   }
- ],
- "pipeline_notes": {
-  "generation": "ElevenLabs creative_generate_image returns signed URLs (expire ~2.5 h): download at once into the desk. Reference images work (upload to the flow, pass the node in connect_from). Nano Banana 2 at 1K 16:9 = 1376x768, 609 credits (about $0.10) per image. Two references (anchor + logo) cost 812 credits per image instead of 609."
- }
+ ]
 }

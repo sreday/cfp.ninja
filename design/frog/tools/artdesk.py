@@ -72,9 +72,10 @@ function filters() {
   document.querySelectorAll('[data-only]').forEach(e => e.onclick = () => { only = e.dataset.only; draw(); });
 }
 function cand(el, c) {
-  const cls = el.pick === c.file ? 'picked' : c.verdict === 'reject' ? 'rejected' : '';
+  const isPick = (el.picks || {})[c.tier] === c.file;
+  const cls = isPick ? 'picked' : c.verdict === 'reject' ? 'rejected' : '';
   return `<div class="cand ${cls}"><img src="/desk/candidates/${encodeURIComponent(el.id.replace('/', '_'))}/${encodeURIComponent(c.file)}" loading="lazy">
-    <div class="acts"><button class="btn btn-sm btn-primary" data-pick="${esc(el.id)}" data-file="${esc(c.file)}">${el.pick === c.file ? 'Picked' : 'Pick'}</button>
+    <div class="acts"><button class="btn btn-sm btn-primary" data-pick="${esc(el.id)}" data-file="${esc(c.file)}">${isPick ? 'Picked' : 'Pick'}</button>
     <button class="btn btn-sm btn-outline-secondary" data-rej="${esc(el.id)}" data-file="${esc(c.file)}">${c.verdict === 'reject' ? 'Rejected' : 'Reject'}</button></div>
     <textarea rows="2" placeholder="Note on this one" data-cnote="${esc(el.id)}" data-file="${esc(c.file)}">${esc(c.note)}</textarea></div>`;
 }
@@ -150,13 +151,22 @@ class H(BaseHTTPRequestHandler):
         c = next((c for c in el['candidates'] if c['file'] == body.get('file')), None)
         stamp = time.strftime('%Y-%m-%d %H:%M')
         if self.path == '/api/pick' and c:
-            el['pick'] = None if el.get('pick') == c['file'] else c['file']
-            c['verdict'] = 'pick' if el['pick'] else ''
-            el['status'] = 'picked' if el['pick'] else 'prompting'
+            # one pick per tier (faithful and unhinged); `pick` is the latest one, kept for older readers
+            picks = el.setdefault('picks', {})
+            if picks.get(c['tier']) == c['file']: picks.pop(c['tier']); c['verdict'] = ''
+            else:
+                old = picks.get(c['tier'])
+                for o in el['candidates']:
+                    if o['file'] == old: o['verdict'] = ''
+                picks[c['tier']] = c['file']; c['verdict'] = 'pick'
+            el['pick'] = picks.get(c['tier']) or next(iter(picks.values()), None)
+            el['status'] = 'picked' if picks else 'prompting'
             el['picked_at'] = stamp
         elif self.path == '/api/verdict' and c:
             c['verdict'] = '' if c.get('verdict') == 'reject' else 'reject'
-            if el.get('pick') == c['file'] and c['verdict'] == 'reject': el['pick'] = None; el['status'] = 'prompting'
+            if c['verdict'] == 'reject' and el.get('picks', {}).get(c['tier']) == c['file']:
+                el['picks'].pop(c['tier'])
+                el['pick'] = next(iter(el['picks'].values()), None); el['status'] = 'picked' if el['picks'] else 'prompting'
         elif self.path == '/api/note':
             if c: c['note'] = body.get('note', '')
             else: el['note'] = body.get('note', '')

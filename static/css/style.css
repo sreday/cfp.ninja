@@ -1414,6 +1414,7 @@ a:hover {
 .fg-canvas-back { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .fg-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; cursor: crosshair; }
 .fg-bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.fg-has-art-bg svg.fg-bg { display: none; }               /* the generated background (ART.bg) has loaded: the drawn beach steps aside */
 /* drunk: the world sways */
 /* the sea moves a little */
 .fg-waves { animation: fg-waves 5s ease-in-out infinite; }
