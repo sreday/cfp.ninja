@@ -8,7 +8,7 @@ const C = {
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
 };
 const ELDER_COMBO = 0.2;                         // the Sensei's combo meter fills at this much of the usual rate
-const ELDER_FRUIT = 5, ELDER_PAY = 1 / 3;        // the Sensei gets this many times the fruit, and each thing he earns is worth this much of the usual
+const ELDER_FRUIT = 5, ELDER_PAY = 0.2;          // the Sensei gets this many times the fruit, and each thing he earns is worth this much of the usual (1/3 until 2026-11-18, then 40% less)
 const START_SECONDS = 30;                       // on the clock at the start
 const COUNTDOWN = 3;                            // 3, 2, 1 before the clock starts
 const TIME_BIG = 0.1, TIME_STEP = 0.05;         // seconds a fruit buys: the biggest, and how much more each smaller kind buys (0.1, 0.15 .. 0.45)
@@ -70,7 +70,7 @@ const FIRE_FAR = 0;                              // how much weaker the breath i
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
 const DUP_SLOW = 1.5, DUP_GROW = 0.3, EXTRA_MAX = 12, CRATE_MAX = 6;   // everything that is not fruit takes DUP_SLOW times as long to copy (0.9 s against 0.6); s for the two to grow back; most power-ups, fireflies, crates on screen
 const CELL_SMALL = 0.8, CELL_OFF = 0.8, CELL_PUSH = 0.45;           // dividing: the size of each of the two, how far each sits from the middle, and how far each then drifts on (in radii)
-const DUP_TIME = 0.6, DUP_MAX = 36, GULL_MAX = 12;              // a hacked fruit held in the hacking breath this long is copied; never past this many fruit on screen
+const DUP_TIME = 0.78, DUP_MAX = 36, GULL_MAX = 12;             // a hacked fruit held in the hacking breath this long is copied (0.6 until 2026-11-18, then 30% longer); never past this many fruit on screen
 const BLADE_HEAT = 0.2;                          // a fire blade's trace heats fruit this much slower than the breath: it cuts and chars, and melts only what lingers in it
 const CRATE_SIZE = 1.62;                         // half the crate's width, in fruit units (1.8 until 2026-11-16: 10% smaller)
 const LAPTOP_POP = 1.3;                          // a laptop takes this much longer in a flame than a crate before it goes off
@@ -192,6 +192,17 @@ function arm(id) {
             <rect x="-11" y="2" width="22" height="18" fill="#a3211d" stroke="#000" stroke-width="3"/>
             <rect x="-9.5" y="-52" width="19" height="8" fill="#6d4c41" stroke="#000" stroke-width="4"/>
         </g></g>
+        <!-- a breath fed a sake: a fire-eater's torch, held upright in the bottle hand -->
+        <g class="fg-torch" opacity="0">
+            <rect x="-7" y="-62" width="14" height="118" rx="6" fill="#8d5a2b" stroke="#000" stroke-width="5"/>
+            <path d="M-5 -30 L5 -30 M-5 20 L5 20" stroke="#000" stroke-width="2.5" opacity=".35"/>
+            <rect x="-13" y="-82" width="26" height="24" rx="5" fill="#3e2723" stroke="#000" stroke-width="5"/>
+            <path d="M-13 -74 L13 -70 M-13 -66 L13 -62" stroke="#795548" stroke-width="3"/>
+            <g class="fg-torch-flame">
+                <path d="M-16 -82 Q-30 -112 -8 -138 Q-6 -122 2 -150 Q14 -128 12 -114 Q22 -120 20 -102 Q26 -92 16 -82 Z" fill="#ff7a1a" stroke="#000" stroke-width="5" stroke-linejoin="round"/>
+                <path d="M-8 -84 Q-16 -104 -2 -120 Q2 -108 8 -116 Q14 -100 8 -84 Z" fill="#ffd54f"/>
+            </g>
+        </g>
         <!-- the hand again, over the grip: green fingers closed round the katana -->
         <g class="fg-hand"><ellipse cx="0" cy="0" rx="19" ry="15" fill="${P.green}" stroke="#000" stroke-width="7"/><path d="M-11 -5 L11 -5 M-12 3 L12 3" stroke="#000" stroke-width="3" stroke-linecap="round" opacity=".45"/></g>
     </g></g>`;
@@ -1502,9 +1513,13 @@ export function mountFrogGame(stage, opts = {}) {
         // little as it sways. Its own left hand: the arm on our right when it faces us; in profile, the
         // arm on the far side, behind the body.
         const drunk = stage.classList.contains('fg-drunk'), tip = drunk ? Math.round(Math.sin(performance.now() / 420) * 2) * 6 : 0;
-        const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld, bottleArm) => {
+        const setArm = (g, limb, held, blade, [x, y], rot, stretch, kWorld, bottleArm, torchArm) => {
             const armed = pose.held && !pose.noBlades && !pose.stuck && !pose.plan, withBottle = !!bottleArm && drunk && armed;
+            // a breath that has burned a sake: a fire-eater, the torch held up in the bottle hand
+            // (facing us: the bottle arm, out to the side; in profile: the near arm, held forward under the flame)
+            const withTorch = !!torchArm && pose.held && pose.stuck && fireWide > 0;
             if (withBottle) { rot = bottleArm.rot; stretch = bottleArm.stretch; kWorld = bottleArm.k + tip; }
+            if (withTorch) { rot = torchArm.rot; stretch = torchArm.stretch; kWorld = torchArm.k; }
             setA(g, 'transform', `translate(${x} ${y}) rotate(${n2(rot)})`);
             setA(limb, 'transform', `scale(1 ${n2(stretch)})`);
             setA(held, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
@@ -1512,6 +1527,15 @@ export function mountFrogGame(stage, opts = {}) {
             const bottle = g._bottle || (g._bottle = g.querySelector('.fg-bottle'));
             setA(bottle, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
             setA(bottle, 'opacity', withBottle ? 1 : 0);
+            const torch = g._torch || (g._torch = g.querySelector('.fg-torch'));
+            if (torch) {
+                setA(torch, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
+                setA(torch, 'opacity', withTorch ? 1 : 0);
+                if (withTorch) {
+                    const t = performance.now() / 1000, fl = torch._fl || (torch._fl = torch.querySelector('.fg-torch-flame'));
+                    setA(fl, 'transform', `translate(0 -82) scale(${n2(1 + Math.sin(t * 23) * 0.08)} ${n2(1 + Math.sin(t * 17 + 1) * 0.14)}) translate(0 82)`);
+                }
+            }
             // the hand sits at the end of the arm, on top of whatever it holds, turned with the grip
             const hand = g._hand || (g._hand = g.querySelector('.fg-hand'));
             if (hand) setA(hand, 'transform', `translate(0 ${n2(58 * stretch)}) rotate(${n2(kWorld - rot)})`);
@@ -1520,7 +1544,7 @@ export function mountFrogGame(stage, opts = {}) {
         const upNow = pose.up > 0.5, EL = upNow || pose.plan ? UP_ELBOW : ELBOW, turn = upNow ? pose.face : 0;
         // turned: the near shoulder comes forward and the far one tucks in behind the body
         setArm(el.armL, el.limbL, el.heldL, el.bladeL, [993 + (EL.L[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.L[1]], pose.lRot, pose.lStretch, pose.lK);
-        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK, { rot: -112, stretch: 1.3, k: 10 });     // (its own left hand: on our right when it faces us)
+        setArm(el.armR, el.limbR, el.heldR, el.bladeR, [993 + (EL.R[0] - 993) * (1 - Math.abs(turn) * 0.38) + turn * 30, EL.R[1]], pose.rRot, pose.rStretch, pose.rK, { rot: -112, stretch: 1.3, k: 10 }, { rot: -112, stretch: 1.3, k: 10 });     // (its own left hand: on our right when it faces us)
         // the profile drawing takes over while the frog cuts
         const sideOn = pose.side !== 0 && upNow && !pose.fallY && !pose.chop;
         // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
@@ -1542,7 +1566,7 @@ export function mountFrogGame(stage, opts = {}) {
             const hipY = 900 + pose.sDrop;
             setA(el.sideTop, 'transform', `translate(0 ${n2(pose.sDrop)}) rotate(${n2(pose.sRot)} 1000 ${900})`);
             setArm(el.sB.g, el.sB.limb, el.sB.held, el.sB.blade, [1000, 470], pose.sB.rot, pose.sB.stretch, pose.sB.k, { rot: 142 - pose.sRot, stretch: 1.9, k: -14 - pose.sRot });     // (up and back, clear of the head)
-            setArm(el.sF.g, el.sF.limb, el.sF.held, el.sF.blade, [1000, 470], pose.sF.rot, pose.sF.stretch, pose.sF.k);
+            setArm(el.sF.g, el.sF.limb, el.sF.held, el.sF.blade, [1000, 470], pose.sF.rot, pose.sF.stretch, pose.sF.k, null, { rot: -62, stretch: 1.5, k: 0 });     // (the torch: forearm forward, below the mouth)
             setA(el.sideTail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} 660 0)`);       // the tails lag the turn
             setA(el.sideHem, 'transform', `translate(1000 850) skewX(${n2(pose.sRot * 0.5)}) translate(-1000 -850)`);
         }
@@ -3449,6 +3473,7 @@ export function mountFrogGame(stage, opts = {}) {
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
+        if (e.isPrimary === false) return;                   // one finger only: a second finger would make the blade jump between them (sake broke on it)
         // 3, 2, 1: once the frog is on its feet with its blades out it can already swing them (for
         // free: nothing to cut yet, no stamina used). Not while it is still getting up, and nothing once time is up.
         if (phase === 'load' || phase === 'over' || (phase === 'count' && !pose.held)) return;
@@ -3483,6 +3508,7 @@ export function mountFrogGame(stage, opts = {}) {
         touchDown = { x: px, y: py, t: performance.now(), far: 0, finger: e.pointerType !== 'mouse' };
     }
     function onMove(e) {
+        if (e.isPrimary === false) return;
         noteInput(e);
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
@@ -3619,6 +3645,7 @@ export function mountFrogGame(stage, opts = {}) {
         lx = x; ly = y;
     }
     function onUp(e) {
+        if (e.isPrimary === false) return;
         // a press released where it landed (a tap, or a left click with no drag) is the tongue
         noteInput(e); closeCut(); windUp = false;
         let tap = down && e.type === 'pointerup' ? press : null;
@@ -3645,6 +3672,7 @@ export function mountFrogGame(stage, opts = {}) {
     function shootTongue(x, y) {
         if (elder && !dbg) return;                             // the Sensei has no tongue move (nothing for it to fetch)
         if (phase !== 'play' || stunT > 0 || tongue || fwBusy() || summon) return;
+        if (freezeLeft > 0 || markQueue.length) return;          // the clock's time freeze (and the marked slashes after it): no tongue
         const m = frogPoint(993, MOUTH_Y);
         const d = Math.hypot(x - m.x, y - m.y);
         // poking the seagull with the tongue is as bad an idea as slashing it bare
@@ -4714,6 +4742,10 @@ export function mountFrogGame(stage, opts = {}) {
         [[0.15, 'close (facing us)'], [0.5, 'near (close stance)'], [1.5, 'far (profile)']].forEach(([d, n]) => { breath('breath right, ' + n, d, 0.1); breath('breath left, ' + n, -d, 0.1); });
         breath('breath far right, upwards', 1.5, -1.3); breath('breath far right, downwards', 1.5, 0.9);
         breath('breath straight up (head back)', 0, -1.6); breath('breath at the camera', 0, 0.12);
+        // a breath fed a sake: the fire-eater's torch in the bottle hand
+        const torchBreath = (name, dx, dy) => out.push({ name, dur: 0.8, tick() { fireLeft = Math.max(fireLeft, 0.3); fireWide = Math.max(fireWide, 1); const h = head(); aim = { x: h.x + dx * fw(), y: h.y + dy * fw() }; }, end() { fireLeft = 0; fireWide = 0; } });
+        torchBreath('torch breath (sake), close', 0.15, 0.1); torchBreath('torch breath (sake), near', 0.5, 0.1); torchBreath('torch breath (sake), far right', 1.5, 0.1); torchBreath('torch breath (sake), far left', -1.5, 0.1);
+        torchBreath('torch breath (sake), straight up', 0, -1.6); torchBreath('torch breath (sake), at the camera', 0, 0.12);
         out.push({ name: 'ready (idle)', dur: 0.6 });
         out.push({ name: 'wind-up (pressed)', dur: 0.5, tick() { windUp = true; }, end() { windUp = false; } });
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
@@ -4764,7 +4796,7 @@ export function mountFrogGame(stage, opts = {}) {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
-                sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0,
+                sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
                 pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,

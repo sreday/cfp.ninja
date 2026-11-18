@@ -72,8 +72,8 @@ file is the source of truth, this document explains the intent.
 Combos are part of mastery and are listed in the game's "Power-ups combine" tips page:
 breath + sake (wide), breath + clock (hacks what it touches, and copies every digital thing held in it by dividing it
 like a living cell: it shrinks a little, becomes two joined ones, then two that grow back and
-drift apart about the spot where the one was. Fruit takes 0.6 s; seagulls, power-ups, fireflies,
-crates and the laptop take 0.9 s. Never more than 36 fruit, 12 gulls, 12 power-ups, 12
+drift apart about the spot where the one was. Fruit takes 0.78 s; seagulls, power-ups, fireflies,
+crates and the laptop take 1.17 s (30% longer than before, Marek 2026-11-18). Never more than 36 fruit, 12 gulls, 12 power-ups, 12
 fireflies or 6 crates on screen), sake + firefly / clock / sake (fire
 blade, chronoblade, bubbles), clock + firefly / sake (enchanted sword afterwards).
 
@@ -110,7 +110,7 @@ blade would do):
 - The Sensei (Marek, 2026-11-16: "a mindless fun mode"; do not balance it. `elder` in the code. A secret, and the template for other characters (Marek, 2026-11-16): the game always opens as the frog, the choice lasts one loading of the page, and he is picked on the first page of the hints (Marek: keep him pickable there, just never the default); for fun, never on the
   scoreboard, own best time): no stamina, no power-ups, fireflies, crates or seagulls, no tongue, every
   stroke repeated by a second blade mirrored left to right, five times the fruit, and everything
-  he earns is worth a third, and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry
+  he earns is worth a fifth (a third until 2026-11-18, then 40% less, Marek), and his combo meter takes 20% of each point (Marek's numbers, 2026-11-16). Pale blue skin. No debug mode: the Debug button turns the game back to the frog and opens debug there. His runs carry
   a `char elder` event in the log: leave them out of balance work.
 - Swallowing a fruit is always the same stun (stars, the same time by size), but each fruit plays
   its own joke so it is less obvious. Watermelon and pineapple jam on the head in place of it:

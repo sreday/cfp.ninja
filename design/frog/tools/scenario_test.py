@@ -172,6 +172,27 @@ def main():
         g.drag([(hb[0] - 150, hb[1]), (hb[0], hb[1] + 4), (hb[0] + 150, hb[1] + 8)]); st = g.state()
         check('stuck fruit: a slash across its own head frees the frog', was and not st['stunned'] and any(e[1] == 'stun' and e[-1] == 'freed' for e in st['log']), (was, st['stunned']))
 
+        # 12d. one finger only: a second finger's press and moves are ignored (sake broke on them)
+        fresh(g)
+        pe = lambda typ, x, y, prim, pid: g.js(f"(c => c.dispatchEvent(new PointerEvent('{typ}', {{bubbles: true, clientX: {x}, clientY: {y}, pointerId: {pid}, pointerType: 'touch', isPrimary: {str(prim).lower()}, button: 0, buttons: 1}})))(document.querySelector('.fg-canvas'))")
+        g.js("document.querySelector('.fg-canvas').setPointerCapture = () => {}")   # (a made-up finger has nothing to capture)
+        n0 = sum(1 for e in g.state()['log'] if e[1] == 'd')
+        pe('pointerdown', 300, 300, False, 7); n1 = sum(1 for e in g.state()['log'] if e[1] == 'd')
+        pe('pointerdown', 300, 300, True, 6); n2 = sum(1 for e in g.state()['log'] if e[1] == 'd')
+        pe('pointerup', 300, 300, True, 6)
+        check('multi-touch: a second finger is ignored, the first one counts', n1 == n0 and n2 == n0 + 1, (n0, n1, n2))
+
+        # 12e. no tongue during the clock's time freeze (a right click or a tap there is not the tongue)
+        fresh(g); g.js("frogPlay.freeze(1)"); time.sleep(0.1)
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": 900, "y": 250, "button": "right", "buttons": 2, "clickCount": 1})
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": 900, "y": 250, "button": "right", "buttons": 0, "clickCount": 1})
+        time.sleep(0.05); frozen = g.state()['tongue']
+        g.js("frogPlay.freeze(0)"); time.sleep(0.3)
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": 900, "y": 250, "button": "right", "buttons": 2, "clickCount": 1})
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": 900, "y": 250, "button": "right", "buttons": 0, "clickCount": 1})
+        time.sleep(0.05); after = g.state()['tongue']
+        check('clock: no tongue during the time freeze, the tongue again after it', not frozen and after, (frozen, after))
+
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()

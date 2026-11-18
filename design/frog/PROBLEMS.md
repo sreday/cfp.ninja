@@ -261,4 +261,14 @@ are at least 30 uses of each item.
 
 ## Fixed
 
-- (nothing yet)
+- 2026-11-18 | Marek's play-test | Fixed:
+  1. Multi-touch broke sake: a second finger's press and moves made the blade jump between the
+     fingers. Only the first finger counts now (`isPrimary`); scenario check added.
+  2. No tongue during the clock's time freeze, nor while the marked slashes after it run (a right
+     click or tap there did fire it); scenario check added.
+  3. A breath fed a sake: the frog holds a fire-eater's torch in the bottle hand (out to the side
+     facing us, forward under the mouth in profile). Poses `torch breath (sake), ...` in `ANIMS`.
+  4. Copying in the hacking breath takes 30% longer: DUP_TIME 0.6 -> 0.78 s (1.17 s for non-fruit).
+  5. The Sensei's pay is 40% lower: ELDER_PAY 1/3 -> 0.2.
+  Still to do: Marek asked to scan recorded replay videos for bugs and improvements; they are
+  saved to the player's own downloads, not uploaded and not in the repo. Waiting for the files.
