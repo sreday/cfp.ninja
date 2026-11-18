@@ -208,6 +208,14 @@ def main():
         fl = [e for e in lg if e[1] == 'letdown' and e[2] == 'flail']; sn = [e for e in lg if e[1] == 'snap']
         check('feel: the run logs its session, and flailing in one spot is a letdown with a snapshot', bool(ses) and bool(fl) and bool(sn) and sn[0][3].startswith('data:image/jpeg'), (ses[:1], fl[:1], [e[:3] for e in sn]))
 
+        # 12h. never endless: past 15 minutes the run-cap invariant fires and nothing earns time
+        g.js("location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-start').click()")
+        for _ in range(60):
+            if (g.state() or {}).get('phase') == 'play': break
+            time.sleep(0.1)
+        g.js("frogPlay.at(901)"); time.sleep(1.3); h = g.js("frogPlay.health()") or {}
+        check('never endless: past 15 min the run is flagged (run-cap)', 'run-cap' in (h.get('bugs') or {}), h.get('bugs'))
+
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)
         st = g.state()

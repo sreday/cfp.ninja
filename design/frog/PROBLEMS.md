@@ -8,6 +8,8 @@ Last trace id reviewed: 127
 
 Entry format: `YYYY-MM-DD | where it came from (trace ids, play-test, review) | what | status`
 
+A fixed entry names the scenario check in `scenario_test.py` that guards it (PRINCIPLES 3d).
+
 ## Needs a decision from Marek
 
 - 2026-11-15 | setup | The time curve and the bowl size were set from a model with guessed
@@ -261,6 +263,16 @@ are at least 30 uses of each item.
 
 ## Fixed
 
+- 2026-11-18 | Marek: "apply all relevant" debugging routines from other projects | Added (PRINCIPLES 3d):
+  invariants extended (stuck-fruit, no-fruit, runaway, run-cap, freeze overrun; at most 3 of a
+  kind a run, snapshot on the first, totals in `bugs`); RUN_CAP 15 min backstop; `first` and
+  `bowl` events; digest: quit context (last 5 s), left-after-a-worse-run, funnel, invariant
+  totals; `tools/monkey.py` (runs + every pair of tray items; first pass: 120 pairs, 0 bad, no
+  invariant breaks). Rule: every fix names its scenario check. Check: `never endless` in
+  scenario_test.py. Not done: exact replays (see 3d). Sources: Aura Autopilot
+  (github.com/ramenvr/autopilot), Microsoft's LLM bug detection for text games (arXiv 2406.04482),
+  jugar-probar invariants, Unity GameCrawler soak tests, gamesfromwithin.com monkey testing,
+  GlitchBench (CVPR 2024: image models are weak at spotting glitches, so pictures go with numbers).
 - 2026-11-18 | Marek: "the game is not only about the numbers" | Added: player-feel logging
   (PRINCIPLES 3c). Letdown events (uncut, tongue near miss, wasted breath/freeze, flail), page
   sessions and play-again gaps, `quit` runs and `left` notes when the page is left, away/back,

@@ -1691,17 +1691,29 @@ export function mountFrogGame(stage, opts = {}) {
     const r2 = v => Math.round(v * 100) / 100;
     // the multiplier on every second earned right now (see TIME_EARLY above)
     const styleK = elder ? ELDER_COMBO : 1;                    // how much of each combo point the meter takes
-    const timeMult = () => (elder ? ELDER_PAY : 1) * TIME_EARLY / (1 + Math.pow(clockT / TIME_TAU, TIME_POW)) / (1 + Math.max(timeLeft, 0) / TIME_BANK);
+    // Fun first, but no run goes on forever: past RUN_CAP s a cut earns only the 0.01 s floor (a bug or an
+    // unforeseen combo that keeps a run alive is logged as 'runaway'; the clock then runs out as usual)
+    const RUN_CAP = 15 * 60;
+    const timeMult = () => clockT > RUN_CAP ? 0 : (elder ? ELDER_PAY : 1) * TIME_EARLY / (1 + Math.pow(clockT / TIME_TAU, TIME_POW)) / (1 + Math.max(timeLeft, 0) / TIME_BANK);
     // What each source of time was worth in this run, for balancing: uses, and seconds gained
     // (for the clock, the seconds the countdown stood still count too).
     // base = plain slashing; fire, sake, clock, fireworks = while that power-up did the work;
     // sword = the enchanted sword after a clock; crate = the crate's reward and its fruit.
     let worth = {};
     const val = (src, sec) => { const w = worth[src] || (worth[src] = [0, 0]); w[1] += sec; };
-    const use = src => { const w = worth[src] || (worth[src] = [0, 0]); w[0]++; };
+    const use = src => { const w = worth[src] || (worth[src] = [0, 0]); w[0]++; if (w[0] === 1) log('first', src, r2(clockT)); };
     let srcHint = '';
     function logWorth() { log('sounds', audio.isOn() ? 1 : 0, sndCount); Object.keys(worth).forEach(k => log('val', k, worth[k][0], r2(worth[k][1]))); }
     // once a second: the state of the run, and anything that should never happen
+    // Invariants: things that must never happen, checked once a second. Each kind is logged at
+    // most BUG_MAX times a run (the count of the rest in 'bugs' at the end), the first with a snapshot.
+    const BUG_MAX = 3;
+    let bugSeen = {}, earnedAt = [], fruitSeenAt = 0;
+    function bug(kind, ...a) {
+        const n = bugSeen[kind] = (bugSeen[kind] || 0) + 1;
+        if (n <= BUG_MAX) log('bug', kind, ...a);
+        if (n === 1) snap('bug ' + kind);
+    }
     function traceTick(dt) {
         traceFrames++; traceSec += dt;
         if (traceSec < 1) return;
@@ -1710,17 +1722,30 @@ export function mountFrogGame(stage, opts = {}) {
         log('s', fruits.length, pieces.length, pickups.length + flies.length + crates.length, r2(stamina), r2(timeLeft), traceFrames,
             Math.round(frameGap), r2(frameJs / Math.max(1, traceFrames)), sprMade, flames.length, sparks.length + blasts.length + rockets.length, drops.length);
         frameGap = 0; frameJs = 0; sprMade = 0;
-        if (traceFrames < 30) log('bug', 'slow-frames', traceFrames);
+        if (traceFrames < 30) bug('slow-frames', traceFrames);
         govern(traceFrames);
         logAudio();
         traceSec = 0; traceFrames = 0;
-        if (fruits.concat(pieces).some(f => !isFinite(f.x) || !isFinite(f.y))) log('bug', 'nan-position');
-        if (!isFinite(timeLeft) || !isFinite(stamina) || !isFinite(style)) log('bug', 'nan-state');
-        if (stamina < -0.01 || stamina > STAMINA_BARS + 0.01) log('bug', 'stamina-range', r2(stamina));
-        if (fruits.length > 80 || pieces.length > 400) log('bug', 'flood', fruits.length, pieces.length);
-        if (fruits.some(f => f.entered && (f.y < -H * 2 || Math.abs(f.x) > W * 4))) log('bug', 'fruit-far-away');
-        if (sakeLeft > SAKE_SECONDS + POWER_BONUS_MAX + 0.1 || fireLeft > FIRE_SECONDS + POWER_BONUS_MAX + 0.1) log('bug', 'power-too-long', r2(sakeLeft), r2(fireLeft));
-        if (markQueue.length > 200) log('bug', 'mark-queue', markQueue.length);
+        if (fruits.concat(pieces).some(f => !isFinite(f.x) || !isFinite(f.y))) bug('nan-position');
+        if (!isFinite(timeLeft) || !isFinite(stamina) || !isFinite(style)) bug('nan-state');
+        if (stamina < -0.01 || stamina > STAMINA_BARS + 0.01) bug('stamina-range', r2(stamina));
+        if (fruits.length > 80 || pieces.length > 400) bug('flood', fruits.length, pieces.length);
+        if (fruits.some(f => f.entered && (f.y < -H * 2 || Math.abs(f.x) > W * 4))) bug('fruit-far-away');
+        if (sakeLeft > SAKE_SECONDS + POWER_BONUS_MAX + 0.1 || fireLeft > FIRE_SECONDS + POWER_BONUS_MAX + 0.1 || freezeLeft > FREEZE_SECONDS + POWER_BONUS_MAX + 0.1) bug('power-too-long', r2(sakeLeft), r2(fireLeft), r2(freezeLeft));
+        if (markQueue.length > 200) bug('mark-queue', markQueue.length);
+        if (phase === 'play' && !dbg) {
+            // a fruit that has been flying for over 40 s (pauses and slow motion included) is stuck somewhere
+            const now = performance.now(), old = fruits.find(f => f.entered && now - f.born > 40000 && !paused);
+            if (old) bug('stuck-fruit', old.type.kind, Math.round(old.x), Math.round(old.y), old.hacked ? 1 : 0);
+            // no fruit at all for 12 s outside a freeze or the laptop: the thrower has stopped
+            if (fruits.length || freezeLeft > 0 || markQueue.length || summon || clockT < 3) fruitSeenAt = clockT;
+            else if (clockT - fruitSeenAt > 12) { bug('no-fruit', r2(clockT)); fruitSeenAt = clockT; }
+            // runaway: more time earned in the last minute than a minute, late in a run (the clock can't run down)
+            const earned = Object.values(worth).reduce((t, w) => t + w[1], 0);
+            earnedAt.push([clockT, earned]); while (earnedAt.length && clockT - earnedAt[0][0] > 60) earnedAt.shift();
+            if (clockT > 240 && earnedAt.length > 50 && earned - earnedAt[0][1] > 60) bug('runaway', r2(clockT), r2(earned - earnedAt[0][1]));
+            if (clockT > RUN_CAP && !bugSeen['run-cap']) bug('run-cap', r2(clockT));
+        }
     }
     function onErr(e) { log('err', String((e && (e.message || (e.reason && e.reason.message))) || e).slice(0, 160)); }
     // The game broke (an error inside a frame). The run's log is tagged and sent at once, so the
@@ -1847,7 +1872,7 @@ export function mountFrogGame(stage, opts = {}) {
     let salad = [];                                            // { c: flesh colour, k: skin colour, g: grilled }
     function addToSalad(type, grilled) {
         if (type.kind === 'chicken') return;
-        if (salad.length < BOWLS * BOWL_HOLDS) salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() });
+        if (salad.length < BOWLS * BOWL_HOLDS) { salad.push({ c: type.flesh, k: type.skin, g: !!grilled, t: performance.now() }); if (salad.length % BOWL_HOLDS === 0) log('bowl', salad.length / BOWL_HOLDS, r2(clockT)); }
     }
     // where the bowls stand: a pyramid on each side of the post. Filled from the frog outwards, the two sides in turn, the bottom rows first.
     // ten glazes: indigo and white, celadon, iron red, white and blue, black and vermilion...
@@ -4479,7 +4504,7 @@ export function mountFrogGame(stage, opts = {}) {
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'load'; loadT = 0; loadN = Math.max(1, warmQ.length); audioWas = '';
         salad = []; trace = []; worth = {}; sndCount = {};
-        letdowns = 0; snaps = 0; snapKinds = {}; emptyCuts = []; breathBurns = 0;
+        letdowns = 0; snaps = 0; snapKinds = {}; emptyCuts = []; breathBurns = 0; bugSeen = {}; earnedAt = []; fruitSeenAt = 0;
         log('session', SESSION, ++runNo, endedAt ? r2((performance.now() - endedAt) / 1000) : -1); endedAt = 0;
         sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); if (elder) log('char', 'elder'); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
@@ -4545,6 +4570,7 @@ export function mountFrogGame(stage, opts = {}) {
         showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
+        if (Object.keys(bugSeen).length) log('bugs', bugSeen);
         logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('signals', sig); log('over', ms, slices, gradeIx);
         if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: fitTrace(trace) });
         if (opts.onGameOver && !elder) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
@@ -4878,7 +4904,8 @@ export function mountFrogGame(stage, opts = {}) {
         // field, a roast chicken, a breath of a given kind, the run's clock moved on
         debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; dbgWake = 0; },
         drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; dbgWake = 0; },
-        still() { dbgFrozen = true; dbgWake = 0; },                // debug: back to the stand-still before the first touch
+        still() { dbgFrozen = true; dbgWake = 0; },
+        health() { return { bugs: bugSeen, letdowns, snaps, crashes, phase, survived: r2(clockT) }; },   // the monkey bot reads this                // debug: back to the stand-still before the first touch
         roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
         at(seconds) { clockT = seconds; },

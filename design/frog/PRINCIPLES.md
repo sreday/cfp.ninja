@@ -238,6 +238,12 @@ bad to play: for a while a clock-marked slash did not cut through a whole stack 
 moment that should have been "that was cool" was "damn, a shame". When the numbers and the fun
 disagree, the fun wins; the numbers are then retuned around it.
 
+**Fun, then fair, never endless** (Marek, 2026-11-18): the game has to be fun and fair; where
+fair would mean not fun, fun wins. One limit is not negotiable: no bug or combo may let a run go
+on forever. A run that earns more time in a minute than a minute late in the game is logged as
+`runaway`, and past 15 minutes (RUN_CAP) a cut earns only the 0.01 s floor, so the clock runs out
+as usual (four minutes is already god-tier: fifteen can only be a bug).
+
 How it is measured, from player behaviour (the trace review reads these as feel, not as bugs):
 - **Letdowns** (`letdown` events): the player clearly meant something and the game did less.
   `uncut` the blade crossed close to a fruit's or piece's middle and nothing happened; `tongue`
@@ -254,6 +260,28 @@ How it is measured, from player behaviour (the trace review reads these as feel,
 
 Marek is the final judge of feel: the review collects the moments, he says whether they are a
 shame or fine. New letdowns worth having get a `letdown(...)` call in frog-game.js.
+
+## 3d. Finding bugs (the routines)
+
+Borrowed from other game projects (sources in the 2026-11-18 entry of PROBLEMS.md):
+- **Invariants** (`traceTick` in frog-game.js): things that must never happen, checked once a
+  second in every run: NaN time or positions, stamina out of range, floods, fruit far away or
+  stuck for 40 s, no fruit for 12 s, power-up timers overrunning, the mark queue, `runaway`,
+  `run-cap`. Each kind is logged up to 3 times a run (the full count in `bugs` at the game over),
+  the first with a snapshot. A new rule of the game that can break silently gets an invariant.
+- **The monkey** (`design/frog/tools/monkey.py`): plays real runs unattended on a wide screen and
+  a phone, mixing sensible play with random holds, taps, right clicks and flailing, then drops
+  every pair of tray items together in debug. Fails on any invariant break or page error.
+  Run it before shipping a big change (it takes minutes, so it is not in CI).
+- **Every fix gets a test**: a bug that is fixed gets a check in `scenario_test.py` (forced
+  scenario, pass or fail) so it cannot come back; the PROBLEMS.md entry names the check. A bug
+  report carries numbers (where, how much), not just a description.
+- **Feel** (3c): letdowns, quitting with what happened in the last 5 s before it, the funnel (what
+  share of runs get past 30 s, a power-up, 60 s, a crate, the first bowl, fireworks, the laptop,
+  120/180/240 s), all in `trace_digest.py`.
+- Not done on purpose: exact replays from a seed and the inputs. The game runs on real frame
+  times and wall-clock timers, so a replay would drift; it would take a fixed time step and one
+  seeded random source everywhere. Worth it only if the snapshots and logs stop being enough.
 
 ## 4. Balance
 
@@ -312,3 +340,5 @@ fun over making a strong item duller.
 - Does it need a line in the how-to-play pages, and do those still fit a phone screen?
 - Was it tried in debug mode?
 - Does it feel good to play, not just add up (3c)? Is there a letdown it should log?
+- Is there an invariant that would catch it breaking (3d)? A fix: which scenario check guards it?
+- A big change: did `monkey.py` pass?

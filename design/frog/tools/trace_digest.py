@@ -140,6 +140,54 @@ def feel(runs, real, quits, notes, snap_dir):
         lost = [r for r in lost if r]
         print(f"  left after a game over, no new run: {len(notes)}" + (f", median {after[len(after) // 2]:.0f} s after it" if after else "")
               + ("; their last runs: " + ", ".join("%s (%.0f s)" % (r["id"], r.get("duration_ms", 0) / 1000) for r in lost[:12]) if lost else ""))
+    # what happened in the last 5 s before a quit (and before the game over that preceded leaving)
+    def tail(r, secs=5):
+        ev = [e for e in r.get("events") or [] if isinstance(e, list) and len(e) >= 2 and isinstance(e[0], (int, float))]
+        if not ev: return []
+        end = max(e[0] for e in ev)
+        return [e for e in ev if e[0] >= end - secs * 1000]
+    NOTE = ("letdown", "stun", "wreck", "bug", "crash", "gull", "pause", "eat", "first", "burn", "release", "summon")
+    def context(rs):
+        c = {}
+        for r in rs:
+            seen = set()
+            for e in tail(r):
+                if e[1] in NOTE:
+                    k = e[1] + (" " + str(e[2]) if len(e) > 2 and e[1] in ("letdown", "stun", "wreck", "bug", "gull", "first") else "")
+                    if k not in seen: seen.add(k); c[k] = c.get(k, 0) + 1
+            if not seen: c["(nothing special)"] = c.get("(nothing special)", 0) + 1
+        return sorted(c.items(), key=lambda kv: -kv[1])[:8]
+    if quits:
+        print("  in the last 5 s before quitting mid-run: " + ", ".join(f"{k} {n}/{len(quits)}" for k, n in context(quits)))
+    if notes:
+        lost_runs = [r for r in lost if r]
+        if lost_runs:
+            print("  in the last 5 s of a run that was the last before leaving: " + ", ".join(f"{k} {n}/{len(lost_runs)}" for k, n in context(lost_runs)))
+            best = {}
+            for r in played:
+                for e in evs(r, "session")[:1]:
+                    best[e[2]] = max(best.get(e[2], 0), r.get("duration_ms", 0))
+            worse = sum(1 for r in lost_runs if any(r.get("duration_ms", 0) < best.get(e[2], 0) for e in evs(r, "session")[:1]))
+            print(f"  left after a run worse than their best that session: {worse}/{len(lost_runs)}")
+    # funnel: what share of runs get past each moment (Microsoft's scene idea: where do people drop off)
+    if played:
+        def reached(r, kind, arg=None, secs=None):
+            if secs is not None: return r.get("duration_ms", 0) >= secs * 1000
+            return any(e[1] == kind and (arg is None or (len(e) > 2 and e[2] == arg)) for e in r.get("events") or [] if isinstance(e, list) and len(e) > 1)
+        steps = [("30 s", None, None, 30), ("a power-up", "first", None, None), ("60 s", None, None, 60), ("a crate", "first", "crate", None),
+                 ("first bowl", "bowl", None, None), ("90 s", None, None, 90), ("fireworks", "first", "fireworks", None), ("the laptop", "first", "laptop", None),
+                 ("120 s", None, None, 120), ("180 s", None, None, 180), ("240 s", None, None, 240)]
+        line = []
+        for name, kind, arg, secs in steps:
+            n = sum(1 for r in played if reached(r, kind, arg, secs))
+            line.append(f"{name} {100 * n / len(played):.0f}%")
+        has_first = sum(1 for r in played if evs(r, "first") or evs(r, "session"))
+        print("  funnel (share of runs that get past each moment): " + " > ".join(line)
+              + ("" if has_first else "  [power-up, crate, bowl and laptop steps need runs from 2026-11-18 on]"))
+        if quits:
+            qs = [q.get("duration_ms", 0) / 1000 for q in quits]
+            buckets = [(0, 30), (30, 60), (60, 120), (120, 10 ** 6)]
+            print("  quits by time: " + ", ".join(f"{a_}-{b_ if b_ < 10 ** 6 else ''} s {sum(1 for x in qs if a_ <= x < b_)}" for a_, b_ in buckets))
     away = sum(len(evs(r, "away")) for r in played)
     if away:
         print(f"  switched away mid-run: {away} times in {sum(1 for r in played if evs(r, 'away'))} runs")
@@ -156,6 +204,13 @@ def feel(runs, real, quits, notes, snap_dir):
             print(f"    {len(ids):5d} x {k:28s} in {len(uniq)} runs, e.g. {', '.join(map(str, uniq[:6]))}")
     else:
         print("  letdowns: none logged")
+    tot = {}
+    for r in runs:
+        for e in evs(r, "bugs"):
+            if len(e) > 2 and isinstance(e[2], dict):
+                for k, n in e[2].items(): tot[k] = tot.get(k, 0) + n
+    if tot:
+        print("  invariant breaks (all runs, each kind counted in full): " + ", ".join(f"{k} {n}" for k, n in sorted(tot.items(), key=lambda kv: -kv[1])))
     # snapshots: saved as files, so a reviewer can look at the few that matter
     saved = 0
     for r in runs:
