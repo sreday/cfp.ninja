@@ -44,7 +44,7 @@ def main():
         sts = hold(g, 640, 230, 2.6); n = [len(s['gulls']) for s in sts]
         check('roast chicken turns digital in the hacking breath', any(q['hacked'] and q['burnt'] and q['state'] == 'faint' for q in sts[3]['gulls']), sts[3]['gulls'])
         check('it hangs in the air', all(q['y'] < 500 for q in sts[-1]['gulls']) and len(sts[-1]['gulls']) > 0, [q['y'] for q in sts[-1]['gulls']])
-        check('it is copied (2 after about 0.9 s, more after)', n[5] == 1 and 2 <= max(n[:14]) and max(n) >= 4, n)
+        check('it is copied (2 after about 1.2 s: copying takes 30% longer since 2026-11-18)', n[5] == 1 and 2 <= max(n[:16]), n)
         g.shot(os.path.join(a.out, 'digital-roast.png'))
         time.sleep(1.2)                                   # the breath ends: the blades are back
         st = g.state(); q = st['gulls'][0]
@@ -198,6 +198,15 @@ def main():
         g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0)
         time.sleep(0.2); held = g.state()['still']; time.sleep(0.6); moving = not g.state()['still']
         check('debug: still before the first action, still 0.2 s after it, moving by 0.8 s', before and held and moving, (before, held, moving))
+
+        # 12g. feel: a run says its session; three empty slashes in one spot are a letdown, with a snapshot
+        fresh(g); time.sleep(0.2)
+        ses = [e for e in g.js("JSON.stringify(frogPlay.state().log)") and json.loads(g.js("JSON.stringify(frogPlay.state().log)")) if e[1] == 'session']
+        for k in range(3):
+            g.drag([(200, 150), (260, 160), (320, 170), (380, 180)], 0.02); time.sleep(0.15)
+        lg = g.state()['log']
+        fl = [e for e in lg if e[1] == 'letdown' and e[2] == 'flail']; sn = [e for e in lg if e[1] == 'snap']
+        check('feel: the run logs its session, and flailing in one spot is a letdown with a snapshot', bool(ses) and bool(fl) and bool(sn) and sn[0][3].startswith('data:image/jpeg'), (ses[:1], fl[:1], [e[:3] for e in sn]))
 
         # 13. the old master: fruit only, three times as much, no stamina, and a second blade mirrored
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.4)

@@ -14,7 +14,7 @@ import (
 // MaxGameTraces are kept, and they can be read back in pages. A logged-in
 // player's runs carry their player id (a number, never a name).
 const (
-	MaxGameTraceBytes = 128 << 10
+	MaxGameTraceBytes = 256 << 10 // room for two small snapshots of the field
 	MaxGameTraces     = 2000
 	GameTracePage     = 50
 )
@@ -64,7 +64,8 @@ func SubmitGameTraceHandler(cfg *config.Config) http.HandlerFunc {
 			return
 		}
 		input := "mouse"
-		if body.Input == "touch" || body.Input == "debug" || body.Input == "crash" {
+		// quit: the page was left mid-run; left: the page was left after a game over, with no new run
+		if body.Input == "touch" || body.Input == "debug" || body.Input == "crash" || body.Input == "quit" || body.Input == "left" {
 			input = body.Input
 		}
 		row := models.GameTrace{Score: body.Score, DurationMs: body.DurationMs, Input: input, Data: string(body.Events)}

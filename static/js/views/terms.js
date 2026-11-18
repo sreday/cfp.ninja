@@ -16,7 +16,7 @@ export function TermsView() {
             <div class="row justify-content-center">
                 <div class="col-lg-8">
                     <h1>Terms &amp; Conditions</h1>
-                    <p class="text-muted">Last updated: 16 November 2026</p>
+                    <p class="text-muted">Last updated: 18 November 2026</p>
 
                     <h2>1. About Us</h2>
                     <p>CFP.ninja ("<strong>the Platform</strong>") is operated by <strong>${name}</strong>, a company registered in England and Wales (Company No. ${companyNo}), with its registered office at ${address} ("<strong>we</strong>", "<strong>us</strong>", "<strong>our</strong>").</p>
@@ -130,7 +130,7 @@ export function TermsView() {
                     <h2>19. Frog Ninja (the game)</h2>
                     <p>The Platform includes a game, Frog Ninja, at <a href="/game">/game</a>. You can play it without an account. This section says what the game records and how that is used; the rest of these terms apply to it as well.</p>
                     <ul>
-                        <li><strong>What is recorded.</strong> For every run, and every session in the game's debug mode, we store a log of what happened in the game: when and where you pressed, what you cut, which items you used, how long you lasted, your screen size, whether you played by mouse or touch, whether sound was on, and any errors the game ran into (a run that ends in a crash is marked as such). We do not record audio, video, your camera or your microphone.</li>
+                        <li><strong>What is recorded.</strong> For every run, and every session in the game's debug mode, we store a log of what happened in the game: when and where you pressed, what you cut, which items you used, how long you lasted, your screen size, whether you played by mouse or touch, whether sound was on, and any errors the game ran into (a run that ends in a crash is marked as such). We also record how play went for you: which visit to the page a run belongs to and whether you played again, if you leave the page or switch away during a run or right after one, and moments where the game did less than you seemed to intend (for example, a slash that crossed a fruit without cutting it). At most two times a run, at an error or such a moment, the log includes a small still picture of the game field: it shows only the game's own drawing (fruit, items and effects), never anything else on your screen. We do not record audio, video, your camera or your microphone.</li>
                         <li><strong>Whose it is.</strong> If you are logged in, the log is tied to your account. If you are not, it is anonymous.</li>
                         <li><strong>Why.</strong> To find and fix problems, to balance the game, and to tell runs played by people from runs played by scripts or AI agents. The logs are analysed automatically, including by AI tools, and may be read by the people who work on the game. Our legal basis is our legitimate interest in running, improving and keeping the game fair.</li>
                         <li><strong>Who can see it.</strong> The logs can be read through a public address of the Platform. They carry a player number, never your name, email address or GitHub username.</li>

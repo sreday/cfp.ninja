@@ -9,6 +9,10 @@ time), every suspicious run with the reason and only the events that show it, an
 balance table (seconds per use by source, top quarter of real runs by time survived).
 """
 import argparse
+import base64
+import os
+import re
+import tempfile
 import json
 import sys
 import urllib.request
@@ -100,12 +104,79 @@ def worth(run):
     return w
 
 
+def evs(run, kind):
+    return [e for e in run.get("events") or [] if isinstance(e, list) and len(e) >= 2 and e[1] == kind]
+
+
+def feel(runs, real, quits, notes, snap_dir):
+    """How the game felt: letdowns, quitting, playing again, snapshots (PRINCIPLES.md 3c: fun first)."""
+    played = real + quits
+    print("\nfeel (read as enjoyment, not bugs; PRINCIPLES.md 3c)")
+    # sessions: one loading of the page; which run of it each run was
+    sess = {}
+    for r in played:
+        for e in evs(r, "session")[:1]:
+            sess.setdefault(e[2], []).append((e[3], r, e[4] if len(e) > 4 else -1))
+    if sess:
+        sizes = sorted(len(v) for v in sess.values())
+        one = sum(1 for n in sizes if n == 1)
+        gaps = sorted(g for v in sess.values() for _, _, g in v if isinstance(g, (int, float)) and g >= 0)
+        print(f"  sessions: {len(sess)}, runs per session median {sizes[len(sizes) // 2]}, max {sizes[-1]}; one run and done: {one}/{len(sess)} ({100 * one / len(sess):.0f}%)")
+        if gaps:
+            print(f"  played again: median {gaps[len(gaps) // 2]:.1f} s after the game over")
+    else:
+        print("  sessions: none logged yet (runs from before 2026-11-18 carry no session)")
+    # quitting
+    if quits:
+        at = sorted(r.get("duration_ms", 0) / 1000 for r in quits)
+        print(f"  quit mid-run: {len(quits)} (left the page at {', '.join(f'{x:.0f}' for x in at[:15])} s), trace ids {', '.join(str(r['id']) for r in quits[:15])}")
+    if notes:
+        after = sorted(e[5] for r in notes for e in evs(r, "left") if len(e) > 5)
+        last = {}
+        for r in played:
+            for e in evs(r, "session")[:1]:
+                last[(e[2], e[3])] = r
+        lost = [last.get((e[3], e[4])) for r in notes for e in evs(r, "left") if len(e) > 5]
+        lost = [r for r in lost if r]
+        print(f"  left after a game over, no new run: {len(notes)}" + (f", median {after[len(after) // 2]:.0f} s after it" if after else "")
+              + ("; their last runs: " + ", ".join("%s (%.0f s)" % (r["id"], r.get("duration_ms", 0) / 1000) for r in lost[:12]) if lost else ""))
+    away = sum(len(evs(r, "away")) for r in played)
+    if away:
+        print(f"  switched away mid-run: {away} times in {sum(1 for r in played if evs(r, 'away'))} runs")
+    # letdowns
+    kinds = {}
+    for r in played:
+        for e in evs(r, "letdown"):
+            k = " ".join(str(x) for x in e[2:4])
+            kinds.setdefault(k, []).append(r["id"])
+    if kinds:
+        print(f"  letdowns ({len(played)} runs):")
+        for k, ids in sorted(kinds.items(), key=lambda kv: -len(kv[1]))[:20]:
+            uniq = sorted(set(ids))
+            print(f"    {len(ids):5d} x {k:28s} in {len(uniq)} runs, e.g. {', '.join(map(str, uniq[:6]))}")
+    else:
+        print("  letdowns: none logged")
+    # snapshots: saved as files, so a reviewer can look at the few that matter
+    saved = 0
+    for r in runs:
+        for i, e in enumerate(evs(r, "snap")):
+            if len(e) > 3 and isinstance(e[3], str) and e[3].startswith("data:image/jpeg;base64,"):
+                os.makedirs(snap_dir, exist_ok=True)
+                why = re.sub(r"[^a-z0-9]+", "-", str(e[2]).lower()).strip("-")
+                with open(os.path.join(snap_dir, f"trace-{r['id']}-{i + 1}-{why}.jpg"), "wb") as fh:
+                    fh.write(base64.b64decode(e[3].split(",", 1)[1]))
+                saved += 1
+    if saved:
+        print(f"  snapshots: {saved} saved in {snap_dir} (trace-<id>-<n>-<why>.jpg; the frog is the green box)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--after", type=int, default=0)
     ap.add_argument("--max-runs", type=int, default=400)
     ap.add_argument("--base", default=BASE)
     ap.add_argument("--file", help="read traces from a JSON file instead of the network")
+    ap.add_argument("--snaps", default=os.path.join(tempfile.gettempdir(), "frog-snaps"), help="where the snapshots of the field are saved")
     a = ap.parse_args()
 
     if a.file:
@@ -119,8 +190,10 @@ def main():
     crashed = [r for r in runs if r.get("input") == "crash"]
     if crashed:
         print(f"LEADING TO GAME CRASH: {len(crashed)} run(s), trace ids {', '.join(str(r['id']) for r in crashed[:20])}")
-    real = [r for r in runs if r.get("input") not in ("debug", "crash")]
-    print(f"runs: {len(runs)} (real {len(real)}, debug {len(runs) - len(real)}), "
+    notes = [r for r in runs if r.get("input") == "left"]          # a page left after a game over: a note, not a run
+    quits = [r for r in runs if r.get("input") == "quit"]          # a page left mid-run: a cut-short run
+    real = [r for r in runs if r.get("input") not in ("debug", "crash", "quit", "left")]
+    print(f"runs: {len(runs) - len(notes)} (real {len(real)}, quit mid-run {len(quits)}, debug or crash {len(runs) - len(real) - len(quits) - len(notes)}), "
           f"ids {runs[0]['id']}..{runs[-1]['id']}, last id {runs[-1]['id']}")
     if real:
         d = sorted(r.get("duration_ms", 0) for r in real)
@@ -168,6 +241,8 @@ def main():
             print(f"  ... and {len(f) - 8} more")
     if len(flagged) > MAX_FLAGGED:
         print(f"\n({len(flagged) - MAX_FLAGGED} more suspicious runs not shown)")
+
+    feel(runs, real, quits, notes, a.snaps)
 
     # balance: top quarter of real runs by time survived
     top = sorted(real, key=lambda r: -r.get("duration_ms", 0))[:max(1, len(real) // 4)] if real else []

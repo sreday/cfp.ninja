@@ -261,6 +261,12 @@ are at least 30 uses of each item.
 
 ## Fixed
 
+- 2026-11-18 | Marek: "the game is not only about the numbers" | Added: player-feel logging
+  (PRINCIPLES 3c). Letdown events (uncut, tongue near miss, wasted breath/freeze, flail), page
+  sessions and play-again gaps, `quit` runs and `left` notes when the page is left, away/back,
+  and up to two field snapshots a run. The digest prints a "feel" section and saves the
+  snapshots. Server: accepts `quit`/`left`, traces up to 256 KB. Terms section 19 updated.
+  Not done: a cut just after time ran out (the run is posted at the game over, before it).
 - 2026-11-18 | Marek's play-test | Debug: small things were hard to grab because the first
   touch set the world going at once. The world now stays still for 0.5 s more after the first
   action (DBG_WAKE), so the tongue or blade reaches a thing where it hangs; scenario check added.

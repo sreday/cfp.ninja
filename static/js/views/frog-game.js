@@ -1633,14 +1633,57 @@ export function mountFrogGame(stage, opts = {}) {
     // no pointer path), posted when the run ends so odd behaviour can be found afterwards.
     const TRACE_MAX = 4500, TRACE_KEEP = { over: 1, val: 1, sounds: 1, bug: 1, err: 1, crash: 1, q: 1, audio: 1, s: 1 };
     // the server takes 128 KB: a log over 120 KB loses its most numerous lines first (presses, then sounds, then cuts)
-    function fitTrace(ev) {
-        for (const drop of ['d', 'snd', 'cut']) {
-            if (JSON.stringify(ev).length < 120000) break;
+    function fitTrace(ev, limit = 240000) {
+        for (const drop of ['snap', 'd', 'snd', 'cut']) {
+            if (JSON.stringify(ev).length < limit) break;
             ev = ev.filter(e => e[1] !== drop); ev.push([0, 'trimmed', drop]);
         }
         return ev;
     }
     let trace = [], traceT0 = 0, traceInput = 'mouse', traceSec = 0, traceFrames = 0;
+    // ---------- how the player feels: letdowns, snapshots, sessions ----------
+    // A letdown is a moment the player clearly meant something and the game did less (the blade
+    // crossed a fruit and didn't cut it, the tongue just missed, a power-up ran out on nothing,
+    // slashing the same spot again and again). The review reads them as feel, not as bugs.
+    // A snapshot is a small JPEG of the field (the canvas only: the frog is a box), at most
+    // SNAP_MAX a run, taken at a crash or the first letdown of each kind.
+    // A session is one loading of the page: every run says which session and which run of it
+    // it is, and how long after the last game over it started; leaving the page mid-run or
+    // after a game over (without playing again) posts a small note, so quitting shows up.
+    const SESSION = Math.random().toString(36).slice(2, 10);
+    const SNAP_MAX = 2, LETDOWN_MAX = 300, SNAP_W = 320;
+    let runNo = 0, endedAt = 0, letdowns = 0, snaps = 0, snapKinds = {}, emptyCuts = [], breathBurns = 0, awayAt = 0;
+    function snap(why) {
+        if (snaps >= SNAP_MAX || !canvas.width) return;
+        try {
+            const h = Math.round(SNAP_W * canvas.height / canvas.width), c = document.createElement('canvas'); c.width = SNAP_W; c.height = h;
+            const x = c.getContext('2d'), k = SNAP_W / W;
+            x.fillStyle = '#1b2733'; x.fillRect(0, 0, SNAP_W, h); x.drawImage(canvas, 0, 0, SNAP_W, h);
+            if (fbox && fbox.w) { x.strokeStyle = '#7cb342'; x.lineWidth = 2; x.strokeRect(fbox.x * k, fbox.y * k, fbox.w * k, fbox.h * k); }
+            snaps++; log('snap', why, c.toDataURL('image/jpeg', 0.5));
+        } catch (e) { /* a tainted or lost canvas: no picture */ }
+    }
+    function letdown(kind, ...a) {
+        if (phase !== 'play' || letdowns >= LETDOWN_MAX) return;
+        letdowns++; log('letdown', kind, ...a);
+        if (!snapKinds[kind]) { snapKinds[kind] = 1; snap('letdown ' + kind); }
+    }
+    // leaving the page: a run in progress is posted as 'quit'; after a game over with no new run, a note says so
+    function postKeepalive(body) {
+        try { fetch('/api/v0/game/traces', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { /* the page is going anyway */ }
+    }
+    function onLeave() {
+        if (!opts.onTrace || dbg) return;
+        if ((phase === 'play' || phase === 'count') && trace.length > 2) {
+            log('left', 'mid-run', r2(clockT));
+            const ev = fitTrace(trace.filter(e => e[1] !== 'snap'), 56000);
+            postKeepalive({ score: Math.round(clockT * 1000), duration_ms: Math.round(clockT * 1000), input: 'quit', signals: sig, events: ev });
+            trace = [];
+        } else if (phase === 'over' && endedAt) {
+            postKeepalive({ score: 0, duration_ms: 0, input: 'left', events: [[0, 'left', 'after-over', SESSION, runNo, r2((performance.now() - endedAt) / 1000)]] });
+            endedAt = 0;
+        }
+    }
     function log(what, ...a) {
         if (phase === 'idle' || (trace.length >= TRACE_MAX && !TRACE_KEEP[what]) || trace.length >= TRACE_MAX + 800) return;
         trace.push([Math.round(performance.now() - traceT0), what, ...a]);
@@ -1686,7 +1729,7 @@ export function mountFrogGame(stage, opts = {}) {
     function crashed(err) {
         crashes++;
         const msg = String((err && (err.stack || err.message)) || err).split('\n').slice(0, 3).join(' | ').slice(0, 300);
-        log('crash', msg);
+        log('crash', msg); if (crashes === 1) snap('crash');
         if (crashes <= 3 && window.console) console.error('Frog Ninja:', err);
         if (crashes === 1 && opts.onTrace && trace.length) {
             opts.onTrace({ score: Math.round(clockT * 1000), duration_ms: Math.min(Math.round(performance.now() - traceT0), 6 * 3600 * 1000), input: 'crash', signals: sig, events: trace });
@@ -2680,7 +2723,7 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain; slices++;
         if (fire) {
             val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
-            snd('burn'); addToSalad(f.type, true); log('burn', f.type.kind, r2(gain), f.fam.cuts);
+            snd('burn'); addToSalad(f.type, true); log('burn', f.type.kind, r2(gain), f.fam.cuts); breathBurns++;
             gainPop(f.x, f.y - f.r, gain);
             style = Math.min(STYLE_MAX, style + styleK * (0.5));
         } else {
@@ -2811,7 +2854,10 @@ export function mountFrogGame(stage, opts = {}) {
                 if (f.noCut && f.noCut === id && (sakeLeft <= 0 || now - f.cutAt < 180)) continue;
                 // a fire blade is wide (wider with each stack): the whole width cuts, and the best cut across it counts
                 const hit = bladeFx.fire && fxOn() ? bestStrike(f, ax, ay, bx, by, dx, dy, FIRE_HALF * bladeFx.fire) : strike(f, ax, ay, bx, by, dx, dy);
-                if (!hit) continue;
+                if (!hit) {
+                    if (id && f.ld !== id && segDist(f.x, f.y, ax, ay, bx, by) < (f.r || f.R || 0) * 0.5) { f.ld = id; letdown('uncut', (f.type && f.type.kind) || 'piece', list === pieces ? 'piece' : 'whole'); }
+                    continue;
+                }
                 // the flash sits where the blade passed the fruit
                 const l2 = len * len || 1, k = clamp(((f.x - ax) * (bx - ax) + (f.y - ay) * (by - ay)) / l2, 0, 1);
                 const px = ax + (bx - ax) * k, py = ay + (by - ay) * k;
@@ -3195,7 +3241,7 @@ export function mountFrogGame(stage, opts = {}) {
         const m = on ? (atUs ? frogPoint(993, MOUTH_Y) : mouthPoint()) : null;
         let aimA = 0, reach = 0;
         if (on) {
-            fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) { snd('fire_end'); fireFw = false; }
+            fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) { snd('fire_end'); fireFw = false; if (!breathBurns && !dbg) letdown('wasted', 'breath'); breathBurns = 0; }
             const ax = aim ? aim.x : W / 2, ay = aim ? aim.y : 0;
             aimA = Math.atan2(ay - m.y, ax - m.x);
             if (fireFw && !slowNow && !summon) {
@@ -3467,12 +3513,21 @@ export function mountFrogGame(stage, opts = {}) {
     function startCut(x, y, loud) {
         if (!canCut(loud)) return false;
         dullId = 0;
-        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0, t0: performance.now(), paid: freeCut(), pend: [], sx: x, sy: y };
+        cut = { id: ++cutId, len: 0, ax: x, ay: y, ad: 0, hx: 0, hy: 0, t0: performance.now(), paid: freeCut(), pend: [], sx: x, sy: y, s0: slices };
         if (cut.paid && phase === 'play') snd('slash', { kind: bladeFx.fire ? 'fire' : bladeFx.frost ? 'frost' : 'sake', power: 0.5 });   // a free slash (sake) sounds as it starts
         trail.push({ x, y, t: performance.now(), cut: cut.id, d: 0 });
         return true;
     }
-    function endCut() { closeCut(); cut = null; gapLeft = CUT_GAP; }
+    // a paid cut that cut nothing: three of them in one spot within 1.5 s is flailing (a letdown)
+    function noteEmptyCut() {
+        if (cut && cut.paid && slices === cut.s0 && phase === 'play') {
+            const now = performance.now(), mx0 = (cut.sx + lx) / 2, my0 = (cut.sy + ly) / 2;
+            emptyCuts = emptyCuts.filter(c => now - c.t < 1500 && Math.hypot(c.x - mx0, c.y - my0) < S() * 0.12);
+            emptyCuts.push({ t: now, x: mx0, y: my0 });
+            if (emptyCuts.length >= 3) { letdown('flail', Math.round(mx0), Math.round(my0)); emptyCuts = []; }
+        }
+    }
+    function endCut() { noteEmptyCut(); closeCut(); cut = null; gapLeft = CUT_GAP; }
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
     function onDown(e) {
@@ -3650,7 +3705,7 @@ export function mountFrogGame(stage, opts = {}) {
     function onUp(e) {
         if (e.isPrimary === false) return;
         // a press released where it landed (a tap, or a left click with no drag) is the tongue
-        noteInput(e); closeCut(); windUp = false;
+        noteInput(e); noteEmptyCut(); closeCut(); windUp = false;
         let tap = down && e.type === 'pointerup' ? press : null;
         // A finger is not a mouse: a quick touch that slid a little is still a tap, as long as
         // it never became a real slash (nothing paid for, nothing cut).
@@ -3714,7 +3769,7 @@ export function mountFrogGame(stage, opts = {}) {
         const m = frogPoint(993, MOUTH_Y), head = frogPoint(993, 300);
         if (c.kind === 'fly') {
             flyCatches++;
-            fireLeft = FIRE_SECONDS; fireEmit = 0; fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
+            fireLeft = FIRE_SECONDS; fireEmit = 0; breathBurns = 0; fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
             down = false; cut = null; press = null;             // the blades rest while the frog breathes fire
             floats.push({ x: m.x, y: m.y - 40, text: 'Firefly! Fire breath', t: 0, hot: true });
             hopT = 0.5;
@@ -3898,6 +3953,14 @@ export function mountFrogGame(stage, opts = {}) {
         if (!tongue.hit && tongue.t >= tongue.out) {
             tongue.hit = true;
             tongue.caught = tongueGrab(tongue.tx, tongue.ty);
+            if (!tongue.caught) {
+                // just out of reach of a power-up or a firefly: a near miss
+                const reach = Math.max(18, S() * 0.035);
+                let near = null, by = Infinity;
+                pickups.forEach(b => { const d = Math.hypot(b.x - tongue.tx, b.y - tongue.ty) - (reach * 1.4 + b.r * 1.25); if (d < by) { by = d; near = b.kind; } });
+                flies.forEach(f => { const d = Math.hypot(f.x - tongue.tx, f.y - tongue.ty) - (reach * 1.5 + f.s * 1.5); if (d < by) { by = d; near = 'fly'; } });
+                if (near && by < reach * 2) letdown('tongue', near, Math.round(by));
+            }
             if (tongue.caught) snd('catch', { heavy: tongue.caught.kind === 'crate' });
             if (tongue.caught && tongue.caught.kind === 'crate') tongue.back = 0.22;   // a crate is heavy: a slower haul
         }
@@ -4416,6 +4479,8 @@ export function mountFrogGame(stage, opts = {}) {
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'load'; loadT = 0; loadN = Math.max(1, warmQ.length); audioWas = '';
         salad = []; trace = []; worth = {}; sndCount = {};
+        letdowns = 0; snaps = 0; snapKinds = {}; emptyCuts = []; breathBurns = 0;
+        log('session', SESSION, ++runNo, endedAt ? r2((performance.now() - endedAt) / 1000) : -1); endedAt = 0;
         sig = { webdriver: navigator.webdriver === true, untrusted: 0, slashes: 0, teleports: 0, cuts: 0, clean: 0 }; traceT0 = performance.now(); traceSec = 0; traceFrames = 0; log('start', W, H, dpr, touch ? 1 : 0); if (elder) log('char', 'elder'); countT = COUNTDOWN; countShown = ''; introOn = !pose.held; phaseT = 0;
     }
     function stepCount(dt) {
@@ -4469,7 +4534,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     const bestSide = 1;
     function gameOver() {
-        phase = 'over';
+        phase = 'over'; endedAt = performance.now();
         const ms = Math.round(clockT * 1000);
         const isBest = ms > best;
         snd(isBest ? 'best' : 'over');
@@ -4711,6 +4776,7 @@ export function mountFrogGame(stage, opts = {}) {
         trace = [];
     }
     window.addEventListener('pagehide', sendDebugTrace);
+    window.addEventListener('pagehide', onLeave);
     // ---------- animation playback (debug) ----------
     // Every pose and animation the game has, by name, so each can be played on its own and
     // looked at: by a person (the Animations button in debug mode plays them all in turn) or by
@@ -5144,7 +5210,7 @@ export function mountFrogGame(stage, opts = {}) {
                     });
                     markQueue = out;
                 }
-                log('release', markQueue.length);
+                log('release', markQueue.length); if (markQueue.length <= 1 && !dbg) letdown('wasted', 'freeze', markQueue.length);
                 markCut = { id: ++cutId, hits: 0 };   // the release is one slash: each thing it cuts is worth more than the last
                 markT = 0; markFrom = null; markRun = 0;
             }
@@ -5844,7 +5910,9 @@ export function mountFrogGame(stage, opts = {}) {
         ctx.globalAlpha = 1;
     }
 
-    function onVis() { last = performance.now(); if (document.hidden) setPause(true); if (!paused || document.hidden) audio.pause(document.hidden); }
+    function onVis() {
+        if (phase === 'play' && !dbg) { if (document.hidden) { awayAt = performance.now(); log('away'); } else if (awayAt) { log('back', r2((performance.now() - awayAt) / 1000)); awayAt = 0; } }
+        last = performance.now(); if (document.hidden) setPause(true); if (!paused || document.hidden) audio.pause(document.hidden); }
     function onBlur() { down = false; cut = null; autoCut = false; press = null; dullId = 0; gapLeft = 0; }
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVis);
@@ -5856,6 +5924,7 @@ export function mountFrogGame(stage, opts = {}) {
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('blur', onBlur);
         window.removeEventListener('pagehide', sendDebugTrace);
+        window.removeEventListener('pagehide', onLeave);
         window.removeEventListener('error', onErr); window.removeEventListener('unhandledrejection', onErr);
         window.removeEventListener('pointercancel', onUp);
         canvas.removeEventListener('contextmenu', noMenu);

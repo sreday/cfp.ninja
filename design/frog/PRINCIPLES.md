@@ -231,6 +231,30 @@ again and writes a verdict; an upheld appeal is applied by adding their player i
 `GameHumans` in that file (a human does this), after which their runs always count as a
 person's. Benefit of the doubt goes to the player.
 
+## 3c. Fun first (core truth)
+
+Marek, 2026-11-18: the game is not only the numbers. A change can add up on paper and still feel
+bad to play: for a while a clock-marked slash did not cut through a whole stack of fruit, and the
+moment that should have been "that was cool" was "damn, a shame". When the numbers and the fun
+disagree, the fun wins; the numbers are then retuned around it.
+
+How it is measured, from player behaviour (the trace review reads these as feel, not as bugs):
+- **Letdowns** (`letdown` events): the player clearly meant something and the game did less.
+  `uncut` the blade crossed close to a fruit's or piece's middle and nothing happened; `tongue`
+  the tongue missed a power-up or firefly by a little; `wasted breath` a fire breath burned
+  nothing; `wasted freeze` a time freeze marked one thing or none; `flail` three paid slashes in
+  one spot within 1.5 s that cut nothing. The first of each kind in a run also takes a snapshot.
+- **Quitting**: a run left mid-way (posted as `quit`), a page left after a game over without a new
+  run (a `left` note, with the seconds it took), switching away mid-run (`away`/`back`).
+- **Playing again**: every run logs its page session, which run of the session it is, and how
+  long after the last game over it started. One run and done, a long pause, or leaving straight
+  after a particular kind of run are all telling.
+- **Snapshots**: at most two small JPEGs of the field a run (the canvas only; the frog is a green
+  box), at a crash or the first letdown of each kind. `trace_digest.py` saves them as files.
+
+Marek is the final judge of feel: the review collects the moments, he says whether they are a
+shame or fine. New letdowns worth having get a `letdown(...)` call in frog-game.js.
+
 ## 4. Balance
 
 **The rule.** For a player who does everything as well as it can be done:
@@ -287,3 +311,4 @@ fun over making a strong item duller.
 - Is it logged in the trace, with a `val` source if it produces time?
 - Does it need a line in the how-to-play pages, and do those still fit a phone screen?
 - Was it tried in debug mode?
+- Does it feel good to play, not just add up (3c)? Is there a letdown it should log?
