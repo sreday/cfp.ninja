@@ -219,7 +219,7 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Only behind ?art=frog until the cutting poses are rebuilt too (a frog that changes style
     // between standing and cutting reads as a bug).
-    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.8c3ef74bec.json' : null
+    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.a53b4dfce3.json' : null
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -1499,7 +1499,8 @@ export function mountFrogGame(stage, opts = {}) {
             const root = $('#fg-art');
             root.innerHTML = `<g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
                 <g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}
-                <g class="fg-art-head">${im(p.head, p.head.x, p.head.y)}</g>`;
+                <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
+                .map(n => `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
                 return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
             // the profile: legs (one set shown), then the top half turning at the hip: far arm, torso, tails, head, near arm
@@ -1511,13 +1512,16 @@ export function mountFrogGame(stage, opts = {}) {
                         <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`; };
                 const at = n => { const q = p['p-' + n]; return im(q, q.x, q.y); };
                 sroot.innerHTML = Object.keys(g.side.legs).map(n => `<g class="fg-art-legs-${n}" opacity="0">${at(n)}</g>`).join('') +
-                    `<g class="fg-art-top">${armOf('armF', 'fg-art-armB')}${at('torso')}<g class="fg-art-tail">${at('tails')}</g>${at('head')}${armOf('armN', 'fg-art-armF')}</g>`;
+                    `<g class="fg-art-top">${armOf('armF', 'fg-art-armB')}${at('torso')}<g class="fg-art-tail">${at('tails')}</g><g class="fg-sface-base">${at('head')}</g>` +
+                    ['fire', 'stun'].filter(n => p['ph-' + n]).map(n => `<g class="fg-sface-${n}" opacity="0">${im(p['ph-' + n], p['ph-' + n].x, p['ph-' + n].y)}</g>`).join('') +
+                    `${armOf('armN', 'fg-art-armF')}</g>`;
                 const a2 = cls => { const a = sroot.querySelector('.' + cls); return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist') }; };
-                side = { root: sroot, on: false, legsNow: null, top: sroot.querySelector('.fg-art-top'), tail: sroot.querySelector('.fg-art-tail'),
+                side = { root: sroot, on: false, legsNow: null, faceNow: 'base', faces: Object.fromEntries(['base', 'fire', 'stun'].map(n => [n, sroot.querySelector('.fg-sface-' + n)]).filter(e => e[1])), top: sroot.querySelector('.fg-art-top'), tail: sroot.querySelector('.fg-art-tail'),
                     legs: Object.fromEntries(Object.keys(g.side.legs).map(n => [n, sroot.querySelector('.fg-art-legs-' + n)])),
                     armB: { ...a2('fg-art-armB'), reach: p['p-armF'].reach }, armF: { ...a2('fg-art-armF'), reach: p['p-armN'].reach } };
             }
-            artFrog = { g, root, on: false, side, body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
+            const faces = Object.fromEntries(['base', 'fire', 'stun', 'back'].map(n => [n, root.querySelector('.fg-face-' + n)]).filter(e => e[1]));
+            artFrog = { g, root, on: false, side, faces, faceNow: 'base', body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
     })();
@@ -1824,16 +1828,20 @@ export function mountFrogGame(stage, opts = {}) {
     // drunk, stunned, falling...) is still the drawn frog until its own art is built.
     function artPose(upNow, sideOn, jumping, drunk, hx, loll) {
         const A = artFrog;
-        const on = upNow && !sideOn && !jumping && !drunk && !pose.headUp && !pose.noHead && !pose.mouthOpen && !pose.shut && !pose.fallY &&
-            !pose.oneFoot && !pose.chop && !pose.plan && !pose.stuck && !(stunT > 0);
+        const on = upNow && !sideOn && !jumping && !drunk && !pose.shut && !pose.fallY &&
+            !pose.oneFoot && !pose.chop && !pose.plan;
         if (on !== A.on) { A.on = on; svg.classList.toggle('fg-art-on', on); }
         artSide(sideOn, drunk);
         if (!on) return;
-        const G = A.g, armed = pose.held && !pose.noBlades;
+        const G = A.g, armed = pose.held && !pose.noBlades && !pose.stuck;
+        // the face: thrown back to breathe straight up, mouth wide to breathe fire, dizzy when stunned
+        const face = pose.headUp ? 'back' : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
+        if (A.faceNow !== face) { for (const k in A.faces) setA(A.faces[k], 'opacity', k === face ? 1 : 0); A.faceNow = face; }
         // drawn standing: undo the rise the drawn frog makes as it gets up (the feet stay on the post)
         setA(A.root, 'transform', `translate(0 ${n2(pose.up * RISE)})`);
         setA(A.body, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
         setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})`);
+        setA(A.head, 'opacity', pose.noHead ? 0 : 1); setA(A.tail, 'opacity', pose.noHead ? 0 : 1);     // (a big fruit stuck over it)
         setA(A.tail, 'transform', `translate(${n2(hx * 0.6)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} ${G.knot[0]} ${G.knot[1]})`);
         const arm = (a, at, rot, stretch, k) => {
             setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
@@ -1861,15 +1869,19 @@ export function mountFrogGame(stage, opts = {}) {
     // stunned and falling are still the drawn frog.
     function artSide(sideOn, drunk) {
         const A = artFrog, S = A.side, legs = ART_LEGS[pose.sLegs];
-        const on = !!S && sideOn && !!legs && !drunk && !pose.mouthOpen && !pose.shut && !pose.fallY && !pose.stuck && !(stunT > 0);
+        const on = !!S && sideOn && !!legs && !drunk && !pose.shut && !pose.fallY;
         if (on !== S.on) { S.on = on; svg.classList.toggle('fg-art-side-on', on); }
         if (!on) return;
         const G = A.g.side;
-        setA(S.root, 'transform', `translate(${G.hipX} ${G.legs[legs]})`);
+        // (turning toward us mid-breath the drawn frog is narrowed; a drawing is never squeezed, so the art undoes it)
+        const unturn = pose.sTurn && pose.sTurn < 1 ? `translate(993 0) scale(${n2(1 / pose.sTurn)} 1) translate(-993 0) ` : '';
+        setA(S.root, 'transform', `${unturn}translate(${G.hipX} ${G.legs[legs]})`);
+        const face = pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
+        if (S.faceNow !== face) { for (const k in S.faces) setA(S.faces[k], 'opacity', k === face ? 1 : 0); S.faceNow = face; }
         if (S.legsNow !== legs) { for (const k in S.legs) setA(S.legs[k], 'opacity', k === legs ? 1 : 0); S.legsNow = legs; }
         setA(S.top, 'transform', `rotate(${n2(pose.sRot)})`);
         setA(S.tail, 'transform', `rotate(${n2(pose.tail - pose.sRot * 0.5)} ${G.knot[0]} ${G.knot[1]})`);
-        const armed = pose.held && !pose.noBlades && !pose.plan;
+        const armed = pose.held && !pose.noBlades && !pose.plan && !pose.stuck;
         artArm(S.armB, G.shoulder, pose.sB.rot, pose.sB.stretch, pose.sB.k, armed);
         artArm(S.armF, G.shoulder, pose.sF.rot, pose.sF.stretch, pose.sF.k, armed);
     }
@@ -3366,6 +3378,14 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // where the mouth is on screen, for whichever drawing of the frog is showing
     function mouthPoint() {
+        const S = artFrog && artFrog.side;
+        if (pose.side && pose.up > 0.5 && S && S.on && artFrog.g.expr && artFrog.g.expr.side.fire) {
+            // the generated profile: its own mouth (relative to its hip), turned with the top half, never narrowed
+            const G = artFrog.g.side, m = artFrog.g.expr.side.fire, a = pose.sRot * Math.PI / 180;
+            let x = G.hipX + m[0] * Math.cos(a) - m[1] * Math.sin(a), y = G.legs[S.legsNow] + m[0] * Math.sin(a) + m[1] * Math.cos(a);
+            if (pose.side < 0) x = 1986 - x;
+            return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * y / 1876 - pose.sHop * fbox.h / 1876 };
+        }
         if (pose.side && pose.up > 0.5) {
             // the profile drawing: its mouth, turned with the top half about the hip, mirrored when it faces left
             const a = pose.sRot * Math.PI / 180, px = 1490 - 1000, py = 150 - 900;

@@ -101,6 +101,31 @@ def build_side(geo, put, P, tmp):
         put('p-' + n, svg(n), w, h, pivot=[round(top_mid * KS, 1), round(cap, 1)], reach=round(h - cap - w * 0.1, 1))
 
 
+# ---- expression heads (1.3): drawn at the sheet's own scale, fitted onto the neutral heads ----
+# front: same middle and top as the neutral head; profile: same back and top. Mouths in 2x part px.
+EXPR_FRONT = {'fire': (340,), 'stun': (None,), 'back': (150,)}      # mouth y (x is the middle)
+EXPR_SIDE = {'fire': (540, 290), 'stun': None}
+F_FIT = 649 / 620        # neutral front head width / the sheet's stunned front head width
+P_FIT = 537 / 581        # neutral profile head width / the sheet's stunned profile head width
+
+
+def build_heads(geo, put, P):
+    P = os.path.abspath(P)
+    base = geo['parts']['head']; s = K / 2 * F_FIT
+    cx = base['x'] + base['w'] / 2
+    geo['expr'] = {'front': {}, 'side': {}}
+    for n, (my,) in EXPR_FRONT.items():
+        im = Image.open(os.path.join(P, f'f-{n}.png')); w, h = im.width * s, im.height * s
+        x, y = cx - w / 2, base['y']
+        put('fh-' + n, open(os.path.join(P, f'f-{n}.svg')).read(), w, h, x=round(x, 1), y=round(y, 1))
+        if my is not None: geo['expr']['front'][n] = round(y + my * s, 1)
+    pb = geo['parts']['p-head']; sp = KH * P_FIT
+    for n, mouth in EXPR_SIDE.items():
+        im = Image.open(os.path.join(P, f'p-{n}.png'))
+        put('ph-' + n, open(os.path.join(P, f'p-{n}.svg')).read(), im.width * sp, im.height * sp, x=pb['x'], y=pb['y'])
+        if mouth: geo['expr']['side'][n] = [round(pb['x'] + mouth[0] * sp, 1), round(pb['y'] + mouth[1] * sp, 1)]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--parts', default=os.path.expanduser('~/Desktop/Frog Ninja art desk/candidates/1.1-rig/parts'))
@@ -138,6 +163,7 @@ def main():
     put('fist', open(os.path.join(P, 'fist.svg')).read(), im.width * K / 2, im.height * K / 2,
         grip=[round(im.width * K / 4, 1), round(im.height * K / 4, 1)])
     build_side(geo, put, os.path.join(os.path.dirname(P.rstrip('/')), '..', '1.2-profile', 'parts'), tmp)
+    build_heads(geo, put, os.path.join(os.path.dirname(P.rstrip('/')), '..', '1.3-heads', 'parts'))
     data = json.dumps(geo, separators=(',', ':')).encode()
     url = hashed('frog', data, 'json')
     total = sum(os.path.getsize(os.path.join(REPO, 'static', p['href'].lstrip('/'))) for p in geo['parts'].values())

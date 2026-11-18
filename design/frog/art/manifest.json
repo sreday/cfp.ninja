@@ -448,13 +448,14 @@
     "scale": "K=3.45 frog units per 1x px: the art head lands on the drawn head, so gameplay points (head top, MOUTH_Y, stun spots) are unchanged",
     "groups": {
      "front standing (ready, idle, wind-up, tongue)": "in game behind ?art=frog",
-     "profile cuts": "todo: new silhouette (edit of the pick)",
+     "profile cuts": "in game behind ?art=frog: master candidates/1.2-profile/p4 (gen FO4cZ7s5dsXzYFSlAlBM), puppet sheet rig-d (gen DRy0fMElltiRRSMeXf8f), art_cut_frog.py --set side",
      "breath (front, profile, head back, at camera, torch)": "todo",
      "drunk": "todo",
      "stunned": "todo",
      "seated with laptop / planning": "todo",
      "jump legs, falling, one foot": "todo"
-    }
+    },
+    "scale_side": "KS 1.5 units per 2x part px, head KH = KS*1.15; hip per leg set so the feet stay on y 1700"
    }
   },
   {

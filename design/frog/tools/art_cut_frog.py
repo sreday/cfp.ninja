@@ -44,7 +44,18 @@ SIDE_PARTS = {
     'tuck':     ('d', 810, 434, 1058, 682),
     'crouch':   ('d', 1082, 506, 1336, 722),
 }
-SETS = {'front': ('1.1-rig', 'sheet', PARTS), 'side': ('1.2-profile', 'rig', SIDE_PARTS)}
+# expressions (1.3): heads only, one sheet (h-d), front row and profile row
+HEAD_PARTS = {
+    'f-fire':   ('d', 42, 60, 358, 340),
+    'f-drunk':  ('d', 378, 66, 696, 338),
+    'f-stun':   ('d', 710, 48, 1020, 328),
+    'f-back':   ('d', 1038, 46, 1334, 356),
+    'p-fire':   ('d', 74, 424, 370, 712),
+    'p-drunk':  ('d', 400, 438, 700, 704),
+    'p-drunk2': ('d', 720, 442, 1018, 704),
+    'p-stun':   ('d', 1036, 430, 1326, 704),
+}
+SETS = {'front': ('1.1-rig', 'sheet', PARTS), 'side': ('1.2-profile', 'rig', SIDE_PARTS), 'heads': ('1.3-heads', 'h', HEAD_PARTS)}
 
 
 def match_red(img, ref):
