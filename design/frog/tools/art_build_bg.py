@@ -11,6 +11,9 @@ Inputs in the build folder (the picks, copied from the art desk):
                     where the animals stood and how tall they were
   party-1x.png      the party set at 1x
   dancers.png       the dancer sheet (5.6): pairs of dance frames on flat magenta
+  post.png          the mooring post (5.4) on flat magenta
+  props.png         the near layer (5.3) on flat magenta: foam ring, two rock clusters, coconut,
+                    beach ball, cup (boxes in PROPS below, read off the picked sheet)
 
 Outputs, in static/img/game/bg/ with a content hash in every name (cached forever, never stale):
   plate.<h>.webp    the far layer: sky, horizon, empty beach, sea
@@ -48,6 +51,23 @@ def components(mask, min_area=1):
             out.append({'area': len(px), 'x0': int(a[:, 1].min()), 'y0': int(a[:, 0].min()), 'x1': int(a[:, 1].max()), 'y1': int(a[:, 0].max()),
                         'cx': float(a[:, 1].mean()), 'cy': float(a[:, 0].mean()), 'id': n})
     return out, lab
+
+
+PROPS = {'ring': (81, 43, 1138, 246), 'rocks_l': (257, 267, 831, 518), 'rocks_r': (872, 227, 1302, 434),
+         'coconut': (38, 459, 491, 731), 'ball': (553, 532, 889, 713), 'cup': (937, 486, 1323, 716)}
+
+
+def keyed(path, box=None, grow=3):
+    """cut a figure off flat magenta: soft alpha, fringe pulled to dark"""
+    D = np.asarray(Image.open(path).convert('RGB')).astype(np.int16)
+    if box: D = D[box[1] - grow:box[3] + grow + 1, box[0] - grow:box[2] + grow + 1]
+    mag = np.sqrt(((D - np.array([255, 0, 255])) ** 2).sum(2))
+    al = np.clip((mag - 70) / 80.0, 0, 1)
+    al = np.asarray(Image.fromarray((al * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))).astype(np.float32) / 255
+    pink = (((D[..., 0] + D[..., 2]) / 2 - D[..., 1]) > 45) & (al > 0)
+    D = D.copy(); D[pink] = np.array([20, 24, 28], np.int16)
+    img = Image.fromarray(np.dstack([D.clip(0, 255).astype(np.uint8), (al * 255).astype(np.uint8)]), 'RGBA')
+    return img.crop(img.getbbox())
 
 
 def webp(img, quality=88):
@@ -174,6 +194,33 @@ def main():
     for f in frames:
         atlas.paste(f, (x, ah - f.height)); rects.append([x, ah - f.height, f.width, f.height]); x += f.width + gap
 
+    # ---- the post: cut out, then its wet lower part stretched so it reaches the bottom of any screen ----
+    post = keyed(B('post.png'))
+    pw0, ph0 = post.size
+    cut = int(ph0 * 0.62)                                  # where the wet band starts: the waterline
+    # keep the dry part about 0.8 of the post's width tall: a slice of plain wood under the rope goes
+    drop = max(0, cut - int(pw0 * 0.8)); d0 = int(ph0 * 0.36)
+    if drop:
+        post = Image.fromarray(np.vstack([np.asarray(post)[:d0], np.asarray(post)[d0 + drop:]]), 'RGBA'); ph0 -= drop; cut -= drop
+    top, low = post.crop((0, 0, pw0, cut)), post.crop((0, cut, pw0, ph0))
+    low = low.resize((pw0, int(pw0 * 3.4) - cut), Image.BICUBIC)
+    # under the waterline the wood sinks into the sea: tinted toward the water and fading out
+    L = np.asarray(low).astype(np.float32); n = L.shape[0]
+    k = np.clip(np.linspace(0.35, 1.0, n) ** 0.7, 0, 1)[:, None]
+    sea = np.array([38, 92, 104], np.float32)
+    L[..., :3] = L[..., :3] * (1 - k[..., None] * 0.75) + sea * (k[..., None] * 0.75)
+    L[..., 3] = L[..., 3] * (1 - k * 0.7)
+    low = Image.fromarray(L.clip(0, 255).astype(np.uint8), 'RGBA')
+    tall = Image.new('RGBA', (pw0, top.height + low.height)); tall.paste(top, (0, 0)); tall.paste(low, (0, cut))
+    post_url = save('post', webp(tall, 90), 'webp')
+    # ---- the near layer: props packed in one atlas ----
+    pieces = {k: keyed(B('props.png'), b) for k, b in PROPS.items()}
+    gap = 6; aw = sum(p.width + gap for p in pieces.values()); ah = max(p.height for p in pieces.values())
+    patlas = Image.new('RGBA', (aw, ah)); prects = {}; x = 0
+    for k, p in pieces.items():
+        patlas.paste(p, (x, 0)); prects[k] = [x, 0, p.width, p.height]; x += p.width + gap
+    props_url = save('props', webp(patlas, 90), 'webp')
+
     plate_url = save('plate', webp(plate, 86), 'webp')
     party_url = save('party', webp(party_img, 90), 'webp')
     dancers_url = save('dancers', webp(atlas, 90), 'webp')
@@ -181,7 +228,9 @@ def main():
            'party': {'url': party_url, 'x': px0, 'y': py0, 'w': party_img.width, 'h': party_img.height},
            'lights': lights, 'fire': fire[:3] if fire else None,
            'dancers': {'url': dancers_url, 'frames': rects, 'pairs': pairs, 'h': int(np.median([s[2] for s in spots])) if spots else 140},
-           'spots': spots}
+           'spots': spots,
+           'post': {'url': post_url, 'w': tall.width, 'h': tall.height, 'water': round(cut / tall.width, 3)},
+           'props': {'url': props_url, 'rects': prects}}
     js = json.dumps(geo, separators=(',', ':')).encode()
     url = save('bg', js, 'json')
     print(f'plate {W}x{H}; party {party_img.size} at ({px0},{py0}); {len(lights)} lights; fire {fire}; {len(spots)} animal spots; {len(pairs)} dancers ({len(frames)} frames)')

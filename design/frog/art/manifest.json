@@ -250,11 +250,29 @@
    "notes": "First plan: shallows, pebbles, foam line, maybe drink cups in the sand. In front of the sea, behind the frog. Must work from a 390 px phone to a wide monitor (shore line at a fixed height from the bottom).",
    "phase": 2,
    "format": "svg",
-   "status": "todo",
+   "status": "in game",
    "current": "current/5.3.png",
    "prompts": [],
-   "candidates": [],
-   "pick": null
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-2.png",
+   "picks": {
+    "faithful": "faithful-1.png"
+   },
+   "picked_at": "2026-11-18 13:54",
+   "picked_by": "Claude (module tone set by Marek)"
   },
   {
    "id": "5.4",
@@ -262,11 +280,29 @@
    "notes": "Weathered wood post the frog stands on; stretches in height; in the shallows.",
    "phase": 2,
    "format": "svg",
-   "status": "todo",
+   "status": "in game",
    "current": "current/5.4.png",
    "prompts": [],
-   "candidates": [],
-   "pick": null
+   "candidates": [
+    {
+     "file": "faithful-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "faithful-2.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": ""
+    }
+   ],
+   "pick": "faithful-2.png",
+   "picks": {
+    "faithful": "faithful-2.png"
+   },
+   "picked_at": "2026-11-18 13:55",
+   "picked_by": "Claude (module tone set by Marek)"
   },
   {
    "id": "5.5",

@@ -214,7 +214,7 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.386287682e.json'
+    bg: '/img/game/bg/bg.2075f15c51.json'
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -1454,7 +1454,17 @@ export function mountFrogGame(stage, opts = {}) {
         glowCv.width = canvas.width; glowCv.height = canvas.height;
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
         measureFrog();
-        if (artBg) { const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; }
+        if (artBg) {
+            const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0;
+            if (artBg.ringEl) {
+                // the ring sits where the post's wet band starts, centred on it, twice its width
+                const pe = artBg.postEl, sb = stage.getBoundingClientRect(), pb = pe.getBoundingClientRect();
+                const rw = pb.width * 2.1, rh = rw * artBg.ringEl.height / artBg.ringEl.width, wy = pb.top - sb.top + artBg.g.post.water * pb.width;
+                Object.assign(artBg.ringEl.style, { left: (pb.left - sb.left + pb.width / 2 - rw / 2) + 'px', top: (wy - rh * 0.5) + 'px', width: rw + 'px', height: rh + 'px' });
+                artBg.waterY = wy;
+                if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
+            }
+        }
     }
     // ---------- the generated background (ART.bg) ----------
     // The plate covers the stage from the bottom up (the shore stays at the same height from the
@@ -1474,9 +1484,20 @@ export function mountFrogGame(stage, opts = {}) {
         try {
             const g = await (await fetch(ART.bg)).json();
             const img = u => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = u; });
-            const [plate, party, dancers] = await Promise.all([img(g.plate), img(g.party.url), img(g.dancers.url)]);
+            const [plate, party, dancers, props] = await Promise.all([img(g.plate), img(g.party.url), img(g.dancers.url), g.props ? img(g.props.url) : null]);
             if (dead) return;
-            artBg = { g, plate, party, dancers, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
+            // the post (5.4): an image in the old post's place, and a foam ring where it meets the water
+            let postEl = null, ringEl = null, waveEl = null;
+            if (g.post && props) {
+                const old = stage.querySelector('svg.fg-pole');
+                postEl = document.createElement('img'); postEl.className = 'fg-pole fg-pole-art'; postEl.alt = ''; postEl.src = g.post.url;
+                ringEl = document.createElement('canvas'); ringEl.className = 'fg-post-ring';
+                waveEl = document.createElement('canvas'); waveEl.className = 'fg-water-front';
+                old.after(postEl); postEl.after(ringEl); ringEl.after(waveEl);
+                const r = g.props.rects.ring; ringEl.width = r[2]; ringEl.height = r[3];
+                ringEl.getContext('2d').drawImage(props, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
+            }
+            artBg = { g, plate, party, dancers, props, postEl, ringEl, waveEl, waterY: 0, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
                 seed: g.lights.map((_, i) => [1.5 + (i * 7919 % 13) / 6, (i * 104729 % 628) / 100]) };
             artCv.hidden = false; stage.classList.add('fg-has-art-bg');
             resize();
@@ -1510,6 +1531,23 @@ export function mountFrogGame(stage, opts = {}) {
             const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3];
             c.drawImage(a.dancers, f[0], f[1], f[2], f[3], X(sx) - w / 2, Y(sy) - h - (beat ? h * 0.03 : 0), w, h);
         }
+        // the near layer (5.3): rocks in the bottom corners, party leftovers bobbing on the sea, clear of the frog
+        if (a.props) {
+            // sized from the play area (S), like the frog: rocks about a third of it across, leftovers a tenth
+            const R = g.props.rects, sz = S(), ks = sz * 0.3 / R.rocks_l[2], seaTop = oy + 1170 * s;
+            const put = (key, x, y, k, bob, i) => {
+                const r = R[key], w = r[2] * k, h = r[3] * k, dy = still ? 0 : Math.sin(t * 1.3 + i * 2.1) * h * bob, rot = still || !bob ? 0 : Math.sin(t * 0.9 + i) * 0.06;
+                c.save(); c.translate(x, y + dy); c.rotate(rot); c.drawImage(a.props, r[0], r[1], r[2], r[3], -w / 2, -h / 2, w, h); c.restore();
+            };
+            const lr = R.rocks_l, rr = R.rocks_r;
+            put('rocks_l', lr[2] * ks * 0.42, H - lr[3] * ks * 0.32, ks, 0, 0);
+            put('rocks_r', W - rr[2] * ks * 0.42, H - rr[3] * ks * 0.3, ks, 0, 1);
+            const clear = x => Math.abs(x - W / 2) > fbox.w * 0.75;
+            const sea = H - seaTop;
+            [['coconut', 0.16, 0.3, 0.11], ['ball', 0.8, 0.2, 0.09], ['cup', 0.33, 0.5, 0.08]].forEach(([key, fx, fy, kk], i) => {
+                const x = W * fx; if (clear(x)) put(key, x, seaTop + sea * fy, sz * kk / R[key][2] * 2.2, 0.05, i + 2);
+            });
+        }
         // lights twinkle, the bonfire flickers (added light)
         c.globalCompositeOperation = 'lighter';
         g.lights.forEach(([lx, ly, lr], i) => {
@@ -1521,6 +1559,29 @@ export function mountFrogGame(stage, opts = {}) {
             c.globalAlpha = 0.45 * fl; c.drawImage(a.fire, X(g.fire[0]) - r, Y(g.fire[1]) - r * 0.85, r * 2, r * 2);
         }
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+    }
+    // Water in front of the post (depth): cel-style foam crests drifting across the sea, in bands
+    // from the waterline down, each band its own speed and way; drawn every frame (a few paths).
+    const WAVE_BANDS = [[-0.35, 0.28, 0.5], [0.15, -0.2, 0.75], [0.6, 0.33, 0.95], [1.1, -0.26, 1]];   // depth below the ring (post widths), speed, opacity
+    function drawWaterFront(now) {
+        const a = artBg, c = a.waveEl.getContext('2d'), t = now / 1000, pw = a.postEl.getBoundingClientRect().width || 60;
+        c.setTransform(a.k, 0, 0, a.k, 0, 0); c.clearRect(0, 0, W, H);
+        const amp = Math.max(2, pw * 0.05), lam = Math.max(40, pw * 0.9);
+        WAVE_BANDS.forEach(([depth, speed, op], i) => {
+            const y0 = a.waterY + depth * pw; if (y0 > H + amp || y0 < 0) return;
+            const off = t * speed * lam * 2.2 + i * 37, step = lam / 6;
+            // the crest: a band of lighter water with a cream foam line on top, broken into dashes
+            c.globalAlpha = op * 0.55; c.fillStyle = '#3f8f98';
+            c.beginPath(); c.moveTo(-lam, H);
+            for (let x = -lam; x <= W + lam; x += step) c.lineTo(x, y0 + Math.sin((x + off) / lam * 6.283) * amp);
+            c.lineTo(W + lam, y0 + amp * 3); c.lineTo(-lam, y0 + amp * 3); c.closePath(); c.fill();
+            c.globalAlpha = op; c.strokeStyle = '#f1eda4'; c.lineWidth = Math.max(2, pw * 0.035); c.lineCap = 'round';
+            c.setLineDash([lam * 0.55, lam * 0.45]); c.lineDashOffset = -off * 0.5;
+            c.beginPath();
+            for (let x = -lam; x <= W + lam; x += step) { const y = y0 + Math.sin((x + off) / lam * 6.283) * amp; x === -lam ? c.moveTo(x, y) : c.lineTo(x, y); }
+            c.stroke(); c.setLineDash([]);
+        });
+        c.globalAlpha = 1;
     }
     // the trail's glow is drawn opaque here, then laid over the game at one alpha
     // (overlapping translucent strokes would double up into beads)
@@ -5131,6 +5192,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (warmQ.length) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }     // one piece of warm-up a frame
         if (dead) return;
         if (artBg && now - artBg.at > 70) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
+        if (artBg && artBg.waveEl && !reduced) { try { drawWaterFront(now); } catch (e) { crashed(e); artBg.waveEl = null; } }
         const t0 = performance.now();
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         // debug: frames a second, big, top left; green at 60, red at 30 and under

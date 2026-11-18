@@ -26,6 +26,12 @@ Marek picks. Plan approved 2026-11-18. Look and tone: `../STYLE.md` (version 2).
    in the game's `ART` table; the code drawing stays as the fallback. Status: `in game`, then
    `approved` once Marek has played it on desktop and phone.
 
+## Who picks what (Marek, 2026-11-18)
+Modules: background, frog, blades, fruit, power-ups and items, effects, then cast, interface and
+comics. For each, Marek sets the tone on the module's key piece (2 faithful + 2 unhinged on the
+art desk, he picks). Claude then designs, iterates and picks the rest of that module on its own,
+from that tone, ships it, and shows the result at the end of the module.
+
 ## Few drawings, many frames
 A new image only when the silhouette or the expression changes. Between key poses the same
 drawing moves by its rig parts (head, arms, hands, katanas, bandana tails). New key poses are
