@@ -1505,6 +1505,14 @@ export function mountFrogGame(stage, opts = {}) {
     // tails, body with legs, a sleeve per arm, a fist with its katana, a bare fist), each a vector
     // drawing placed where it sat in the picked image. The pose code turns them on the same pivots
     // as the drawn frog's parts; artPose() decides when the art stands in for the drawn frog.
+    // The scene stays hidden until its generated art is in (background, frog, intro), so the old
+    // drawn scene never flashes up first; it fades in once all of it has loaded. If the art fails, or
+    // takes longer than ART_WAIT_MS, the scene shows with whatever is there (the drawn fallbacks).
+    const ART_WAIT_MS = 8000;
+    let artLeft = [ART.bg, ART.frog, ART.intro].filter(Boolean).length;
+    const artShow = () => { artLeft = 0; stage.classList.remove('fg-art-wait'); };
+    const artDone = () => { if (--artLeft <= 0) artShow(); };
+    if (artLeft) { stage.classList.add('fg-art-wait'); setTimeout(artShow, ART_WAIT_MS); }
     if (ART.frog) (async () => {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
@@ -1551,6 +1559,7 @@ export function mountFrogGame(stage, opts = {}) {
             artFrog = { g, root, on: false, side, faces, faceNow: 'base', body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
+        finally { artDone(); }
     })();
     if (ART.intro) (async () => {
         try {
@@ -1566,6 +1575,7 @@ export function mountFrogGame(stage, opts = {}) {
                 frames: Object.fromEntries(Object.keys(g.frames).map(n => [n, root.querySelector('.fg-ai-' + n)])) };
             applyPose();
         } catch (e) { console.warn('intro art', e); }
+        finally { artDone(); }
     })();
     // ---------- the generated background (ART.bg) ----------
     // The plate covers the stage from the bottom up (the shore stays at the same height from the
@@ -1607,6 +1617,7 @@ export function mountFrogGame(stage, opts = {}) {
             artCv.hidden = false; stage.classList.add('fg-has-art-bg');
             resize();
         } catch (e) { log('bug', 'art-bg', String(e).slice(0, 80)); }
+        finally { artDone(); }
     })();
     function drawArtBg(now) {
         const a = artBg, g = a.g, c = actx, t = now / 1000;

@@ -1799,3 +1799,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog.fg-art-intro-on #fg-art-intro .fg-ai-frames { display: inline; }
 .fg-frog.fg-art-intro-on #fg-all > :not(#fg-art-intro) { visibility: hidden; }
 .fg-has-art-bg #fg-shadow { display: none; }   /* on the generated post the frog stands on its top: no shadow under it */
+/* until the generated art is in, the scene is hidden (no flash of the old drawn one), then it fades in */
+.fg-stage .fg-bg, .fg-stage .fg-pole, .fg-stage .fg-frog, .fg-stage .fg-post-ring, .fg-stage .fg-water-front { transition: opacity .35s ease-out; }
+.fg-stage.fg-art-wait { background: #0d1a22; }
+.fg-stage.fg-art-wait .fg-bg, .fg-stage.fg-art-wait .fg-pole, .fg-stage.fg-art-wait .fg-frog, .fg-stage.fg-art-wait .fg-post-ring, .fg-stage.fg-art-wait .fg-water-front { opacity: 0; transition: none; }
