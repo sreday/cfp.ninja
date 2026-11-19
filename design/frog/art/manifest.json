@@ -461,14 +461,80 @@
   {
    "id": "1.2",
    "name": "Intro",
-   "notes": "laptop flung away, both arms reach over the shoulders, katanas drawn, ready stance",
+   "notes": "laptop flung away, both arms reach over the shoulders, katanas drawn, ready stance | Sequence (2026-11-19): logo (website/home/static/assets/images/cfpninja sticker.png) -> rise-1 #1 (hop) -> rise-2 #1 -> rise-2 #3 (laptop sprite logo-laptop.png tumbles in code) -> keys-2-fixed #3 -> keys-2 #5 -> game ready rig. Board: candidates/intro/intro-storyboard.png | Continuity to do in the rig: empty scabbards on the back once the blades are drawn (the art ready frog has none). | 2026-11-19 built: art_cut_intro.py + art_build_intro.py -> intro.<h>.json (ART.intro, ?art=frog); scaled by face width (= logo head = rig head); empty scabbards added to the art rig (SAYA).",
    "phase": 3,
    "format": "svg",
-   "status": "todo",
+   "status": "in game (flag)",
    "current": "current/1.2.png",
-   "prompts": [],
-   "candidates": [],
-   "pick": null
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "logo (flow node qY9ejIgHaYQvsG3PJksB)",
+      "1.1 unhinged-2 (pick)"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-18",
+     "tier": "faithful",
+     "text": "Intro key-frame sheet: from the logo pose (seated, laptop) - eyes snap up, laptop flung away tumbling, spring to a crouch reaching for the katana handles, rise drawing both katanas, ready stance. Rule (Marek): start pose and laptop = the logo itself."
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "refs": [
+      "cfpninja sticker.png (CFP .NINJA logo, node UdUzmmGZRC9FkcCefEcA)",
+      "keys-2 (node RXc0bBHxJYBd405MP6v7)"
+     ],
+     "flow": "kF7HxTCDlSDBy2B7s6at",
+     "credits_each": 812,
+     "at": "2026-11-19",
+     "tier": "faithful",
+     "text": "Rising sheet: getting up with the laptop, swinging it to throw, hands empty after the throw; rigid laptop, two katanas, anatomy check."
+    }
+   ],
+   "candidates": [
+    {
+     "file": "../intro/keys-1.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "../intro/keys-2.png",
+     "tier": "faithful",
+     "verdict": "pick",
+     "note": "proofread: #1 replaced by the real logo, #2 bent tablet-like laptop (replaced by rise-2), #3 clean, #4 hands are blobs (dropped), #5 clean, #6 upper blade vanishes behind the head (dropped; ready = game rig) | #3 had a third katana handle out of the right fist: retouched -> keys-2-fixed.png"
+    },
+    {
+     "file": "../intro/keys-3.png",
+     "tier": "faithful",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "../intro/rise-1.png",
+     "tier": "faithful",
+     "verdict": "use",
+     "note": "#1 hop with the laptop used (levitating legs = character, Marek); logo laptop pasted -> rise-1-fixed.png. #3 doubled hands, rejected."
+    },
+    {
+     "file": "../intro/rise-2.png",
+     "tier": "faithful",
+     "verdict": "use",
+     "note": "proofread: #1 clean (laptop slab replaced by the logo laptop), #2 laptop+hand+bandana tangle, not fixable by compositing: dropped, #3 clean"
+    },
+    {
+     "file": "../intro/rise-3.png",
+     "tier": "faithful",
+     "verdict": "reject",
+     "note": "proofread: #1 legs levitate"
+    }
+   ],
+   "pick": "../intro/keys-2.png",
+   "picks": {
+    "faithful": "../intro/keys-2.png"
+   },
+   "picked_at": "2026-11-19 13:09"
   },
   {
    "id": "1.3",

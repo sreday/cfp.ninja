@@ -219,7 +219,10 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Only behind ?art=frog until the cutting poses are rebuilt too (a frog that changes style
     // between standing and cutting reads as a bug).
-    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.a53b4dfce3.json' : null
+    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.a53b4dfce3.json' : null,
+    // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
+    // art_build_intro.py), the logo's laptop flung off in code; same flag as the frog
+    intro: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/intro.c3c44280db.json' : null
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -486,6 +489,7 @@ const frogSvg = pal => { P = pal; const svg = `
             <text x="993" y="1335" text-anchor="middle" font-family="Inter, Arial Black, sans-serif" font-weight="900" font-size="170" fill="#fff">.NINJA</text>
             <rect x="575" y="1408" width="836" height="40" rx="20" fill="${C.laptopHi}" stroke="#000" stroke-width="16"/>
         </g>
+        <g id="fg-art-intro"></g>
     </g>
 </svg>`; P = FROG; return svg; };
 
@@ -1511,7 +1515,12 @@ export function mountFrogGame(stage, opts = {}) {
                     <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
             };
             const root = $('#fg-art');
-            root.innerHTML = `<g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
+            // the empty scabbards stay on its back once the katanas are out (as in the intro's last frames):
+            // only their lower ends show, poking out past the hips behind the legs
+            const saya = side => `<g transform="translate(${993 + side * SAYA.x} ${SAYA.y}) rotate(${-side * SAYA.a})">
+                <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
+                <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
+            root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
                 <g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
@@ -1538,6 +1547,21 @@ export function mountFrogGame(stage, opts = {}) {
             artFrog = { g, root, on: false, side, faces, faceNow: 'base', body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
+    })();
+    if (ART.intro) (async () => {
+        try {
+            const g = await (await fetch(ART.intro)).json();
+            const all = [...Object.values(g.frames), g.laptop];
+            await Promise.all(all.map(q => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = q.href; })));
+            if (dead) return;
+            const root = $('#fg-art-intro'), L = g.laptop;
+            root.innerHTML = `<g class="fg-ai-frames">${Object.entries(g.frames).map(([n, f]) =>
+                `<image class="fg-ai-${n}" href="${f.href}" x="${f.x}" y="${f.y}" width="${f.w}" height="${f.h}" opacity="0"/>`).join('')}</g>` +
+                `<g class="fg-ai-lap" opacity="0"><image href="${L.href}" x="${-L.w / 2}" y="${-L.h / 2}" width="${L.w}" height="${L.h}"/></g>`;
+            artIntro = { g, root: root.querySelector('.fg-ai-frames'), lap: root.querySelector('.fg-ai-lap'), on: false, keyNow: null,
+                frames: Object.fromEntries(Object.keys(g.frames).map(n => [n, root.querySelector('.fg-ai-' + n)])) };
+            applyPose();
+        } catch (e) { console.warn('intro art', e); }
     })();
     // ---------- the generated background (ART.bg) ----------
     // The plate covers the stage from the bottom up (the shore stays at the same height from the
@@ -1708,6 +1732,8 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // the generated frog (ART.frog): filled in when its parts have loaded, see below
     let artFrog = null;
+    const SAYA = { x: 240, y: 800, a: 60, len: 760 };       // the empty scabbards behind the art frog: where they cross the hips, their tilt, how far they poke out
+    let artIntro = null, introArtT = -1;     // the generated intro (ART.intro), and how far into it the frog is (-1: not playing)
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
     // write an SVG attribute only when its (rounded) value changed: fewer style/paint invalidations
@@ -1832,7 +1858,34 @@ export function mountFrogGame(stage, opts = {}) {
         (el.shuts || (el.shuts = [...svg.querySelectorAll('.fg-shut')])).forEach(g => setA(g, 'opacity', pose.shut ? 1 : 0));      // the clock: eyes shut, aiming and cutting (each view has its own drawing)
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
+        if (artIntro) artIntroPose(sideOn);
         if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
+    }
+    // The intro, drawn: while the frog sits (before the first run, or with the laptop to call its
+    // friends) it is the logo itself; then, as the run starts, key frames each held for a beat, the
+    // way the rest of the frog moves (no in-betweens): it hops up hugging the laptop, holds it
+    // overhead, flings it (the logo's laptop tumbles off on its own), crouches drawing its katanas,
+    // holds them crossed overhead, and the rigged frog takes over on its feet.
+    const INTRO_KEYS = [[0.2, 'logo'], [0.45, 'hop'], [0.75, 'overhead'], [1.25, 'thrown'], [1.7, 'draw'], [Infinity, 'crossed']];
+    const LAP_FLY = [0.75, 1.15];             // the laptop leaves the hands, and how long it is in the air
+    function artIntroPose(sideOn) {
+        const I = artIntro, t = introArtT;
+        const on = !sideOn && pose.up < 0.5 && !pose.fallY && (t >= 0 || !pose.laptop.gone);
+        if (on !== I.on) { I.on = on; svg.classList.toggle('fg-art-intro-on', on); }
+        // the laptop flies on after the frog has let go of it, whether or not the frog is still drawn by the intro
+        const lf = reduced || t < LAP_FLY[0] ? -1 : (t - LAP_FLY[0]) / LAP_FLY[1];
+        if (lf >= 0 && lf < 1) {
+            const L = I.g.laptop;
+            setA(I.lap, 'opacity', 1);
+            setA(I.lap, 'transform', `translate(${n2(L.cx + 3000 * lf)} ${n2(L.cy - 1300 * lf + 3600 * lf * lf + pose.up * RISE)}) rotate(${n2(680 * lf)})`);
+        } else setA(I.lap, 'opacity', 0);
+        if (!on) return;
+        let key = 'logo';
+        if (t >= 0) key = reduced ? (t < 0.3 ? 'logo' : 'crossed') : INTRO_KEYS.find(k => t < k[0])[1];
+        if (I.keyNow !== key) { for (const k in I.frames) setA(I.frames[k], 'opacity', k === key ? 1 : 0); I.keyNow = key; }
+        // sitting: it breathes; the hop gets a little float at its top
+        const hop = key === 'hop' ? -70 * Math.sin(clamp((t - 0.2) / 0.25, 0, 1) * Math.PI) : 0;
+        setA(I.root, 'transform', `translate(0 ${n2(pose.up * RISE + hop)})` + (key === 'logo' ? ` translate(0 1790) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1790)` : ''));
     }
     // The generated frog takes the place of the drawn one while it stands facing us with nothing
     // special going on; every other pose (seated with the laptop, cutting in profile, breathing fire,
@@ -2556,6 +2609,7 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- intro: toss the laptop, draw the katanas ----------
     const INTRO = reduced ? 0.6 : 2.6;
     function intro(t) {
+        introArtT = t;
         if (reduced) {
             const k = seg(t, 0, 0.6);
             pose.laptop.gone = k > 0.5; pose.held = k > 0.5; pose.blade = 1;
@@ -2598,6 +2652,7 @@ export function mountFrogGame(stage, opts = {}) {
         pose.up = t >= 2.36 ? 1 : 0;
     }
     function readyPose() {
+        introArtT = -1;
         pose.laptop.gone = true; pose.held = true; pose.blade = 1; pose.glint = 0;
         pose.lRot = READY.l; pose.rRot = READY.r; pose.lK = READY.lK; pose.rK = READY.rK;
         pose.lStretch = pose.rStretch = 1;
@@ -5173,6 +5228,10 @@ export function mountFrogGame(stage, opts = {}) {
         const torchBreath = (name, dx, dy) => out.push({ name, dur: 0.8, tick() { fireLeft = Math.max(fireLeft, 0.3); fireWide = Math.max(fireWide, 1); const h = head(); aim = { x: h.x + dx * fw(), y: h.y + dy * fw() }; }, end() { fireLeft = 0; fireWide = 0; } });
         torchBreath('torch breath (sake), close', 0.15, 0.1); torchBreath('torch breath (sake), near', 0.5, 0.1); torchBreath('torch breath (sake), far right', 1.5, 0.1); torchBreath('torch breath (sake), far left', -1.5, 0.1);
         torchBreath('torch breath (sake), straight up', 0, -1.6); torchBreath('torch breath (sake), at the camera', 0, 0.12);
+        out.push({ name: 'intro: laptop flung, katanas drawn', dur: INTRO + 0.3, seated: true, start() {
+            pose.up = 0; pose.held = false; pose.blade = 1; pose.side = 0; pose.lean = 0; pose.shift = 0; pose.squash = 0; pose.bob = 0; pose.glint = 0;
+            Object.assign(pose.laptop, { x: 0, y: 0, rot: 0, gone: false }); pose.lRot = REST.l; pose.rRot = REST.r; pose.lK = -30; pose.rK = 30; pose.lStretch = pose.rStretch = 1; introArtT = 0; },
+            tick(t) { if (t < INTRO) intro(t); else if (introArtT >= 0) readyPose(); }, end() { readyPose(); } });
         out.push({ name: 'ready (idle)', dur: 0.6 });
         out.push({ name: 'wind-up (pressed)', dur: 0.5, tick() { windUp = true; }, end() { windUp = false; } });
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
@@ -5416,6 +5475,8 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'count' && introOn) {
             phaseT += dt; intro(Math.min(phaseT, INTRO));
             if (phaseT >= INTRO) { readyPose(); introOn = false; }
+        } else if (demo && demo.a.seated && !pose.held) {
+            stepDemo(dt);                     // debug: a playback that starts seated (the intro) steps itself until the blades are out
         } else if (phase === 'idle') {
             pose.bob = Math.sin(idleT * 2.2) * 2;
         } else if (pose.held) {

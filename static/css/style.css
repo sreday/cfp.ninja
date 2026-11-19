@@ -1794,4 +1794,8 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog #fg-art-side { display: none; }
 .fg-frog.fg-art-side-on #fg-art-side { display: inline; }
 .fg-frog.fg-art-side-on #fg-side > :not(#fg-art-side) { visibility: hidden; }
+/* the generated intro (ART.intro): the logo while the frog sits, then the key frames; the laptop flies on its own */
+.fg-frog #fg-art-intro .fg-ai-frames { display: none; }
+.fg-frog.fg-art-intro-on #fg-art-intro .fg-ai-frames { display: inline; }
+.fg-frog.fg-art-intro-on #fg-all > :not(#fg-art-intro) { visibility: hidden; }
 .fg-has-art-bg #fg-shadow { display: none; }   /* on the generated post the frog stands on its top: no shadow under it */
