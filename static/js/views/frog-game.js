@@ -6390,16 +6390,26 @@ export function mountFrogGame(stage, opts = {}) {
             shoot(name) {
                 const q = SHOTS.find(o => o.name === name); if (!q) return false;
                 el.overlay.hidden = true; el.tips.hidden = true;
+                // a clean world for each shot: nothing left over from the one before (flames, pieces, a stun...)
+                if (demo && demo.a.end) demo.a.end(); demo = null;
+                [fruits, halves, pieces, drops, floats, slashes, flies, pickups, gulls, crates, planks, bits, flames, clouds].forEach(a => { a.length = 0; });
+                fireLeft = 0; freezeLeft = 0; sakeLeft = 0; stunT = 0; headFx = null; bumps = null; swing = null; gullOn = null;
                 if (q.anim) { playAnim(q.anim); step(q.at); } else step(0.2);
                 return true;
             },
             // where faults hide, in CSS px of the viewport: joints, contacts, seams, silhouettes
             hotspots() {
                 const out = [], fr = svg.getBoundingClientRect(), fw = fr.width;
-                out.push({ kind: 'silhouette', part: 'frog', ...rect(fr) });
+                // the frog as drawn: its art reaches past the SVG's own box (head, blades), so take the union
+                const vis = [svg.querySelector('#fg-art'), svg.querySelector('#fg-art-intro .fg-ai-frames'), svg.querySelector('#fg-art-side'), svg.querySelector('#fg-all')]
+                    .map(g => g && g.getBoundingClientRect()).filter(r => r && r.width > 2 && r.height > 2);
+                const u = vis.reduce((a, r) => ({ l: Math.min(a.l, r.left), t: Math.min(a.t, r.top), r: Math.max(a.r, r.right), b: Math.max(a.b, r.bottom) }), { l: fr.left, t: fr.top, r: fr.right, b: fr.bottom });
+                out.push({ kind: 'silhouette', part: 'frog', x: Math.round(u.l), y: Math.round(Math.max(0, u.t)), w: Math.round(u.r - u.l), h: Math.round(u.b - Math.max(0, u.t)) });
                 const A = artFrog;
                 if (A && A.on) {
-                    ['L', 'R'].forEach(s => { const [x, y] = at0(A['arm' + s].g); out.push({ kind: 'joint', part: 'shoulder ' + s, ...around(x, y, fw * 0.3, fw * 0.3) }); });
+                    const sl = at0(A.armL.g), sr = at0(A.armR.g);
+                    ['L', 'R'].forEach(s => { const [x, y] = s === 'L' ? sl : sr; out.push({ kind: 'joint', part: 'shoulder ' + s, ...around(x, y + fw * 0.08, fw * 0.45, fw * 0.45) }); });
+                    out.push({ kind: 'joint', part: 'both shoulders and chest', ...around((sl[0] + sr[0]) / 2, (sl[1] + sr[1]) / 2 + fw * 0.1, Math.abs(sr[0] - sl[0]) + fw * 0.45, fw * 0.5) });
                     const hb = A.head.getBoundingClientRect(); out.push({ kind: 'joint', part: 'neck', ...around(hb.left + hb.width / 2, hb.bottom, fw * 0.4, fw * 0.22) });
                 }
                 if (A && A.side && A.side.on) out.push({ kind: 'joint', part: 'profile hip', ...rect(A.side.root.getBoundingClientRect()) });

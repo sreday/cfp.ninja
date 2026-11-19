@@ -212,6 +212,10 @@ def main():
                 if box[2] - box[0] < 8 or box[3] - box[1] < 8: continue
                 ca = ai.crop(box)
                 cb = bi.crop(box) if bi is not None and bi.size == ai.size else None
+                up = max(1, 360 / min(ca.size))                      # small crops are enlarged: a 3 px seam has to be seen
+                if up > 1:
+                    big = lambda im: im.resize((round(im.width * up), round(im.height * up)), Image.LANCZOS)
+                    ca = big(ca); cb = big(cb) if cb is not None else None
                 if cb is not None:
                     c = Image.new('RGB', (ca.width * 2 + 8, ca.height), '#111'); c.paste(cb, (0, 0)); c.paste(ca, (ca.width + 8, 0))
                 else: c = ca
@@ -263,7 +267,9 @@ def write_review(out, index):
         if not es: continue
         lines = [f'# Curator review: {title}', '', f'Run: {out}', 'Checklist, anatomy, canon: design/frog/art/CURATOR.md (read all of it first).', '',
                  'Each crop is BEFORE (left, what is live) | AFTER (right, what would ship); a crop with no left half is new.',
-                 'Judge the AFTER. Also flag anything that got worse than BEFORE.', '']
+                 'Judge the AFTER. Also flag anything that got worse than BEFORE.',
+                 'A pose still drawn in the old simple vector style (its art not built yet) is severity "todo", once per pose, not a blocker;',
+                 'but how it is placed (feet on the post, sizes, seams) is judged like everything else.', '']
         n = 0
         for e in es:
             hs = [h for h in e['hotspots'] if wanted(e, h)]

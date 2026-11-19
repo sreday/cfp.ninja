@@ -14,7 +14,8 @@ player sees it, and says **GO** or **STOP, redo this, redo that** before anythin
 2. A reviewer that did not make the change (a fresh subagent, never the Claude that made it) reads
    this checklist and the packet, looks at every changed crop, and writes `verdict.json` in the run
    folder: `{"verdict": "GO" | "STOP", "sha": <after commit>, "findings": [...]}`. Each finding:
-   `shot, size, crop, severity (blocker | ugly | nit), what, where, fix (placement | retouch | regenerate)`.
+   `shot, size, crop, severity (blocker | ugly | nit | todo), what, where, fix (placement | retouch | regenerate)`.
+   `todo` is for a pose whose art is not built yet (still the old simple vector drawing): noted once per pose, never a blocker by itself.
    A measured fault (a sole off the post, a size ratio out of the table) is a blocker without debate.
 3. `python3 design/frog/tools/ship.py` deploys only with a `GO` verdict for the exact commit being shipped.
    On STOP: fix the list, run 1-2 again. Claude never turns a finding into "not a fault" alone: a second
@@ -32,8 +33,10 @@ Look at the AFTER side of every crop. Anything here is a finding.
 
 **Anatomy**
 - Exactly two arms, two legs, four fingers on an open hand (a fist or grip: three plus a thumb).
-- Shoulders, neck and hips are joined: no gap, no seam, no sleeve that reads as a tube stuck on the body,
-  no outline cutting across a joint.
+- Shoulders, neck and hips are joined: no gap, no seam, no outline cutting across a joint.
+- **Tube shoulders** (a blooper): a sleeve must grow out of the torso with a rounded shoulder. A sleeve whose top
+  end is a cut-off stub or a flat line sitting on the side of the body, or two sleeves that look like pipes
+  plugged into the chest, is a blocker. Look at the 'both shoulders and chest' crop.
 - Limb shapes are believable at every angle a rig part is turned to (no kinks, no flattened ends).
 - Every pose passes "Anatomy and motion" below: joints bend only where and how they bend, limbs keep their length, nothing looks injured.
 
@@ -141,7 +144,7 @@ unless the state says otherwise (the "unless" column). Sources: `STYLE.md`, `SPE
 
 | thing | truth |
 |---|---|
-| Laptop | the logo's laptop: dark grey `#444d4f`, rigid (screen and base at an angle, never bent), white "CFP .NINJA" lettering |
+| Laptop | the logo's laptop, seen from behind its screen as in the logo (so it reads as a dark slab with the base's edge below): dark grey `#444d4f`, rigid, never bent or curved, white "CFP .NINJA" lettering |
 | Firefly (power-up) | a firefly with a red glow; caught on the tongue it gives a red fire breath |
 | Golden sake | a golden/yellow bottle with a glow; sake makes the breath yellow and the stamina bar gold |
 | Alarm clock | an alarm clock (bells, hands, face) with a glow; it brings a blue time freeze |
