@@ -217,12 +217,12 @@ const ART = {
     bg: '/img/game/bg/bg.220ca2dba3.json',
     title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
-    // Only behind ?art=frog until the cutting poses are rebuilt too (a frog that changes style
-    // between standing and cutting reads as a bug).
-    frog: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/frog.a53b4dfce3.json' : null,
+    // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
+    // drawn frog instead, for comparing. Poses without their art yet are still the drawn frog.
+    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.a53b4dfce3.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
-    // art_build_intro.py), the logo's laptop flung off in code; same flag as the frog
-    intro: /[?&]art=frog\b/.test(location.search) ? '/img/game/frog/intro.c3c44280db.json' : null
+    // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
+    intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.c3c44280db.json'
 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.

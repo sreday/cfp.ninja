@@ -29,7 +29,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--base', default='http://127.0.0.1:8701')
     ap.add_argument('--out', default=os.path.join(tempfile.gettempdir(), 'frog-anims'))
-    ap.add_argument('--query', default='', help="appended to /game, e.g. '?art=frog'")
+    ap.add_argument('--query', default='', help="appended to /game, e.g. '?art=old' (the drawn frog)")
     ap.add_argument('--only', default='', help='only animations whose name contains this')
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
