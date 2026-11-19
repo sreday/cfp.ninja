@@ -1803,3 +1803,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-stage .fg-bg, .fg-stage .fg-pole, .fg-stage .fg-frog, .fg-stage .fg-post-ring, .fg-stage .fg-water-front { transition: opacity .35s ease-out; }
 .fg-stage.fg-art-wait { background: #0d1a22; }
 .fg-stage.fg-art-wait .fg-bg, .fg-stage.fg-art-wait .fg-pole, .fg-stage.fg-art-wait .fg-frog, .fg-stage.fg-art-wait .fg-post-ring, .fg-stage.fg-art-wait .fg-water-front { opacity: 0; transition: none; }
+
+/* the art curator (?curate): only the scene, no debug panel, no CSS motion (the virtual clock moves everything else) */
+.fg-curate .fg-debug, .fg-curate .fg-fps, .fg-curate .fg-panel { display: none !important; }
+.fg-curate *, .fg-curate *::before, .fg-curate *::after { animation: none !important; transition: none !important; }

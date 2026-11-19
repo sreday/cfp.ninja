@@ -3,6 +3,16 @@ import { createAudio } from './frog-audio.js';
 // mountFrogGame(stage, { onGameOver }) -> { destroy }. Survival: time is the only currency.
 // The clock runs down; every sliced fruit buys time back (small fruit more). The score
 // is how long you survived, so a good player can go for many minutes.
+// The art curator (design/frog/tools/curator.py, design/frog/art/CURATOR.md) opens the game with
+// ?curate: a seeded Math.random and a virtual clock that only moves when the curator steps it, so
+// two builds render the very same moment, pixel for pixel, and can be compared.
+const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.search);
+const VCLOCK = { t: 0 };
+if (CURATE) {
+    let sd = 0x2f6b1d;
+    Math.random = () => { sd = (sd + 0x6D2B79F5) | 0; let t = Math.imul(sd ^ sd >>> 15, 1 | sd); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    performance.now = () => VCLOCK.t;
+}
 const C = {
     green: '#98b74b', red: '#a3211d', redHi: '#ba2823', belly: '#f1eda4',
     laptop: '#495154', laptopHi: '#5b6268', steel: '#b5b4bf', steelDark: '#5d6066', blade: '#e4e8eb', ink: '#000'
@@ -1641,11 +1651,13 @@ export function mountFrogGame(stage, opts = {}) {
         // dancers: two frames each, their own beat; more of them as the run goes on
         const n = Math.min(g.spots.length, ART_BG_START + (phase === 'play' && !dbg ? Math.floor(clockT / ART_BG_JOIN) : 0));
         const D = g.dancers;
+        if (CURATE) a.dancerRects = [];
         for (let i = 0; i < n; i++) {
-            const [sx, sy, sh] = g.spots[i], pair = D.pairs[(i * 5) % D.pairs.length];
+            const pi = (i * 5) % D.pairs.length, [sx, sy, sh] = g.spots[i], pair = D.pairs[pi];
             const beat = still ? 0 : Math.floor(t * (1.7 + (i % 3) * 0.25) + i * 0.37) % 2;
-            const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3];
-            c.drawImage(a.dancers, f[0], f[1], f[2], f[3], X(sx) - w / 2, Y(sy) - h - (beat ? h * 0.03 : 0), w, h);
+            const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3], dx = X(sx) - w / 2, dy = Y(sy) - h - (beat ? h * 0.03 : 0);
+            c.drawImage(a.dancers, f[0], f[1], f[2], f[3], dx, dy, w, h);
+            if (CURATE) a.dancerRects.push({ x: dx, y: dy, w, h, who: (D.who && D.who[pi]) || 'pair ' + pi });
         }
         // the near layer (5.3) is empty for now: the rock stacks in the bottom corners went (Marek 2026-11-19;
         // bowls that stack up with the cut chunks go there later, after the fruit rework), and so did the
@@ -5462,7 +5474,7 @@ export function mountFrogGame(stage, opts = {}) {
         try { frameBody(now); }
         catch (err) { crashed(err); if (crashes > 30) { dead = true; return; } }
         frameJs += performance.now() - t0;
-        if (!dead) raf = requestAnimationFrame(frame);
+        if (!dead && !CURATE) raf = requestAnimationFrame(frame);
     }
     let frameAt = 0, frameGap = 0, frameJs = 0, fpsN = 0, fpsAt = 0;
     const fpsEl = $('.fg-fps');
@@ -6199,7 +6211,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.fill(); ctx.stroke(); ctx.restore();
         }
         if (gullOn) drawGullOn(lw, tn);
-        if (demo) {   // debug playback: the name of what is playing
+        if (demo && !CURATE) {   // debug playback: the name of what is playing
             ctx.save(); ctx.font = `700 ${Math.round(clamp(S() * 0.03, 14, 24))}px Inter, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
             ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeText(demo.a.name, W / 2, H * 0.2); ctx.fillStyle = '#fff'; ctx.fillText(demo.a.name, W / 2, H * 0.2); ctx.restore();
         }
@@ -6343,7 +6355,72 @@ export function mountFrogGame(stage, opts = {}) {
     function onBlur() { down = false; cut = null; autoCut = false; press = null; dullId = 0; gapLeft = 0; }
     window.addEventListener('blur', onBlur);
     document.addEventListener('visibilitychange', onVis);
-    raf = requestAnimationFrame(frame);
+    if (!CURATE) raf = requestAnimationFrame(frame);
+    else {
+        stage.classList.add('fg-curate');
+        // the curator's handle: shots (deterministic states), stepping the virtual clock, and where to look
+        const SHOTS = [
+            { name: 'scene', seated: true },
+            ...[0.3, 0.6, 0.9, 1.4, 1.95].map(t => ({ name: `intro ${t}`, anim: 'intro: laptop flung, katanas drawn', at: t, air: t === 0.3 })),
+            { name: 'ready', anim: 'ready (idle)', at: 0.3 },
+            { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
+            ...['cut right, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
+                .map(n => ({ name: n, anim: n, at: 0.12 })),
+            { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
+            ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
+            { name: 'tongue', anim: 'tongue', at: 0.2 },
+            { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },
+            { name: 'drunk', anim: 'drunk (sake)', at: 0.45 },
+            { name: 'time freeze', anim: 'time freeze', at: 0.3 },
+            { name: 'clock planning', anim: 'clock: planning, points up-right', at: 0.3 },
+            { name: 'teeter', anim: 'under five seconds (losing its footing, going over backward)', at: 0.5 },
+            { name: 'team called', anim: 'laptop: the team is called', at: 2.5, seated: true },
+            { name: 'seagull pecks', anim: 'seagull pecks the head', at: 0.8 },
+        ];
+        const step = sec => { for (let i = 0, n = Math.round(sec * 60); i < n; i++) { VCLOCK.t += 1000 / 60; frame(VCLOCK.t); } };
+        const rect = r => ({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
+        const around = (x, y, w, h) => ({ x: Math.round(x - w / 2), y: Math.round(y - h / 2), w: Math.round(w), h: Math.round(h) });
+        const at0 = g => { const m = g.getScreenCTM(); const q = new DOMPoint(0, 0).matrixTransform(m); return [q.x, q.y]; };
+        window.frogCurate = {
+            shots: () => SHOTS.map(q => ({ name: q.name, air: !!q.air || !!q.seated })),       // (sitting: its legs hang over the front, on purpose)
+            // resolves once the art is in and the first frame is drawn
+            ready: async () => { for (let i = 0; i < 200 && artLeft > 0; i++) await new Promise(r => setTimeout(r, 50)); await document.fonts.ready; step(0.5); return artLeft <= 0; },
+            shoot(name) {
+                const q = SHOTS.find(o => o.name === name); if (!q) return false;
+                el.overlay.hidden = true; el.tips.hidden = true;
+                if (q.anim) { playAnim(q.anim); step(q.at); } else step(0.2);
+                return true;
+            },
+            // where faults hide, in CSS px of the viewport: joints, contacts, seams, silhouettes
+            hotspots() {
+                const out = [], fr = svg.getBoundingClientRect(), fw = fr.width;
+                out.push({ kind: 'silhouette', part: 'frog', ...rect(fr) });
+                const A = artFrog;
+                if (A && A.on) {
+                    ['L', 'R'].forEach(s => { const [x, y] = at0(A['arm' + s].g); out.push({ kind: 'joint', part: 'shoulder ' + s, ...around(x, y, fw * 0.3, fw * 0.3) }); });
+                    const hb = A.head.getBoundingClientRect(); out.push({ kind: 'joint', part: 'neck', ...around(hb.left + hb.width / 2, hb.bottom, fw * 0.4, fw * 0.22) });
+                }
+                if (A && A.side && A.side.on) out.push({ kind: 'joint', part: 'profile hip', ...rect(A.side.root.getBoundingClientRect()) });
+                if (artBg && artBg.postEl) {
+                    const pb = artBg.postEl.getBoundingClientRect(), top = pb.top + pb.width * POST_CAP;
+                    out.push({ kind: 'contact', part: 'feet on the post', x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
+                        // the post's cut face: from its back rim to its front rim (the soles belong between them)
+                        frog: { x0: Math.round(fr.left), x1: Math.round(fr.right) }, post: { top: Math.round(top), back: Math.round(pb.top + pb.width * 0.02), front: Math.round(pb.top + pb.width * 0.34), x0: Math.round(pb.left), x1: Math.round(pb.right) } });
+                    out.push({ kind: 'seam', part: 'post', ...rect(pb) });
+                    if (artBg.ringEl) { const rb = artBg.ringEl.getBoundingClientRect(); out.push({ kind: 'contact', part: 'post in the water', ...rect(rb) }); }
+                }
+                if (artBg && artBg.dancerRects) {
+                    const sb = stage.getBoundingClientRect();
+                    artBg.dancerRects.forEach((d, i) => {
+                        out.push({ kind: 'silhouette', part: `dancer ${i} (${d.who})`, x: Math.round(sb.left + d.x - d.w * 0.3), y: Math.round(sb.top + d.y - d.h * 0.15), w: Math.round(d.w * 1.6), h: Math.round(d.h * 1.4), who: d.who, figure: { x: Math.round(sb.left + d.x), y: Math.round(sb.top + d.y), w: Math.round(d.w), h: Math.round(d.h) } });
+                        out.push({ kind: 'contact', part: `dancer ${i} (${d.who}) feet`, x: Math.round(sb.left + d.x - d.w * 0.4), y: Math.round(sb.top + d.y + d.h * 0.7), w: Math.round(d.w * 1.8), h: Math.round(d.h * 0.6) });
+                    });
+                }
+                return out.filter(h => h.w > 4 && h.h > 4);
+            },
+            step
+        };
+    }
 
     function destroy() {
         dead = true; cancelAnimationFrame(raf); ro.disconnect(); audio.destroy();
