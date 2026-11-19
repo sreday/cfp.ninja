@@ -154,7 +154,12 @@ def main():
     ap.add_argument('--sizes', default=','.join(SIZES))
     ap.add_argument('--only', default='', help="shot names separated by ';'")
     ap.add_argument('--out', default='')
+    ap.add_argument('--repack', default='', help='only rewrite the review packets and board of this run folder')
     a = ap.parse_args()
+    if a.repack:
+        ix = json.load(open(os.path.join(a.repack, 'index.json')))
+        for f in os.listdir(os.path.join(a.repack, 'review')): os.remove(os.path.join(a.repack, 'review', f))
+        write_review(a.repack, ix); write_board(a.repack, ix); print(os.listdir(os.path.join(a.repack, 'review'))); return
     sizes = [s for s in a.sizes.split(',') if s]
     only = set(x.strip() for x in a.only.split(';') if x.strip())     # shot names hold commas: ';' between them
     head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO, capture_output=True, text=True).stdout.strip()
@@ -236,23 +241,41 @@ def main():
     print('review packet:', os.path.join(out, 'review'))
 
 
+SCENE_PARTS = ('post', 'post in the water', 'dancer')     # the same in every frog shot: looked at once per size, on 'scene'
+FROG_SIZES = ('1280x720', '390x844')                      # frog crops: one wide, one phone (the others only when they changed)
+
+
+def wanted(e, h):
+    """is this crop worth a reviewer's look? (keeps a full run to a few hundred images)"""
+    scene = h['part'].startswith(SCENE_PARTS)
+    if h.get('measured_fault'): return not scene or e['shot'] == 'scene'
+    if scene: return e['shot'] == 'scene' or not h['same_as_before'] and 'before' in e
+    if h['kind'] == 'silhouette' and h['part'] != 'frog': return False
+    return e['size'] in FROG_SIZES or (not h['same_as_before'] and 'before' in e)
+
+
 def write_review(out, index):
-    """one packet per shot group: the images the reviewer must look at, changed crops first"""
+    """one packet per shot group: the images the reviewer must look at, changed and measured first"""
+    done = set()
     for title, test in GROUPS:
-        es = [e for e in index['shots'] if test(e['shot']) and not any(t(e['shot']) for tt, t in GROUPS[:GROUPS.index((title, test))])]
+        es = [e for e in index['shots'] if test(e['shot']) and e['shot'] not in done]
+        done.update(e['shot'] for e in es)
         if not es: continue
-        lines = [f'# Curator review: {title}', '', f'Run: {out}', 'Checklist: design/frog/art/CURATOR.md (read it first).', '',
+        lines = [f'# Curator review: {title}', '', f'Run: {out}', 'Checklist, anatomy, canon: design/frog/art/CURATOR.md (read all of it first).', '',
                  'Each crop is BEFORE (left, what is live) | AFTER (right, what would ship); a crop with no left half is new.',
                  'Judge the AFTER. Also flag anything that got worse than BEFORE.', '']
+        n = 0
         for e in es:
-            lines.append(f'## {e["shot"]} @ {e["size"]}' + (' (in the air on purpose)' if e['air'] else ''))
+            hs = [h for h in e['hotspots'] if wanted(e, h)]
+            if not hs: continue
+            lines.append(f'## {e["shot"]} @ {e["size"]}' + (' (in the air or seated on purpose)' if e['air'] else ''))
             lines.append(f'- frame: {os.path.join(out, e["after"])}' + (f'  | pair: {os.path.join(out, e["pair"])}' if e.get('pair') else ''))
-            for h in sorted(e['hotspots'], key=lambda h: h['same_as_before']):
-                tag = '' if not h['same_as_before'] else ' (unchanged)'
+            for h in sorted(hs, key=lambda h: (not h.get('measured_fault'), h['same_as_before'])):
                 extra = f'  MEASURED: {h["measured_fault"]}' if h.get('measured_fault') else ''
-                if h.get('figure_h'): extra += f'  height {h["figure_h"]} px'
-                lines.append(f'- {h["kind"]} / {h["part"]}{tag}: {os.path.join(out, h["crop"])}{extra}')
+                if h.get('figure_h'): extra += f'  ({h["who"]}, {h["figure_h"]} px tall)'
+                lines.append(f'- {h["kind"]} / {h["part"]}: {os.path.join(out, h["crop"])}{extra}'); n += 1
             lines.append('')
+        lines.insert(3, f'{n} crops in this packet.')
         open(os.path.join(out, 'review', safe(title) + '.md'), 'w').write('\n'.join(lines))
 
 
