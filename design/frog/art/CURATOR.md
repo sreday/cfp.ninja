@@ -69,6 +69,60 @@ Look at the AFTER side of every crop. Anything here is a finding.
 **Readability**
 - Fruit and blades read against the background. The decoration never wins over the play.
 
+## Canon: the truths about the cast and the things in the game
+
+The curator holds these as facts. Anything on screen that contradicts one is a finding, a blocker
+unless the state says otherwise (the "unless" column). Sources: `STYLE.md`, `SPEC.md`, `ASSETS.md`,
+`PRINCIPLES.md`, `STORY.md`, the logo. A new truth Marek states goes in here the same day.
+
+**The frog (the CFP.ninja logo)**
+
+| truth | unless |
+|---|---|
+| 1 head, 2 eyes (huge, round, black pupils, one white highlight each), 1 cheek-to-cheek smile | breath: mouth wide open; stunned: crossed eyes; drunk: spiral eyes |
+| 2 arms, 2 legs, 2 webbed feet, 4 fingers per open hand (fist/grip: 3 + thumb) | never |
+| Skin green `#98b74b`, chin and chest cream `#f1eda4`, gi and bandana red `#a3211d`, outline black, thick | the Sensei (elder) has pale blue skin; hacking breath: blue outline look |
+| Red bandana with a V dipping between the eyes (its frown) and 2 tails knotted at the side | drunk: slid over one eye |
+| Exactly 2 katanas: on its back crossed (handles up at the shoulders) when sheathed, one in each hand when drawn; empty scabbards stay on the back once drawn | sake: the bottle in the left hand, the right cuts alone; fire breath: the katanas stuck in the post |
+| A katana: one wrapped handle, one round guard, one straight single-edged blade; never a medieval sword, never two handles | never |
+| One size: the same head size in every pose and frame | never |
+| Stands on its post, both soles on the top face | the intro hop, a jump, falling, teetering, sitting |
+| Seated pose = the logo itself: cross-legged, the laptop in its lap | never redrawn |
+| No ground shadow on the post | never |
+
+**Things it handles**
+
+| thing | truth |
+|---|---|
+| Laptop | the logo's laptop: dark grey `#444d4f`, rigid (screen and base at an angle, never bent), white "CFP .NINJA" lettering |
+| Firefly (power-up) | a firefly with a red glow; caught on the tongue it gives a red fire breath |
+| Golden sake | a golden/yellow bottle with a glow; sake makes the breath yellow and the stamina bar gold |
+| Alarm clock | an alarm clock (bells, hands, face) with a glow; it brings a blue time freeze |
+| Fireworks bundle | five rockets, each a different rainbow colour, with a lit fuse |
+| Fruit crate | a square wooden crate; it breaks into planks and splinters |
+| Seagull | a white seagull with an angry brow; fainted: X eyes, tongue out; roasted: sooty, frazzled; never hurt beyond cartoon soot, never in pieces |
+| Fruit | 8 kinds: watermelon (as big as the frog's head), pineapple, grapes, orange, apple, banana, kiwi, plum, each 20% smaller than the one before; a cut piece shows its skin and a cross-section, never all flesh; grapes part along the bunch, a berry is never cut |
+| Salad bowls | white bowls filling with fruit, floating on the sea (since 2026-11-18) |
+
+**Blades and breaths**
+
+| what | colour |
+|---|---|
+| Normal slash trail | white core, green glow, tapering |
+| Out of stamina | thin dark red; cuts nothing |
+| Fire blade | three times as wide, flames along it |
+| Bubbly blade (sake) | yellow, bubbles rising |
+| Chronoblade (clock) | blue, and a rip left hanging in the air |
+| Fire breath | red/orange; yellow on sake; the hacking breath is a stream of blue 0s and 1s |
+
+**The scene**
+
+| truth |
+|---|
+| A beach at dusk: the sea in front, the party on the sand behind, the post in the shallows with a foam ring where it meets the water |
+| The party's animals stand on something (sand, a stool, the bar), each at its true size (cast table below) |
+| The mascots keep their signatures: the monkey's purple suit and tie, the llama's green fleece, the platypus's olive hoodie and grey bill, the corgi's orange-and-white face (`STYLE.md`, The cast) |
+
 ## Cast sizes (real-world order, shoulder or head height relative to the llama = 1.0)
 
 | figure | relative height | note |
