@@ -35,6 +35,7 @@ Look at the AFTER side of every crop. Anything here is a finding.
 - Shoulders, neck and hips are joined: no gap, no seam, no sleeve that reads as a tube stuck on the body,
   no outline cutting across a joint.
 - Limb shapes are believable at every angle a rig part is turned to (no kinks, no flattened ends).
+- Every pose passes "Anatomy and motion" below: joints bend only where and how they bend, limbs keep their length, nothing looks injured.
 
 **Objects**
 - A katana is a katana at every step: one handle, one guard, one blade, the same length and shape.
@@ -68,6 +69,52 @@ Look at the AFTER side of every crop. Anything here is a finding.
 
 **Readability**
 - Fruit and blades read against the background. The decoration never wins over the play.
+
+## Anatomy and motion: what a body can and cannot do
+
+Cartoon bodies squash, stretch and exaggerate, but they never look broken. Judge every pose and
+every in-between against these. "Looks injured" is a blocker even when nothing is technically missing.
+
+**Joints bend only where joints are, and only the way they bend**
+- Elbows and knees bend one way only: an elbow never bends backward, a knee never bends forward past straight.
+  Birds are the exception that proves the rule: a flamingo's or seagull's visible "knee" is its ankle and bends backward.
+- A limb bends at its joints, never in the middle of a bone: no kink, no sag, no rubber-hose curve in the frog
+  (its style is the logo's firm shapes, not rubber hose).
+- Shoulders: an arm swings up overhead, forward, out to the side and a little behind the back. Never further
+  behind than a real shoulder allows, never turned so the sleeve twists on itself, never popping out of the
+  socket (a visible gap, a step, or the sleeve's top end showing past the body).
+- Wrists turn the blade, not the whole forearm; a hand never sits at an impossible angle to its arm
+  (more than about 90 degrees either way reads as broken).
+- Neck: the head tilts and turns on the neck, about 45 degrees at most, and thrown back for the breath straight
+  up; it never floats off the body or sinks into the chest.
+- Hips: the legs leave the body at the hips, both from under the gi, never from its sides or its middle.
+
+**Lengths stay the same**
+- An arm or leg has the same length in every frame of a move (within 15%, the rig's own stretch limit); a limb
+  that grows or shrinks between frames is a fault.
+- Squash and stretch keep the volume: a body that gets taller gets thinner, never just bigger.
+- Left and right match: the two arms are the same length and thickness, so are the two legs.
+
+**It reads as healthy, never injured**
+- No arm hanging limp or dangling from the shoulder, no wrist folded flat, no leg buckled the wrong way, no foot
+  turned back to front, no head at a broken angle.
+- No dislocated look: a joint where the parts don't meet, a limb attached in the wrong place, a shoulder lower
+  than its armpit, an elbow above the shoulder line while the hand hangs down.
+- Funny falls, stuns and the drunk sway are pratfalls: dizzy, never hurt. Cartoon soot, bumps and stars only.
+
+**Weight and balance**
+- Standing: the body's weight sits over its feet (or its support). A frog leaning far out over nothing,
+  without falling, is a fault; the teeter is the one pose built on losing balance.
+- Feet push the ground in a jump and land under the body; arms swing against the legs in a big move.
+- A heavy thing (the crate) bends the frog under it; a light thing (a fruit) does not.
+
+**The animals are their animals**
+- Each stands the way its body allows: the corgi and the llama are four-legged (dancing on two legs is a cartoon
+  pose, fine, but they keep four legs and their own proportions: the corgi short-legged and long, the llama long-necked);
+  the penguin waddles, its flippers can't hold things; the monkey's arms are longer than its legs; the flamingo
+  stands on long thin legs, often one.
+- No animal stretches past its own shape: a neck, tail or leg never gets longer between frames, a body never
+  bends in a way its spine can't.
 
 ## Canon: the truths about the cast and the things in the game
 
