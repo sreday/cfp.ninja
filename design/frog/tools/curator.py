@@ -105,6 +105,22 @@ def feet_support(img, hs):
     return out
 
 
+# the cast's heights relative to the llama (design/frog/art/CURATOR.md, "Cast sizes")
+CAST = {'llama': 1.0, 'bear': 0.85, 'flamingo': 0.7, 'wolf': 0.6, 'fox': 0.45, 'monkey': 0.4, 'penguin': 0.4,
+        'raccoon': 0.35, 'platypus': 0.3, 'cat': 0.3, 'rabbit': 0.3, 'corgi': 0.3}
+
+
+def size_check(entry):
+    """dancers standing at about the same depth: their heights must follow the cast table (15%)"""
+    figs = [h for h in entry['hotspots'] if h.get('figure_h') and h.get('who') in CAST]
+    for i, a in enumerate(figs):
+        for b in figs[i + 1:]:
+            if abs((a['depth'] or 0) - (b['depth'] or 0)) > 40: continue          # plate px: not standing side by side
+            want = CAST[a['who']] / CAST[b['who']]; got = a['figure_h'] / b['figure_h']
+            if abs(got / want - 1) > 0.15:
+                a['measured_fault'] = (a.get('measured_fault', '') + f' {a["who"]} is {got:.2f}x the {b["who"]} next to it, should be {want:.2f}x').strip()
+
+
 def run_build(root, sizes, only, outdir, tag):
     """capture every shot of one build; returns {shot: {size: {'file', 'hotspots', 'air'}}}"""
     res = {}
@@ -204,8 +220,9 @@ def main():
                         if bad: h2['measured_fault'] = 'a sole is not on the post: ' + json.dumps(bad)
                         elif h2['feet'] is not None and not h2['feet']:
                             h2['measured_fault'] = 'no foot on the post (hovering, or off it)'
-                if hs.get('figure'): h2['figure_h'] = hs['figure']['h']; h2['who'] = hs.get('who')
+                if hs.get('figure'): h2['figure_h'] = hs['figure']['h']; h2['who'] = hs.get('who'); h2['depth'] = hs.get('depth')
                 entry['hotspots'].append(h2)
+            size_check(entry)
             index['shots'].append(entry)
     for f in os.listdir(os.path.join(out, 'raw')): os.remove(os.path.join(out, 'raw', f))
     os.rmdir(os.path.join(out, 'raw'))

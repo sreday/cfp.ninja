@@ -237,6 +237,8 @@ const ART = {
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
     intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.c3c44280db.json'
 };
+// who each dancer pair in the atlas is (in atlas order), for the curator's size check
+const DANCER_WHO = ['fox', 'cat', 'bear', 'raccoon', 'wolf', 'llama', 'corgi', 'rabbit', 'monkey', 'platypus', 'penguin', 'flamingo'];
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -1657,7 +1659,7 @@ export function mountFrogGame(stage, opts = {}) {
             const beat = still ? 0 : Math.floor(t * (1.7 + (i % 3) * 0.25) + i * 0.37) % 2;
             const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3], dx = X(sx) - w / 2, dy = Y(sy) - h - (beat ? h * 0.03 : 0);
             c.drawImage(a.dancers, f[0], f[1], f[2], f[3], dx, dy, w, h);
-            if (CURATE) a.dancerRects.push({ x: dx, y: dy, w, h, who: (D.who && D.who[pi]) || 'pair ' + pi });
+            if (CURATE) a.dancerRects.push({ x: dx, y: dy, w, h, who: (D.who || DANCER_WHO)[pi] || 'pair ' + pi, depth: sy });
         }
         // the near layer (5.3) is empty for now: the rock stacks in the bottom corners went (Marek 2026-11-19;
         // bowls that stack up with the cut chunks go there later, after the fruit rework), and so did the
@@ -6412,7 +6414,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (artBg && artBg.dancerRects) {
                     const sb = stage.getBoundingClientRect();
                     artBg.dancerRects.forEach((d, i) => {
-                        out.push({ kind: 'silhouette', part: `dancer ${i} (${d.who})`, x: Math.round(sb.left + d.x - d.w * 0.3), y: Math.round(sb.top + d.y - d.h * 0.15), w: Math.round(d.w * 1.6), h: Math.round(d.h * 1.4), who: d.who, figure: { x: Math.round(sb.left + d.x), y: Math.round(sb.top + d.y), w: Math.round(d.w), h: Math.round(d.h) } });
+                        out.push({ kind: 'silhouette', part: `dancer ${i} (${d.who})`, x: Math.round(sb.left + d.x - d.w * 0.3), y: Math.round(sb.top + d.y - d.h * 0.15), w: Math.round(d.w * 1.6), h: Math.round(d.h * 1.4), who: d.who, depth: d.depth, figure: { x: Math.round(sb.left + d.x), y: Math.round(sb.top + d.y), w: Math.round(d.w), h: Math.round(d.h) } });
                         out.push({ kind: 'contact', part: `dancer ${i} (${d.who}) feet`, x: Math.round(sb.left + d.x - d.w * 0.4), y: Math.round(sb.top + d.y + d.h * 0.7), w: Math.round(d.w * 1.8), h: Math.round(d.h * 0.6) });
                     });
                 }

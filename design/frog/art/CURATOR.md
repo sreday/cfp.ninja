@@ -74,13 +74,19 @@ Look at the AFTER side of every crop. Anything here is a finding.
 | figure | relative height | note |
 |---|---|---|
 | llama | 1.0 | the tallest guest |
-| fox | 0.55 | |
-| cat | 0.4 | |
-| corgi | 0.4 | low and long: never taller than the fox, never near the llama |
-| raccoon | 0.4 | |
-| penguin | 0.45 | |
-| monkey | 0.45 | |
+| bear | 0.85 | big but cuddly |
+| flamingo | 0.7 | mostly legs and neck |
+| wolf | 0.6 | |
+| fox | 0.45 | |
+| monkey | 0.4 | |
+| penguin | 0.4 | |
+| raccoon | 0.35 | |
+| platypus | 0.3 | |
+| cat | 0.3 | |
+| rabbit | 0.3 | ears included |
+| corgi | 0.3 | low and long: never near the llama |
 
+The same table is `CAST` in `curator.py`; change both together.
 Figures further back are drawn smaller by the perspective of where they stand; the ratio is checked
 between figures standing at about the same depth.
 
