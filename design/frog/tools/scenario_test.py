@@ -54,8 +54,9 @@ def main():
 
         # 3. the same with three fireflies burned: copies come faster
         fresh(g); g.js("frogPlay.roast(640, 260); frogPlay.breath({slow: 1, fry: 3, seconds: 3})")
-        n3 = [len(s['gulls']) for s in hold(g, 640, 230, 1.3)]
-        check('with 3 fireflies in it the breath copies faster', max(n3) > max(n[:13]), (n3, n[:13]))
+        n3 = [len(s['gulls']) for s in hold(g, 640, 230, 1.6)]
+        first = lambda xs: next((i for i, v in enumerate(xs) if v >= 2), 99)      # the sample where the first copy shows
+        check('with 3 fireflies in it the breath copies faster', first(n3) < first(n), (n3, n))
 
         # 4. sake and a firefly in the hacking breath: burned, never digital
         fresh(g); g.js("frogPlay.breath({slow: 1, seconds: 3.5}); frogPlay.drop('sake', 560, 300); frogPlay.drop('fly', 700, 240); frogPlay.drop('clock', 640, 200)")

@@ -65,6 +65,9 @@ const SLOW_TAIL = 0.5;                           // seconds the world takes to s
 const MARK_REACH = 2;                            // how generous marking is during a time freeze: twice the thing's own size
 const MARK_STEP = 0.07;                          // seconds between the slashes that follow a time freeze
 const SLOWMO = 0.02;                             // ...until the time is up or the screen is clean
+// Everything on screen runs at GAME_PACE of real time (Marek, 2026-11-19: 10% slower); the run's
+// clock, the 3-2-1 countdown and the intro under it keep real seconds.
+const GAME_PACE = 0.9;
 const FIRE_SECONDS = 4;                         // firefly: fire breath burns every fruit
 const FIRE_FAR = 0;                              // how much weaker the breath is at the furthest corner of the screen than at the mouth. 0: the same everywhere (0.3 was tried and felt far too weak)
 const BURN_COOL = 0.5;                           // how fast heat fades outside a flame, against how fast it builds inside (1)
@@ -1490,7 +1493,8 @@ export function mountFrogGame(stage, opts = {}) {
                 // the ring sits where the post's wet band starts, centred on it, twice its width
                 const pe = artBg.postEl, sb = stage.getBoundingClientRect(), pb = pe.getBoundingClientRect();
                 const rw = pb.width * 2.1, rh = rw * artBg.ringEl.height / artBg.ringEl.width, wy = pb.top - sb.top + artBg.g.post.water * pb.width;
-                Object.assign(artBg.ringEl.style, { left: (pb.left - sb.left + pb.width / 2 - rw / 2) + 'px', top: (wy - rh * 0.5) + 'px', width: rw + 'px', height: rh + 'px' });
+                const at = { left: (pb.left - sb.left + pb.width / 2 - rw / 2) + 'px', top: (wy - rh * 0.5) + 'px', width: rw + 'px', height: rh + 'px' };
+                Object.assign(artBg.ringEl.style, at); if (artBg.ringBack) Object.assign(artBg.ringBack.style, at);
                 artBg.waterY = wy;
                 if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
             }
@@ -1584,17 +1588,21 @@ export function mountFrogGame(stage, opts = {}) {
             const [plate, party, dancers, props] = await Promise.all([img(g.plate), img(g.party.url), img(g.dancers.url), g.props ? img(g.props.url) : null]);
             if (dead) return;
             // the post (5.4): an image in the old post's place, and a foam ring where it meets the water
-            let postEl = null, ringEl = null, waveEl = null;
+            let postEl = null, ringEl = null, ringBack = null, waveEl = null;
             if (g.post && props) {
                 const old = stage.querySelector('svg.fg-pole');
                 postEl = document.createElement('img'); postEl.className = 'fg-pole fg-pole-art'; postEl.alt = ''; postEl.src = g.post.url;
+                // the ring in two halves: its far arc behind the post, its near arc in front of it
                 ringEl = document.createElement('canvas'); ringEl.className = 'fg-post-ring';
+                ringBack = document.createElement('canvas'); ringBack.className = 'fg-post-ring fg-post-ring-back';
                 waveEl = document.createElement('canvas'); waveEl.className = 'fg-water-front';
-                old.after(postEl); postEl.after(ringEl); ringEl.after(waveEl);
-                const r = g.props.rects.ring; ringEl.width = r[2]; ringEl.height = r[3];
-                ringEl.getContext('2d').drawImage(props, r[0], r[1], r[2], r[3], 0, 0, r[2], r[3]);
+                old.after(ringBack); ringBack.after(postEl); postEl.after(ringEl); ringEl.after(waveEl);
+                const r = g.props.rects.ring, half = Math.round(r[3] / 2);
+                [ringBack, ringEl].forEach(cv => { cv.width = r[2]; cv.height = r[3]; });
+                ringBack.getContext('2d').drawImage(props, r[0], r[1], r[2], half, 0, 0, r[2], half);
+                ringEl.getContext('2d').drawImage(props, r[0], r[1] + half, r[2], r[3] - half, 0, half, r[2], r[3] - half);
             }
-            artBg = { g, plate, party, dancers, props, postEl, ringEl, waveEl, waterY: 0, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
+            artBg = { g, plate, party, dancers, props, postEl, ringEl, ringBack, waveEl, waterY: 0, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
                 seed: g.lights.map((_, i) => [1.5 + (i * 7919 % 13) / 6, (i * 104729 % 628) / 100]) };
             artCv.hidden = false; stage.classList.add('fg-has-art-bg');
             resize();
@@ -1628,20 +1636,9 @@ export function mountFrogGame(stage, opts = {}) {
             const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3];
             c.drawImage(a.dancers, f[0], f[1], f[2], f[3], X(sx) - w / 2, Y(sy) - h - (beat ? h * 0.03 : 0), w, h);
         }
-        // the near layer (5.3): rocks in the bottom corners, party leftovers bobbing on the sea, clear of the frog
-        if (a.props) {
-            // sized from the play area (S), like the frog: rocks about a third of it across, leftovers a tenth
-            const R = g.props.rects, sz = S(), ks = sz * 0.3 / R.rocks_l[2], seaTop = oy + 1170 * s;
-            const put = (key, x, y, k, bob, i) => {
-                const r = R[key], w = r[2] * k, h = r[3] * k, dy = still ? 0 : Math.sin(t * 1.3 + i * 2.1) * h * bob, rot = still || !bob ? 0 : Math.sin(t * 0.9 + i) * 0.06;
-                c.save(); c.translate(x, y + dy); c.rotate(rot); c.drawImage(a.props, r[0], r[1], r[2], r[3], -w / 2, -h / 2, w, h); c.restore();
-            };
-            const lr = R.rocks_l, rr = R.rocks_r;
-            put('rocks_l', lr[2] * ks * 0.42, H - lr[3] * ks * 0.32, ks, 0, 0);
-            put('rocks_r', W - rr[2] * ks * 0.42, H - rr[3] * ks * 0.3, ks, 0, 1);
-            // (the party leftovers that bobbed on the sea are gone: what floats there now is the player's own
-            // fruit salad, in its bowls, see drawFloatingSalad)
-        }
+        // the near layer (5.3) is empty for now: the rock stacks in the bottom corners went (Marek 2026-11-19;
+        // bowls that stack up with the cut chunks go there later, after the fruit rework), and so did the
+        // party leftovers on the sea (what floats there is the player's own salad, see drawFloatingSalad)
         // lights twinkle, the bonfire flickers (added light)
         c.globalCompositeOperation = 'lighter';
         g.lights.forEach(([lx, ly, lr], i) => {
@@ -1669,11 +1666,7 @@ export function mountFrogGame(stage, opts = {}) {
             c.beginPath(); c.moveTo(-lam, H);
             for (let x = -lam; x <= W + lam; x += step) c.lineTo(x, y0 + Math.sin((x + off) / lam * 6.283) * amp);
             c.lineTo(W + lam, y0 + amp * 3); c.lineTo(-lam, y0 + amp * 3); c.closePath(); c.fill();
-            c.globalAlpha = op; c.strokeStyle = '#f1eda4'; c.lineWidth = Math.max(2, pw * 0.035); c.lineCap = 'round';
-            c.setLineDash([lam * 0.55, lam * 0.45]); c.lineDashOffset = -off * 0.5;
-            c.beginPath();
-            for (let x = -lam; x <= W + lam; x += step) { const y = y0 + Math.sin((x + off) / lam * 6.283) * amp; x === -lam ? c.moveTo(x, y) : c.lineTo(x, y); }
-            c.stroke(); c.setLineDash([]);
+            // (no foam dashes on top: Marek 2026-11-19, they looked cheap)
         });
         c.globalAlpha = 1;
     }
@@ -5466,14 +5459,15 @@ export function mountFrogGame(stage, opts = {}) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
         if (paused) { last = now; return; }                    // the pause menu is up: the world and the clock stand still
-        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        const rdt = Math.min(0.05, (now - last) / 1000); last = now;     // real seconds: the clock
+        const dt = rdt * GAME_PACE;                                        // the world's seconds
         idleT += dt;
 
         // frog
-        if (phase === 'load') stepLoad(dt);
-        else if (phase === 'count') stepCount(dt);
+        if (phase === 'load') stepLoad(rdt);
+        else if (phase === 'count') stepCount(rdt);
         if (phase === 'count' && introOn) {
-            phaseT += dt; intro(Math.min(phaseT, INTRO));
+            phaseT += rdt; intro(Math.min(phaseT, INTRO));
             if (phaseT >= INTRO) { readyPose(); introOn = false; }
         } else if (demo && demo.a.seated && !pose.held) {
             stepDemo(dt);                     // debug: a playback that starts seated (the intro) steps itself until the blades are out
@@ -5609,7 +5603,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (dbg && dbgFrozen && dbgWake > 0 && (dbgWake -= dt) <= 0) { dbgFrozen = false; dbgWake = 0; }
         const wdt = (dbg && dbgFrozen) || summon ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
-            if (!dbg) { clockT += dt; if (!slowed) timeLeft -= dt; else val('clock', dt); }   // the alarm clock stops the countdown
+            if (!dbg) { clockT += rdt; if (!slowed) timeLeft -= rdt; else val('clock', rdt); }   // the alarm clock stops the countdown
             // The fruit comes a little thicker as the run goes on (FRUIT_MORE every FRUIT_MORE_EVERY s, see
             // PRINCIPLES.md 3a); its flight never changes, and slow motion does not hold it back.
             const difficulty = FRUIT_PACE;
@@ -5819,7 +5813,7 @@ export function mountFrogGame(stage, opts = {}) {
             else stamina = Math.min(STAMINA_BARS, stamina + dt / STAMINA_REGEN);
             if (stunT > 0) { stunT = Math.max(0, stunT - dt); if (stunT <= 0) snd('stun_end'); }
             stepHeadFx(dt);
-            traceTick(dt);
+            traceTick(rdt);
             if (timeLeft <= 0) { timeLeft = 0; gameOver(); }
             hud();
         }
