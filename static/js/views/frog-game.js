@@ -6598,7 +6598,7 @@ export function mountFrogGame(stage, opts = {}) {
                     const pb = artBg.postEl.getBoundingClientRect(), top = pb.top + pb.width * POST_CAP;
                     out.push({ kind: 'contact', part: 'feet on the post', air: pose.sHop > 60 || pose.jump > 1, x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
                         // the post's cut face: from its back rim to its front rim (the soles belong between them)
-                        frog: { x0: Math.round(fr.left), x1: Math.round(fr.right) }, post: { top: Math.round(top), back: Math.round(pb.top + pb.width * 0.02), front: Math.round(pb.top + pb.width * 0.34), x0: Math.round(pb.left), x1: Math.round(pb.right) } });
+                        frog: { x0: Math.round(u.l), x1: Math.round(u.r) }, post: { top: Math.round(top), back: Math.round(pb.top + pb.width * 0.02), front: Math.round(pb.top + pb.width * 0.34), x0: Math.round(pb.left), x1: Math.round(pb.right) } });
                     out.push({ kind: 'seam', part: 'post', ...rect(pb) });
                     if (artBg.ringEl) { const rb = artBg.ringEl.getBoundingClientRect(); out.push({ kind: 'contact', part: 'post in the water', ...rect(rb) }); }
                 }
