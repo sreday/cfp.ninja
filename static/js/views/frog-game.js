@@ -255,10 +255,10 @@ const BREATH_ART = { url: '/img/game/frog/breath.b9873752bb.webp', mouthMask: '/
     feet: 490, top: 32, mid: 342, mouth: [409, 149], mouthBox: [242, 113, 421, 202], rigFeet: 1701, rigTop: -290.7 };
 const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.feet - BREATH_ART.top);
 // the side cut (Marek's pick 2026-11-20 'side cut 2', built by design/frog/tools/art_build_cut.py; picture px): a wide lunge
-// turned to the right, the front katana level, the back one raised. It stands in for the drawn profile frog during a level
+// turned to the right, the front katana level, the back one raised, no scabbards (only seen with the katanas sheathed). It stands in for the drawn profile frog during a level
 // cut (no power-up), mirrored for a cut to the left. Sized by the head (a crouch is shorter than standing): its head as wide
 // as the breath frog's (headW: green across the face under the eyes), the soles on the rig's feet line.
-const CUT_ART = { url: '/img/game/frog/cut.eef94cad92.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295 };
+const CUT_ART = { url: '/img/game/frog/cut.f9aac15721.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295 };
 const BREATH_HEAD_W = 219;
 const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run

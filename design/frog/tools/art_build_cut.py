@@ -5,7 +5,7 @@ level cut (near or far, no power-up); the game mirrors it for a cut to the left.
 
     python3 design/frog/tools/art_build_cut.py [--preview out.png]
 
-Input: candidates/cut/pick-2.png (the pick on flat magenta, from the art desk or design/frog/art/sources).
+Input: candidates/cut/clean-2.png (the pick, its empty scabbards retouched out (Marek: scabbards only show with the katanas sheathed), on flat magenta, from the art desk or design/frog/art/sources).
 (Proofread at 3x: the eye whites sit straight in the green, no outline ring, as in the logo; nothing retouched.)
 Output: static/img/game/frog/cut.<hash>.webp, and the numbers for frog-game.js (picture px): its size, the feet line
 (the soles' bottom), the head's top, the middle between the feet.
@@ -21,8 +21,11 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 
 def main():
-    src = desk('candidates/cut/pick-2.png')
+    src = desk('candidates/cut/clean-2.png')
     im = keyed(src)
+    # (the retouched edit leaves a faint haze on the magenta, alpha < 24: cleared, so the picture crops to the frog)
+    px = np.asarray(im).copy(); px[px[..., 3] < 24] = 0
+    im = Image.fromarray(px, 'RGBA'); im = im.crop(im.getbbox())
     A = np.asarray(im).astype(int); a = A[..., 3] > 128
     r, g, b = A[..., 0], A[..., 1], A[..., 2]
     green = a & (g > r + 15) & (g > b + 30) & (g > 90)

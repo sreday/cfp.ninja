@@ -55,7 +55,7 @@ Claude may suggest what is missing, but does not widen the item on its own. The 
 | 2026-11-20 | Breath aimed at the frog / just beside it: the flame's big blast covers the frog (worst on phones) | **open**, the next breath polish |
 | 2026-11-20 | Breath straight up: the picked head is turned, the column leaves the mouth's side over one eye | open, nit |
 | 2026-11-20 | The mouth glow hides the tongue (could fade toward the back) | open, nit |
-| 2026-11-20 | Side view (cuts in profile): the drawn frog since v226 (art profile scrapped) | **open**, its own item: a new profile in the logo style, empty scabbards on the back |
+| 2026-11-20 | Side view (cuts in profile): the drawn frog since v226 (art profile scrapped) | **open**, its own item: a new profile in the logo style, no scabbards on the back (katanas drawn) |
 | 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit | **Marek to say** whether the party wears the mascot costumes |
 | 2026-11-20 | Wind-up: the sleeve's highlight stops where the shoulder slope starts (faint seam, right arm) | open, nit |
 | 2026-11-20 | Curator tool: the on-screen timer and timing carry from one shot to the next; the sole meter misses the art's toed feet on phones | open, tool fix |
@@ -92,7 +92,7 @@ Look at the AFTER side of every crop. Anything here is a finding.
 - No keying fringe: no magenta, white or dark halo around cut-outs.
 
 **Layering**
-- What is behind is behind: the ring's far arc behind the post, the scabbards behind the legs, the bandana
+- What is behind is behind: the ring's far arc behind the post, the bandana
   tails behind the head.
 
 **Size and continuity**
@@ -167,7 +167,7 @@ unless the state says otherwise (the "unless" column). Sources: `STYLE.md`, `SPE
 | 2 arms, 2 legs, 2 webbed feet, 4 fingers per open hand (fist/grip: 3 + thumb) | never |
 | Skin green `#98b74b`, chin and chest cream `#f1eda4`, gi and bandana red `#a3211d`, outline black, thick | the Sensei (elder) has pale blue skin; hacking breath: blue outline look |
 | Red bandana with a V dipping between the eyes (its frown) and 2 tails knotted at the side | drunk: slid over one eye |
-| Exactly 2 katanas: on its back crossed (handles up at the shoulders) when sheathed, one in each hand when drawn; empty scabbards stay on the back once drawn | sake: the bottle in the left hand, the right cuts alone; fire breath: the katanas stuck in the post |
+| Exactly 2 katanas: on its back crossed (handles up at the shoulders) when sheathed, one in each hand when drawn; **no scabbards show once they are drawn**: the scabbards are only seen with the katanas sheathed in them (Marek, 2026-11-20) | sake: the bottle in the left hand, the right cuts alone; fire breath: the katanas stuck in the post |
 | A katana: one wrapped handle, one round guard, one straight single-edged blade; never a medieval sword, never two handles | never |
 | One size: the same head size in every pose and frame | never |
 | Stands on its post, both soles on the top face | the intro hop, a jump, falling, teetering, sitting |
@@ -237,5 +237,6 @@ between figures standing at about the same depth.
 | 2026-11-19 | Bar animals floating in front of the stools | dancer feet |
 | 2026-11-19 | A foot half off the post after "stand firmly on the post" | contact / feet on the post (measured) |
 | 2026-11-19 | The corgi as big as the llama | dancer heights against the table |
+| 2026-11-20 | Empty scabbards on the back while the katanas are in its hands (scabbards only show with the katanas sheathed) | the frog's back, every cut and breath |
 
 A new kind of fault that Marek points out becomes a new line in the checklist and a new row here.
