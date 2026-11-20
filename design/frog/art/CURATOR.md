@@ -27,6 +27,32 @@ player sees it, and says **GO** or **STOP, redo this, redo that** before anythin
 
 Keep it lean: crops of where faults hide, not essays; only changed crops need a fresh look.
 
+## One thing at a time (Marek, 2026-11-20)
+
+The work goes item by item: Marek names the thing ("the seagull"), it is generated (ElevenLabs), proofread,
+put in the game, judged by the curator, shipped, and Marek plays it. He approves (next item) or sends it back
+(redo or enhance). Claude may suggest what is missing, but does not widen the item on its own.
+
+- Every run names its **item** (`verdict.json`: `"item": "the seagull"`). The reviewer judges the item's shots and
+  anything that got **worse** than live anywhere on screen. Those findings can block.
+- A fault that is already live and lies outside the item is **not** a blocker for this item: it goes into
+  `"backlog"` in the verdict and into the Backlog below, as a candidate for a later item.
+- So the gate stays a hard stop for the item and for regressions, without making every small item wait on the
+  whole game being perfect.
+
+## Backlog (faults already live, each a future item)
+
+| found | what | needs |
+|---|---|---|
+| 2026-11-20 | Breath poses: the katanas "stuck in the post" float in front of the fire and the frog; the old drawn katana has a flat bar guard (reads as a medieval sword) | the breath poses' art, layering |
+| 2026-11-20 | Breath at the camera on phones: the blast covers the whole frog and the post | breath art / size |
+| 2026-11-20 | Cut overhead: the old drawn frog in a crane stance, one foot ~20 px over the post | the overhead pose's art |
+| 2026-11-20 | Stunned: spiral eyes (canon: crossed eyes; spirals are drunk) | stunned head art |
+| 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit (Marek to say whether the party wears the mascot costumes) | ruling, then dancer art |
+| 2026-11-20 | No empty scabbards on the back in profile (drawn-on sheaths read as chopsticks) | drawn into the profile art |
+| 2026-11-20 | The llama's outline is a reddish beaded rim, not the black outline of the others | dancer art retouch |
+| 2026-11-20 | The curator's neck crop aims at the belt | curator fix |
+
 ## The checklist
 
 Look at the AFTER side of every crop. Anything here is a finding.

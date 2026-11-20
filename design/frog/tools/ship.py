@@ -48,7 +48,12 @@ def main():
 
     # 3 first (cheap to check): is there a GO for this commit?
     vs = verdicts(branch)
-    mine = [v for v in vs if v[1].get('after') == head and not v[1].get('after_dirty')]
+    # a verdict counts for this commit if nothing on screen changed since the commit it judged (docs, tools: no rerun)
+    def same_screen(sha):
+        if sha == head: return True
+        r = sh('git', 'diff', '--quiet', sha, head, '--', 'static', quiet=True, check=False)
+        return r.returncode == 0 and sh('git', 'merge-base', '--is-ancestor', sha, head, quiet=True, check=False).returncode == 0
+    mine = [v for v in vs if v[1].get('after') and not v[1].get('after_dirty') and same_screen(v[1]['after'])]
     stops = [v for v in vs if v[2].get('verdict') == 'STOP']
     seen = {}
     for _, _, v in stops:
