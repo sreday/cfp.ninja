@@ -270,7 +270,7 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155
 // the side slash (Marek 2026-11-20: 'ship the one where the frog is back to us'; side slash round 3 candidate 1 with its smile retouched): a light hop, side-on
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
-const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 340 };     // (Marek: float a bit more, it is clearly mid-jump; 260 landed the toes on the post's back rim)
+const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 480 };     // (Marek: float a bit more, it is clearly mid-jump; 260 and 340 left the toes on the post's back rim: about 0.11 px a unit at 1280x720)
 // Marek 2026-11-20: 'I want two to stay - the one behind the back and the one with frog stretched'; the profile down cut
 // goes. Level cuts: the stretched lunge (CUT_ART, feet on the post); downward cuts: the hop with its back half to us
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
