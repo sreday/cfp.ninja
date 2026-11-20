@@ -227,7 +227,7 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.aad61b1436.json',
+    bg: '/img/game/bg/bg.d3cbd4a869.json',
     title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
@@ -1517,7 +1517,7 @@ export function mountFrogGame(stage, opts = {}) {
                 artBg.waterY = wy;
                 // the post ends under the water: cut just below the waterline, where the ring's front arc covers the cut
                 // (below it the sea is the plate's own; a see-through post down there read as a faint rectangle)
-                pe.style.clipPath = `inset(0 0 ${Math.max(0, Math.round(pb.bottom - sb.top - (wy + rh * 0.22)))}px 0)`;
+                pe.style.clipPath = `inset(0 0 ${Math.max(0, Math.round(pb.bottom - sb.top - (wy + rh * 0.44)))}px 0)`;
                 artBg.postBox = { x: pb.left - sb.left, y: pb.top - sb.top, w: pb.width, h: pb.height };   // (the water front skips its dry part)
                 if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
             }
@@ -1573,8 +1573,14 @@ export function mountFrogGame(stage, opts = {}) {
                         <g class="fg-art-held"><g transform="rotate(90)">${im(sw, -sw.grip[0], -sw.grip[1])}</g></g>
                         <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`; };
                 const at = n => { const q = p['p-' + n]; return im(q, q.x, q.y); };
+                // the empty scabbards stay on its back in profile too (canon; the curator, 2026-11-20): two dark sheaths
+                // slanting down behind the back, their mouths up past the shoulder, their ends out behind the hips
+                const sheath = (x0, y0, x1, y1) => { const L = Math.hypot(x1 - x0, y1 - y0), ang = Math.atan2(x0 - x1, y1 - y0) * 180 / Math.PI;
+                    return `<g transform="translate(${x0} ${y0}) rotate(${n2(ang)})"><rect x="-38" y="0" width="76" height="${n2(L)}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
+                        <path d="M10 60 L10 ${n2(L - 60)}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`; };
+                const sayaSide = `<g class="fg-art-saya-side">${sheath(-300, -900, -700, -120)}${sheath(-250, -870, -760, -190)}</g>`;
                 sroot.innerHTML = Object.keys(g.side.legs).map(n => `<g class="fg-art-legs-${n}" opacity="0">${at(n)}</g>`).join('') +
-                    `<g class="fg-art-top">${armOf('armF', 'fg-art-armB')}${at('torso')}<g class="fg-art-tail">${at('tails')}</g><g class="fg-sface-base">${at('head')}</g>` +
+                    `<g class="fg-art-top">${sayaSide}${armOf('armF', 'fg-art-armB')}${at('torso')}<g class="fg-art-tail">${at('tails')}</g><g class="fg-sface-base">${at('head')}</g>` +
                     ['fire', 'stun'].filter(n => p['ph-' + n]).map(n => `<g class="fg-sface-${n}" opacity="0">${im(p['ph-' + n], p['ph-' + n].x, p['ph-' + n].y)}</g>`).join('') +
                     `${armOf('armN', 'fg-art-armF')}</g>`;
                 const a2 = cls => { const a = sroot.querySelector('.' + cls); return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist') }; };

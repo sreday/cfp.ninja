@@ -158,7 +158,7 @@ def main():
     BAR_FLOOR = 988
     sand = lambda x, y: [x, y, y, 'sand']
     def stool(k): return [STOOL[k][0], STOOL[k][1], BAR_FLOOR, 'stool ' + k]
-    spots = [sand(fx - 134, fy + 58), sand(fx + 134, fy + 55), stool('C'), stool('A'), stool('D'), sand(fx - 230, fy + 30),
+    spots = [sand(fx - 134, fy + 58), sand(fx + 134, fy + 55), stool('C'), stool('A'), stool('D'), sand(fx - 230, fy + 62),
              sand(fx + 235, fy + 35), sand(2325, 995), sand(2650, 990), sand(fx - 330, fy + 40), sand(2110, 970),
              sand(1560, 1060), sand(2730, 1015), sand(1470, 1050)]
     # ---- the dancers: pairs of frames on magenta ----
@@ -178,7 +178,11 @@ def main():
     # despill: pull magenta-tinted edge pixels toward the figure's dark colour
     Dd = D.copy()
     pink = (Dd[..., 0] > 110) & (Dd[..., 2] > 110) & (Dd[..., 1] < 0.65 * np.minimum(Dd[..., 0], Dd[..., 2]))   # magenta-tinted pixels (the fringe)
-    edge = ((soft < 0.98) & fig) | (pink & fig)
+    # (any pinkish pixel near the outline is spill too: the dancers are dark figures, nothing on them is magenta-ish;
+    # the curator found a pink-white fringe on the cat, fox and llama, 2026-11-20)
+    near = np.asarray(Image.fromarray((~fig * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7))) > 0
+    pinkish = (Dd[..., 0] - Dd[..., 1] > 22) & (Dd[..., 2] - Dd[..., 1] > 22)
+    edge = ((soft < 0.98) & fig) | (pink & fig) | (pinkish & near)
     Dd[edge] = np.array([34, 30, 40], np.int16)
     for row in rows:
         row.sort(key=lambda c: c['cx'])
@@ -190,7 +194,14 @@ def main():
                 m = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) / 255.0
                 al = Image.fromarray((np.minimum(m, soft[y0:y1, x0:x1]) * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3))
                 al = np.asarray(al)
-                frames.append(Image.fromarray(np.dstack([Dd[y0:y1, x0:x1].astype(np.uint8), al]), 'RGBA'))
+                rgb = Dd[y0:y1, x0:x1].copy()
+                # a pale fringe on the outline (pinkish beige, left by the magenta key): anything near the edge much
+                # brighter than the figure's own tones becomes the outline's dark colour
+                op = al > 200; br = rgb.max(2)
+                if op.any():
+                    edge_band = np.asarray(Image.fromarray(((al < 200) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
+                    rgb[edge_band & (al > 0) & (br > np.median(br[op]) + 55)] = np.array([34, 30, 40], np.int16)
+                frames.append(Image.fromarray(np.dstack([rgb.astype(np.uint8), al]), 'RGBA'))
                 pair.append(len(frames) - 1)
             pairs.append(pair)
     # pack the frames in one atlas, one strip
