@@ -3016,6 +3016,7 @@ export function mountFrogGame(stage, opts = {}) {
         // up: arched back (-12), level: 16, down-diagonal: 32, straight down: 40, always toward the facing side
         pose.lean = facing * (16 + cy * 24 + (Math.abs(cx) < 0.3 ? cy * 0 : 0) - (cy < 0 ? 4 : 0)) * k; pose.shift = (cx * 90 + facing * 30 * Math.max(cy, 0)) * k;
         pose.squash = s.t < SMEAR ? -0.6 : cy > 0.3 ? 0.55 * cy * k : cy < -0.3 ? 0.35 * cy * k : 0;
+        if (pose.artCut) { pose.lean = 0; pose.shift = 0; pose.squash = 0; }      // the picked side cut has its lean drawn in: upright, on the post, never squashed
         // turned toward the cut: by the blade's heading, or for a straight up or down stroke by the side it is on
         pose.face = facing * k;
         pose.bob += cy * 4 * k;                                       // a down-stroke sinks into it, an up-stroke rises
