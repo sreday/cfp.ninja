@@ -1771,7 +1771,11 @@ export function mountFrogGame(stage, opts = {}) {
         // ones; the sleeve's top end hidden under a small red cap with no outline (adds no bump)
         d: { dx: 0, dy: 55, rx: 92, ry: 92, follow: true, line: false, patch: true } };
     SHOULDERS.slope = { dx: 0, dy: 55, rx: 92, ry: 92, follow: true, line: false, patch: true, slope: true };
-    const SLOPE = { nL: [800, 380], nR: [1190, 392], hw: 132, d: 230 };       // the slope's start under the head (each side), the sleeve's half width, how far down it meets the sleeve
+    const SLOPE = { nL: [800, 380], nR: [1190, 392], d: 230,
+        // the centre of each sleeve's outline, arm-local [down from the pivot, across], at 150, 230 and 300 down (measured
+        // off the sleeve parts: the sleeves are drawn a little tilted, so the two edges differ)
+        edges: { L: { pos: [[150, 104], [230, 74], [300, 55]], neg: [[150, -101], [230, -123], [300, -131]] },
+                 R: { pos: [[150, 99], [230, 122], [300, 130]], neg: [[150, -105], [230, -75], [300, -56]] } } };       // the slope's start under the head (each side), the sleeve's half width, how far down it meets the sleeve
     const SHOULDER = SHOULDERS[(location.search.match(/[?&]shoulder=([a-z]+)/) || [])[1]] || SHOULDERS.slope;
     const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
@@ -2019,11 +2023,14 @@ export function mountFrogGame(stage, opts = {}) {
             const q = el => A.root.querySelector(el), Q = SLOPE;
             [['L', G.shoulderL, pose.lRot, Q.nL], ['R', G.shoulderR, pose.rRot, Q.nR]].forEach(([s, P, rot, N]) => {
                 const r = rot * Math.PI / 180, w = (lx, ly) => [P[0] + lx * Math.cos(r) - ly * Math.sin(r), P[1] + lx * Math.sin(r) + ly * Math.cos(r)];
-                const e1 = w(Q.hw, Q.d), e2 = w(-Q.hw, Q.d), E = e1[1] < e2[1] ? e1 : e2, on = E[1] > N[1] + 30;
+                // the sleeve's own outline (measured, arm-local: [down from the pivot, across] for each edge); the edge on top
+                const ed = Q.edges[s], top = w(...ed.pos[1].slice().reverse())[1] < w(...ed.neg[1].slice().reverse())[1] ? ed.pos : ed.neg;
+                const E = w(top[1][1], top[1][0]), E2 = w(top[2][1], top[2][0]), on = E[1] > N[1] + 30;
                 const pts = a => a.map(v => n2(v[0]) + ',' + n2(v[1])).join(' ');
-                setA(q('.fg-slope-cut' + s), 'points', on ? pts([N, E, [E[0], E[1] - 700], [N[0], N[1] - 700]]) : '');
-                setA(q('.fg-slope-fill' + s), 'points', on ? pts([N, E, w(0, Q.d), P]) : '');      // (a slim wedge: it never reaches the collar)
-                setA(q('.fg-slope-line' + s), 'd', on ? `M${n2(N[0])} ${n2(N[1])}L${n2(E[0])} ${n2(E[1])}` : '');
+                setA(q('.fg-slope-cut' + s), 'points', on ? pts([N, E, E2, [E2[0], E2[1] - 700], [N[0], N[1] - 700]]) : '');
+                setA(q('.fg-slope-fill' + s), 'points', on ? pts([N, E, E2, w(0, Q.d), P]) : '');      // (a slim wedge: it never reaches the collar)
+                // the slope's line runs on down the sleeve's own outline, so the two are one stroke (no step, no corner)
+                setA(q('.fg-slope-line' + s), 'd', on ? `M${n2(N[0])} ${n2(N[1])}L${n2(E[0])} ${n2(E[1])}L${n2(E2[0])} ${n2(E2[1])}` : '');
                 // arm raised: the full round cap with its outline (as before the slope; it reads clean with the arm up)
                 A.caps.filter(c => c.classList.contains('fg-cap' + s)).forEach(c => { const line = c.closest('.fg-art-capline');
                     setA(c, 'opacity', on ? 0 : 1); setA(c, 'transform', `translate(${P[0]} ${P[1]})`);
