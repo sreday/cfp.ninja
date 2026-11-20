@@ -52,13 +52,19 @@ Claude may suggest what is missing, but does not widen the item on its own. The 
 | found | what | status |
 |---|---|---|
 | 2026-11-20 | Fire breath | done (v231): Marek's pick, the game's flame from its mouth, the mouth glowing |
+| 2026-11-20 | Side cut (level cut, no power-up) | done: Marek's pick 'side cut 2', no scabbards, legs narrowed 16% to fit the post (art_build_cut.py) |
+| 2026-11-20 | Side cut: legs and feet a little softer than the rest of the frog on phones (the squeeze or the downscale) | open, ugly |
+| 2026-11-20 | No curator shot of the mirrored cut to the left ('cut left, near' takes the hop path): add 'cut left, far' | open, tool fix |
+| 2026-11-20 | 'ready' and 'wind-up' show both empty scabbards while the katanas are drawn (breaks the canon: scabbards only with the katanas sheathed) | **open**, its own item (the standing rig) |
+| 2026-11-20 | Other no-power-up cuts still the drawn profile: up-cut ('cut up, near' hovers 10-16 px), down-cut, duck/hop ('cut left, near' 5-8 px gap), the jump, thrusts | **open**, one item each |
+| 2026-11-20 | Sole meter: the post's top is an oval, a foot on its front part reads as off the post (false fault, 'wind-up' 390x844, agreed by the reviewer) | open, tool fix |
 | 2026-11-20 | Breath aimed at the frog / just beside it: the flame's big blast covers the frog (worst on phones) | **open**, the next breath polish |
 | 2026-11-20 | Breath straight up: the picked head is turned, the column leaves the mouth's side over one eye | open, nit |
 | 2026-11-20 | The mouth glow hides the tongue (could fade toward the back) | open, nit |
 | 2026-11-20 | Side view (cuts in profile): the drawn frog since v226 (art profile scrapped) | **open**, its own item: a new profile in the logo style, no scabbards on the back (katanas drawn) |
 | 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit | **Marek to say** whether the party wears the mascot costumes |
 | 2026-11-20 | Wind-up: the sleeve's highlight stops where the shoulder slope starts (faint seam, right arm) | open, nit |
-| 2026-11-20 | Curator tool: the on-screen timer and timing carry from one shot to the next; the sole meter misses the art's toed feet on phones | open, tool fix |
+| 2026-11-20 | Curator tool: the on-screen timer and timing carry from one shot to the next | open, tool fix (the sole meter now takes the drawn frog's whole width) |
 | 2026-11-20 | Stunned face, bump as bandana, munching, shoulders, overhead cut, feet on the post, post in the water, party sizes and footing | done (v225-v230) |
 
 ## The checklist
