@@ -1572,7 +1572,7 @@ export function mountFrogGame(stage, opts = {}) {
                 <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
                 <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
             root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
-                <g class="fg-art-capline">${SHOULDER.line === false ? '' : cap('#000', 22)}</g>
+                <g class="fg-art-capline">${SHOULDER.line === false && !SHOULDER.slope ? '' : cap('#000', 22)}</g>
                 <mask id="fg-shoulder-mask" maskUnits="userSpaceOnUse" x="-2000" y="-2000" width="6000" height="6000"><rect x="-2000" y="-2000" width="6000" height="6000" fill="#fff"/><polygon class="fg-slope-cutL" fill="#000"/><polygon class="fg-slope-cutR" fill="#000"/></mask>
                 <g mask="url(#fg-shoulder-mask)"><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${SHOULDER.patch ? '<ellipse cx="1412" cy="479" rx="88" ry="124" fill="#941c19"/>' : ''}${limbSvg('L')}${limbSvg('R')}
                 <polygon class="fg-slope-fillL" fill="#941c19"/><polygon class="fg-slope-fillR" fill="#941c19"/></g>
@@ -2022,9 +2022,12 @@ export function mountFrogGame(stage, opts = {}) {
                 const e1 = w(Q.hw, Q.d), e2 = w(-Q.hw, Q.d), E = e1[1] < e2[1] ? e1 : e2, on = E[1] > N[1] + 30;
                 const pts = a => a.map(v => n2(v[0]) + ',' + n2(v[1])).join(' ');
                 setA(q('.fg-slope-cut' + s), 'points', on ? pts([N, E, [E[0], E[1] - 700], [N[0], N[1] - 700]]) : '');
-                setA(q('.fg-slope-fill' + s), 'points', on ? pts([N, E, w(0, Q.d), [P[0], P[1] + 80], [N[0], P[1] + 80]]) : '');
+                setA(q('.fg-slope-fill' + s), 'points', on ? pts([N, E, w(0, Q.d), P]) : '');      // (a slim wedge: it never reaches the collar)
                 setA(q('.fg-slope-line' + s), 'd', on ? `M${n2(N[0])} ${n2(N[1])}L${n2(E[0])} ${n2(E[1])}` : '');
-                const cap = A.caps.find(c => c.classList.contains('fg-cap' + s)); setA(cap, 'opacity', on ? 0 : 1);
+                // arm raised: the full round cap with its outline (as before the slope; it reads clean with the arm up)
+                A.caps.filter(c => c.classList.contains('fg-cap' + s)).forEach(c => { const line = c.closest('.fg-art-capline');
+                    setA(c, 'opacity', on ? 0 : 1); setA(c, 'transform', `translate(${P[0]} ${P[1]})`);
+                    setA(c, 'rx', line ? 147 : 125); setA(c, 'ry', line ? 147 : 125); });
             });
         }
     }
