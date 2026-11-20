@@ -54,7 +54,9 @@ def main():
         r = sh('git', 'diff', '--quiet', sha, head, '--', 'static', quiet=True, check=False)
         return r.returncode == 0 and sh('git', 'merge-base', '--is-ancestor', sha, head, quiet=True, check=False).returncode == 0
     mine = [v for v in vs if v[1].get('after') and not v[1].get('after_dirty') and same_screen(v[1]['after'])]
-    stops = [v for v in vs if v[2].get('verdict') == 'STOP']
+    # the rounds of the item being shipped: STOPs since the last GO on this branch (a new item starts the count again)
+    last_go = max([k for k, v in enumerate(vs) if v[2].get('verdict') == 'GO'], default=-1)
+    stops = [v for v in vs[last_go + 1:] if v[2].get('verdict') == 'STOP']
     seen = {}
     for _, _, v in stops:
         for f in v.get('findings', []):
