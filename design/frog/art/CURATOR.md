@@ -40,6 +40,15 @@ The work goes item by item:
 
 Claude may suggest what is missing, but does not widen the item on its own. The Backlog below comes first.
 
+**The curator gates candidates too (Marek, 2026-11-20: "I would like the curator to step in").** No generated
+candidate goes to Marek on Claude's own proofread. Before an item's first round, a curator that did not make the
+images measures the base frog (the live 'ready' frog; the logo is seated, so face and style only) and writes the
+target spec: head : standing height, head : shoulders, torso, legs and arms : head, katana : head, bandana tails :
+head width, eye : head, each with a tolerance. That spec goes into the prompt as numbers. Every candidate is then
+measured against it and checked against the canon (head whole, bandana a full cap, limbs and katanas counted, the
+logo's eyes) and only the ones that pass are shown, with the curator's table (`curator-review.md` beside the
+candidates). Image generations and retouches are proposed to Marek and wait for his OK.
+
 - Every run names its **item** (`verdict.json`: `"item": "the seagull"`). The reviewer judges the item's shots and
   anything that got **worse** than live anywhere on screen. Those findings can block.
 - A fault that is already live and lies outside the item is **not** a blocker for this item: it goes into
@@ -246,6 +255,7 @@ between figures standing at about the same depth.
 | 2026-11-19 | Bar animals floating in front of the stools | dancer feet |
 | 2026-11-19 | A foot half off the post after "stand firmly on the post" | contact / feet on the post (measured) |
 | 2026-11-19 | The corgi as big as the llama | dancer heights against the table |
+| 2026-11-20 | Candidates shown to Marek with a chibi head, outsized bandana tails, and the top of the head sliced flat (the cap gone): proofread by eye against each other, not measured against the base frog | candidate head, head top, tails, the spec table |
 | 2026-11-20 | Empty scabbards on the back while the katanas are in its hands (scabbards only show with the katanas sheathed) | the frog's back, every cut and breath |
 
 A new kind of fault that Marek points out becomes a new line in the checklist and a new row here.
