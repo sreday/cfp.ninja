@@ -1969,7 +1969,9 @@ export function mountFrogGame(stage, opts = {}) {
         if (!on) return;
         const G = A.g, armed = pose.held && !pose.noBlades && !pose.stuck;
         // the face: thrown back to breathe straight up, mouth wide to breathe fire, dizzy when stunned
-        const face = pose.headUp ? 'back' : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
+        // (eating a kiwi or a plum is being busy munching, not stunned: the normal face, the jaw chewing; Marek 2026-11-20)
+        const eating = !!(headFx && headFx.mode === 'eat' && stunT > 0);
+        const face = pose.headUp ? 'back' : eating ? 'base' : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
         if (A.faceNow !== face) { for (const k in A.faces) setA(A.faces[k], 'opacity', k === face ? 1 : 0); A.faceNow = face; }
         if (face === 'stun') {
             // dizzy: each pupil rolls round its resting place, the two out of step (one each way)
@@ -1981,7 +1983,9 @@ export function mountFrogGame(stage, opts = {}) {
         // drawn standing: undo the rise the drawn frog makes as it gets up (the feet stay on the post)
         setA(A.root, 'transform', `translate(0 ${n2(pose.up * RISE)})`);
         setA(A.body, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
-        setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})`);
+        const chew = eating ? Math.abs(Math.sin(performance.now() / 1000 * 9)) : 0;     // munch, munch: the jaw squashes up and back
+        setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})` +
+            (chew ? ` translate(0 ${G.neck[1]}) scale(${n2(1 + chew * 0.03)} ${n2(1 - chew * 0.06)}) translate(0 ${-G.neck[1]})` : ''));
         setA(A.head, 'opacity', pose.noHead ? 0 : 1); setA(A.tail, 'opacity', pose.noHead ? 0 : 1);     // (a big fruit stuck over it)
         setA(A.tail, 'transform', `translate(${n2(hx * 0.6)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} ${G.knot[0]} ${G.knot[1]})`);
         const arm = (a, at, rot, stretch, k) => {
@@ -4424,9 +4428,9 @@ export function mountFrogGame(stage, opts = {}) {
                 if (k <= 0) continue;
                 ctx.save(); ctx.translate(0, 40 - n * BUMP_STEP * down);
                 ctx.beginPath(); ctx.moveTo(-w, 0); ctx.bezierCurveTo(-w, -tall * 1.25, w, -tall * 1.25, w, 0); ctx.closePath();
-                const g = ctx.createLinearGradient(0, -tall, 0, 0); g.addColorStop(0, '#ef5350'); g.addColorStop(0.55, '#e59a8f'); g.addColorStop(1, n ? '#e59a8f' : C.red);
-                ctx.fillStyle = g; ctx.fill(); ctx.lineWidth = LW; ctx.strokeStyle = '#000'; ctx.stroke();
-                ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.ellipse(-w * 0.3, -tall * 0.62, w * 0.2, tall * 0.13, -0.5, 0, 7); ctx.fill();
+                // (the bandana stays on: the bump pushes the red cloth up, never bare skin; Marek 2026-11-20)
+                ctx.fillStyle = '#941c19'; ctx.fill(); ctx.lineWidth = LW; ctx.strokeStyle = '#000'; ctx.stroke();
+                ctx.fillStyle = '#b5332b'; ctx.beginPath(); ctx.ellipse(-w * 0.32, -tall * 0.55, w * 0.22, tall * 0.2, -0.45, 0, 7); ctx.fill();
                 ctx.restore();
             }
         });
@@ -6288,7 +6292,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.lineWidth = 5; ctx.strokeStyle = '#000'; ctx.strokeText(demo.a.name, W / 2, H * 0.2); ctx.fillStyle = '#fff'; ctx.fillText(demo.a.name, W / 2, H * 0.2); ctx.restore();
         }
         drawHeadFx(lw);
-        if (stunT > 0) {
+        if (stunT > 0 && !(headFx && headFx.mode === 'eat')) {      // (no dizzy stars while it is just busy munching)
             const h = frogPoint(993, 150), rr = S() * 0.07;
             ctx.save(); ctx.globalAlpha = Math.min(1, stunT / 0.25);
             for (let i = 0; i < 4; i++) {
@@ -6442,6 +6446,7 @@ export function mountFrogGame(stage, opts = {}) {
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
             { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },
+            { name: 'eating a plum', anim: 'stunned by plum: eating it', at: 0.45 },
             { name: 'drunk', anim: 'drunk (sake)', at: 0.45 },
             { name: 'time freeze', anim: 'time freeze', at: 0.3, seated: true },
             { name: 'clock planning', anim: 'clock: planning, points up-right', at: 0.3, seated: true },
