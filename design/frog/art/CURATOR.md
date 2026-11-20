@@ -196,6 +196,8 @@ unless the state says otherwise (the "unless" column). Sources: `STYLE.md`, `SPE
 | A katana: one wrapped handle, one round guard, one straight single-edged blade; never a medieval sword, never two handles | never |
 | One size: the same head size in every pose and frame | never |
 | Stands on its post, both soles on the top face | the intro hop, a jump, falling, teetering, sitting |
+| Standing, its feet stay firmly in place: no idle bob, crouch or lean lifts or slides the soles (it reads as floating); the body breathes and crouches over planted feet (Marek, 2026-11-20) | jumping and mid-air poses (a hop, a jump, the planning hover, a fall) |
+| Katanas 20% longer than the first rig's (Marek, 2026-11-20) | never |
 | Seated pose = the logo itself: cross-legged, the laptop in its lap | never redrawn |
 | No ground shadow on the post | never |
 

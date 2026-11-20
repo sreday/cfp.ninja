@@ -271,7 +271,8 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
 const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 110 };
-const CUT_POSES = { cut: SIDESLASH_ART, down: DOWNCUT_ART };
+// (Marek 2026-11-20: the profile down cut 'needs to go - it's not good': downward cuts use the side slash until a new one is made)
+const CUT_POSES = { cut: SIDESLASH_ART, down: SIDESLASH_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -1596,7 +1597,7 @@ export function mountFrogGame(stage, opts = {}) {
             const armSvg = s => {
                 const q = p['sleeve' + s], flip = s === 'L' ? ' transform="scale(1 -1)"' : '';     // the left fist mirrored across the blade
                 return `<g class="fg-art-arm${s}">
-                    <g class="fg-art-held"><g transform="rotate(90)"><g${flip}>${im(p.sword, -p.sword.grip[0], -p.sword.grip[1])}</g></g></g>
+                    <g class="fg-art-held"><g transform="rotate(90)"><g${flip}><g transform="scale(${KATANA_LEN} 1)">${im(p.sword, -p.sword.grip[0], -p.sword.grip[1])}</g></g></g></g>
                     <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
             };
             const root = $('#fg-art');
@@ -1612,8 +1613,8 @@ export function mountFrogGame(stage, opts = {}) {
             // cut-off tube. A round cap at each pivot joins them: its outline under the body and sleeves (so only the outer
             // curve of the shoulder shows a line), its red over them (hiding the sleeve's top end and the seam), at any arm angle.
             const cap = (fill, grow) => ['L', 'R'].map(s => `<ellipse class="fg-cap${s}" rx="${SHOULDER.rx + grow}" ry="${SHOULDER.ry + grow}" fill="${fill}"/>`).join('');
-            // the empty scabbards stay on its back once the katanas are out (as in the intro's last frames):
-            // only their lower ends show, poking out past the hips behind the legs
+            // the scabbards on its back: seen only while the katanas are sheathed in them (Marek, 2026-11-20: once the
+            // katanas are in its hands, no scabbards show; see artFrog.saya in the pose)
             const saya = side => `<g transform="translate(${993 + side * SAYA.x} ${SAYA.y}) rotate(${-side * SAYA.a})">
                 <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
                 <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
@@ -1633,7 +1634,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (g.side) {
                 const sroot = $('#fg-art-side'), sw = p.sword, armOf = (n, cls) => { const q = p['p-' + n];
                     return `<g class="${cls}"><g class="fg-art-limb">${im(q, -q.pivot[0], -q.pivot[1])}</g>
-                        <g class="fg-art-held"><g transform="rotate(90)">${im(sw, -sw.grip[0], -sw.grip[1])}</g></g>
+                        <g class="fg-art-held"><g transform="rotate(90)"><g transform="scale(${KATANA_LEN} 1)">${im(sw, -sw.grip[0], -sw.grip[1])}</g></g></g>
                         <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`; };
                 const at = n => { const q = p['p-' + n]; return im(q, q.x, q.y); };
                 // (empty scabbards in profile: tried as two drawn sheaths, they read as chopsticks through the frog (the
@@ -1648,7 +1649,7 @@ export function mountFrogGame(stage, opts = {}) {
                     armB: { ...a2('fg-art-armB'), reach: p['p-armF'].reach }, armF: { ...a2('fg-art-armF'), reach: p['p-armN'].reach } };
             }
             const faces = Object.fromEntries(['base', 'fire', 'stun', 'back'].map(n => [n, root.querySelector('.fg-face-' + n)]).filter(e => e[1]));
-            artFrog = { g, root, on: false, side, faces, faceNow: 'base', body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
+            artFrog = { g, root, on: false, side, faces, faceNow: 'base', saya: root.querySelector('.fg-art-saya'), body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
         finally { artDone(); }
@@ -1857,7 +1858,15 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // the generated frog (ART.frog): filled in when its parts have loaded, see below
     let artFrog = null;
-    const SAYA = { x: 240, y: 800, a: 60, len: 760 };       // the empty scabbards behind the art frog: where they cross the hips, their tilt, how far they poke out
+    const SAYA = { x: 240, y: 800, a: 60, len: 760 };       // the scabbards behind the art frog (sheathed only): where they cross the hips, their tilt, how far they poke out
+    // Marek 2026-11-20: the katanas 20% longer in the base pose (stretched along the blade from the grip)
+    const KATANA_LEN = 1.2;
+    // ... and the head sits this much lower on the body (rig units): the chin covers the cream throat band that read as a double chin
+    const HEAD_DROP = 34;
+    // standing: the soles' line the breath and the crouch pivot on, and how far the breath reaches (rig units);
+    // hopT (a little hop's time left) is declared here too: applyPose runs once before the loop's variables further down
+    const FEET_Y = 1700, BREATH_SPAN = 1500;
+    let hopT = 0;
     let artIntro = null, introArtT = -1;     // the generated intro (ART.intro), and how far into it the frog is (-1: not playing)
     const READY = { l: 60, r: -60, lK: -30, rK: 30 };
     const REST = { l: -30, r: 30 };
@@ -1937,7 +1946,11 @@ export function mountFrogGame(stage, opts = {}) {
         // the upper body: up on its feet, leaning into the cut, squashing before a move; or tumbling off the post
         // (planning sits cross-legged on the post: its folded legs end above the standing soles' line, so it sits down onto the top)
         const rise = pose.up * RISE - (pose.plan ? PLAN_SIT : 0);
-        setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${pose.fallRot ? 1000 : 1300}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
+        // Standing, the feet stay firmly where they are (Marek, 2026-11-20: otherwise it looks like the frog is floating):
+        // the bob is a breath and the squash a crouch about the soles' line, the lean pivots on the feet. Only in the air
+        // (a hop, a jump, the planning hover, a fall) does the whole frog move.
+        if (frogAir()) setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${pose.fallRot ? 1000 : 1300}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
+        else setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(-rise)}) rotate(${n2(pose.lean)} 993 ${FEET_Y}) translate(993 ${FEET_Y}) scale(${n2(1 + pose.squash * 0.05)} ${n2((1 - pose.squash * 0.07) * (1 - pose.bob * U / BREATH_SPAN))}) translate(-993 ${-FEET_Y})`);
         const plan = !!pose.plan;
         setA(el.sit, 'opacity', pose.up > 0.5 || plan ? 0 : 1); setA(el.plan || (el.plan = $('#fg-plan')), 'opacity', plan ? 1 : 0);
         setA(el.robeSit, 'opacity', upNow || plan ? 0 : 1); setA(el.sleevesSit, 'opacity', upNow || plan ? 0 : 1);
@@ -2076,7 +2089,8 @@ export function mountFrogGame(stage, opts = {}) {
         setA(A.root, 'transform', `translate(0 ${n2(pose.up * RISE)})`);
         setA(A.body, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
         const chew = eating ? Math.abs(Math.sin(performance.now() / 1000 * 9)) : 0;     // munch, munch: the jaw squashes up and back
-        setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})` +
+        setA(A.saya, 'opacity', pose.held ? 0 : 1);
+        setA(A.head, 'transform', `translate(${n2(hx)} ${n2(-pose.breath * 9 + HEAD_DROP)}) rotate(${n2(pose.tilt + loll)} ${G.neck[0]} ${G.neck[1]})` +
             (chew ? ` translate(0 ${G.neck[1]}) scale(${n2(1 + chew * 0.03)} ${n2(1 - chew * 0.06)}) translate(0 ${-G.neck[1]})` : ''));
         setA(A.head, 'opacity', pose.noHead ? 0 : 1); setA(A.tail, 'opacity', pose.noHead ? 0 : 1);     // (a big fruit stuck over it)
         setA(A.tail, 'transform', `translate(${n2(hx * 0.6)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} ${G.knot[0]} ${G.knot[1]})`);
@@ -2605,7 +2619,7 @@ export function mountFrogGame(stage, opts = {}) {
         to.text = '+' + to.gain.toFixed(2).replace(/0$/, '') + 's' + (to.chain ? ' x' + (to.chain + 1) : '');
     }
     let slash = null;             // { side, t }
-    let blinkAt = 2, hopT = 0, pointer = null;
+    let blinkAt = 2, pointer = null;
     let flies = [], pickups = [], stars = [], flyT = 6, flyCatches = 0, clockCatches = 0;
     let pickT = { sake: 12, clock: 20 };                       // seconds until the next of each
     // Sake blade: a power-up slashed while drunk rubs off on the blade for the rest of the sake.
@@ -2750,9 +2764,12 @@ export function mountFrogGame(stage, opts = {}) {
     let tongue = null;            // { tx, ty, t, out, back, caught: { kind, obj } }
 
     // where the mouth and the head are on the canvas
+    // in the air (or falling) the whole frog moves; standing, its feet stay put (see applyPose)
+    function frogAir() { return !!(pose.plan || hopT > 0 || pose.jump > 1 || pose.sHop > 0 || pose.fallY || pose.fallRot || pose.artCut); }
     function frogPoint(lx, ly) {
-        // (follows the body as it stands up, bobs and shifts)
-        return { x: fbox.x + fbox.w * ((lx + pose.shift) / 1986), y: fbox.y + fbox.h * ((ly - pose.up * RISE) / 1876) + pose.bob * U * fbox.h / 1876 };
+        // (follows the body as it stands up, bobs and shifts; standing, the bob is a breath about the feet)
+        const by = frogAir() ? pose.bob * U : pose.bob * U * (FEET_Y - ly) / BREATH_SPAN;
+        return { x: fbox.x + fbox.w * ((lx + pose.shift) / 1986), y: fbox.y + fbox.h * ((ly - pose.up * RISE) / 1876) + by * fbox.h / 1876 };
     }
 
     // the eyes follow the nearest fruit (or the finger while slicing)
