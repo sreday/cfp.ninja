@@ -224,7 +224,8 @@ def main():
                       'same_as_before': cb is not None and ImageChops.difference(ca, cb).getbbox() is None}
                 if hs['part'] == 'feet on the post':
                     h2['feet'] = feet_support(ai, hs)
-                    if not A['air']:
+                    if hs.get('air'): h2['air'] = True     # (the game says it is off its feet right now: a hop in a cut)
+                    if not A['air'] and not hs.get('air'):
                         bad = [f for f in (h2['feet'] or []) if f['supported'] < 0.8 or abs(f['gap_px']) > 4]
                         if bad: h2['measured_fault'] = 'a sole is not on the post: ' + json.dumps(bad)
                         elif h2['feet'] is not None and not h2['feet']:

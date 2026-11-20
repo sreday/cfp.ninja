@@ -1717,6 +1717,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
+    const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
     // A leg in the air, drawn from its two joints: the thigh swung `thigh` degrees away from straight
     // down (toward `side`: -1 left, 1 right), the shin hanging `shin` degrees from straight down.
@@ -1828,7 +1829,8 @@ export function mountFrogGame(stage, opts = {}) {
         setA(el.laptop, 'opacity', L.gone ? 0 : 1);
         if (!L.gone) setA(el.laptop, 'transform', `translate(${n2(L.x * U)} ${n2(L.y * U)}) rotate(${n2(L.rot)} 993 1160)`);
         // the upper body: up on its feet, leaning into the cut, squashing before a move; or tumbling off the post
-        const rise = pose.up * RISE;
+        // (planning sits cross-legged on the post: its folded legs end above the standing soles' line, so it sits down onto the top)
+        const rise = pose.up * RISE - (pose.plan ? PLAN_SIT : 0);
         setA(el.all, 'transform', `translate(${n2(pose.shift)} ${n2(pose.bob * U - rise + pose.fallY)}) rotate(${n2(pose.lean + pose.fallRot)} 993 ${pose.fallRot ? 1000 : 1300}) translate(0 ${n2(pose.squash * 60)}) scale(${n2(1 + pose.squash * 0.05)} ${n2(1 - pose.squash * 0.07)})`);
         const plan = !!pose.plan;
         setA(el.sit, 'opacity', pose.up > 0.5 || plan ? 0 : 1); setA(el.plan || (el.plan = $('#fg-plan')), 'opacity', plan ? 1 : 0);
@@ -1937,7 +1939,9 @@ export function mountFrogGame(stage, opts = {}) {
         arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
     }
     // the drawn profile's seven leg sets, played by the four drawn for the art
-    const ART_LEGS = { level: 'level', up: 'level', down: 'crouch', tuck: 'tuck', lunge: 'lunge', leap: 'lunge' };
+    // (the hop plays the crouch: the drawn 'tuck' hangs its feet down on long bare ankles, so on a small hop
+    // the frog looked like it dangled from the post by its toes; the curator, 2026-11-20)
+    const ART_LEGS = { level: 'level', up: 'level', down: 'crouch', tuck: 'crouch', lunge: 'lunge', leap: 'lunge' };
     function artArm(a, at, rot, stretch, k, armed) {
         setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
         const s = clamp(stretch, 0.85, 1.15);
@@ -6415,7 +6419,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (A && A.side && A.side.on) out.push({ kind: 'joint', part: 'profile hip', ...rect(A.side.root.getBoundingClientRect()) });
                 if (artBg && artBg.postEl) {
                     const pb = artBg.postEl.getBoundingClientRect(), top = pb.top + pb.width * POST_CAP;
-                    out.push({ kind: 'contact', part: 'feet on the post', x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
+                    out.push({ kind: 'contact', part: 'feet on the post', air: pose.sHop > 60 || pose.jump > 1, x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
                         // the post's cut face: from its back rim to its front rim (the soles belong between them)
                         frog: { x0: Math.round(fr.left), x1: Math.round(fr.right) }, post: { top: Math.round(top), back: Math.round(pb.top + pb.width * 0.02), front: Math.round(pb.top + pb.width * 0.34), x0: Math.round(pb.left), x1: Math.round(pb.right) } });
                     out.push({ kind: 'seam', part: 'post', ...rect(pb) });
