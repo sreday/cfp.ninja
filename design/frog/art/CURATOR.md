@@ -49,6 +49,13 @@ measured against it and checked against the canon (head whole, bandana a full ca
 logo's eyes) and only the ones that pass are shown, with the curator's table (`curator-review.md` beside the
 candidates). Image generations and retouches are proposed to Marek and wait for his OK.
 
+**Less obvious poses (Marek, 2026-11-20): "adding some less obvious poses helps keep the style while not having to be
+pixel perfect".** A pose seen side-on, from behind, mid-hop, with a limb or a katana partly hidden or foreshortened, keeps
+the frog's style without every ratio being exact. So the spec's measures are hard limits for what a player reads at a
+glance (head size against the body, the canon: eyes, smile, cap, limb and katana counts, no scabbards) and softer for
+what such a pose hides or foreshortens (a far arm, a handle inside a fist, a torso seen from the side): note those, do not
+fail on them alone. Suggest such poses when a straight-on one keeps failing the spec.
+
 - Every run names its **item** (`verdict.json`: `"item": "the seagull"`). The reviewer judges the item's shots and
   anything that got **worse** than live anywhere on screen. Those findings can block.
 - A fault that is already live and lies outside the item is **not** a blocker for this item: it goes into
