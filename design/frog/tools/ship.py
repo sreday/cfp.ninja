@@ -3,15 +3,15 @@
 
     python3 design/frog/tools/ship.py            # from a branch, everything committed
 
-1. scenario tests (art and ?art=old) and a short monkey soak
-2. push the branch, wait for CI
+1. push the branch (CI starts on GitHub), scenario tests (art and ?art=old, side by side) and a 30 s monkey soak
+2. wait for the branch's CI (--full: one after the other, 1-minute soak)
 3. the art curator's verdict: a GO for this exact commit (verdict.json in a curator run whose
    "after" is this commit, written by a reviewer that did not make the change). On STOP, or no
    verdict yet, it stops here and says what is open.
    Too many rounds (the same finding 3 times, or 4 STOPs on this branch): it stops and prints the
    eyeball request for Marek instead (the board, each open item). His "looks fine" goes into the
    verdict's "accepted"; that item then counts as cleared.
-4. fast-forward main to the branch, push it, wait for CI, git push heroku main, check the live
+4. fast-forward main to the judged commit, push it, git push heroku main, check the live
    files are the ones in the repo.
 """
 import glob, json, os, subprocess, sys
@@ -80,25 +80,34 @@ def main():
             for f in open_items: print(f'- {f.get("shot")} @ {f.get("size")}: {f.get("what")}')
             sys.exit(1)
 
-    print('1/4 scenario tests'); r = sh(sys.executable, os.path.join(HERE, 'scenario_test.py'), quiet=True, check=False)
-    if 'FAIL' in r.stdout or r.returncode: print(r.stdout[-2000:]); sys.exit('stopped: scenario tests')
-    env = dict(os.environ, FROG_QUERY='?art=old')
-    r = sh(sys.executable, os.path.join(HERE, 'scenario_test.py'), quiet=True, check=False, env=env)
-    if 'FAIL' in r.stdout or r.returncode: print(r.stdout[-2000:]); sys.exit('stopped: scenario tests (?art=old)')
-    print('   monkey soak'); r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1', quiet=True, check=False)
+    # The checks run side by side (Marek, 2026-11-20: a ship took 15-20 min): CI on GitHub starts at once, the two
+    # scenario suites (art and ?art=old) run together, then a short soak; CI on main is the same commit, so only the
+    # branch's CI is waited for. --full: the old, slower, one-after-the-other order with the 1-minute soak.
+    import time
+    t0 = time.time(); full = '--full' in sys.argv
+    print('1/4 tests, and CI on GitHub alongside'); sh('git', 'push', '-q', '-u', 'origin', branch)
+    scen = [subprocess.Popen([sys.executable, os.path.join(HERE, 'scenario_test.py')], cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                             env=dict(os.environ, FROG_QUERY=q) if q else None) for q in ('', '?art=old')]
+    if full: [p.wait() for p in scen]
+    outs = [p.communicate()[0] for p in scen]
+    for q, out, p in zip(('art', '?art=old'), outs, scen):
+        if 'FAIL' in out or p.returncode: print(out[-2000:]); sys.exit(f'stopped: scenario tests ({q})')
+    print(f'   scenario tests ok ({time.time() - t0:.0f} s); monkey soak')
+    r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1' if full else '0.5', quiet=True, check=False)
     if 'RESULT: PASS' not in r.stdout: print(r.stdout[-2000:]); sys.exit('stopped: monkey soak (rerun once if it was the harness losing Chrome)')
-    print('2/4 CI on the branch'); sh('git', 'push', '-q', '-u', 'origin', branch)
+    print(f'2/4 CI on the branch ({time.time() - t0:.0f} s)')
     ci(branch, head)
     print('3/4 curator: GO')
     print('4/4 deploy'); sh('git', 'checkout', '-q', 'main'); sh('git', 'pull', '-q', '--rebase', '--autostash')
     sh('git', 'merge', '-q', '--ff-only', head)     # the judged commit only, never what the branch moved on to since
-    sh('git', 'push', '-q', 'origin', 'main'); ci('main', head)
+    sh('git', 'push', '-q', 'origin', 'main')        # (main's CI runs the same commit the branch's CI passed: not waited for)
     r = sh('git', 'push', 'heroku', 'main', quiet=True); print([l for l in (r.stdout + r.stderr).splitlines() if 'Released' in l])
     changed = sh('git', 'diff', '--name-only', 'HEAD@{1}', 'HEAD', '--', 'static', quiet=True, check=False).stdout.split()
     for f in [c for c in changed if os.path.exists(os.path.join(REPO, c))][:12]:
         live = subprocess.run(['curl', '-s', 'https://cfp.ninja/' + f[len('static/'):]], capture_output=True).stdout
         print(('live ok   ' if live == open(os.path.join(REPO, f), 'rb').read() else 'LIVE DIFF ') + f)
     sh('git', 'checkout', '-q', branch)
+    print(f'live in {time.time() - t0:.0f} s')
 
 
 def ci(branch, head):
