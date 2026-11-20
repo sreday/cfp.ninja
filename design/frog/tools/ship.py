@@ -93,7 +93,10 @@ def main():
     for q, out, p in zip(('art', '?art=old'), outs, scen):
         if 'FAIL' in out or p.returncode: print(out[-2000:]); sys.exit(f'stopped: scenario tests ({q})')
     print(f'   scenario tests ok ({time.time() - t0:.0f} s); monkey soak')
-    r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1' if full else '0.5', quiet=True, check=False)
+    # (the 120 power-up pairs take ~7 min: gameplay changes only. An art item ships with the plain soak; --full or
+    #  --pairs runs them)
+    pairs = full or '--pairs' in sys.argv
+    r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1' if full else '0.5', *([] if pairs else ['--no-pairs']), quiet=True, check=False)
     if 'RESULT: PASS' not in r.stdout: print(r.stdout[-2000:]); sys.exit('stopped: monkey soak (rerun once if it was the harness losing Chrome)')
     print(f'2/4 CI on the branch ({time.time() - t0:.0f} s)')
     ci(branch, head)
