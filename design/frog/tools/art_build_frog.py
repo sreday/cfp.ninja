@@ -14,9 +14,11 @@ and prints the line for the game's ART table.
 Placement comes from the picked frog itself (candidates/1.1/unhinged-2.png): each part was matched
 back onto it (art_cut_frog.py notes), so the rest pose re-assembles the drawing Marek picked.
 """
-import argparse, hashlib, io, json, os, re
+import argparse, hashlib, io, json, os, re, sys
 import numpy as np
 from PIL import Image
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from desk_path import desk  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -128,7 +130,7 @@ def build_heads(geo, put, P):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--parts', default=os.path.expanduser('~/Desktop/Frog Ninja art desk/candidates/1.1-rig/parts'))
+    ap.add_argument('--parts', default=desk('candidates/1.1-rig/parts'))
     a = ap.parse_args()
     P = a.parts
     geo = {'viewBox': [0, 0, 1986, 1876], 'parts': {}}

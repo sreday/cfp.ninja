@@ -27,6 +27,8 @@ Needs numpy and Pillow only.
 import argparse, hashlib, io, json, os, sys
 import numpy as np
 from PIL import Image, ImageFilter
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from desk_path import desk  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -85,7 +87,7 @@ def save(name, data, ext):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--build', default=os.path.expanduser('~/Desktop/Frog Ninja art desk/build'))
+    ap.add_argument('--build', default=desk('build'))
     a = ap.parse_args(); B = lambda f: os.path.join(a.build, f)
 
     plate = Image.open(B('plate-2x.png')).convert('RGB'); W, H = plate.size

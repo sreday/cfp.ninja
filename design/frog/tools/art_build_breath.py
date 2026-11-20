@@ -14,12 +14,14 @@ import numpy as np
 from PIL import Image, ImageFilter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from art_build_bg import keyed      # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from desk_path import desk  # noqa: E402
 
 DESK = os.path.expanduser('~/Desktop/Frog Ninja art desk')
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'static/img/game/frog')
 
 def main():
-    im = keyed(os.path.join(DESK, 'candidates/breath/clean-2.png'))
+    im = keyed(desk('candidates/breath/clean-2.png'))
     im = im.crop(im.getbbox())
     A = np.asarray(im).astype(int); a = A[..., 3] > 128
     r, g, b = A[..., 0], A[..., 1], A[..., 2]

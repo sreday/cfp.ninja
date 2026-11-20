@@ -9,13 +9,14 @@ and an eye mask, so the game draws the pupils itself and rolls them around in th
 Reads the head part (candidates/1.1-rig/parts/head.png on the art desk); writes hashed files to static/img/game/frog/
 and prints the ART line and the pupil geometry (head px) for frog-game.js.
 """
-import hashlib, json, os
+import hashlib, json, os, sys
 import numpy as np
 from PIL import Image, ImageFilter, ImageDraw
-DESK = os.path.expanduser('~/Desktop/Frog Ninja art desk')
-HEAD = os.path.join(DESK, 'candidates/1.1-rig/parts/head.png')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from desk_path import desk  # noqa: E402
+HEAD = desk('candidates/1.1-rig/parts/head.png')
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'static/img/game/frog')
-import numpy as np, sys
+import numpy as np
 from PIL import Image, ImageFilter
 im=Image.open(HEAD).convert('RGBA'); A=np.asarray(im).astype(np.float32); H,W=A.shape[:2]
 yy,xx=np.mgrid[0:H,0:W].astype(np.float32)

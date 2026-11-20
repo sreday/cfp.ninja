@@ -17,6 +17,8 @@ from PIL import Image
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from art_build_bg import components          # noqa: E402
 from art_build_frog import hashed, OUT       # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from desk_path import desk  # noqa: E402
 
 FEET = 1700
 EYES_X = 1000                    # the eyes' midpoint (the logo's is at 1009; the rig's head is centred on 993)
@@ -71,7 +73,7 @@ def webp(img, w_units, h_units):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--parts', default=os.path.expanduser('~/Desktop/Frog Ninja art desk/candidates/intro/parts'))
+    ap.add_argument('--parts', default=desk('candidates/intro/parts'))
     a = ap.parse_args()
     P = lambda n: Image.open(os.path.join(a.parts, n + '.png')).convert('RGBA')
     logo = P('logo')
