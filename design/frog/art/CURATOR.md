@@ -49,16 +49,15 @@ Claude may suggest what is missing, but does not widen the item on its own. The 
 
 ## Backlog (faults already live, each a future item)
 
-| found | what | needs |
+| found | what | status |
 |---|---|---|
-| 2026-11-20 | Breath poses: the katanas "stuck in the post" float in front of the fire and the frog; the old drawn katana has a flat bar guard (reads as a medieval sword) | the breath poses' art, layering |
-| 2026-11-20 | Breath at the camera on phones: the blast covers the whole frog and the post | breath art / size |
-| 2026-11-20 | Cut overhead: the old drawn frog in a crane stance, one foot ~20 px over the post | the overhead pose's art |
-| 2026-11-20 | Stunned: spiral eyes (canon: crossed eyes; spirals are drunk) | stunned head art |
-| 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit (Marek to say whether the party wears the mascot costumes) | ruling, then dancer art |
-| 2026-11-20 | No empty scabbards on the back in profile (drawn-on sheaths read as chopsticks) | drawn into the profile art |
-| 2026-11-20 | The llama's outline is a reddish beaded rim, not the black outline of the others | dancer art retouch |
-| 2026-11-20 | The curator's neck crop aims at the belt | curator fix |
+| 2026-11-20 | Breath poses: the art breath broke the style; the stuck katanas floated, the blast covers the frog on phones | rolled back to the drawn frog (Marek); **next: new breath art, as its own item** |
+| 2026-11-20 | Cut overhead: the old drawn frog in a crane stance, one foot off the post | done: stands on the post, the art frog with its arms up |
+| 2026-11-20 | Stunned: spiral eyes (canon: crossed eyes) | crossed-eye heads made, **Marek to pick** (candidates/1.3-heads/stun-cross) |
+| 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit | **Marek to say** whether the party wears the mascot costumes |
+| 2026-11-20 | No empty scabbards on the back in profile | belongs to the profile rebuild (the current profile is the rejected one), its own item |
+| 2026-11-20 | The llama's outline was a reddish beaded rim | done: cleaned in the dancer build |
+| 2026-11-20 | The curator's neck crop aimed at the belt | done |
 
 ## The checklist
 
