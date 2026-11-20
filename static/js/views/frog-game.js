@@ -1479,6 +1479,9 @@ export function mountFrogGame(stage, opts = {}) {
     // The frog stands ON the post: its feet (y 1700 of the frog's drawing) go on the middle of the post's
     // top (the cut face of the generated post is about the top 100/413 of its width). The frog and the post
     // are sized by different rules, so the gap differs per screen: measured and closed on every resize.
+    // The post was widened (0.8 -> 1.1 of its old size) so both soles fit on its top; its waterline stays where
+    // it was on screen (a wider stump in the same water), or the ring would sink below the bottom of a desktop screen.
+    const POST_WET = 0.8 / 1.1;
     const POST_CAP = 72 / 413;      // a little in front of the middle of the cut face: the soles sit on it, not on its back rim
     function snapToPost() {
         const pe = artBg && artBg.postEl;
@@ -1504,10 +1507,14 @@ export function mountFrogGame(stage, opts = {}) {
             if (artBg.ringEl) {
                 // the ring sits where the post's wet band starts, centred on it, twice its width
                 const pe = artBg.postEl, sb = stage.getBoundingClientRect(), pb = pe.getBoundingClientRect();
-                const rw = pb.width * 2.1, rh = rw * artBg.ringEl.height / artBg.ringEl.width, wy = pb.top - sb.top + artBg.g.post.water * pb.width;
+                const rw = pb.width * 2.1, rh = rw * artBg.ringEl.height / artBg.ringEl.width, wy = pb.top - sb.top + artBg.g.post.water * pb.width * POST_WET;
                 const at = { left: (pb.left - sb.left + pb.width / 2 - rw / 2) + 'px', top: (wy - rh * 0.5) + 'px', width: rw + 'px', height: rh + 'px' };
                 Object.assign(artBg.ringEl.style, at); if (artBg.ringBack) Object.assign(artBg.ringBack.style, at);
                 artBg.waterY = wy;
+                // the post ends under the water: cut just below the waterline, where the ring's front arc covers the cut
+                // (below it the sea is the plate's own; a see-through post down there read as a faint rectangle)
+                pe.style.clipPath = `inset(0 0 ${Math.max(0, Math.round(pb.bottom - sb.top - (wy + rh * 0.22)))}px 0)`;
+                artBg.postBox = { x: pb.left - sb.left, y: pb.top - sb.top, w: pb.width, h: pb.height };   // (the water front skips its dry part)
                 if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
             }
         }
@@ -1683,16 +1690,25 @@ export function mountFrogGame(stage, opts = {}) {
         const a = artBg, c = a.waveEl.getContext('2d'), t = now / 1000, pw = a.postEl.getBoundingClientRect().width || 60;
         c.setTransform(a.k, 0, 0, a.k, 0, 0); c.clearRect(0, 0, W, H);
         const amp = Math.max(2, pw * 0.05), lam = Math.max(40, pw * 0.9);
+        // The post stands IN the water: above the ring it is dry wood (no band crosses it); below, it is cut off
+        // under the ring's front arc (see resize). The bands fade out downward: a band with a flat bottom
+        // drew a hard straight line through the post (the "post cut in half" blooper, 2026-11-19).
+        const P = a.postBox, wave = (x, y0, off) => y0 + Math.sin((x + off) / lam * 6.283) * amp;
+        c.save();
+        if (P) { c.beginPath(); c.rect(0, 0, W, H); c.rect(P.x + P.w, P.y - 4, -P.w, a.waterY - P.y + 4); c.clip('evenodd'); }
         WAVE_BANDS.forEach(([depth, speed, op], i) => {
             const y0 = a.waterY + depth * pw; if (y0 > H + amp || y0 < 0) return;
-            const off = t * speed * lam * 2.2 + i * 37, step = lam / 6;
-            // the crest: a band of lighter water with a cream foam line on top, broken into dashes
-            c.globalAlpha = op * 0.55; c.fillStyle = '#3f8f98';
-            c.beginPath(); c.moveTo(-lam, H);
-            for (let x = -lam; x <= W + lam; x += step) c.lineTo(x, y0 + Math.sin((x + off) / lam * 6.283) * amp);
-            c.lineTo(W + lam, y0 + amp * 3); c.lineTo(-lam, y0 + amp * 3); c.closePath(); c.fill();
+            const off = t * speed * lam * 2.2 + i * 37, step = lam / 6, y1 = y0 + amp * 3;
+            // the crest: a band of lighter water, fading out below (no edge)
+            const g = c.createLinearGradient(0, y0 - amp, 0, y1);
+            g.addColorStop(0, `rgba(63,143,152,${op * 0.55})`); g.addColorStop(1, 'rgba(63,143,152,0)');
+            c.fillStyle = g;
+            c.beginPath(); c.moveTo(-lam, y1);
+            for (let x = -lam; x <= W + lam; x += step) c.lineTo(x, wave(x, y0, off));
+            c.lineTo(W + lam, y1); c.closePath(); c.fill();
             // (no foam dashes on top: Marek 2026-11-19, they looked cheap)
         });
+        c.restore();
         c.globalAlpha = 1;
     }
     // the trail's glow is drawn opaque here, then laid over the game at one alpha
