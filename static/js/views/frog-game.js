@@ -247,6 +247,13 @@ const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's 
 // the pupils rest (Marek's pick: one eye up and out, one down and in), how big, the shine on each, how far they roll
 const STUN_ART = { face: '/img/game/frog/stun-face.20f8e0b3bb.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
     pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
+// breathing fire (Marek's pick 2026-11-20, built by design/frog/tools/art_build_breath.py; picture px): the frog with its
+// mouth open, fists up, the katanas stuck in the post; the game draws the flame from 'mouth' and fills the mouth with its
+// light (Marek: so the fire comes from inside). Sized to the rig: the soles on the rig's feet line, the bandana's top on
+// the rig's head top.
+const BREATH_ART = { url: '/img/game/frog/breath.b9873752bb.webp', mouthMask: '/img/game/frog/breath-mouth.d19a52b4bc.png', size: [628, 498],
+    feet: 490, top: 32, mid: 342, mouth: [409, 149], mouthBox: [242, 113, 421, 202], rigFeet: 1701, rigTop: -290.7 };
+const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.feet - BREATH_ART.top);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -505,6 +512,7 @@ const frogSvg = pal => { P = pal; const svg = `
         ${arm('fg-armL')}
         ${arm('fg-armR')}
         <g id="fg-art"></g>
+        <g id="fg-art-breath"></g>
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
@@ -1535,11 +1543,22 @@ export function mountFrogGame(stage, opts = {}) {
     // The scene stays hidden until its generated art is in (background, frog, intro), so the old
     // drawn scene never flashes up first; it fades in once all of it has loaded. If the art fails, or
     // takes longer than ART_WAIT_MS, the scene shows with whatever is there (the drawn fallbacks).
+    let artBreath = null;                                      // the breath frog (see artBreathPose)
     const ART_WAIT_MS = 8000;
     let artLeft = [ART.bg, ART.frog, ART.intro].filter(Boolean).length;
     const artShow = () => { artLeft = 0; stage.classList.remove('fg-art-wait'); };
     const artDone = () => { if (--artLeft <= 0) artShow(); };
     if (artLeft) { stage.classList.add('fg-art-wait'); setTimeout(artShow, ART_WAIT_MS); }
+    if (ART.frog) {
+        const Q = BREATH_ART, root = $('#fg-art-breath'), [bx0, by0, bx1, by1] = Q.mouthBox;
+        root.innerHTML = `<defs><radialGradient id="fg-breath-glow" gradientUnits="userSpaceOnUse" cx="${Q.mouth[0] - 25}" cy="${Q.mouth[1] + 4}" r="${(bx1 - bx0) * 0.75}">
+                <stop offset="0"/><stop offset="0.45"/><stop offset="1"/></radialGradient>
+            <mask id="fg-breath-mouth" maskUnits="userSpaceOnUse" x="0" y="0" width="${Q.size[0]}" height="${Q.size[1]}"><image href="${Q.mouthMask}" width="${Q.size[0]}" height="${Q.size[1]}"/></mask></defs>
+            <image href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>
+            <rect class="fg-breath-glow" mask="url(#fg-breath-mouth)" x="${bx0 - 4}" y="${by0 - 4}" width="${bx1 - bx0 + 8}" height="${by1 - by0 + 8}" fill="url(#fg-breath-glow)"/>`;
+        artBreath = { root, on: false, ready: false, glow: root.querySelector('.fg-breath-glow'), stops: [...root.querySelectorAll('stop')] };
+        Promise.all([Q.url, Q.mouthMask].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artBreath.ready = true; });
+    }
     if (ART.frog) (async () => {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
@@ -1864,7 +1883,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
         setA(el.armR, 'opacity', pose.chop ? 0 : 1);
         setA(el.side, 'opacity', sideOn ? 1 : 0);
-        setA(el.all, 'opacity', sideOn ? 0 : 1);
+        setA(el.all, 'opacity', sideOn && !artBreathOn() ? 0 : 1);      // (the breath frog lives in #fg-all and stands in for the profile too)
         if (sideOn) {
             // (breathing fire: the drawing is narrowed in steps, the more the frog is turned toward us)
             const turnX = pose.sTurn && pose.sTurn < 1 ? ` translate(993 0) scale(${n2(pose.sTurn)} 1) translate(-993 0)` : '';
@@ -1939,6 +1958,7 @@ export function mountFrogGame(stage, opts = {}) {
         const gl = n2(pose.glint);
         el.glints.forEach(g => setA(g, 'opacity', gl));
         if (artIntro) artIntroPose(sideOn);
+        artBreathPose();
         if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
     }
     // The intro, drawn: while the frog sits (before the first run, or with the laptop to call its
@@ -1948,6 +1968,27 @@ export function mountFrogGame(stage, opts = {}) {
     // holds them crossed overhead, and the rigged frog takes over on its feet.
     const INTRO_KEYS = [[0.2, 'logo'], [0.45, 'hop'], [0.75, 'overhead'], [1.25, 'thrown'], [1.7, 'draw'], [Infinity, 'crossed']];
     const LAP_FLY = [0.75, 1.15];             // the laptop leaves the hands, and how long it is in the air
+    // Breathing fire: the picked breath frog in place of the drawn one (any aim; mirrored when the flame goes left)
+    const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
+    function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
+    function artBreathPose() {
+        const B = artBreath; if (!B) return;
+        const on = artBreathOn();
+        if (on !== B.on) { B.on = on; svg.classList.toggle('fg-art-breath-on', on); }
+        if (!on) return;
+        const k = breathK(), f = breathFlip(), Q = BREATH_ART;
+        setA(B.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${Q.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        // the fire's light in the mouth: hottest at the throat, flickering; yellow on sake, blue-white when hacking
+        const t = performance.now() / 1000, fl = 0.82 + 0.12 * Math.sin(t * 31) + 0.06 * Math.sin(t * 53 + 1);
+        const c = fireSlow ? ['#e8fbff', '#7fd8ff', '#2a7fff'] : sakeLeft > 0 ? ['#fffbe0', '#ffe14a', '#f0a800'] : ['#fff3c0', '#ffb12e', '#e8401c'];
+        if (B.tint !== c[1]) { B.stops.forEach((e, i) => setA(e, 'stop-color', c[i])); B.tint = c[1]; }
+        setA(B.glow, 'opacity', n2(fl));
+    }
+    function mouthArt() {
+        const k = breathK(), f = breathFlip(), Q = BREATH_ART;
+        const x = 993 + f * (Q.mouth[0] - Q.mid) * k, y = Q.rigFeet - (Q.feet - Q.mouth[1]) * k;
+        return { x: fbox.x + fbox.w * x / 1986, y: fbox.y + fbox.h * y / 1876 };
+    }
     function artIntroPose(sideOn) {
         const I = artIntro, t = introArtT;
         const on = !sideOn && pose.up < 0.5 && !pose.fallY && (t >= 0 || !pose.laptop.gone);
@@ -3622,6 +3663,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // where the mouth is on screen, for whichever drawing of the frog is showing
     function mouthPoint() {
+        if (artBreathOn()) return mouthArt();          // the picked breath frog: its own open mouth
         const S = artFrog && artFrog.side;
         if (pose.side && pose.up > 0.5 && S && S.on && artFrog.g.expr && artFrog.g.expr.side.fire) {
             // the generated profile: its own mouth (relative to its hip), turned with the top half, never narrowed
@@ -3776,7 +3818,7 @@ export function mountFrogGame(stage, opts = {}) {
         // a fruit that stays in it for BURN_TIME seconds in a row explodes
         const on = fireLeft > 0 && phase === 'play';
         const atUs = on && fireAtUs();
-        const m = on ? (atUs ? frogPoint(993, MOUTH_Y) : mouthPoint()) : null;
+        const m = on ? (atUs && !artBreathOn() ? frogPoint(993, MOUTH_Y) : mouthPoint()) : null;
         let aimA = 0, reach = 0;
         if (on) {
             fireLeft = Math.max(0, fireLeft - dt); if (fireLeft <= 0) { snd('fire_end'); fireFw = false; if (!breathBurns && !dbg) letdown('wasted', 'breath'); breathBurns = 0; }
@@ -6349,7 +6391,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.restore();
         });
         // breathing fire: both katanas stand in the top of the post, one at each side of the frog
-        const stuckNow = pose.stuck && !dropped.length ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
+        const stuckNow = pose.stuck && !dropped.length && !artBreathOn() ? [-1, 1].map(sd => ({ x: W / 2 + sd * fbox.w * 0.2, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: 0, stuck: Math.max(breathT, 0.0001) })) : [];
         // on sake the hand with the bottle has put its katana down: it stands in the top of the post, leaning out at 45 degrees
         const parked = !stuckNow.length && !dropped.length && !pose.plan && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
         parkT = parked ? parkT + 1 / 60 : 0;
