@@ -243,6 +243,10 @@ const DANCER_WHO = ['fox', 'cat', 'bear', 'raccoon', 'wolf', 'llama', 'corgi', '
 const DANCER_SIZE = { llama: 1, bear: 0.85, flamingo: 0.7, wolf: 0.6, fox: 0.45, monkey: 0.4, penguin: 0.4, raccoon: 0.35, platypus: 0.3, cat: 0.3, rabbit: 0.3, corgi: 0.3 };
 const LLAMA_AT_FIRE = 240;      // plate px: the llama's height standing by the bonfire; nearer is bigger, further smaller
 const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's perspective, 1 at the bonfire
+// the stunned face (built by design/frog/tools/art_build_stun.py; head px): the face without its pupils, the eye mask, where
+// the pupils rest (Marek's pick: one eye up and out, one down and in), how big, the shine on each, how far they roll
+const STUN_ART = { face: '/img/game/frog/stun-face.fd3d1fe435.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
+    pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -1540,7 +1544,7 @@ export function mountFrogGame(stage, opts = {}) {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
             // load every part first, so the frog never shows half drawn
-            await Promise.all(Object.values(p).map(q => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = q.href; })));
+            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
             if (dead) return;
             const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
             const armSvg = s => {
@@ -1550,6 +1554,13 @@ export function mountFrogGame(stage, opts = {}) {
                     <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
             };
             const root = $('#fg-art');
+            // Stunned (Marek's pick, 2026-11-20): the frog's own head, the pupils taken out and drawn here so they roll around
+            // in the eyes (an eye mask keeps them inside, under the bandana's edge), a tongue hanging from the grin
+            const stunFace = () => { const S = STUN_ART, k = p.head.w / S.size[0], pu = S.pupils.map((c, i) => `<g class="fg-pupil">
+                    <circle r="${S.r}"/><circle cx="${S.shine[0]}" cy="${S.shine[1]}" r="${S.shineR}" fill="#fff"/></g>`).join('');
+                return `<g class="fg-face-stun" opacity="0"><g transform="translate(${p.head.x} ${p.head.y}) scale(${n2(k)})">
+                    <mask id="fg-stun-eyes" maskUnits="userSpaceOnUse" x="0" y="0" width="${S.size[0]}" height="${S.size[1]}"><image href="${S.eyes}" width="${S.size[0]}" height="${S.size[1]}"/></mask>
+                    <image href="${S.face}" width="${S.size[0]}" height="${S.size[1]}"/><g mask="url(#fg-stun-eyes)">${pu}</g></g></g>`; };
             // Shoulders (the "tube shoulders" blooper, 2026-11-19): a sleeve's top end sat on the side of the chest as a
             // cut-off tube. A round cap at each pivot joins them: its outline under the body and sleeves (so only the outer
             // curve of the shoulder shows a line), its red over them (hiding the sleeve's top end and the seam), at any arm angle.
@@ -1562,7 +1573,7 @@ export function mountFrogGame(stage, opts = {}) {
             root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
                 <g class="fg-art-capline">${SHOULDER.line === false ? '' : cap('#000', 22)}</g><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${SHOULDER.patch ? '<ellipse cx="1412" cy="479" rx="88" ry="124" fill="#941c19"/>' : ''}${armSvg('L')}${armSvg('R')}<g class="fg-art-cap">${cap('#941c19', 0)}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
-                .map(n => `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
+                .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
                 return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
             // the profile: legs (one set shown), then the top half turning at the hip: far arm, torso, tails, head, near arm
@@ -1960,6 +1971,13 @@ export function mountFrogGame(stage, opts = {}) {
         // the face: thrown back to breathe straight up, mouth wide to breathe fire, dizzy when stunned
         const face = pose.headUp ? 'back' : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
         if (A.faceNow !== face) { for (const k in A.faces) setA(A.faces[k], 'opacity', k === face ? 1 : 0); A.faceNow = face; }
+        if (face === 'stun') {
+            // dizzy: each pupil rolls round its resting place, the two out of step (one each way)
+            A.pupils = A.pupils || [...A.root.querySelectorAll('.fg-pupil')];
+            const t = performance.now() / 1000, R = STUN_ART.roll;
+            A.pupils.forEach((e, i) => { const [x, y] = STUN_ART.pupils[i], a = (i ? -1 : 1) * t * 5 + i * 2;
+                setA(e, 'transform', `translate(${n2(x + Math.cos(a) * R)} ${n2(y + Math.sin(a) * R * 0.8)})`); });
+        }
         // drawn standing: undo the rise the drawn frog makes as it gets up (the feet stay on the post)
         setA(A.root, 'transform', `translate(0 ${n2(pose.up * RISE)})`);
         setA(A.body, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
