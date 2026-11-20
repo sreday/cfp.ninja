@@ -250,7 +250,7 @@
    "notes": "First plan: shallows, pebbles, foam line, maybe drink cups in the sand. In front of the sea, behind the frog. Must work from a 390 px phone to a wide monitor (shore line at a fixed height from the bottom). | 2026-11-19 (Marek): rock stacks and the foam dashes removed; the post now shows over the ring's far arc. LATER, after the fruit rework: bowls in the two bottom corners, same style as the rest, that stack up with the chunks as fruit is sliced.",
    "phase": 2,
    "format": "svg",
-   "status": "todo",
+   "status": "prompting",
    "current": "current/5.3.png",
    "prompts": [],
    "candidates": [
