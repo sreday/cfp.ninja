@@ -271,9 +271,10 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
 const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 110 };
-// (Marek 2026-11-20: the hop side slash goes, 'I wanted the other one to stay': the profile frog (DOWNCUT_ART) is the cut
-//  for level and downward strokes alike; SIDESLASH_ART is kept only for its numbers)
-const CUT_POSES = { cut: DOWNCUT_ART, down: DOWNCUT_ART };
+// Marek 2026-11-20: 'I want two to stay - the one behind the back and the one with frog stretched'; the profile down cut
+// goes. Level cuts: the stretched lunge (CUT_ART, feet on the post); downward cuts: the hop with its back half to us
+// (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -6578,7 +6579,7 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
-                .map(n => ({ name: n, anim: n, at: 0.12 })),
+                .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut down(-left)?, far$/.test(n) })),     // (a downward cut is the hop: in the air on purpose)
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
