@@ -264,9 +264,11 @@ const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 // the down cut (Marek's pick 2026-11-20 'down cut 3', same builder): the slim, swift frog in full profile running into a
 // downward cut, front katana level at hip height, back one raised. Sized to the side cut by the eye's height (it stays the
 // same when the head turns): one frog, one size.
-const DOWNCUT_ART = { url: '/img/game/frog/downcut.20591d8594.webp', size: [1152, 682], feet: 673, top: 62, mid: 390, eyeH: 81 };
+// Marek 2026-11-20: it read smaller and thinner-lined than the rest of the frog (the slim body covers ~9% less, lines 3 px
+// against 5 at 1920): lines thickened in the build, and drawn 10% bigger (grow; the curator allows 15% for one size)
+const DOWNCUT_ART = { url: '/img/game/frog/downcut.72fedba947.webp', size: [1157, 688], feet: 674, top: 67, mid: 393, eyeH: 80, grow: 1.1 };
 const CUT_POSES = { cut: CUT_ART, down: DOWNCUT_ART };
-const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH;
+const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).

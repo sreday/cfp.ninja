@@ -36,7 +36,21 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 # source px: the belt's lower edge (the squeeze starts here), where it reaches full strength, the feet's middle, how much
 NARROW = {'from': 470, 'full': 560, 'cx': 636, 'k': 0.84}
 POSES = {'cut': {'src': 'candidates/cut/clean-2.png', 'narrow': NARROW},
-         'downcut': {'src': 'candidates/cut/downcut-3.png', 'narrow': None}}     # (its stance already fits the post)
+         'downcut': {'src': 'candidates/cut/downcut-3.png', 'narrow': None, 'thicken': 2}}     # (its stance already fits the post)
+# thicken: the black lines grown by this many picture px each side (Marek 2026-11-20: the down cut's outline thinner than
+# the rest of the frog; measured 3 px on screen at 1920 against 5 for the standing frog)
+
+
+def thicken(im, t):
+    """grow the black lines (outline and inner lines) by t px, outward over the transparent edge too"""
+    A = np.asarray(im).copy(); a = A[..., 3] > 128
+    dark = a & (A[..., :3].max(2) < 70)
+    grown = np.asarray(Image.fromarray((dark * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(2 * t + 1))) > 0
+    soft = np.asarray(Image.fromarray((grown * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.6))).astype(np.float32) / 255
+    ink = np.array([20, 22, 24], np.float32)
+    for c in range(3): A[..., c] = (A[..., c] * (1 - soft) + ink[c] * soft).astype(np.uint8)
+    A[..., 3] = np.maximum(A[..., 3], (soft * 255).astype(np.uint8))
+    return Image.fromarray(A, 'RGBA')
 
 
 def narrow(path, n):
@@ -63,6 +77,9 @@ def main():
             os.unlink(src)          # (the scratch copy made just above)
     else:
         im = keyed(desk(P['src']))
+    if P.get('thicken'):
+        pad = P['thicken'] + 2; big = Image.new('RGBA', (im.width + 2 * pad, im.height + 2 * pad)); big.paste(im, (pad, pad))
+        im = thicken(big, P['thicken'])
     # (the retouched edit leaves a faint haze on the magenta, alpha < 24: cleared, so the picture crops to the frog)
     px = np.asarray(im).copy(); px[px[..., 3] < 24] = 0
     im = Image.fromarray(px, 'RGBA'); im = im.crop(im.getbbox())
