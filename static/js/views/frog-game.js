@@ -227,7 +227,7 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.02d3716ea6.json',
+    bg: '/img/game/bg/bg.f43df9828d.json',
     title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
@@ -1940,8 +1940,10 @@ export function mountFrogGame(stage, opts = {}) {
     // drunk, stunned, falling...) is still the drawn frog until its own art is built.
     function artPose(upNow, sideOn, jumping, drunk, hx, loll) {
         const A = artFrog;
+        // (breathing fire is the drawn frog again, all views: the art's breath looks broke the style; Marek 2026-11-20,
+        //  new breath art comes as its own item)
         const on = upNow && !sideOn && !jumping && !drunk && !pose.shut && !pose.fallY &&
-            !pose.oneFoot && !pose.chop && !pose.plan;
+            !pose.oneFoot && !pose.chop && !pose.plan && !(fireLeft > 0);
         if (on !== A.on) { A.on = on; svg.classList.toggle('fg-art-on', on); }
         artSide(sideOn, drunk);
         if (!on) return;
@@ -1983,7 +1985,7 @@ export function mountFrogGame(stage, opts = {}) {
     // stunned and falling are still the drawn frog.
     function artSide(sideOn, drunk) {
         const A = artFrog, S = A.side, legs = ART_LEGS[pose.sLegs];
-        const on = !!S && sideOn && !!legs && !drunk && !pose.shut && !pose.fallY;
+        const on = !!S && sideOn && !!legs && !drunk && !pose.shut && !pose.fallY && !(fireLeft > 0);
         if (on !== S.on) { S.on = on; svg.classList.toggle('fg-art-side-on', on); }
         if (!on) return;
         const G = A.g.side;
@@ -2767,7 +2769,9 @@ export function mountFrogGame(stage, opts = {}) {
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
             pose.lK = smear ? 30 : -75; pose.rK = smear ? -30 : 75;      // (50 degrees off the arm, crossed; then 55 the other way)
-            pose.bob -= JUMP_UP * air; pose.jump = JUMP_UP * U * air;            // the jump: the legs leave the post and tuck
+            // (no jump any more: the little hop drew the old frog as a crane on one foot; standing, the art frog plays it,
+            //  both soles on the post. The curator, 2026-11-20)
+            void air;
             pose.squash = smear ? -0.7 : -0.25;
             pose.tilt = 0; pose.lookY = -22;
             return;
@@ -6442,7 +6446,7 @@ export function mountFrogGame(stage, opts = {}) {
                     const sl = at0(A.armL.g), sr = at0(A.armR.g);
                     ['L', 'R'].forEach(s => { const [x, y] = s === 'L' ? sl : sr; out.push({ kind: 'joint', part: 'shoulder ' + s, ...around(x, y + fw * 0.08, fw * 0.45, fw * 0.45) }); });
                     out.push({ kind: 'joint', part: 'both shoulders and chest', ...around((sl[0] + sr[0]) / 2, (sl[1] + sr[1]) / 2 + fw * 0.1, Math.abs(sr[0] - sl[0]) + fw * 0.45, fw * 0.5) });
-                    const hb = A.head.getBoundingClientRect(); out.push({ kind: 'joint', part: 'neck', ...around(hb.left + hb.width / 2, hb.bottom, fw * 0.4, fw * 0.22) });
+                    const hb = (A.faces[A.faceNow] || A.head).getBoundingClientRect(); out.push({ kind: 'joint', part: 'neck', ...around(hb.left + hb.width / 2, hb.bottom, fw * 0.4, fw * 0.22) });
                 }
                 if (A && A.side && A.side.on) out.push({ kind: 'joint', part: 'profile hip', ...rect(A.side.root.getBoundingClientRect()) });
                 if (artBg && artBg.postEl) {

@@ -201,7 +201,12 @@ def main():
                 op = al > 200; br = rgb.max(2)
                 if op.any():
                     edge_band = np.asarray(Image.fromarray(((al < 200) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
-                    rgb[edge_band & (al > 0) & (br > np.median(br[op]) + 55)] = np.array([34, 30, 40], np.int16)
+                    rgb[edge_band & (al > 0) & (br > np.median(br[op]) + 30)] = np.array([34, 30, 40], np.int16)
+                    # a grey figure (the llama) had a reddish beaded rim: on neutral figures, reddish edge pixels go dark too
+                    med = np.median(rgb[op], 0)
+                    if abs(med[0] - med[2]) < 14 and abs(med[0] - med[1]) < 14:
+                        redd = (rgb[..., 0] > rgb[..., 1] + 14) & (rgb[..., 0] > rgb[..., 2] + 6)
+                        rgb[edge_band & (al > 0) & redd] = np.array([34, 30, 40], np.int16)
                 frames.append(Image.fromarray(np.dstack([rgb.astype(np.uint8), al]), 'RGBA'))
                 pair.append(len(frames) - 1)
             pairs.append(pair)
