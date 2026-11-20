@@ -54,9 +54,12 @@ Claude may suggest what is missing, but does not widen the item on its own. The 
 | 2026-11-20 | Fire breath | done (v231): Marek's pick, the game's flame from its mouth, the mouth glowing |
 | 2026-11-20 | Side cut (level cut, no power-up) | done: Marek's pick 'side cut 2', no scabbards, legs narrowed 16% to fit the post (art_build_cut.py) |
 | 2026-11-20 | Side cut: legs and feet a little softer than the rest of the frog on phones (the squeeze or the downscale) | open, ugly |
-| 2026-11-20 | No curator shot of the mirrored cut to the left ('cut left, near' takes the hop path): add 'cut left, far' | open, tool fix |
+| 2026-11-20 | No curator shot of the mirrored cut to the left | done: 'cut left, far' and 'cut down-left, far' |
+| 2026-11-20 | Down cut (profile, no power-up) | done: Marek's pick 'down cut 3' (round 3: slim and swift, he asked for nimble, not thick) |
+| 2026-11-20 | Down cut: thin black ring round the eye white (the picked drawing) | **Marek to say**: retouch or keep |
+| 2026-11-20 | Curator tool: the fire flicker and a frog's blade reaching into a dancer's crop mark the dancer as changed | open, tool fix |
 | 2026-11-20 | 'ready' and 'wind-up' show both empty scabbards while the katanas are drawn (breaks the canon: scabbards only with the katanas sheathed) | **open**, its own item (the standing rig) |
-| 2026-11-20 | Other no-power-up cuts still the drawn profile: up-cut ('cut up, near' hovers 10-16 px), down-cut, duck/hop ('cut left, near' 5-8 px gap), the jump, thrusts | **open**, one item each |
+| 2026-11-20 | Other no-power-up cuts still the drawn profile: up-cut ('cut up, near' hovers 10-16 px), duck/hop ('cut left, near' 5-8 px gap), the jump, thrusts | **open**, one item each |
 | 2026-11-20 | Sole meter: the post's top is an oval, a foot on its front part reads as off the post (false fault, 'wind-up' 390x844, agreed by the reviewer) | open, tool fix |
 | 2026-11-20 | Breath aimed at the frog / just beside it: the flame's big blast covers the frog (worst on phones) | **open**, the next breath polish |
 | 2026-11-20 | Breath straight up: the picked head is turned, the column leaves the mouth's side over one eye | open, nit |
