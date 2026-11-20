@@ -29,9 +29,16 @@ Keep it lean: crops of where faults hide, not essays; only changed crops need a 
 
 ## One thing at a time (Marek, 2026-11-20)
 
-The work goes item by item: Marek names the thing ("the seagull"), it is generated (ElevenLabs), proofread,
-put in the game, judged by the curator, shipped, and Marek plays it. He approves (next item) or sends it back
-(redo or enhance). Claude may suggest what is missing, but does not widen the item on its own.
+The work goes item by item:
+1. Marek names the thing ("the seagull").
+2. Claude generates **3 iterations** (ElevenLabs), proofreads them (regenerating any that can't be fixed) and shows them.
+3. **Marek picks** the best one.
+4. Claude puts it in the game.
+5. **The curator accepts it, or it is rolled back** (fixed and re-judged, or reverted to live).
+6. It ships to cfp.ninja/game (the game is developed in public; Marek reviews it live).
+7. **Marek plays it** and says next, or redo/enhance.
+
+Claude may suggest what is missing, but does not widen the item on its own. The Backlog below comes first.
 
 - Every run names its **item** (`verdict.json`: `"item": "the seagull"`). The reviewer judges the item's shots and
   anything that got **worse** than live anywhere on screen. Those findings can block.
