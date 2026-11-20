@@ -6519,7 +6519,7 @@ export function mountFrogGame(stage, opts = {}) {
             ...['cut right, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12 })),
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
-            ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
+            ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
             { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },
             { name: 'eating a plum', anim: 'stunned by plum: eating it', at: 0.45 },
