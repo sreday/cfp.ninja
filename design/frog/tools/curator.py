@@ -20,6 +20,7 @@ Per shot and size it saves:
 Measurements (no eyes needed): how much of each sole rests on the post's top; how tall each dancer is.
 Needs Chrome and Pillow.
 """
+QUERY = ''
 import argparse, base64, hashlib, html, json, os, shutil, subprocess, sys, tempfile, time, urllib.request
 from datetime import datetime
 import numpy as np
@@ -54,7 +55,7 @@ class Browser:
         b.ws.send("Runtime.enable")
         b.ws.send("Emulation.setDeviceMetricsOverride", {"width": W, "height": H, "deviceScaleFactor": DPR, "mobile": W < 500})
         time.sleep(0.6)
-        b.ws.send("Page.navigate", {"url": f"http://127.0.0.1:{b.port}/game?curate"}); time.sleep(2.5)
+        b.ws.send("Page.navigate", {"url": f"http://127.0.0.1:{b.port}/game?curate" + QUERY}); time.sleep(2.5)
     def js(b, expr, wait=False):
         r = b.ws.send("Runtime.evaluate", {"expression": expr, "returnByValue": True, "awaitPromise": wait})
         return r.get('result', {}).get('value')
@@ -149,13 +150,15 @@ def safe(n): return ''.join(c if c.isalnum() or c in '-.' else '_' for c in n).s
 
 
 def main():
+    global QUERY
     ap = argparse.ArgumentParser()
     ap.add_argument('--before', default='live', help="'live' (the commit on heroku main), a git ref, or 'none'")
     ap.add_argument('--sizes', default=','.join(SIZES))
     ap.add_argument('--only', default='', help="shot names separated by ';'")
     ap.add_argument('--out', default='')
+    ap.add_argument('--query', default='', help="extra URL query for the after build, e.g. '&shoulder=a' (previews)")
     ap.add_argument('--repack', default='', help='only rewrite the review packets and board of this run folder')
-    a = ap.parse_args()
+    a = ap.parse_args(); QUERY = a.query
     if a.repack:
         ix = json.load(open(os.path.join(a.repack, 'index.json')))
         for f in os.listdir(os.path.join(a.repack, 'review')): os.remove(os.path.join(a.repack, 'review', f))

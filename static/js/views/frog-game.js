@@ -1553,14 +1553,14 @@ export function mountFrogGame(stage, opts = {}) {
             // Shoulders (the "tube shoulders" blooper, 2026-11-19): a sleeve's top end sat on the side of the chest as a
             // cut-off tube. A round cap at each pivot joins them: its outline under the body and sleeves (so only the outer
             // curve of the shoulder shows a line), its red over them (hiding the sleeve's top end and the seam), at any arm angle.
-            const cap = (fill, r) => [g.shoulderL, g.shoulderR].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join('');
+            const cap = (fill, grow) => ['L', 'R'].map(s => `<ellipse class="fg-cap${s}" rx="${SHOULDER.rx + grow}" ry="${SHOULDER.ry + grow}" fill="${fill}"/>`).join('');
             // the empty scabbards stay on its back once the katanas are out (as in the intro's last frames):
             // only their lower ends show, poking out past the hips behind the legs
             const saya = side => `<g transform="translate(${993 + side * SAYA.x} ${SAYA.y}) rotate(${-side * SAYA.a})">
                 <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
                 <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
             root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
-                <g class="fg-art-capline">${cap('#000', SHOULDER_CAP + 22)}</g><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}<g class="fg-art-cap">${cap('#941c19', SHOULDER_CAP)}</g>
+                <g class="fg-art-capline">${SHOULDER.line === false ? '' : cap('#000', 22)}</g><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${SHOULDER.patch ? '<ellipse cx="1412" cy="479" rx="88" ry="124" fill="#941c19"/>' : ''}${armSvg('L')}${armSvg('R')}<g class="fg-art-cap">${cap('#941c19', 0)}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
@@ -1745,7 +1745,15 @@ export function mountFrogGame(stage, opts = {}) {
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
     const ART_SIDE = false;                                    // the art profile in cuts (off until the side view is rebuilt)
-    const SHOULDER_CAP = 125;                                  // the art rig's shoulder caps: radius (logo px)
+    // The art rig's shoulder caps (logo px): an oval per shoulder, its outline under the body and its red over the
+    // sleeve's top. dx: out from the pivot (away from the body), dy: down; follow: turns with the arm (dx, dy along it).
+    // (a round cap on the pivot read as a hump: Marek 2026-11-20; ?shoulder=a|b|c previews the three tried)
+    const SHOULDERS = { hump: { dx: 0, dy: 0, rx: 125, ry: 125, follow: false }, a: { dx: 40, dy: 50, rx: 100, ry: 100, follow: false },
+        b: { dx: 0, dy: 70, rx: 112, ry: 140, follow: true, patch: true }, c: { dx: 0, dy: 115, rx: 118, ry: 122, follow: true, patch: true },
+        // d: the body's bare green arm socket (right) painted over in the gi's red, so both shoulders are the body's own smooth
+        // ones; the sleeve's top end hidden under a small red cap with no outline (adds no bump)
+        d: { dx: 0, dy: 55, rx: 92, ry: 92, follow: true, line: false, patch: true } };
+    const SHOULDER = SHOULDERS[(location.search.match(/[?&]shoulder=([a-z]+)/) || [])[1]] || SHOULDERS.hump;
     const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
     // A leg in the air, drawn from its two joints: the thigh swung `thigh` degrees away from straight
@@ -1968,6 +1976,11 @@ export function mountFrogGame(stage, opts = {}) {
         };
         arm(A.armL, G.shoulderL, pose.lRot, pose.lStretch, pose.lK);
         arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
+        // the shoulder caps follow their arm's pivot (and, for an oval that follows, its turn)
+        const capAt = (at, rot, out) => SHOULDER.follow ? `translate(${at[0]} ${at[1]}) rotate(${n2(rot)}) translate(0 ${SHOULDER.dy})`
+            : `translate(${at[0] + out * SHOULDER.dx} ${at[1] + SHOULDER.dy})`;
+        A.caps = A.caps || [...A.root.querySelectorAll('.fg-capL, .fg-capR')];
+        A.caps.forEach(e => setA(e, 'transform', e.classList.contains('fg-capL') ? capAt(G.shoulderL, pose.lRot, -1) : capAt(G.shoulderR, pose.rRot, 1)));
     }
     // the drawn profile's seven leg sets, played by the four drawn for the art
     // (the hop plays the crouch: the drawn 'tuck' hangs its feet down on long bare ankles, so on a small hop
