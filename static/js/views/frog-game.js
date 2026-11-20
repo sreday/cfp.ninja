@@ -1744,6 +1744,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
+    const ART_SIDE = false;                                    // the art profile in cuts (off until the side view is rebuilt)
     const SHOULDER_CAP = 125;                                  // the art rig's shoulder caps: radius (logo px)
     const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
@@ -1985,7 +1986,9 @@ export function mountFrogGame(stage, opts = {}) {
     // stunned and falling are still the drawn frog.
     function artSide(sideOn, drunk) {
         const A = artFrog, S = A.side, legs = ART_LEGS[pose.sLegs];
-        const on = !!S && sideOn && !!legs && !drunk && !pose.shut && !pose.fallY && !(fireLeft > 0);
+        // (the art profile is off: Marek 2026-11-20, "they suck" (the rejected off-model profile); the drawn frog cuts in
+        //  profile until the side view is rebuilt as its own item)
+        const on = ART_SIDE && !!S && sideOn && !!legs && !drunk && !pose.shut && !pose.fallY && !(fireLeft > 0);
         if (on !== S.on) { S.on = on; svg.classList.toggle('fg-art-side-on', on); }
         if (!on) return;
         const G = A.g.side;
