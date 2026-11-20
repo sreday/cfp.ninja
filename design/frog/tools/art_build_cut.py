@@ -36,7 +36,7 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 # source px: the belt's lower edge (the squeeze starts here), where it reaches full strength, the feet's middle, how much
 NARROW = {'from': 470, 'full': 560, 'cx': 636, 'k': 0.84}
 POSES = {'cut': {'src': 'candidates/cut/clean-2.png', 'narrow': NARROW},
-         'downcut': {'src': 'candidates/cut/downcut-3.png', 'narrow': None, 'thicken': 1.5}}     # (its stance already fits the post)
+         'downcut': {'src': 'candidates/cut/downcut-3.png', 'narrow': None, 'thicken': 1.5, 'feet': 'higher'}}     # (its stance already fits the post)
 # thicken: the black lines grown by this many picture px each side (Marek 2026-11-20: the down cut's outline thinner than
 # the rest of the frog; measured 3 px on screen at 1920 against 5 for the standing frog; at 2 he said 'maybe not as thick, but close': 1.5)
 
@@ -90,6 +90,12 @@ def main():
     gy = np.nonzero(green.any(1))[0]; feet = int(gy.max())
     # the soles: green in the bottom 50 rows; the middle between their outer ends
     fx = np.nonzero(green[feet - 50:feet + 1].any(0))[0]; mid = int((fx.min() + fx.max()) / 2)
+    if P.get('feet') == 'higher':
+        # (a toe-tip back foot reaches lower than the front sole: the feet line is the higher of the two feet's lowest
+        #  rows, so both touch the post; split at the widest gap in the soles' columns)
+        gaps = np.diff(fx); cut = int(np.argmax(gaps))
+        lows = [int(np.nonzero(green[:, a:b + 1].any(1))[0].max()) for a, b in ((fx[0], fx[cut]), (fx[cut + 1], fx[-1]))]
+        feet = min(lows)
     # the head's top: the bandana's highest red over the two eyes (the raised katana and the tails are elsewhere)
     white = a & (r > 215) & (g > 215) & (b > 215)
     cs, _ = components(white, 1); ew = [c for c in sorted(cs, key=lambda c: -c['area'])[:2] if c['area'] > 500]   # (a profile: one eye)
