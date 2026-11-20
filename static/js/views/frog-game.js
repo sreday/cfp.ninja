@@ -271,8 +271,9 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
 const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 110 };
-// (Marek 2026-11-20: the profile down cut 'needs to go - it's not good': downward cuts use the side slash until a new one is made)
-const CUT_POSES = { cut: SIDESLASH_ART, down: SIDESLASH_ART };
+// (Marek 2026-11-20: the hop side slash goes, 'I wanted the other one to stay': the profile frog (DOWNCUT_ART) is the cut
+//  for level and downward strokes alike; SIDESLASH_ART is kept only for its numbers)
+const CUT_POSES = { cut: DOWNCUT_ART, down: DOWNCUT_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -2765,7 +2766,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     // where the mouth and the head are on the canvas
     // in the air (or falling) the whole frog moves; standing, its feet stay put (see applyPose)
-    function frogAir() { return !!(pose.plan || hopT > 0 || pose.jump > 1 || pose.sHop > 0 || pose.fallY || pose.fallRot || pose.artCut); }
+    function frogAir() { return !!(pose.plan || hopT > 0 || pose.jump > 1 || pose.sHop > 0 || pose.fallY || pose.fallRot || (CUT_POSES[pose.artCut] && CUT_POSES[pose.artCut].lift)); }
     function frogPoint(lx, ly) {
         // (follows the body as it stands up, bobs and shifts; standing, the bob is a breath about the feet)
         const by = frogAir() ? pose.bob * U : pose.bob * U * (FEET_Y - ly) / BREATH_SPAN;
@@ -6577,7 +6578,7 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
-                .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut (right|left), far$/.test(n) })),     // (the side slash is a hop: in the air on purpose)
+                .map(n => ({ name: n, anim: n, at: 0.12 })),
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
