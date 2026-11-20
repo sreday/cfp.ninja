@@ -1549,12 +1549,11 @@ export function mountFrogGame(stage, opts = {}) {
             const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
             const armSvg = s => {
                 const q = p['sleeve' + s], flip = s === 'L' ? ' transform="scale(1 -1)"' : '';     // the left fist mirrored across the blade
-                return `<g class="fg-art-arm${s}">
+                return `<g class="fg-art-arm${s}"><g class="fg-art-limb">${im(q, -q.pivot[0], -q.pivot[1])}</g>
                     <g class="fg-art-held"><g transform="rotate(90)"><g${flip}>${im(p.sword, -p.sword.grip[0], -p.sword.grip[1])}</g></g></g>
                     <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
             };
             const root = $('#fg-art');
-            const limbSvg = s => { const q = p['sleeve' + s]; return `<g class="fg-art-limbat${s}"><g class="fg-art-limb">${im(q, -q.pivot[0], -q.pivot[1])}</g></g>`; };
             // Stunned (Marek's pick, 2026-11-20): the frog's own head, the pupils taken out and drawn here so they roll around
             // in the eyes (an eye mask keeps them inside, under the bandana's edge), a tongue hanging from the grin
             const stunFace = () => { const S = STUN_ART, k = p.head.w / S.size[0], pu = S.pupils.map((c, i) => `<g class="fg-pupil">
@@ -1572,16 +1571,11 @@ export function mountFrogGame(stage, opts = {}) {
                 <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
                 <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
             root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
-                <g class="fg-art-capline">${SHOULDER.line === false ? '' : cap('#000', 22)}</g>
-                <mask id="fg-shoulder-mask" maskUnits="userSpaceOnUse" x="-2000" y="-2000" width="6000" height="6000"><rect x="-2000" y="-2000" width="6000" height="6000" fill="#fff"/><polygon class="fg-slope-cutL" fill="#000"/><polygon class="fg-slope-cutR" fill="#000"/></mask>
-                <g mask="url(#fg-shoulder-mask)"><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${SHOULDER.patch ? '<ellipse cx="1412" cy="479" rx="88" ry="124" fill="#941c19"/>' : ''}${limbSvg('L')}${limbSvg('R')}
-                <polygon class="fg-slope-fillL" fill="#941c19"/><polygon class="fg-slope-fillR" fill="#941c19"/></g>
-                <path class="fg-slope-lineL" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/><path class="fg-slope-lineR" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/>
-                <g class="fg-art-cap">${cap('#941c19', 0)}</g>${armSvg('L')}${armSvg('R')}
+                <g class="fg-art-capline">${SHOULDER.line === false ? '' : cap('#000', 22)}</g><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${SHOULDER.patch ? '<ellipse cx="1412" cy="479" rx="88" ry="124" fill="#941c19"/>' : ''}${armSvg('L')}${armSvg('R')}<g class="fg-art-cap">${cap('#941c19', 0)}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
-            const arm = s => { const a = root.querySelector('.fg-art-arm' + s), at = root.querySelector('.fg-art-limbat' + s);
-                return { g: a, at, limb: at.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
+            const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
+                return { g: a, limb: a.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
             // the profile: legs (one set shown), then the top half turning at the hip: far arm, torso, tails, head, near arm
             let side = null;
             if (g.side) {
@@ -1770,9 +1764,7 @@ export function mountFrogGame(stage, opts = {}) {
         // d: the body's bare green arm socket (right) painted over in the gi's red, so both shoulders are the body's own smooth
         // ones; the sleeve's top end hidden under a small red cap with no outline (adds no bump)
         d: { dx: 0, dy: 55, rx: 92, ry: 92, follow: true, line: false, patch: true } };
-    SHOULDERS.slope = { dx: 0, dy: 55, rx: 92, ry: 92, follow: true, line: false, patch: true, slope: true };
-    const SLOPE = { nL: [800, 380], nR: [1190, 392], hw: 132, d: 230 };       // the slope's start under the head (each side), the sleeve's half width, how far down it meets the sleeve
-    const SHOULDER = SHOULDERS[(location.search.match(/[?&]shoulder=([a-z]+)/) || [])[1]] || SHOULDERS.slope;
+    const SHOULDER = SHOULDERS[(location.search.match(/[?&]shoulder=([a-z]+)/) || [])[1]] || SHOULDERS.hump;
     const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
     // A leg in the air, drawn from its two joints: the thigh swung `thigh` degrees away from straight
@@ -1993,7 +1985,7 @@ export function mountFrogGame(stage, opts = {}) {
         setA(A.head, 'opacity', pose.noHead ? 0 : 1); setA(A.tail, 'opacity', pose.noHead ? 0 : 1);     // (a big fruit stuck over it)
         setA(A.tail, 'transform', `translate(${n2(hx * 0.6)} ${n2(-pose.breath * 9)}) rotate(${n2(pose.tail)} ${G.knot[0]} ${G.knot[1]})`);
         const arm = (a, at, rot, stretch, k) => {
-            setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`); setA(a.at, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
+            setA(a.g, 'transform', `translate(${at[0]} ${at[1]}) rotate(${n2(rot)})`);
             const s = clamp(stretch, 0.85, 1.15);           // a drawn sleeve only stretches so far
             setA(a.limb, 'transform', `scale(1 ${n2(s)})`);
             const hand = `translate(0 ${n2(a.reach * s)}) rotate(${n2(k - rot)})`;
@@ -2007,22 +1999,6 @@ export function mountFrogGame(stage, opts = {}) {
             : `translate(${at[0] + out * SHOULDER.dx} ${at[1] + SHOULDER.dy})`;
         A.caps = A.caps || [...A.root.querySelectorAll('.fg-capL, .fg-capR')];
         A.caps.forEach(e => setA(e, 'transform', e.classList.contains('fg-capL') ? capAt(G.shoulderL, pose.lRot, -1) : capAt(G.shoulderR, pose.rRot, 1)));
-        // The shoulder line (Marek's reference, 2026-11-20): one straight slope from under the head down to the sleeve's
-        // top edge, no bump. Above that line the body's round shoulder and the sleeve's top end are masked off; below it
-        // a red wedge joins body and sleeve; the slope's outline carries on as the sleeve's own. With the arm raised above
-        // the neck the slope has nothing to meet: the small hidden cap does the joint instead.
-        if (SHOULDER.slope) {
-            const q = el => A.root.querySelector(el), Q = SLOPE;
-            [['L', G.shoulderL, pose.lRot, Q.nL], ['R', G.shoulderR, pose.rRot, Q.nR]].forEach(([s, P, rot, N]) => {
-                const r = rot * Math.PI / 180, w = (lx, ly) => [P[0] + lx * Math.cos(r) - ly * Math.sin(r), P[1] + lx * Math.sin(r) + ly * Math.cos(r)];
-                const e1 = w(Q.hw, Q.d), e2 = w(-Q.hw, Q.d), E = e1[1] < e2[1] ? e1 : e2, on = E[1] > N[1] + 30;
-                const pts = a => a.map(v => n2(v[0]) + ',' + n2(v[1])).join(' ');
-                setA(q('.fg-slope-cut' + s), 'points', on ? pts([N, E, [E[0], E[1] - 700], [N[0], N[1] - 700]]) : '');
-                setA(q('.fg-slope-fill' + s), 'points', on ? pts([N, E, w(0, Q.d), [P[0], P[1] + 80], [N[0], P[1] + 80]]) : '');
-                setA(q('.fg-slope-line' + s), 'd', on ? `M${n2(N[0])} ${n2(N[1])}L${n2(E[0])} ${n2(E[1])}` : '');
-                const cap = A.caps.find(c => c.classList.contains('fg-cap' + s)); setA(cap, 'opacity', on ? 0 : 1);
-            });
-        }
     }
     // the drawn profile's seven leg sets, played by the four drawn for the art
     // (the hop plays the crouch: the drawn 'tuck' hangs its feet down on long bare ankles, so on a small hop
