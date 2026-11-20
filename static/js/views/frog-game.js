@@ -258,9 +258,15 @@ const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.fee
 // turned to the right, the front katana level, the back one raised, no scabbards (only seen with the katanas sheathed). It stands in for the drawn profile frog during a level
 // cut (no power-up), mirrored for a cut to the left. Sized by the head (a crouch is shorter than standing): its head as wide
 // as the breath frog's (headW: green across the face under the eyes), the soles on the rig's feet line.
-const CUT_ART = { url: '/img/game/frog/cut.ebc44bb99c.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295 };
+const CUT_ART = { url: '/img/game/frog/cut.ebc44bb99c.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295, eyeH: 68 };
 const BREATH_HEAD_W = 219;
 const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
+// the down cut (Marek's pick 2026-11-20 'down cut 3', same builder): the slim, swift frog in full profile running into a
+// downward cut, front katana level at hip height, back one raised. Sized to the side cut by the eye's height (it stays the
+// same when the head turns): one frog, one size.
+const DOWNCUT_ART = { url: '/img/game/frog/downcut.20591d8594.webp', size: [1152, 682], feet: 673, top: 62, mid: 390, eyeH: 81 };
+const CUT_POSES = { cut: CUT_ART, down: DOWNCUT_ART };
+const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH;
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -1569,10 +1575,10 @@ export function mountFrogGame(stage, opts = {}) {
         Promise.all([Q.url, Q.mouthMask].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artBreath.ready = true; });
     }
     if (ART.frog) {
-        const Q = CUT_ART, root = $('#fg-art-cut');
-        root.innerHTML = `<image href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`;
-        artCut = { root, on: false, ready: false };
-        const i = new Image(); i.onload = () => { artCut.ready = true; }; i.src = Q.url;
+        const root = $('#fg-art-cut');
+        root.innerHTML = Object.entries(CUT_POSES).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('');
+        artCut = { root, on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])) };
+        Promise.all(Object.values(CUT_POSES).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artCut.ready = true; });
     }
     if (ART.frog) (async () => {
         try {
@@ -1988,13 +1994,14 @@ export function mountFrogGame(stage, opts = {}) {
     const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
     // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
-    function artCutOn() { return !!(artCut && artCut.ready && pose.artCut && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    function artCutOn() { return !!(artCut && artCut.ready && CUT_POSES[pose.artCut] && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
     function artCutPose() {
         const C = artCut; if (!C) return;
         const on = artCutOn();
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
         if (!on) return;
-        const k = cutK(), f = pose.side < 0 ? -1 : 1, Q = CUT_ART;
+        if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
+        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 ? -1 : 1;
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
     }
     function artBreathPose() {
@@ -2979,8 +2986,8 @@ export function mountFrogGame(stage, opts = {}) {
             // a cut above its head: a small jump, legs together, as long as the blade is up there
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
-            // a level cut, feet on the post: the picked side cut drawing (artCutPose)
-            pose.artCut = pose.sLegs === 'level' && !pose.sHop && !s.thrust;
+            // feet on the post, no thrust: a level cut is the picked side cut drawing, a down cut the picked down cut (artCutPose)
+            pose.artCut = s.thrust || pose.sHop ? '' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
             // How a katana is held: never as an extension of the arm. The grip sets the blade across the
             // forearm, at about a right angle when it is cocked for the cut and never closer than 50
             // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
@@ -5668,7 +5675,7 @@ export function mountFrogGame(stage, opts = {}) {
         idleT += dt;
 
         // frog
-        pose.artCut = false;                  // (poseSwing sets it again for a level cut)
+        pose.artCut = '';                     // (poseSwing sets it again for a level cut or a down cut)
         if (phase === 'load') stepLoad(rdt);
         else if (phase === 'count') stepCount(rdt);
         if (phase === 'count' && introOn) {
@@ -6546,7 +6553,7 @@ export function mountFrogGame(stage, opts = {}) {
             ...[0.3, 0.6, 0.9, 1.4, 1.95].map(t => ({ name: `intro ${t}`, anim: 'intro: laptop flung, katanas drawn', at: t, air: t === 0.3 })),
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
-            ...['cut right, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
+            ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12 })),
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
