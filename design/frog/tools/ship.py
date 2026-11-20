@@ -89,7 +89,8 @@ def main():
     ci(branch, head)
     print('3/4 curator: GO')
     print('4/4 deploy'); sh('git', 'checkout', '-q', 'main'); sh('git', 'pull', '-q', '--rebase', '--autostash')
-    sh('git', 'merge', '-q', '--ff-only', head)     # the judged commit only, never what the branch moved on to since; sh('git', 'push', '-q', 'origin', 'main'); ci('main', head); sh('git', 'checkout', '-q', branch)
+    sh('git', 'merge', '-q', '--ff-only', head)     # the judged commit only, never what the branch moved on to since
+    sh('git', 'push', '-q', 'origin', 'main'); ci('main', head)
     r = sh('git', 'push', 'heroku', 'main', quiet=True); print([l for l in (r.stdout + r.stderr).splitlines() if 'Released' in l])
     changed = sh('git', 'diff', '--name-only', 'HEAD@{1}', 'HEAD', '--', 'static', quiet=True, check=False).stdout.split()
     for f in [c for c in changed if os.path.exists(os.path.join(REPO, c))][:12]:
