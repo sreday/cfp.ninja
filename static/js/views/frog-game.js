@@ -1546,13 +1546,17 @@ export function mountFrogGame(stage, opts = {}) {
                     <g class="fg-art-fist">${im(p.fist, -p.fist.grip[0], -p.fist.grip[1])}</g></g>`;
             };
             const root = $('#fg-art');
+            // Shoulders (the "tube shoulders" blooper, 2026-11-19): a sleeve's top end sat on the side of the chest as a
+            // cut-off tube. A round cap at each pivot joins them: its outline under the body and sleeves (so only the outer
+            // curve of the shoulder shows a line), its red over them (hiding the sleeve's top end and the seam), at any arm angle.
+            const cap = (fill, r) => [g.shoulderL, g.shoulderR].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`).join('');
             // the empty scabbards stay on its back once the katanas are out (as in the intro's last frames):
             // only their lower ends show, poking out past the hips behind the legs
             const saya = side => `<g transform="translate(${993 + side * SAYA.x} ${SAYA.y}) rotate(${-side * SAYA.a})">
                 <rect x="-38" y="-560" width="76" height="${560 + SAYA.len}" rx="38" fill="#26262c" stroke="#000" stroke-width="26"/>
                 <path d="M${-side * 12} -400 L${-side * 12} ${SAYA.len - 60}" stroke="#4a4a54" stroke-width="14" stroke-linecap="round"/></g>`;
             root.innerHTML = `<g class="fg-art-saya">${saya(-1)}${saya(1)}</g><g class="fg-art-tail">${im(p.tail2, p.tail2.x, p.tail2.y)}${im(p.tail1, p.tail1.x, p.tail1.y)}</g>
-                <g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}
+                <g class="fg-art-capline">${cap('#000', SHOULDER_CAP + 22)}</g><g class="fg-art-body">${im(p.body, p.body.x, p.body.y)}</g>${armSvg('L')}${armSvg('R')}<g class="fg-art-cap">${cap('#941c19', SHOULDER_CAP)}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s);
@@ -1733,6 +1737,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the profile drawing, shown while cutting: side = -1 | 0 | 1 (which way it faces), its legs, the rotation of its top half, its two arms
         oneFoot: false, noBlades: false, jump: 0, side: 0, sLegs: 'level', sRot: 0, sDrop: 0, sQ: false, sHop: 0, sF: { rot: 0, k: 0, stretch: 1 }, sB: { rot: 0, k: 0, stretch: 1 } };   // face: -1 turned left .. 1 turned right
     const UP_ELBOW = { L: [650, 930], R: [1336, 930] };          // the arms hang from narrower shoulders when standing
+    const SHOULDER_CAP = 125;                                  // the art rig's shoulder caps: radius (logo px)
     const PLAN_SIT = 110;                                       // logo px the planning frog sits lower (onto the post's top)
     const RISE = 400;                                          // logo px the body rises when the frog stands
     // A leg in the air, drawn from its two joints: the thigh swung `thigh` degrees away from straight
