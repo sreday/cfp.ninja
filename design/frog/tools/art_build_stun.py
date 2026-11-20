@@ -76,8 +76,22 @@ def tongue(cx, top, w=74, L=78, tilt=8, line=15):
     im=im.rotate(tilt,resample=Image.BICUBIC,center=(ox,oy))
     im=im.resize((W2//S,H2//S),Image.LANCZOS)
     return im,(int(cx-W2/S/2),int(top-line))
-def with_tongue(base,cx=455,top=352,**kw):
-    t,(tx,ty)=tongue(cx,top,**kw); out=base.copy(); out.alpha_composite(t,(tx,ty))
+def with_tongue(base,cx=495,top=338,**kw):
+    kw.setdefault('w',88); kw.setdefault('L',94); kw.setdefault('tilt',-12)
+    t,(tx,ty)=tongue(cx,top,**kw)
+    # clip it under the grin's line: per column, nothing of the tongue above the line's lower edge
+    H0=np.asarray(base).astype(int); dk0=(H0[...,:3].max(2)<80)&(H0[...,3]>200); T=np.asarray(t).copy()
+    for i in range(T.shape[1]):
+        x=tx+i
+        if x<0 or x>=dk0.shape[1]: continue
+        col=np.nonzero(dk0[290:400,x])[0]
+        if not len(col): continue
+        y=290+col[0]
+        while y<dk0.shape[0] and dk0[y,x]: y+=1
+        cut=y-ty-2
+        if cut>0: T[:max(0,cut),i,3]=0
+    t=Image.fromarray(T,'RGBA')
+    out=base.copy(); out.alpha_composite(t,(tx,ty))
     H=np.asarray(base).astype(int); O=np.asarray(out).copy()
     dk=(H[...,:3].max(2)<80)&(H[...,3]>200)
     band=np.zeros(dk.shape,bool); band[top-26:top+6, tx:tx+t.width]=True
