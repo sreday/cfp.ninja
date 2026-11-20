@@ -146,17 +146,21 @@ def main():
         if 30 * k < hgt < 140 * k and (c['x1'] - c['x0']) * k < 140 * k:
             spots.append([round(c['cx'] * k), round(c['y1'] * k), round(hgt)])
     spots.sort()
-    # Where dancers stand (plate px at 2x), set by eye on the picked scene: a ring round the
-    # bonfire, a line in front of the bar, a few further out for when the party grows. Height
-    # follows depth (lower on the sand = nearer = taller).
-    # The picked scene had two animals by the bonfire (feet about 60 px below the flames' base,
-    # 134 px either side, about 190 px tall) and a few at the bar (feet near y 900, about 85 px).
-    # The list is in order of appearance: the first ones dance from the start, the rest join as
-    # the run goes on.
+    # Where dancers stand: [x, feet y, ground y, surface] in plate px. Every spot is ON something (the curator's
+    # "levitating bar animals" blooper, 2026-11-19: feet at stool height between the stools). The surfaces, read off
+    # the party plate (party px + its offset 1132, 115): the stool seats' tops (stools A-D, left to right; E hides
+    # behind the tiki torch), the floor in front of the bar (the stools' feet, y 988), the sand round the bonfire.
+    # Ground y is where the figure (or its stool) meets the sand: it sets the perspective (nearer = bigger); the
+    # figure's own height comes from the cast table in the game (DANCER_SIZE), never one size for all.
+    # In order of appearance: the first six dance from the start, the rest join as the run goes on.
     fx, fy = (fire[0], fire[1]) if fire else (1885, 1052)
-    spots = [[fx - 134, fy + 58], [fx + 134, fy + 55], [2230, 912], [2420, 915], [2560, 908], [fx - 230, fy + 30],
-             [fx + 235, fy + 35], [2320, 905], [2650, 990], [fx - 330, fy + 40], [2110, 935], [1560, 1060], [2730, 1015], [1470, 1050]]
-    spots = [[x, y, round(85 + max(0, y - 900) * 0.5)] for x, y in spots]
+    STOOL = {'A': (2187, 905), 'B': (2270, 908), 'C': (2384, 911), 'D': (2528, 908)}
+    BAR_FLOOR = 988
+    sand = lambda x, y: [x, y, y, 'sand']
+    def stool(k): return [STOOL[k][0], STOOL[k][1], BAR_FLOOR, 'stool ' + k]
+    spots = [sand(fx - 134, fy + 58), sand(fx + 134, fy + 55), stool('C'), stool('A'), stool('D'), sand(fx - 230, fy + 30),
+             sand(fx + 235, fy + 35), sand(2325, 995), sand(2650, 990), sand(fx - 330, fy + 40), sand(2110, 970),
+             sand(1560, 1060), sand(2730, 1015), sand(1470, 1050)]
     # ---- the dancers: pairs of frames on magenta ----
     D = np.asarray(Image.open(B('dancers.png')).convert('RGB')).astype(np.int16)
     mag = np.sqrt(((D - np.array([255, 0, 255])) ** 2).sum(2))
@@ -228,7 +232,7 @@ def main():
     geo = {'w': W, 'h': H, 'plate': plate_url,
            'party': {'url': party_url, 'x': px0, 'y': py0, 'w': party_img.width, 'h': party_img.height},
            'lights': lights, 'fire': fire[:3] if fire else None,
-           'dancers': {'url': dancers_url, 'frames': rects, 'pairs': pairs, 'h': int(np.median([s[2] for s in spots])) if spots else 140},
+           'dancers': {'url': dancers_url, 'frames': rects, 'pairs': pairs, 'h': 190},
            'spots': spots,
            'post': {'url': post_url, 'w': tall.width, 'h': tall.height, 'water': round(cut / tall.width, 3)},
            'props': {'url': props_url, 'rects': prects}}

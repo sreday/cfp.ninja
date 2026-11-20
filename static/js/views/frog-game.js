@@ -227,7 +227,7 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.220ca2dba3.json',
+    bg: '/img/game/bg/bg.aad61b1436.json',
     title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
@@ -239,6 +239,10 @@ const ART = {
 };
 // who each dancer pair in the atlas is (in atlas order), for the curator's size check
 const DANCER_WHO = ['fox', 'cat', 'bear', 'raccoon', 'wolf', 'llama', 'corgi', 'rabbit', 'monkey', 'platypus', 'penguin', 'flamingo'];
+// how tall each one is (the cast table, design/frog/art/CURATOR.md: the llama = 1, a corgi is never near it)
+const DANCER_SIZE = { llama: 1, bear: 0.85, flamingo: 0.7, wolf: 0.6, fox: 0.45, monkey: 0.4, penguin: 0.4, raccoon: 0.35, platypus: 0.3, cat: 0.3, rabbit: 0.3, corgi: 0.3 };
+const LLAMA_AT_FIRE = 240;      // plate px: the llama's height standing by the bonfire; nearer is bigger, further smaller
+const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's perspective, 1 at the bonfire
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -1666,11 +1670,12 @@ export function mountFrogGame(stage, opts = {}) {
         const D = g.dancers;
         if (CURATE) a.dancerRects = [];
         for (let i = 0; i < n; i++) {
-            const pi = (i * 5) % D.pairs.length, [sx, sy, sh] = g.spots[i], pair = D.pairs[pi];
+            const pi = (i * 5) % D.pairs.length, [sx, sy, gy] = g.spots[i], pair = D.pairs[pi], who = (D.who || DANCER_WHO)[pi];
+            const sh = (DANCER_SIZE[who] || 0.45) * LLAMA_AT_FIRE * depthK(gy);
             const beat = still ? 0 : Math.floor(t * (1.7 + (i % 3) * 0.25) + i * 0.37) % 2;
             const f = D.frames[pair[beat]], h = sh * ps, w = f[2] * h / f[3], dx = X(sx) - w / 2, dy = Y(sy) - h - (beat ? h * 0.03 : 0);
             c.drawImage(a.dancers, f[0], f[1], f[2], f[3], dx, dy, w, h);
-            if (CURATE) a.dancerRects.push({ x: dx, y: dy, w, h, who: (D.who || DANCER_WHO)[pi] || 'pair ' + pi, depth: sy });
+            if (CURATE) a.dancerRects.push({ x: dx, y: dy, w, h, who: who || 'pair ' + pi, depth: gy, on: g.spots[i][3] });
         }
         // the near layer (5.3) is empty for now: the rock stacks in the bottom corners went (Marek 2026-11-19;
         // bowls that stack up with the cut chunks go there later, after the fruit rework), and so did the
