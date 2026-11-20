@@ -76,8 +76,8 @@ def tongue(cx, top, w=74, L=78, tilt=8, line=15):
     im=im.rotate(tilt,resample=Image.BICUBIC,center=(ox,oy))
     im=im.resize((W2//S,H2//S),Image.LANCZOS)
     return im,(int(cx-W2/S/2),int(top-line))
-def with_tongue(base,cx=495,top=338,**kw):
-    kw.setdefault('w',88); kw.setdefault('L',94); kw.setdefault('tilt',-12)
+def with_tongue(base,cx=478,top=305,**kw):
+    kw.setdefault('w',84); kw.setdefault('L',132); kw.setdefault('tilt',-12)
     t,(tx,ty)=tongue(cx,top,**kw)
     # clip it under the grin's line: per column, nothing of the tongue above the line's lower edge
     H0=np.asarray(base).astype(int); dk0=(H0[...,:3].max(2)<80)&(H0[...,3]>200); T=np.asarray(t).copy()
@@ -94,7 +94,12 @@ def with_tongue(base,cx=495,top=338,**kw):
     out=base.copy(); out.alpha_composite(t,(tx,ty))
     H=np.asarray(base).astype(int); O=np.asarray(out).copy()
     dk=(H[...,:3].max(2)<80)&(H[...,3]>200)
-    band=np.zeros(dk.shape,bool); band[top-26:top+6, tx:tx+t.width]=True
+    band=np.zeros(dk.shape,bool)                    # the grin's own line (the first dark run in each column) stays on top
+    for x in range(max(0,tx),min(dk.shape[1],tx+t.width)):
+        col=np.nonzero(dk[290:400,x])[0]
+        if not len(col): continue
+        y=290+col[0]
+        while y<dk.shape[0] and dk[y,x]: band[y,x]=True; y+=1
     sel=dk&band; O[sel]=np.asarray(base)[sel]      # the grin line stays over the tongue's root
     return Image.fromarray(O,'RGBA')
 

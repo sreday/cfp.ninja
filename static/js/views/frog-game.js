@@ -245,7 +245,7 @@ const LLAMA_AT_FIRE = 240;      // plate px: the llama's height standing by the 
 const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's perspective, 1 at the bonfire
 // the stunned face (built by design/frog/tools/art_build_stun.py; head px): the face without its pupils, the eye mask, where
 // the pupils rest (Marek's pick: one eye up and out, one down and in), how big, the shine on each, how far they roll
-const STUN_ART = { face: '/img/game/frog/stun-face.5963dbcc8b.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
+const STUN_ART = { face: '/img/game/frog/stun-face.20f8e0b3bb.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
     pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
