@@ -51,13 +51,15 @@ Claude may suggest what is missing, but does not widen the item on its own. The 
 
 | found | what | status |
 |---|---|---|
-| 2026-11-20 | Breath poses: the art breath broke the style; the stuck katanas floated, the blast covers the frog on phones | rolled back to the drawn frog (Marek); **next: new breath art, as its own item** |
-| 2026-11-20 | Cut overhead: the old drawn frog in a crane stance, one foot off the post | done: stands on the post, the art frog with its arms up |
-| 2026-11-20 | Stunned: spiral eyes (canon: crossed eyes) | crossed-eye heads made, **Marek to pick** (candidates/1.3-heads/stun-cross) |
+| 2026-11-20 | Fire breath | done (v231): Marek's pick, the game's flame from its mouth, the mouth glowing |
+| 2026-11-20 | Breath aimed at the frog / just beside it: the flame's big blast covers the frog (worst on phones) | **open**, the next breath polish |
+| 2026-11-20 | Breath straight up: the picked head is turned, the column leaves the mouth's side over one eye | open, nit |
+| 2026-11-20 | The mouth glow hides the tongue (could fade toward the back) | open, nit |
+| 2026-11-20 | Side view (cuts in profile): the drawn frog since v226 (art profile scrapped) | **open**, its own item: a new profile in the logo style, empty scabbards on the back |
 | 2026-11-20 | Llama and monkey are grey silhouettes without fleece / suit | **Marek to say** whether the party wears the mascot costumes |
-| 2026-11-20 | No empty scabbards on the back in profile | belongs to the profile rebuild (the current profile is the rejected one), its own item |
-| 2026-11-20 | The llama's outline was a reddish beaded rim | done: cleaned in the dancer build |
-| 2026-11-20 | The curator's neck crop aimed at the belt | done |
+| 2026-11-20 | Wind-up: the sleeve's highlight stops where the shoulder slope starts (faint seam, right arm) | open, nit |
+| 2026-11-20 | Curator tool: the on-screen timer and timing carry from one shot to the next; the sole meter misses the art's toed feet on phones | open, tool fix |
+| 2026-11-20 | Stunned face, bump as bandana, munching, shoulders, overhead cut, feet on the post, post in the water, party sizes and footing | done (v225-v230) |
 
 ## The checklist
 
