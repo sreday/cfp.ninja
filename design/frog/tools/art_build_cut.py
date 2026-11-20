@@ -7,10 +7,14 @@ level cut (near or far, no power-up); the game mirrors it for a cut to the left.
 
 Input: candidates/cut/clean-2.png (the pick, its empty scabbards retouched out (Marek: scabbards only show with the katanas sheathed), on flat magenta, from the art desk or design/frog/art/sources).
 (Proofread at 3x: the eye whites sit straight in the green, no outline ring, as in the logo; nothing retouched.)
+The stance is narrowed here (NARROW): the lunge as drawn is wider than the post's top (soles 78% and 73% on it, the
+canon asks 80%), and two model retouches failed (one turned it into a squat on a stump, one changed nothing). So
+everything below the belt is squeezed toward the middle between the feet, eased in under the belt; the top half
+is untouched.
 Output: static/img/game/frog/cut.<hash>.webp, and the numbers for frog-game.js (picture px): its size, the feet line
 (the soles' bottom), the head's top, the middle between the feet.
 """
-import hashlib, io, json, os, sys
+import hashlib, io, json, os, sys, tempfile
 import numpy as np
 from PIL import Image, ImageFilter
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -20,9 +24,30 @@ from desk_path import desk                  # noqa: E402
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'static/img/game/frog')
 
 
+# source px: the belt's lower edge (the squeeze starts here), where it reaches full strength, the feet's middle, how much
+NARROW = {'from': 470, 'full': 560, 'cx': 636, 'k': 0.84}
+
+
+def narrow(path):
+    """squeeze the legs toward the feet's middle; returns the path of a scratch copy (flat magenta where it opens up)"""
+    A = np.asarray(Image.open(path).convert('RGB')).astype(np.float32)
+    H, W, _ = A.shape; out = A.copy(); xs = np.arange(W, dtype=np.float32); n = NARROW
+    for y in range(n['from'], H):
+        t = min(1.0, (y - n['from']) / (n['full'] - n['from'])); t = t * t * (3 - 2 * t)
+        s = 1 + (n['k'] - 1) * t
+        src = n['cx'] + (xs - n['cx']) / s
+        for c in range(3): out[y, :, c] = np.interp(src, xs, A[y, :, c], left=(255, 0, 255)[c], right=(255, 0, 255)[c])
+    f = tempfile.NamedTemporaryFile(suffix='.png', delete=False); f.close()
+    Image.fromarray(out.clip(0, 255).astype(np.uint8)).save(f.name)
+    return f.name
+
+
 def main():
-    src = desk('candidates/cut/clean-2.png')
-    im = keyed(src)
+    src = narrow(desk('candidates/cut/clean-2.png'))
+    try:
+        im = keyed(src)
+    finally:
+        os.unlink(src)          # (the scratch copy made just above)
     # (the retouched edit leaves a faint haze on the magenta, alpha < 24: cleared, so the picture crops to the frog)
     px = np.asarray(im).copy(); px[px[..., 3] < 24] = 0
     im = Image.fromarray(px, 'RGBA'); im = im.crop(im.getbbox())
