@@ -266,7 +266,7 @@ const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 // same when the head turns): one frog, one size.
 // Marek 2026-11-20: it read smaller and thinner-lined than the rest of the frog (the slim body covers ~9% less, lines 3 px
 // against 5 at 1920): lines thickened in the build, and drawn 10% bigger (grow; the curator allows 15% for one size)
-const DOWNCUT_ART = { url: '/img/game/frog/downcut.18fd503077.webp', size: [1155, 686], feet: 671, top: 66, mid: 392, eyeH: 80, grow: 1.1 };
+const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155, 686], feet: 671, top: 66, mid: 392, eyeH: 81, grow: 1.1 };
 const CUT_POSES = { cut: CUT_ART, down: DOWNCUT_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run

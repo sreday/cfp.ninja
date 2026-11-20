@@ -48,8 +48,17 @@ def thicken(im, t):
     W, H = im.size; n = int(round(t * 2))
     d2 = Image.fromarray((dark * 255).astype(np.uint8)).resize((W * 2, H * 2), Image.NEAREST).filter(ImageFilter.MaxFilter(2 * n + 1))
     soft = np.asarray(d2.filter(ImageFilter.GaussianBlur(1.2)).resize((W, H), Image.BILINEAR)).astype(np.float32) / 255
+    # (never over the katanas' silver and grey: the handle wraps' diamonds clogged into black bars, the curator 2026-11-20)
+    rgb = A[..., :3].astype(np.int16); sat = rgb.max(2) - rgb.min(2)
+    steel = a & (sat < 28) & (rgb.max(2) >= 70)
+    steel = np.asarray(Image.fromarray((steel * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) > 0
+    soft = soft * ~steel
     ink = np.array([20, 22, 24], np.float32)
-    for c in range(3): A[..., c] = (A[..., c] * (1 - soft) + ink[c] * soft).astype(np.uint8)
+    al = A[..., 3].astype(np.float32) / 255
+    # over the transparent edge the line is pure ink (its softness in the alpha), never mixed with the hidden magenta
+    # behind it (that left a purple fringe)
+    w = np.where(al < 0.5, 1.0, soft)
+    for c in range(3): A[..., c] = np.where(soft > 0.02, A[..., c] * (1 - w) + ink[c] * w, A[..., c]).astype(np.uint8)
     A[..., 3] = np.maximum(A[..., 3], (soft * 255).astype(np.uint8))
     return Image.fromarray(A, 'RGBA')
 
