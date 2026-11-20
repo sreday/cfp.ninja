@@ -270,7 +270,7 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155
 // the side slash (Marek 2026-11-20: 'ship the one where the frog is back to us'; side slash round 3 candidate 1 with its smile retouched): a light hop, side-on
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
-const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 110 };
+const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 260 };     // (Marek: float a bit more, it is clearly mid-jump)
 // Marek 2026-11-20: 'I want two to stay - the one behind the back and the one with frog stretched'; the profile down cut
 // goes. Level cuts: the stretched lunge (CUT_ART, feet on the post); downward cuts: the hop with its back half to us
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
@@ -1553,6 +1553,11 @@ export function mountFrogGame(stage, opts = {}) {
                 // the post ends under the water: cut just below the waterline, where the ring's front arc covers the cut
                 // (below it the sea is the plate's own; a see-through post down there read as a faint rectangle)
                 pe.style.clipPath = `inset(0 0 ${Math.max(0, Math.round(pb.bottom - sb.top - (wy + rh * 0.44)))}px 0)`;
+                // ... and it fades into the water before that cut: the ring's front arc is foam lines with sea between them,
+                // and through those gaps the hard cut showed as a straight edge and a pale band (Marek, 2026-11-20, a
+                // near-square window). Solid wood to the waterline, gone where the front foam starts.
+                const f0 = Math.round(wy - (pb.top - sb.top) + rh * 0.06), f1 = Math.round(wy - (pb.top - sb.top) + rh * 0.26);
+                pe.style.maskImage = pe.style.webkitMaskImage = `linear-gradient(to bottom, #000 ${f0}px, transparent ${f1}px)`;
                 artBg.postBox = { x: pb.left - sb.left, y: pb.top - sb.top, w: pb.width, h: pb.height };   // (the water front skips its dry part)
                 if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
             }
@@ -2803,6 +2808,9 @@ export function mountFrogGame(stage, opts = {}) {
         el.stamina.classList.toggle('gold', gold && !hot && !cold);
         el.stamina.classList.toggle('fire', hot);
         el.stamina.classList.toggle('empty', !gold && !hot && !cold && stamina < 1);
+        // running low (Marek, 2026-11-20): two pills left turn yellow, the last one red
+        const pills = gold || hot || cold ? STAMINA_BARS : Math.floor(stamina + 1e-6);
+        el.stamina.classList.toggle('low2', pills === 2); el.stamina.classList.toggle('low1', pills === 1);
         el.stamina.classList.toggle('flash', emptyFlash > 0);
         el.stamina.classList.toggle('stunned', stunT > 0);
         el.stamina.classList.toggle('locked', dbg && stamLock && !gold && !hot && !cold);

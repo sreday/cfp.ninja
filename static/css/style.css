@@ -1560,6 +1560,8 @@ a:hover {
     background: color-mix(in srgb, var(--surface) 90%, transparent); border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: box-shadow .2s, border-color .2s; }
 .fg-stamina i { display: block; width: 52px; height: 24px; border-radius: 7px; background: rgba(0,0,0,.35); border: 2px solid #000; overflow: hidden; transition: border-radius .35s ease, margin .35s ease, border-color .35s ease; }
 .fg-stamina b { display: block; height: 100%; width: 100%; background: linear-gradient(#b6d36a, #98b74b); }
+.fg-stamina.low2 b { background: linear-gradient(#ffe082, #f5c542); }   /* two pills left: yellow */
+.fg-stamina.low1 b { background: linear-gradient(#ff6b5e, #e53935); }   /* the last pill: red */
 .fg-stamina.empty { border-color: #e53935; box-shadow: 0 0 14px 3px rgba(229,57,53,.75); animation: fg-empty 0.9s ease-in-out infinite; }
 .fg-stamina.flash { animation: fg-flash .25s linear 2; }   /* out of stamina: it flashes red, it never moves */
 /* the old master has no stamina: one plain grey bar */
