@@ -108,7 +108,9 @@ def main():
     changed = sh('git', 'diff', '--name-only', 'HEAD@{1}', 'HEAD', '--', 'static', quiet=True, check=False).stdout.split()
     for f in [c for c in changed if os.path.exists(os.path.join(REPO, c))][:12]:
         live = subprocess.run(['curl', '-s', 'https://cfp.ninja/' + f[len('static/'):]], capture_output=True).stdout
-        print(('live ok   ' if live == open(os.path.join(REPO, f), 'rb').read() else 'LIVE DIFF ') + f)
+        # (against the committed bytes: on Windows the working copy may have CRLF line ends that Heroku never sees)
+        mine = subprocess.run(['git', 'show', 'HEAD:' + f], cwd=REPO, capture_output=True).stdout
+        print(('live ok   ' if live == mine else 'LIVE DIFF ') + f)
     sh('git', 'checkout', '-q', branch)
     print(f'live in {time.time() - t0:.0f} s')
 
