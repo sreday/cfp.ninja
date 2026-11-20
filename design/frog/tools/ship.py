@@ -113,8 +113,27 @@ def main():
     print(f'live in {time.time() - t0:.0f} s')
 
 
+def ci_public(head):
+    """no GitHub CLI on this machine: the repo is public, so read the run for this commit from the REST API (no token;
+    60 calls an hour, polled every 15 s)"""
+    import re, time, urllib.request
+    url = sh('git', 'remote', 'get-url', 'origin', quiet=True).stdout.strip()
+    repo = re.sub(r'\.git$', '', re.split(r'github\.com[:/]', url)[-1])
+    api = f'https://api.github.com/repos/{repo}/actions/runs?head_sha={head}'
+    for _ in range(48):
+        try: runs = json.load(urllib.request.urlopen(urllib.request.Request(api, headers={'User-Agent': 'frog-ship'})))['workflow_runs']
+        except Exception as e: print('   (GitHub API:', e, ')'); runs = []
+        if runs and all(x['status'] == 'completed' for x in runs):
+            bad = [x['name'] for x in runs if x['conclusion'] not in ('success', 'skipped', 'neutral')]
+            if bad: sys.exit(f'stopped: CI failed ({", ".join(bad)})')
+            return
+        time.sleep(15)
+    sys.exit('stopped: CI did not finish in 12 minutes')
+
+
 def ci(branch, head):
-    import time
+    import shutil, time
+    if not shutil.which('gh'): return ci_public(head)
     for _ in range(30):
         r = sh('gh', 'run', 'list', '--branch', branch, '--limit', '5', '--json', 'databaseId,headSha', quiet=True)
         runs = [x for x in json.loads(r.stdout or '[]') if x['headSha'] == head]
