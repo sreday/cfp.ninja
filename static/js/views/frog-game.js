@@ -267,7 +267,11 @@ const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 // Marek 2026-11-20: it read smaller and thinner-lined than the rest of the frog (the slim body covers ~9% less, lines 3 px
 // against 5 at 1920): lines thickened in the build, and drawn 10% bigger (grow; the curator allows 15% for one size)
 const DOWNCUT_ART = { url: '/img/game/frog/downcut.1e1b6fd2f0.webp', size: [1155, 686], feet: 671, top: 66, mid: 392, eyeH: 81, grow: 1.1 };
-const CUT_POSES = { cut: CUT_ART, down: DOWNCUT_ART };
+// the side slash (Marek 2026-11-20: 'ship the one where the frog is back to us'; side slash round 3 candidate 1 with its smile retouched): a light hop, side-on
+// mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
+// eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
+const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 110 };
+const CUT_POSES = { cut: SIDESLASH_ART, down: DOWNCUT_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -2004,7 +2008,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (!on) return;
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
         const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 ? -1 : 1;
-        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
     }
     function artBreathPose() {
         const B = artBreath; if (!B) return;
@@ -6556,7 +6560,7 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
-                .map(n => ({ name: n, anim: n, at: 0.12 })),
+                .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut (right|left), far$/.test(n) })),     // (the side slash is a hop: in the air on purpose)
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
