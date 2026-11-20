@@ -49,8 +49,12 @@ def monkey_step(g, rnd):
     time.sleep(rnd.uniform(0.2, 1.5)); return 'idle'
 
 
+# the laptop's own internet dropping out (the page fetches a font or two from outside) is not the game failing
+OFFLINE = ('ERR_INTERNET_DISCONNECTED', 'ERR_NETWORK_CHANGED', 'ERR_NAME_NOT_RESOLVED')
+
+
 def page_errors(g):
-    return [e for e in g.errors()]
+    return [e for e in g.errors() if not any(o in e for o in OFFLINE)]
 
 
 def runs(size, seconds, rnd, report):
