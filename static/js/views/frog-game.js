@@ -254,6 +254,13 @@ const STUN_ART = { face: '/img/game/frog/stun-face.20f8e0b3bb.webp', eyes: '/img
 const BREATH_ART = { url: '/img/game/frog/breath.b9873752bb.webp', mouthMask: '/img/game/frog/breath-mouth.d19a52b4bc.png', size: [628, 498],
     feet: 490, top: 32, mid: 342, mouth: [409, 149], mouthBox: [242, 113, 421, 202], rigFeet: 1701, rigTop: -290.7 };
 const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.feet - BREATH_ART.top);
+// the side cut (Marek's pick 2026-11-20 'side cut 2', built by design/frog/tools/art_build_cut.py; picture px): a wide lunge
+// turned to the right, the front katana level, the back one raised. It stands in for the drawn profile frog during a level
+// cut (no power-up), mirrored for a cut to the left. Sized by the head (a crouch is shorter than standing): its head as wide
+// as the breath frog's (headW: green across the face under the eyes), the soles on the rig's feet line.
+const CUT_ART = { url: '/img/game/frog/cut.eef94cad92.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295 };
+const BREATH_HEAD_W = 219;
+const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -513,6 +520,7 @@ const frogSvg = pal => { P = pal; const svg = `
         ${arm('fg-armR')}
         <g id="fg-art"></g>
         <g id="fg-art-breath"></g>
+        <g id="fg-art-cut"></g>
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
@@ -1544,6 +1552,7 @@ export function mountFrogGame(stage, opts = {}) {
     // drawn scene never flashes up first; it fades in once all of it has loaded. If the art fails, or
     // takes longer than ART_WAIT_MS, the scene shows with whatever is there (the drawn fallbacks).
     let artBreath = null;                                      // the breath frog (see artBreathPose)
+    let artCut = null;                                         // the side cut frog (see artCutPose)
     const ART_WAIT_MS = 8000;
     let artLeft = [ART.bg, ART.frog, ART.intro].filter(Boolean).length;
     const artShow = () => { artLeft = 0; stage.classList.remove('fg-art-wait'); };
@@ -1558,6 +1567,12 @@ export function mountFrogGame(stage, opts = {}) {
             <rect class="fg-breath-glow" mask="url(#fg-breath-mouth)" x="${bx0 - 4}" y="${by0 - 4}" width="${bx1 - bx0 + 8}" height="${by1 - by0 + 8}" fill="url(#fg-breath-glow)"/>`;
         artBreath = { root, on: false, ready: false, glow: root.querySelector('.fg-breath-glow'), stops: [...root.querySelectorAll('stop')] };
         Promise.all([Q.url, Q.mouthMask].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artBreath.ready = true; });
+    }
+    if (ART.frog) {
+        const Q = CUT_ART, root = $('#fg-art-cut');
+        root.innerHTML = `<image href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`;
+        artCut = { root, on: false, ready: false };
+        const i = new Image(); i.onload = () => { artCut.ready = true; }; i.src = Q.url;
     }
     if (ART.frog) (async () => {
         try {
@@ -1883,7 +1898,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
         setA(el.armR, 'opacity', pose.chop ? 0 : 1);
         setA(el.side, 'opacity', sideOn ? 1 : 0);
-        setA(el.all, 'opacity', sideOn && !artBreathOn() ? 0 : 1);      // (the breath frog lives in #fg-all and stands in for the profile too)
+        setA(el.all, 'opacity', sideOn && !artBreathOn() && !artCutOn() ? 0 : 1);      // (the breath and cut frogs live in #fg-all and stand in for the profile too)
         if (sideOn) {
             // (breathing fire: the drawing is narrowed in steps, the more the frog is turned toward us)
             const turnX = pose.sTurn && pose.sTurn < 1 ? ` translate(993 0) scale(${n2(pose.sTurn)} 1) translate(-993 0)` : '';
@@ -1959,6 +1974,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.glints.forEach(g => setA(g, 'opacity', gl));
         if (artIntro) artIntroPose(sideOn);
         artBreathPose();
+        artCutPose();
         if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
     }
     // The intro, drawn: while the frog sits (before the first run, or with the laptop to call its
@@ -1971,6 +1987,16 @@ export function mountFrogGame(stage, opts = {}) {
     // Breathing fire: the picked breath frog in place of the drawn one (any aim; mirrored when the flame goes left)
     const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
+    // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
+    function artCutOn() { return !!(artCut && artCut.ready && pose.artCut && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    function artCutPose() {
+        const C = artCut; if (!C) return;
+        const on = artCutOn();
+        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
+        if (!on) return;
+        const k = cutK(), f = pose.side < 0 ? -1 : 1, Q = CUT_ART;
+        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+    }
     function artBreathPose() {
         const B = artBreath; if (!B) return;
         const on = artBreathOn();
@@ -2953,6 +2979,8 @@ export function mountFrogGame(stage, opts = {}) {
             // a cut above its head: a small jump, legs together, as long as the blade is up there
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
+            // a level cut, feet on the post: the picked side cut drawing (artCutPose)
+            pose.artCut = pose.sLegs === 'level' && !pose.sHop && !s.thrust;
             // How a katana is held: never as an extension of the arm. The grip sets the blade across the
             // forearm, at about a right angle when it is cocked for the cut and never closer than 50
             // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
@@ -5639,6 +5667,7 @@ export function mountFrogGame(stage, opts = {}) {
         idleT += dt;
 
         // frog
+        pose.artCut = false;                  // (poseSwing sets it again for a level cut)
         if (phase === 'load') stepLoad(rdt);
         else if (phase === 'count') stepCount(rdt);
         if (phase === 'count' && introOn) {
