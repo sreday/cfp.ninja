@@ -158,7 +158,8 @@ def main():
     BAR_FLOOR = 988
     sand = lambda x, y: [x, y, y, 'sand']
     def stool(k): return [STOOL[k][0], STOOL[k][1], BAR_FLOOR, 'stool ' + k]
-    spots = [sand(fx - 134, fy + 58), sand(fx + 134, fy + 55), stool('C'), stool('A'), stool('D'), sand(fx - 230, fy + 62),
+    spots = [sand(fx + 134, fy + 55), sand(fx - 134, fy + 58),   # (the fox right of the fire, the llama left: on a phone the right edge cuts in)
+              stool('C'), stool('A'), stool('D'), sand(fx - 230, fy + 62),
              sand(fx + 235, fy + 35), sand(2325, 995), sand(2650, 990), sand(fx - 330, fy + 40), sand(2110, 970),
              sand(1560, 1060), sand(2730, 1015), sand(1470, 1050)]
     # ---- the dancers: pairs of frames on magenta ----
