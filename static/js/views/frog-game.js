@@ -232,7 +232,7 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
     // drawn frog instead, for comparing. Poses without their art yet are still the drawn frog.
-    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.796ac54fb5.json',
+    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.73c2456461.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
     intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.c3c44280db.json'
