@@ -91,7 +91,9 @@ def main():
     # (no p.wait() here: with stdout piped, a long suite fills the pipe and wait() never returns; communicate() reads it)
     outs = [p.communicate()[0] for p in scen]
     for q, out, p in zip(('art', '?art=old'), outs, scen):
-        if 'FAIL' in out or p.returncode: print(out[-2000:]); sys.exit(f'stopped: scenario tests ({q})')
+        if 'FAIL' in out or p.returncode:
+            print(out[-2000:]); print(chr(10).join(l for l in out.splitlines() if l.startswith('FAIL')) or f'(no FAIL line; exit code {p.returncode})')
+            sys.exit(f'stopped: scenario tests ({q})')
     print(f'   scenario tests ok ({time.time() - t0:.0f} s); monkey soak')
     # (the 120 power-up pairs take ~7 min: gameplay changes only. An art item ships with the plain soak; --full or
     #  --pairs runs them)
