@@ -5048,6 +5048,8 @@ export function mountFrogGame(stage, opts = {}) {
         };
         // (the loose pieces are picked before the fruit is quartered: the new quarters are in the blast too)
         const loose = pieces.filter(q => q.live && q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6 && q.fam.cuts < MAX_CUTS);
+        // (each loose piece's cut count is taken now: pieces of one fruit share it, and cutting one raises it for the next)
+        const looseBefore = new Map(loose.map(q => [q, q.fam.cuts]));
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
             if (!(f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r)) continue;
@@ -5056,7 +5058,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (!halves) { burnFruit(f, FW_BONUS, true); continue; }          // (too small to cut: as before)
             halves.forEach(h => { if (fwCut(h, a + Math.PI / 2, 0.25, false, before)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
         }
-        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI), 1, true, q.fam.cuts)) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
+        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI), 1, true, looseBefore.get(q))) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
         srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
