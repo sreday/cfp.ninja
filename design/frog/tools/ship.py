@@ -88,7 +88,7 @@ def main():
     print('1/4 tests, and CI on GitHub alongside'); sh('git', 'push', '-q', '-u', 'origin', branch)
     scen = [subprocess.Popen([sys.executable, os.path.join(HERE, 'scenario_test.py')], cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                              env=dict(os.environ, FROG_QUERY=q) if q else None) for q in ('', '?art=old')]
-    if full: [p.wait() for p in scen]
+    # (no p.wait() here: with stdout piped, a long suite fills the pipe and wait() never returns; communicate() reads it)
     outs = [p.communicate()[0] for p in scen]
     for q, out, p in zip(('art', '?art=old'), outs, scen):
         if 'FAIL' in out or p.returncode: print(out[-2000:]); sys.exit(f'stopped: scenario tests ({q})')
