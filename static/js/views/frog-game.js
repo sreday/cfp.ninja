@@ -245,14 +245,22 @@ const LLAMA_AT_FIRE = 240;      // plate px: the llama's height standing by the 
 const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's perspective, 1 at the bonfire
 // the stunned face (built by design/frog/tools/art_build_stun.py; head px): the face without its pupils, the eye mask, where
 // the pupils rest (Marek's pick: one eye up and out, one down and in), how big, the shine on each, how far they roll
+// the standing face with its pupils taken out (built by design/frog/tools/art_build_look.py; head px): the game draws the
+// pupils (where the picture had them, the highlight toward the nose) a little after the cursor, and blinks green lids
+// over the eyes every 2 s (Marek, 2026-11-21). The eye mask is the stunned face's.
+const LOOK_ART = { face: '/img/game/frog/look-face.fd6fa4423b.webp', size: [649, 495], pupils: [[204.4, 227.6], [444.9, 227.4]], r: 55,
+    shines: [[12.7, -12.7], [-12.6, -12.4]], shineR: 18, eyes: [{ c: [189, 234], rx: 78, ry: 67 }, { c: [460, 234], rx: 78, ry: 67 }], look: [14, 10] };
 const STUN_ART = { face: '/img/game/frog/stun-face.990f91a559.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
     pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
 // breathing fire (Marek's pick 2026-11-20, built by design/frog/tools/art_build_breath.py; picture px): the frog with its
 // mouth open, fists up, the katanas stuck in the post; the game draws the flame from 'mouth' and fills the mouth with its
 // light (Marek: so the fire comes from inside). Sized to the rig: the soles on the rig's feet line, the bandana's top on
 // the rig's head top.
-const BREATH_ART = { url: '/img/game/frog/breath.b9873752bb.webp', mouthMask: '/img/game/frog/breath-mouth.d19a52b4bc.png', size: [628, 498],
-    feet: 490, top: 32, mid: 342, mouth: [409, 149], mouthBox: [242, 113, 421, 202], rigFeet: 1701, rigTop: -290.7 };
+// (2026-11-21, Marek: the katanas cut out of it, they no longer swap sides when it is mirrored: the game draws its own
+//  katanas stuck in the post, at fixed places; and the flame leaves from inside the open mouth, not its corner by the chin)
+const BREATH_ART = { url: '/img/game/frog/breath.bb03c9e644.webp', mouthMask: '/img/game/frog/breath-mouth.f9245a3192.png', size: [478, 497],
+    feet: 490, top: 32, mid: 279, mouth: [297, 148], mouthBox: [179, 113, 358, 202], rigFeet: 1701, rigTop: -290.7,
+    katanas: '/img/game/frog/breath-katanas.da8c6ded4e.webp', katanasAt: [-63, 215], katanasSize: [628, 270] };
 const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.feet - BREATH_ART.top);
 // the side cut (Marek's pick 2026-11-20 'side cut 2', built by design/frog/tools/art_build_cut.py; picture px): a wide lunge
 // turned to the right, the front katana level, the back one raised, no scabbards (only seen with the katanas sheathed). It stands in for the drawn profile frog during a level
@@ -1583,10 +1591,12 @@ export function mountFrogGame(stage, opts = {}) {
         root.innerHTML = `<defs><radialGradient id="fg-breath-glow" gradientUnits="userSpaceOnUse" cx="${Q.mouth[0] - 25}" cy="${Q.mouth[1] + 4}" r="${(bx1 - bx0) * 0.75}">
                 <stop offset="0"/><stop offset="0.45"/><stop offset="1"/></radialGradient>
             <mask id="fg-breath-mouth" maskUnits="userSpaceOnUse" x="0" y="0" width="${Q.size[0]}" height="${Q.size[1]}"><image href="${Q.mouthMask}" width="${Q.size[0]}" height="${Q.size[1]}"/></mask></defs>
-            <image href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>
-            <rect class="fg-breath-glow" mask="url(#fg-breath-mouth)" x="${bx0 - 4}" y="${by0 - 4}" width="${bx1 - bx0 + 8}" height="${by1 - by0 + 8}" fill="url(#fg-breath-glow)"/>`;
-        artBreath = { root, on: false, ready: false, glow: root.querySelector('.fg-breath-glow'), stops: [...root.querySelectorAll('stop')] };
-        Promise.all([Q.url, Q.mouthMask].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artBreath.ready = true; });
+            <g class="fg-breath-kat"><image href="${Q.katanas}" x="${Q.katanasAt[0]}" y="${Q.katanasAt[1]}" width="${Q.katanasSize[0]}" height="${Q.katanasSize[1]}"/></g>
+            <g class="fg-breath-frog"><image href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>
+            <rect class="fg-breath-glow" mask="url(#fg-breath-mouth)" x="${bx0 - 4}" y="${by0 - 4}" width="${bx1 - bx0 + 8}" height="${by1 - by0 + 8}" fill="url(#fg-breath-glow)"/></g>`;
+        artBreath = { root, on: false, ready: false, glow: root.querySelector('.fg-breath-glow'), stops: [...root.querySelectorAll('stop')],
+            frog: root.querySelector('.fg-breath-frog'), kat: root.querySelector('.fg-breath-kat') };
+        Promise.all([Q.url, Q.mouthMask, Q.katanas].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artBreath.ready = true; });
     }
     if (ART.frog) {
         const root = $('#fg-art-cut');
@@ -1598,7 +1608,7 @@ export function mountFrogGame(stage, opts = {}) {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
             // load every part first, so the frog never shows half drawn
-            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
+            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes, LOOK_ART.face]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
             if (dead) return;
             const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
             const armSvg = s => {
@@ -1616,6 +1626,12 @@ export function mountFrogGame(stage, opts = {}) {
                 return `<g class="fg-face-stun" opacity="0"><g transform="translate(${p.head.x} ${p.head.y}) scale(${n2(k)})">
                     <mask id="fg-stun-eyes" maskUnits="userSpaceOnUse" x="0" y="0" width="${S.size[0]}" height="${S.size[1]}"><image href="${S.eyes}" width="${S.size[0]}" height="${S.size[1]}"/></mask>
                     <image href="${S.face}" width="${S.size[0]}" height="${S.size[1]}"/><g mask="url(#fg-stun-eyes)">${pu}</g></g></g>`; };
+            const lookFace = () => { const L = LOOK_ART, k = p.head.w / L.size[0];
+                const pu = L.pupils.map((c, i) => `<g transform="translate(${c[0]} ${c[1]})"><g class="fg-lpupil"><circle r="${L.r}"/><circle cx="${L.shines[i][0]}" cy="${L.shines[i][1]}" r="${L.shineR}" fill="#fff"/></g></g>`).join('');
+                const lids = L.eyes.map(() => `<g class="fg-lid"><rect x="-90" y="0" width="180" height="146" fill="#98b74b"/><rect x="-90" y="132" width="180" height="16" fill="#000"/></g>`).join('');
+                return `<g class="fg-face-look" opacity="0"><g transform="translate(${p.head.x} ${p.head.y}) scale(${n2(k)})">
+                    <mask id="fg-look-eyes" maskUnits="userSpaceOnUse" x="0" y="0" width="${L.size[0]}" height="${L.size[1]}"><image href="${STUN_ART.eyes}" width="${L.size[0]}" height="${L.size[1]}"/></mask>
+                    <image href="${L.face}" width="${L.size[0]}" height="${L.size[1]}"/><g mask="url(#fg-look-eyes)">${pu}${lids}</g></g></g>`; };
             // Shoulders (the "tube shoulders" blooper, 2026-11-19): a sleeve's top end sat on the side of the chest as a
             // cut-off tube. A round cap at each pivot joins them: its outline under the body and sleeves (so only the outer
             // curve of the shoulder shows a line), its red over them (hiding the sleeve's top end and the seam), at any arm angle.
@@ -1633,7 +1649,7 @@ export function mountFrogGame(stage, opts = {}) {
                 <path class="fg-slope-lineL" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/><path class="fg-slope-lineR" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/>
                 <g class="fg-art-cap">${cap('#941c19', 0)}</g>${armSvg('L')}${armSvg('R')}
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
-                .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}</g>`;
+                .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}${lookFace()}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s), at = root.querySelector('.fg-art-limbat' + s);
                 return { g: a, at, limb: at.querySelector('.fg-art-limb'), held: a.querySelector('.fg-art-held'), fist: a.querySelector('.fg-art-fist'), reach: p['sleeve' + s].reach }; };
             // the profile: legs (one set shown), then the top half turning at the hip: far arm, torso, tails, head, near arm
@@ -1655,7 +1671,7 @@ export function mountFrogGame(stage, opts = {}) {
                     legs: Object.fromEntries(Object.keys(g.side.legs).map(n => [n, sroot.querySelector('.fg-art-legs-' + n)])),
                     armB: { ...a2('fg-art-armB'), reach: p['p-armF'].reach }, armF: { ...a2('fg-art-armF'), reach: p['p-armN'].reach } };
             }
-            const faces = Object.fromEntries(['base', 'fire', 'stun', 'back'].map(n => [n, root.querySelector('.fg-face-' + n)]).filter(e => e[1]));
+            const faces = Object.fromEntries(['base', 'fire', 'stun', 'back', 'look'].map(n => [n, root.querySelector('.fg-face-' + n)]).filter(e => e[1]));
             artFrog = { g, root, on: false, side, faces, faceNow: 'base', saya: root.querySelector('.fg-art-saya'), body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
@@ -2036,7 +2052,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (on !== B.on) { B.on = on; svg.classList.toggle('fg-art-breath-on', on); }
         if (!on) return;
         const k = breathK(), f = breathFlip(), Q = BREATH_ART;
-        setA(B.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${Q.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        // the frog turns to the flame; the katanas stuck in the post stay where they are (never mirrored)
+        const at = `translate(0 ${n2(pose.up * RISE)}) translate(993 ${Q.rigFeet})`;
+        setA(B.frog, 'transform', `${at} scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        setA(B.kat, 'transform', `${at} scale(${n2(k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
         // the fire's light in the mouth: hottest at the throat, flickering; yellow on sake, blue-white when hacking
         const t = performance.now() / 1000, fl = 0.82 + 0.12 * Math.sin(t * 31) + 0.06 * Math.sin(t * 53 + 1);
         const c = fireSlow ? ['#e8fbff', '#7fd8ff', '#2a7fff'] : sakeLeft > 0 ? ['#fffbe0', '#ffe14a', '#f0a800'] : ['#fff3c0', '#ffb12e', '#e8401c'];
@@ -2057,7 +2076,10 @@ export function mountFrogGame(stage, opts = {}) {
         if (lf >= 0 && lf < 1) {
             const L = I.g.laptop;
             setA(I.lap, 'opacity', 1);
-            setA(I.lap, 'transform', `translate(${n2(L.cx + 3000 * lf)} ${n2(L.cy - 1300 * lf + 3600 * lf * lf + pose.up * RISE)}) rotate(${n2(680 * lf)})`);
+            // it flies all the way off the right edge of the screen (Marek, 2026-11-21: not gone in mid-air): how far that is
+            // in drawing units depends on the screen, so the throw is measured (its own half width plus a margin past the edge)
+            const edge = (W + 60 - fbox.x) * 1986 / fbox.w - L.cx + 520;
+            setA(I.lap, 'transform', `translate(${n2(L.cx + Math.max(3000, edge) * lf)} ${n2(L.cy - 1300 * lf + 1500 * lf * lf + pose.up * RISE)}) rotate(${n2(680 * lf)})`);
         } else setA(I.lap, 'opacity', 0);
         if (!on) return;
         let key = 'logo';
@@ -2083,8 +2105,17 @@ export function mountFrogGame(stage, opts = {}) {
         // the face: thrown back to breathe straight up, mouth wide to breathe fire, dizzy when stunned
         // (eating a kiwi or a plum is being busy munching, not stunned: the normal face, the jaw chewing; Marek 2026-11-20)
         const eating = !!(headFx && headFx.mode === 'eat' && stunT > 0);
-        const face = pose.headUp ? 'back' : eating ? 'base' : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : 'base';
+        const plain = A.faces.look ? 'look' : 'base';        // (the standing face with live eyes, when it is there)
+        const face = pose.headUp ? 'back' : eating ? plain : pose.mouthOpen ? 'fire' : stunT > 0 ? 'stun' : plain;
         if (A.faceNow !== face) { for (const k in A.faces) setA(A.faces[k], 'opacity', k === face ? 1 : 0); A.faceNow = face; }
+        if (face === 'look') {
+            // the pupils a little after the cursor (pose.lookX/Y, see look()), the lids down for a blink
+            A.lpupils = A.lpupils || [...A.root.querySelectorAll('.fg-lpupil')];
+            A.lids = A.lids || [...A.root.querySelectorAll('.fg-lid')];
+            const L = LOOK_ART, dx = clamp(pose.lookX * 0.45, -L.look[0], L.look[0]), dy = clamp(pose.lookY * 0.45, -L.look[1], L.look[1]);
+            A.lpupils.forEach(e => setA(e, 'transform', `translate(${n2(dx)} ${n2(dy)})`));
+            A.lids.forEach((e, i) => { const E = L.eyes[i]; setA(e, 'transform', `translate(${E.c[0]} ${E.c[1] - E.ry - 6}) scale(1 ${n2(Math.max(0.001, pose.blink))})`); });
+        }
         if (face === 'stun') {
             // dizzy: each pupil rolls round its resting place, the two out of step (one each way)
             A.pupils = A.pupils || [...A.root.querySelectorAll('.fg-pupil')];
@@ -2782,7 +2813,8 @@ export function mountFrogGame(stage, opts = {}) {
     // the eyes follow the nearest fruit (or the finger while slicing)
     function look(dt) {
         let tx = 0, ty = 0;
-        let target = down && pointer ? pointer : null;
+        // the cursor (pressed or not: Marek 2026-11-21, the eyes follow it), else the nearest fruit
+        let target = down && pointer ? pointer : aim && phase === 'play' ? aim : null;
         if (!target && fruits.length) {
             let best = Infinity;
             fruits.forEach(f => { const d = Math.hypot(f.x - W / 2, f.y - H); if (f.entered && d < best) { best = d; target = { x: f.x, y: f.y }; } });
@@ -5823,7 +5855,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         if (hopT > 0) { hopT = Math.max(0, hopT - dt); pose.bob -= 14 * Math.sin((1 - hopT / 0.5) * Math.PI); }
         blinkAt -= dt;
-        if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = rand(2, 5); pose.blink = 0; } }
+        if (blinkAt < 0) { pose.blink = Math.sin(clamp(-blinkAt / 0.16, 0, 1) * Math.PI); if (blinkAt < -0.16) { blinkAt = 2; pose.blink = 0; } }      // a blink every 2 s (Marek, 2026-11-21)
         // The alarm clock, time stopped: the frog plans. It sits in the air at the height of its jump,
         // eyes shut, its katanas hanging beside it, and its right hand (on our left) points out each
         // thing to be cut. When time flows again it is on its feet with the blades in hand, as before.

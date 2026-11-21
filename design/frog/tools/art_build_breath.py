@@ -20,9 +20,63 @@ from desk_path import desk  # noqa: E402
 DESK = os.path.expanduser('~/Desktop/Frog Ninja art desk')
 OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), 'static/img/game/frog')
 
+def without_katanas(path):
+    """The two katanas stuck in the post are cut out of the picture (Marek, 2026-11-21: when the breath frog is mirrored
+    to the other side they moved with it; the game draws its own katanas stuck in the post, at fixed places). Each blade's
+    line runs from its pommel to its tip, and a band around it is painted magenta (the key colour), never over the frog
+    or within 7 px of its green, red or cream (its outline stays). Returns a scratch copy's path."""
+    import tempfile
+    A = np.asarray(Image.open(path).convert('RGB')).astype(int).copy()
+    r, g, b = A[..., 0], A[..., 1], A[..., 2]
+    H, W = r.shape
+    mag = (r > 200) & (b > 200) & (g < 80)
+    frog = ((g > r + 15) & (g > b + 30) & (g > 90)) | ((r > 90) & (r > g + 50) & (r > b + 40)) | ((r > 200) & (g > 200) & (b > 110) & (b < 200) & (r - b > 40))
+    sat = A.max(2) - A.min(2); steel = ~mag & (sat < 40)
+    yy, xx = np.mgrid[0:H, 0:W]; cut = np.zeros((H, W), bool)
+    # the frog and its own outline stay: everything within 7 px of its colours
+    keep = np.asarray(Image.fromarray((frog * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(15))) > 0
+    for (ax, ay), (bx, by) in KATANAS:
+        dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+        t = np.clip(((xx - ax) * dx + (yy - ay) * dy) / L2, -0.09, 1.04)
+        d = np.hypot(xx - (ax + t * dx), yy - (ay + t * dy))
+        cut |= (d < KATANA_HALF) & ~keep & ~mag
+    K = A.copy(); K[~cut] = (255, 0, 255)                 # the katanas alone (their own layer, never mirrored)
+    A[cut] = (255, 0, 255)
+    out = []
+    for arr in (A, K):
+        f = tempfile.NamedTemporaryFile(suffix='.png', delete=False); f.close()
+        Image.fromarray(arr.clip(0, 255).astype(np.uint8)).save(f.name); out.append((f.name, alpha_bbox(arr)))
+    return out
+
+
+def alpha_bbox(arr):
+    """where keyed() will crop this source (the same alpha rule), in source px: (x0, y0)"""
+    D = arr.astype(np.int16); mag = np.sqrt(((D - np.array([255, 0, 255])) ** 2).sum(2))
+    al = np.clip((mag - 70) / 80.0, 0, 1)
+    al = np.asarray(Image.fromarray((al * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(3)))
+    ys, xs = np.nonzero(al > 0)
+    return int(xs.min()), int(ys.min())
+
+
+# source px: each katana from its pommel to its tip (read off clean-2.png), and the band's half width around that line
+KATANAS = (((378, 398), (522, 655)), ((992, 392), (868, 663)))
+KATANA_HALF = 32
+
+
 def main():
-    im = keyed(desk('candidates/breath/clean-2.png'))
-    im = im.crop(im.getbbox())
+    (frog_src, f0), (kat_src, k0) = without_katanas(desk('candidates/breath/clean-2.png'))
+    im = keyed(frog_src)
+    # only the frog: specks left where the katanas were cut out are dropped (everything not joined to the largest shape)
+    from art_build_bg import components
+    P = np.asarray(im).copy(); cs, lab = components(P[..., 3] > 16, 1)
+    big = max(cs, key=lambda c: c['area']); P[(lab != big['id']) & (P[..., 3] > 0)] = 0
+    im = Image.fromarray(P, 'RGBA')
+    b2 = im.getbbox(); im = im.crop(b2)
+    # the katanas' layer and where it sits in the frog's picture (picture px; the game draws it unmirrored)
+    kat = keyed(kat_src); kat_at = [k0[0] - (f0[0] + b2[0]), k0[1] - (f0[1] + b2[1])]
+    kb = io.BytesIO(); kat.save(kb, 'WEBP', quality=92, method=6)
+    kh = hashlib.sha256(kb.getvalue()).hexdigest()[:10]; kfn = f'breath-katanas.{kh}.webp'
+    open(os.path.join(OUT, kfn), 'wb').write(kb.getvalue())
     A = np.asarray(im).astype(int); a = A[..., 3] > 128
     r, g, b = A[..., 0], A[..., 1], A[..., 2]
     green = a & (g > r + 15) & (g > b + 30) & (g > 90)
@@ -55,7 +109,7 @@ def main():
     buf = io.BytesIO(); im.save(buf, 'WEBP', quality=92, method=6)
     h = hashlib.sha256(buf.getvalue()).hexdigest()[:10]; fn = f'breath.{h}.webp'
     open(os.path.join(OUT, fn), 'wb').write(buf.getvalue())
-    print(json.dumps({'url': '/img/game/frog/' + fn, 'mouthMask': '/img/game/frog/' + mfn, 'size': list(im.size), 'feet': feet, 'top': top, 'mid': mid, 'mouth': mouth, 'mouthBox': mb}))
+    print(json.dumps({'katanas': '/img/game/frog/' + kfn, 'katanasAt': kat_at, 'katanasSize': list(kat.size), 'url': '/img/game/frog/' + fn, 'mouthMask': '/img/game/frog/' + mfn, 'size': list(im.size), 'feet': feet, 'top': top, 'mid': mid, 'mouth': mouth, 'mouthBox': mb}))
 
 if __name__ == '__main__':
     main()
