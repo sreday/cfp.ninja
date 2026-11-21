@@ -19,7 +19,17 @@ def check(name, ok, detail=''):
     if not ok: FAILS.append(name)
 
 def fresh(g):
-    g.js("location.reload()"); time.sleep(2.5); g.js("frogPlay.debug()"); time.sleep(0.3)
+    # a reload, then debug play; under load (both suites side by side) the page can take longer than 2.5 s, so wait
+    # until the debug run is really on before a check starts (a blast into a page still starting paid 0, 2026-11-21)
+    g.js("location.reload()"); time.sleep(2.5)
+    for _ in range(40):
+        if g.js("!!(window.frogPlay && frogPlay.state)"): break
+        time.sleep(0.25)
+    g.js("frogPlay.debug()"); time.sleep(0.3)
+    for _ in range(40):
+        st = g.state()
+        if st.get('debug') and st.get('phase') == 'play': break
+        time.sleep(0.25); g.js("frogPlay.debug()")
 
 def hold(g, x, y, seconds, every=0.1):
     """keep the breath aimed at a point; returns the states seen"""
@@ -180,7 +190,7 @@ def main():
         g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['timeRaw'] - t0['timeRaw']
         check('fireworks: a fruit in the blast is split in four quarters', len(st['fruits']) == 0 and st['pieces'] == 4, (len(st['fruits']), st['pieces']))
         check('fireworks: the four quarters pay what the old blast paid for the fruit, no hand-cut signals', abs(got - want) < 0.02 and st['sigCuts'] == t0['sigCuts'] and st['sigClean'] == t0['sigClean'],
-              (round(got, 3), round(want, 3), t0['sigCuts'], st['sigCuts']))
+              (round(got, 3), round(want, 3), t0['sigCuts'], st['sigCuts'], t0['phase'], t0['left'], t0['survived']))
         # ... and the two halves of a fruit cut by hand, caught in one blast: each pays the old piece pay (FW_BONUS * RECUT),
         # however many of its siblings the blast cuts first (they share the fruit's cut count; the curator, round 3)
         fresh(g); g.js("frogPlay.drop('fruit:orange', 640, 260); frogPlay.still()"); time.sleep(0.1)     # (drop() sets the world going: still() after it)
