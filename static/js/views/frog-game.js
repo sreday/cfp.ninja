@@ -232,7 +232,7 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
     // drawn frog instead, for comparing. Poses without their art yet are still the drawn frog.
-    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.a53b4dfce3.json',
+    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.796ac54fb5.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
     intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.c3c44280db.json'
@@ -1869,7 +1869,7 @@ export function mountFrogGame(stage, opts = {}) {
     // Marek 2026-11-20: the katanas 20% longer in the base pose (stretched along the blade from the grip)
     const KATANA_LEN = 1.2;
     // ... and the head sits this much lower on the body (rig units): the chin covers the cream throat band that read as a double chin
-    const HEAD_DROP = 34;
+    const HEAD_DROP = 0;
     // standing: the soles' line the breath and the crouch pivot on, and how far the breath reaches (rig units);
     // hopT (a little hop's time left) is declared here too: applyPose runs once before the loop's variables further down
     const FEET_Y = 1700, BREATH_SPAN = 1500;
@@ -2808,8 +2808,10 @@ export function mountFrogGame(stage, opts = {}) {
         el.stamina.classList.toggle('gold', gold && !hot && !cold);
         el.stamina.classList.toggle('fire', hot);
         el.stamina.classList.toggle('empty', !gold && !hot && !cold && stamina < 1);
-        // running low (Marek, 2026-11-20): two pills left turn yellow, the last one red
-        const pills = gold || hot || cold ? STAMINA_BARS : Math.floor(stamina + 1e-6);
+        // running low (Marek, 2026-11-20): two pills left turn yellow, the last one red. Counted as the pills you can see,
+        // the one refilling included (Marek, 2026-11-21: 'the single stamina bar is green?': full pills only left the
+        // last, refilling one green)
+        const pills = gold || hot || cold ? STAMINA_BARS : Math.ceil(stamina - 1e-6);
         el.stamina.classList.toggle('low2', pills === 2); el.stamina.classList.toggle('low1', pills === 1);
         el.stamina.classList.toggle('flash', emptyFlash > 0);
         el.stamina.classList.toggle('stunned', stunT > 0);
