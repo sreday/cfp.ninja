@@ -2897,6 +2897,13 @@ export function mountFrogGame(stage, opts = {}) {
     // with a drawn crescent for the two frames in between; that pose holds while the blade
     // travels and a little longer; then the frog snaps back to ready.
     const DIRS = 8, SMEAR = 0.05, HOLD = 0.16, SETTLE = 0.07;
+    // Each cut pose stays on screen at least POSE_MIN (Marek, 2026-11-21: "so it feels less stroboscopic and more
+    // purposeful"). A new stroke in another direction before that waits (only the newest one is kept) and shows the
+    // moment the current pose has had its time. Only the drawing waits: the blade and the cutting are never held back.
+    // (The time freeze's release sets swing to null before each strike, so its fast sequence is not slowed.)
+    const POSE_MIN = 0.3;
+    let swingNext = null;
+    const holdUntil = s => Math.max((s.end || 0) + HOLD, POSE_MIN);
     const JUMP_UP = 45;           // how far a jump lifts the frog (drawing units, front view; the profile uses 4x): a small, held lift, not an arc
     let poseAcc = 0;
     let lowSide = 0;              // under five seconds: which way it is facing while it teeters (held for the whole spell)
@@ -2927,17 +2934,19 @@ export function mountFrogGame(stage, opts = {}) {
         const h0 = frogPoint(993, 300), wide = Math.abs(x - W / 2) > fbox.w * 1.6;
         const thrust = y === undefined || !wide ? '' : y < h0.y - fbox.w * 0.9 ? 'up' : y > h0.y + fbox.w * 0.95 ? 'down' : '';
         if (swing && swing.live && swing.thrust && swing.thrust === thrust && swing.side === side) { swing.tx = x; swing.ty = y; return; }     // the same thrust, followed
+        if (swing && swing.t < POSE_MIN && !swing.demo) { swingNext = [dx, dy, x, y]; return; }      // the current pose has not had its time yet
         swing = { a, side, t: 0, live: true, near, high, over, under, thrust: through ? '' : thrust, through, tx: x, ty: y };
     }
     function stepSwing(dt) {
-        if (!swing) return;
+        if (!swing) { swingNext = null; return; }        // (a cleared swing drops a waiting stroke too: nothing stale fires later)
         swing.t += dt;
         if (swing.live && !(cut && cut.paid) && !swing.demo) { swing.live = false; swing.t = Math.max(swing.t, SMEAR); swing.end = swing.t; }
-        if (!swing.live && swing.t > (swing.end || 0) + HOLD + SETTLE) swing = null;
+        if (swingNext && swing.t >= POSE_MIN) { const q = swingNext; swingNext = null; swingTo(...q); }      // the stroke that waited
+        if (swing && !swing.live && swing.t > holdUntil(swing) + SETTLE) swing = null;
     }
     function poseSwing() {
         const s = swing, deg = s.a * 180 / Math.PI, cx = Math.cos(s.a), cy = Math.sin(s.a);
-        const settling = !s.live && s.t > (s.end || 0) + HOLD;
+        const settling = !s.live && s.t > holdUntil(s);
         const k = settling ? 0.35 : 1;                               // one in-between on the way back to ready
         if (s.over && !settling) {
             // A cut straight overhead is made with both katanas, facing us: the arms thrown up,
