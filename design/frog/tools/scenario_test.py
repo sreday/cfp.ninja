@@ -176,8 +176,11 @@ def main():
         # 12c2. fireworks split a fruit clean in four quarters (Marek 2026-11-21: not made to vanish); lit by the fire breath,
         #       the quarters are cut like the fire katana's and left burning
         fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
-        g.js("frogPlay.blast(640, 260)"); st = g.state()
+        g.js("frogPlay.still()"); t0 = g.state(); want = g.js("frogPlay.fwPay('orange')")
+        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['timeRaw'] - t0['timeRaw']
         check('fireworks: a fruit in the blast is split in four quarters', len(st['fruits']) == 0 and st['pieces'] == 4, (len(st['fruits']), st['pieces']))
+        check('fireworks: the four quarters pay what the old blast paid for the fruit, no hand-cut signals', abs(got - want) < 0.02 and st['sigCuts'] == t0['sigCuts'] and st['sigClean'] == t0['sigClean'],
+              (round(got, 3), round(want, 3), t0['sigCuts'], st['sigCuts']))
         fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
         g.js("frogPlay.blastFire(640, 260)"); st = g.state()
         check('fire fireworks: four quarters, all of them burning', st['pieces'] == 4 and st['burningPieces'] == 4, (st['pieces'], st['burningPieces']))

@@ -3381,8 +3381,10 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // fire (a number: what the flame's pay is multiplied by): the cut is made by a flame, not a blade. It pays
     // as fire pays (half the combo bonus, no chain), counts as a burn, and leaves no blade stroke.
-    // blast (fireworks, Marek 2026-11-21): { mult, char } a firework's clean cut, paid like the old blast (no hand-cut
-    // signals, no combo chain, no refund, no slash pose, credited to fireworks); char: lit by the fire breath (charred edges)
+    // blast (fireworks, Marek 2026-11-21): { pay, first, char } a firework's clean cut: pay is this cut's share of the old
+    // blast's pay (fixed by the caller, not by the cut count, which the halves share with their fruit); first: the cut
+    // that stands for the whole fruit or piece (its slice, salad entry and style); no hand-cut signals, no combo chain,
+    // no refund, no slash pose, credited to fireworks; char: lit by the fire breath (charred edges)
     function cutFruit(f, hit, dx, dy, hx, hy, fire = 0, blast = null) {
         const now = performance.now(), id = cut ? cut.id : 0, notHand = !!fire || !!blast;
         const [bodyA, bodyB] = splitPoly(f.poly, hit.px, hit.py, hit.nx, hit.ny);
@@ -3399,7 +3401,7 @@ export function mountFrogGame(stage, opts = {}) {
             stamina = Math.min(STAMINA_BARS, stamina + 1); snd('resume'); log('refund');
             floats.push({ x: f.x, y: f.y - f.r - 26, text: '+1 slash', t: 0, hot: true });
         }
-        const gain = blast ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * Math.pow(RECUT, f.fam.cuts) * blast.mult * timeMult(), 0.01)
+        const gain = blast ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * blast.pay * timeMult(), 0.01)
             : fire ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * Math.pow(RECUT, f.fam.cuts) * fire * timeMult(), 0.01)
             : Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
             * (1 + Math.min(MULTI * chain, MULTI_MAX)) * (bladeFx.bubbles && fxOn() ? 1 + 0.1 * bladeFx.bubbles : 1) * summonPay * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
@@ -3410,7 +3412,7 @@ export function mountFrogGame(stage, opts = {}) {
         timeLeft += gain;
         if (blast) {
             // one slice and one salad entry per fruit, as the old blast; no sound of its own (the boom is enough)
-            if (firstCut) { slices++; addToSalad(f.type, !!blast.char); }
+            if (blast.first) { slices++; addToSalad(f.type, !!blast.char); style = Math.min(STYLE_MAX, style + styleK * 0.5); }
             val(srcHint || 'fireworks', gain); log('blast', f.type.kind, r2(gain), f.fam.cuts);
             gainPop(f.x, f.y - f.r, gain);
         } else if (fire) { slices++;
@@ -5035,11 +5037,11 @@ export function mountFrogGame(stage, opts = {}) {
         // middle at a random angle, then each half at right angles. Fireworks lit by the fire breath cut like the fire
         // katana: the edges charred, the quarters left nearly grilled. A loose piece in the blast is cut once more.
         const fireFw2 = fwTint === 'fire';
-        const fwCut = (q, a) => {
+        // share: of FW_BONUS * RECUT^(cuts before the blast), the old blast's pay for this fruit or piece
+        const fwCut = (q, a, share, first, before) => {
             const dx = Math.cos(a), dy = Math.sin(a), c = Math.cos(-q.rot), sn = Math.sin(-q.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
             const n0 = pieces.length;
-            // (paid as the old blast: the first cut half of FW_BONUS, each half's cut a quarter, the fruit FW_BONUS in all)
-            if (!cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, q.x, q.y, 0, { mult: FW_BONUS / 2, char: fireFw2 })) return null;
+            if (!cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, q.x, q.y, 0, { pay: FW_BONUS * share * Math.pow(RECUT, before), first, char: fireFw2 })) return null;
             const parts = pieces.slice(n0);
             if (fireFw2) parts.forEach(p => { p.burn = burnTime() * 0.85; });
             return parts;
@@ -5050,11 +5052,11 @@ export function mountFrogGame(stage, opts = {}) {
             const f = fruits[i];
             if (!(f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r)) continue;
             fruits.splice(i, 1);
-            const a = rand(0, Math.PI), halves = fwCut(f, a);
+            const before = f.fam.cuts, a = rand(0, Math.PI), halves = fwCut(f, a, 0.5, true, before);
             if (!halves) { burnFruit(f, FW_BONUS, true); continue; }          // (too small to cut: as before)
-            halves.forEach(h => { if (fwCut(h, a + Math.PI / 2)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
+            halves.forEach(h => { if (fwCut(h, a + Math.PI / 2, 0.25, false, before)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
         }
-        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI))) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
+        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI), 1, true, q.fam.cuts)) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
         srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
@@ -5610,7 +5612,8 @@ export function mountFrogGame(stage, opts = {}) {
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
-                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
+                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft,
+                clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
                 breath: { slow: fireSlow, wide: fireWide, fry: fireFry, fw: fireFw }, char: elder ? 'elder' : 'frog', stamina: r2(stamina), rate: r2(fruitRate()), log: trace.slice(-30)
@@ -5626,6 +5629,7 @@ export function mountFrogGame(stage, opts = {}) {
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
         at(seconds) { clockT = seconds; },
         blast(x, y) { explode(x, y, S() * 0.12); },
+        fwPay(kind) { return fruitTime(FRUITS.find(q => q.kind === kind)) * (1 + GRADES[gradeIx].bonus * 0.5) * FW_BONUS * timeMult(); },     // the old blast's pay for one whole fruit
         blastFire(x, y) { const t = fwTint; fwTint = 'fire'; explode(x, y, S() * 0.12); fwTint = t; },     // fireworks lit by the fire breath
         stun(kind) { const t = FRUITS.find(f => f.kind === kind); stunT = stunFor = 2; stunWith(t, 20, frogPoint(993, 300)); },
         cloud(x, y) { digitalCloud(x, y, 'test'); },
