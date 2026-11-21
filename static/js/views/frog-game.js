@@ -4222,6 +4222,8 @@ export function mountFrogGame(stage, opts = {}) {
     function endCut() { noteEmptyCut(); closeCut(); cut = null; gapLeft = CUT_GAP; }
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
+    const BREATH_DOUBLE_TAP = 350;     // ms: two presses this close together put the breath out
+    let breathTapAt = 0;
     function onDown(e) {
         if (e.isPrimary === false) return;                   // one finger only: a second finger would make the blade jump between them (sake broke on it)
         // 3, 2, 1: once the frog is on its feet with its blades out it can already swing them (for
@@ -4231,7 +4233,12 @@ export function mountFrogGame(stage, opts = {}) {
         noteInput(e);
         if (dbg) wakeDebug();                                // debug: the first touch of the field sets the world going, 0.5 s later
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
-        // (a breath can't be put out early: it runs its course)
+        // A quick double click or double tap puts the breath out (Marek, 2026-11-21); otherwise it runs its course.
+        if (fireLeft > 0 && phase === 'play') {
+            const now = performance.now();
+            if (now - breathTapAt < BREATH_DOUBLE_TAP) { fireLeft = Math.min(fireLeft, 0.0001); breathTapAt = 0; log('breath-off'); }
+            else breathTapAt = now;
+        }
         if (fireLeft > 0 || fwBusy() || summon) return;                // breathing fire or spitting fireworks: no slashing, no tongue
         const [px, py] = pos(e);
         if (e.button === 2) { shootTongue(px, py); return; }      // right click: the tongue
@@ -4245,7 +4252,9 @@ export function mountFrogGame(stage, opts = {}) {
             return;
         }
         if (e.button !== 0 && e.pointerType === 'mouse') return;
-        if (phase === 'play' && stunT > 0 && !(headFx && headFx.mode === 'stuck')) return;                 // dizzy: no slashing (but with a fruit stuck on its head it can cut itself free)
+        // dizzy: no slashing (but with a fruit stuck on its head it can cut itself free, and juice over its face can be
+        // licked off: the press is let through so that a tap is the tongue; the slash itself stays blocked in onMove)
+        if (phase === 'play' && stunT > 0 && !(headFx && (headFx.mode === 'stuck' || headFx.mode === 'splat'))) return;
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
         canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
         cut = null; press = { x: px, y: py }; windUp = true;
@@ -4289,6 +4298,8 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'over') { aim = { x, y }; return; }
         const from = aim || { x, y };
         aim = { x, y };                                   // the fire breath follows the cursor
+        // juice over its face (a splat stun): no slashing, a press is only ever a tap for the tongue (see onDown)
+        if (phase === 'play' && stunT > 0 && headFx && headFx.mode === 'splat') { cut = null; autoCut = false; return; }
         if (markQueue.length && freezeLeft <= 0 && phase === 'play') { cut = null; autoCut = false; press = null; return; }   // the marked slashes are running: hands off
         if (freezeLeft > 0 && phase === 'play') {
             // frozen time: no slashing; whatever the cursor (or finger) passes over is marked
@@ -4421,6 +4432,7 @@ export function mountFrogGame(stage, opts = {}) {
     // ---------- the tongue ----------
     function shootTongue(x, y) {
         if (elder && !dbg) return;                             // the Sensei has no tongue move (nothing for it to fetch)
+        if (phase === 'play' && stunT > 0 && headFx && headFx.mode === 'splat') { lickClean(); return; }     // the juice over its face: licked off
         if (phase !== 'play' || stunT > 0 || tongue || fwBusy() || summon) return;
         if (freezeLeft > 0 || markQueue.length) return;          // the clock's time freeze (and the marked slashes after it): no tongue
         const m = frogPoint(993, MOUTH_Y);
@@ -4539,6 +4551,14 @@ export function mountFrogGame(stage, opts = {}) {
         stunT = 0; snd('stun_end'); log('stun', headFx.type.kind, 'freed');
         slashes.push({ x: h.x, y: h.y, a: 0, r: fbox.w * 0.4, t: 0 });
         floats.push({ x: h.x, y: h.y - fbox.w * 0.4, text: 'Free!', t: 0, hot: true, word: true });
+    }
+    // splattered (grapes, orange): the tongue licks its face clean at once (Marek, 2026-11-21: like stuck fruit can
+    // be cut off the head)
+    function lickClean() {
+        const h = frogPoint(993, 300), type = headFx.type;
+        stunT = 0; headFx = null; snd('tongue'); log('stun', type.kind, 'licked');
+        for (let i = 0; i < 10; i++) { const a = rand(3.4, 6.0), v = rand(0.1, 0.3) * H; drops.push({ x: h.x + rand(-30, 30), y: h.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: type.juice, t: 0, s: rand(2, 5) }); }
+        floats.push({ x: h.x, y: h.y - fbox.w * 0.4, text: 'Licked clean!', t: 0, hot: true, word: true });
     }
     function stepHeadFx(dt) {
         if (bumps) {
@@ -5002,14 +5022,30 @@ export function mountFrogGame(stage, opts = {}) {
         const chain = pickups.filter(b => b.kind === 'fireworks' && Math.hypot(b.x - x, b.y - y) < R + b.r);
         if (chain.length) { pickups = pickups.filter(b => !chain.includes(b)); chain.forEach(b => breakPickup(b, 0)); }
         srcHint = 'fireworks';
+        // Fruit caught in a blast is split clean into four quarters (Marek, 2026-11-21: not made to vanish): through the
+        // middle at a random angle, then each half at right angles. Fireworks lit by the fire breath cut like the fire
+        // katana: the edges charred, the quarters left nearly grilled. A loose piece in the blast is cut once more.
+        const fireFw2 = fwTint === 'fire', mine = cut; cut = { id: ++cutId, hits: 0 };
+        const fwCut = (q, a) => {
+            const dx = Math.cos(a), dy = Math.sin(a), c = Math.cos(-q.rot), sn = Math.sin(-q.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
+            const n0 = pieces.length;
+            if (!cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, q.x, q.y, fireFw2 ? FW_BONUS : 0)) return null;
+            const parts = pieces.slice(n0);
+            if (fireFw2) parts.forEach(p => { p.burn = burnTime() * 0.85; });
+            return parts;
+        };
+        // (the loose pieces are picked before the fruit is quartered: the new quarters are in the blast too)
+        const loose = pieces.filter(q => q.live && q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6 && q.fam.cuts < MAX_CUTS);
         for (let i = fruits.length - 1; i >= 0; i--) {
             const f = fruits[i];
-            if (f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r) { fruits.splice(i, 1); burnFruit(f, FW_BONUS, true); }
+            if (!(f.entered && Math.hypot(f.x - x, f.y - y) < R + f.r)) continue;
+            fruits.splice(i, 1);
+            const a = rand(0, Math.PI), halves = fwCut(f, a);
+            if (!halves) { burnFruit(f, FW_BONUS, true); continue; }          // (too small to cut: as before)
+            halves.forEach(h => { if (fwCut(h, a + Math.PI / 2)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
         }
-        for (let i = pieces.length - 1; i >= 0; i--) {
-            const q = pieces[i];
-            if (q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6) { pieces.splice(i, 1); burnFruit(q, FW_BONUS * Math.pow(RECUT, q.fam.cuts), true); }
-        }
+        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI))) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
+        cut = mine;
         srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
@@ -5565,7 +5601,7 @@ export function mountFrogGame(stage, opts = {}) {
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
-                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
+                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
                 breath: { slow: fireSlow, wide: fireWide, fry: fireFry, fw: fireFw }, char: elder ? 'elder' : 'frog', stamina: r2(stamina), rate: r2(fruitRate()), log: trace.slice(-30)
@@ -5581,6 +5617,8 @@ export function mountFrogGame(stage, opts = {}) {
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
         at(seconds) { clockT = seconds; },
         blast(x, y) { explode(x, y, S() * 0.12); },
+        blastFire(x, y) { const t = fwTint; fwTint = 'fire'; explode(x, y, S() * 0.12); fwTint = t; },     // fireworks lit by the fire breath
+        stun(kind) { const t = FRUITS.find(f => f.kind === kind); stunT = stunFor = 2; stunWith(t, 20, frogPoint(993, 300)); },
         cloud(x, y) { digitalCloud(x, y, 'test'); },
         freeze(seconds) { freezeLeft = seconds; },
         sake(seconds) { sakeLeft = seconds; }

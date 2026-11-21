@@ -173,6 +173,28 @@ def main():
         g.drag([(hb[0] - 150, hb[1]), (hb[0], hb[1] + 4), (hb[0] + 150, hb[1] + 8)]); st = g.state()
         check('stuck fruit: a slash across its own head frees the frog', was and not st['stunned'] and any(e[1] == 'stun' and e[-1] == 'freed' for e in st['log']), (was, st['stunned']))
 
+        # 12c2. fireworks split a fruit clean in four quarters (Marek 2026-11-21: not made to vanish); lit by the fire breath,
+        #       the quarters are cut like the fire katana's and left burning
+        fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
+        g.js("frogPlay.blast(640, 260)"); st = g.state()
+        check('fireworks: a fruit in the blast is split in four quarters', len(st['fruits']) == 0 and st['pieces'] == 4, (len(st['fruits']), st['pieces']))
+        fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
+        g.js("frogPlay.blastFire(640, 260)"); st = g.state()
+        check('fire fireworks: four quarters, all of them burning', st['pieces'] == 4 and st['burningPieces'] == 4, (st['pieces'], st['burningPieces']))
+
+        # 12c3. a double click puts the breath out (Marek 2026-11-21)
+        fresh(g); g.js("frogPlay.breath({seconds: 3})"); time.sleep(0.2)
+        g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.08)
+        g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.15)
+        check('a double click puts the breath out', g.state()['fire'] == 0, g.state()['fire'])
+
+        # 12c4. juice over its face (a splat stun): the tongue licks it clean (Marek 2026-11-21)
+        fresh(g); g.js("frogPlay.stun('orange')"); time.sleep(0.1); was = g.state()['stunned']
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mousePressed", "x": 900, "y": 250, "button": "right", "buttons": 2, "clickCount": 1})
+        g.ws.send("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": 900, "y": 250, "button": "right", "buttons": 0, "clickCount": 1})
+        time.sleep(0.1); st = g.state()
+        check('a splat stun: the tongue licks the face clean', was and not st['stunned'] and any(e[1] == 'stun' and e[-1] == 'licked' for e in st['log']), (was, st['stunned']))
+
         # 12d. one finger only: a second finger's press and moves are ignored (sake broke on them)
         fresh(g)
         pe = lambda typ, x, y, prim, pid: g.js(f"(c => c.dispatchEvent(new PointerEvent('{typ}', {{bubbles: true, clientX: {x}, clientY: {y}, pointerId: {pid}, pointerType: 'touch', isPrimary: {str(prim).lower()}, button: 0, buttons: 1}})))(document.querySelector('.fg-canvas'))")
