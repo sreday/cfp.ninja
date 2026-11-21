@@ -248,7 +248,7 @@ const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's 
 // the standing face with its pupils taken out (built by design/frog/tools/art_build_look.py; head px): the game draws the
 // pupils (where the picture had them, the highlight toward the nose) a little after the cursor, and blinks green lids
 // over the eyes every 2 s (Marek, 2026-11-21). The eye mask is the stunned face's.
-const LOOK_ART = { face: '/img/game/frog/look-face.fd6fa4423b.webp', size: [649, 495], pupils: [[204.4, 227.6], [444.9, 227.4]], r: 55,
+const LOOK_ART = { face: '/img/game/frog/look-face.fd6fa4423b.webp', size: [649, 495], pupils: [[204.4, 221.6], [444.9, 221.4]], r: 55,
     shines: [[12.7, -12.7], [-12.6, -12.4]], shineR: 18, eyes: [{ c: [189, 234], rx: 78, ry: 67 }, { c: [460, 234], rx: 78, ry: 67 }], look: [14, 10] };
 const STUN_ART = { face: '/img/game/frog/stun-face.990f91a559.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
     pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
@@ -3381,35 +3381,44 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // fire (a number: what the flame's pay is multiplied by): the cut is made by a flame, not a blade. It pays
     // as fire pays (half the combo bonus, no chain), counts as a burn, and leaves no blade stroke.
-    function cutFruit(f, hit, dx, dy, hx, hy, fire = 0) {
-        const now = performance.now(), id = cut ? cut.id : 0;
+    // blast (fireworks, Marek 2026-11-21): { mult, char } a firework's clean cut, paid like the old blast (no hand-cut
+    // signals, no combo chain, no refund, no slash pose, credited to fireworks); char: lit by the fire breath (charred edges)
+    function cutFruit(f, hit, dx, dy, hx, hy, fire = 0, blast = null) {
+        const now = performance.now(), id = cut ? cut.id : 0, notHand = !!fire || !!blast;
         const [bodyA, bodyB] = splitPoly(f.poly, hit.px, hit.py, hit.nx, hit.ny);
         if (!bodyA || !bodyB) return false;                    // a sliver: not a cut
         const leavesA = [], leavesB = [];
         (f.crown || []).forEach(leaf => { const [la, lb] = splitPoly(leaf, hit.px, hit.py, hit.nx, hit.ny); if (la) leavesA.push(la); if (lb) leavesB.push(lb); });
         // the time: the clean middle pays in full, and each cut of the same fruit pays half the last
         // (and a slash that has already cut other fruit pays more for each one after the first)
-        const chain = !fire && cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
-        if (!fire && cut && f.fam.cuts === 0) cut.hits = chain + 1;
+        const chain = !notHand && cut && f.fam.cuts === 0 ? cut.hits || 0 : 0;
+        if (!notHand && cut && f.fam.cuts === 0) cut.hits = chain + 1;
         // three whole fruit in one strike of the plain sword (no boost on it): one stamina bar back,
         // there and then. Once a strike: a sixth or ninth fruit gives nothing more.
-        if (!fire && cut && f.fam.cuts === 0 && cut.hits === 3 && !fxOn() && cut !== markCut && cut !== warpCut && !(summon && cut === summon.cutId) && sakeLeft <= 0 && stamina < STAMINA_BARS) {
+        if (!notHand && cut && f.fam.cuts === 0 && cut.hits === 3 && !fxOn() && cut !== markCut && cut !== warpCut && !(summon && cut === summon.cutId) && sakeLeft <= 0 && stamina < STAMINA_BARS) {
             stamina = Math.min(STAMINA_BARS, stamina + 1); snd('resume'); log('refund');
             floats.push({ x: f.x, y: f.y - f.r - 26, text: '+1 slash', t: 0, hot: true });
         }
-        const gain = fire ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * Math.pow(RECUT, f.fam.cuts) * fire * timeMult(), 0.01)
+        const gain = blast ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * Math.pow(RECUT, f.fam.cuts) * blast.mult * timeMult(), 0.01)
+            : fire ? Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus * 0.5) * Math.pow(RECUT, f.fam.cuts) * fire * timeMult(), 0.01)
             : Math.max(fruitTime(f.type) * (1 + GRADES[gradeIx].bonus) * (hit.clean ? 1 : OFF_CUT) * Math.pow(RECUT, f.fam.cuts)
             * (1 + Math.min(MULTI * chain, MULTI_MAX)) * (bladeFx.bubbles && fxOn() ? 1 + 0.1 * bladeFx.bubbles : 1) * summonPay * timeMult(), 0.01);   // the 10th cut of a fruit is still worth something
+        const firstCut = f.fam.cuts === 0;
         f.fam.cuts++;
-        if (!fire && f.fam.cuts === 1 && cut && cut !== markCut && cut !== warpCut) { sig.cuts++; if (hit.clean) sig.clean++; }
-        if (!fire) lastSlice = now;
-        timeLeft += gain; slices++;
-        if (fire) {
+        if (!notHand && f.fam.cuts === 1 && cut && cut !== markCut && cut !== warpCut) { sig.cuts++; if (hit.clean) sig.clean++; }
+        if (!notHand) lastSlice = now;
+        timeLeft += gain;
+        if (blast) {
+            // one slice and one salad entry per fruit, as the old blast; no sound of its own (the boom is enough)
+            if (firstCut) { slices++; addToSalad(f.type, !!blast.char); }
+            val(srcHint || 'fireworks', gain); log('blast', f.type.kind, r2(gain), f.fam.cuts);
+            gainPop(f.x, f.y - f.r, gain);
+        } else if (fire) { slices++;
             val(srcHint || (f.src === 'crate' ? 'crate' : fireLeft > 0 ? 'fire' : sakeLeft > 0 ? 'sake' : 'sword'), gain);
             snd('burn'); addToSalad(f.type, true); log('burn', f.type.kind, r2(gain), f.fam.cuts); breathBurns++;
             gainPop(f.x, f.y - f.r, gain);
             style = Math.min(STYLE_MAX, style + styleK * (0.5));
-        } else {
+        } else { slices++;
         val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
         snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
         addToSalad(f.type, (bladeFx.fire && fxOn()) || summonFire || !!(f.char && f.char.length));
@@ -3421,7 +3430,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the pieces part at right angles to the blade (the lighter one faster) and are dragged along it
         // The flame blade chars what it cuts: the edge it made is left burnt black, and stays so
         // on whatever the piece is cut into later. Nothing else about the piece changes.
-        const fireCut = !!fire || (bladeFx.fire && fxOn()) || summonFire, nLen = Math.hypot(hit.nx, hit.ny) || 1;
+        const fireCut = blast ? !!blast.char : !!fire || (bladeFx.fire && fxOn()) || summonFire, nLen = Math.hypot(hit.nx, hit.ny) || 1;
         const sideOf = (x, y) => ((x - hit.px) * hit.nx + (y - hit.py) * hit.ny) / nLen;
         const charFor = (body, sgn) => {
             const out = [];
@@ -3449,7 +3458,7 @@ export function mountFrogGame(stage, opts = {}) {
             const a = rand(0, 6.28), v = rand(0.1, 0.45) * H;
             drops.push({ x: f.x, y: f.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - H * 0.15, c: f.type.juice, t: 0, s: rand(2, 5) });
         }
-        if (!fire) { slashes.push({ x: hx, y: hy, a: Math.atan2(dy, dx), r: Math.max(f.R, f.r) * 1.6, t: 0 }); slash = { side: f.x < W / 2 ? 'L' : 'R', t: 0 }; }
+        if (!notHand) { slashes.push({ x: hx, y: hy, a: Math.atan2(dy, dx), r: Math.max(f.R, f.r) * 1.6, t: 0 }); slash = { side: f.x < W / 2 ? 'L' : 'R', t: 0 }; }
         hud();
         return true;
     }
@@ -5025,11 +5034,12 @@ export function mountFrogGame(stage, opts = {}) {
         // Fruit caught in a blast is split clean into four quarters (Marek, 2026-11-21: not made to vanish): through the
         // middle at a random angle, then each half at right angles. Fireworks lit by the fire breath cut like the fire
         // katana: the edges charred, the quarters left nearly grilled. A loose piece in the blast is cut once more.
-        const fireFw2 = fwTint === 'fire', mine = cut; cut = { id: ++cutId, hits: 0 };
+        const fireFw2 = fwTint === 'fire';
         const fwCut = (q, a) => {
             const dx = Math.cos(a), dy = Math.sin(a), c = Math.cos(-q.rot), sn = Math.sin(-q.rot), ldx = dx * c - dy * sn, ldy = dx * sn + dy * c;
             const n0 = pieces.length;
-            if (!cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, q.x, q.y, fireFw2 ? FW_BONUS : 0)) return null;
+            // (paid as the old blast: the first cut half of FW_BONUS, each half's cut a quarter, the fruit FW_BONUS in all)
+            if (!cutFruit(q, { kind: 'cut', clean: true, px: 0, py: 0, nx: -ldy, ny: ldx }, dx, dy, q.x, q.y, 0, { mult: FW_BONUS / 2, char: fireFw2 })) return null;
             const parts = pieces.slice(n0);
             if (fireFw2) parts.forEach(p => { p.burn = burnTime() * 0.85; });
             return parts;
@@ -5045,7 +5055,6 @@ export function mountFrogGame(stage, opts = {}) {
             halves.forEach(h => { if (fwCut(h, a + Math.PI / 2)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
         }
         loose.forEach(q => { if (fwCut(q, rand(0, Math.PI))) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
-        cut = mine;
         srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);

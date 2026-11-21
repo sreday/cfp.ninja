@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import art_build_stun as S  # noqa: E402  (loads the head part and the eye geometry)
 
 # measured on head.orig.png: each pupil (dark plus its highlight) and its highlight, head px
-PUPILS = [(204.4, 227.6), (444.9, 227.4)]
+PUPILS = [(204.4, 221.6), (444.9, 221.4)]      # (6 px above the measured centroid: the bandana's edge hides each pupil's top, the curator)
 PUPIL_R = 55
 SHINES = [(12.7, -12.7), (-12.6, -12.4)]      # toward the nose, up
 SHINE_R = 18

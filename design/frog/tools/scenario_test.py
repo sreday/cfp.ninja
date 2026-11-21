@@ -182,6 +182,13 @@ def main():
         g.js("frogPlay.blastFire(640, 260)"); st = g.state()
         check('fire fireworks: four quarters, all of them burning', st['pieces'] == 4 and st['burningPieces'] == 4, (st['pieces'], st['burningPieces']))
 
+        # a blast is not a hand cut: three fruit in one blast give no stamina refund, no hand-cut signals, and are paid
+        # as fireworks (the anti-cheat counts clean hand cuts; the curator, 2026-11-21)
+        fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 600, 260); frogPlay.drop('fruit:apple', 650, 250); frogPlay.drop('fruit:plum', 700, 270)"); time.sleep(0.1)
+        s0 = g.state()['stamina']; g.js("frogPlay.blast(650, 260)"); st = g.state()
+        bl = [e for e in st['log'] if e[1] == 'blast']; rf = [e for e in st['log'] if e[1] == 'refund']
+        check('fireworks: no refund, no hand cuts, paid as a blast', st['pieces'] == 12 and not rf and len(bl) >= 3 and not any(e[1] == 'cut' for e in st['log'][-12:]), (st['pieces'], len(bl), rf))
+
         # 12c3. a double click puts the breath out (Marek 2026-11-21)
         fresh(g); g.js("frogPlay.breath({seconds: 3})"); time.sleep(0.2)
         g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.08)
