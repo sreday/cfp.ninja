@@ -35,7 +35,7 @@ OUT = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirna
 
 # source px: the belt's lower edge (the squeeze starts here), where it reaches full strength, the feet's middle, how much
 NARROW = {'from': 470, 'full': 560, 'cx': 636, 'k': 0.84}
-POSES = {'cut': {'src': 'candidates/cut/clean-2.png', 'narrow': NARROW},
+POSES = {'cut': {'src': 'candidates/cut/clean-2-robe.png', 'narrow': NARROW},    # (Marek 2026-11-22: the robe's lower part shown, half length; clean-2.png with panels by Nano Banana, halved and hemmed by hand, the curator's fixes)
          'sideslash': {'src': 'candidates/cut/sideslash-1a.png', 'narrow': None, 'feet': 'higher'},   # Marek 2026-11-20: 'ship the one where the frog is back to us' (round 3 candidate 1, smile retouched; arms and torso accepted by him over the curator)
          'downcut': {'src': 'candidates/cut/downcut-3.png', 'narrow': None, 'thicken': 1.5, 'feet': 'higher'}}     # (its stance already fits the post)
 # thicken: the black lines grown by this many picture px each side (Marek 2026-11-20: the down cut's outline thinner than

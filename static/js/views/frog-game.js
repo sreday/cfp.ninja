@@ -266,7 +266,7 @@ const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.fee
 // turned to the right, the front katana level, the back one raised, no scabbards (only seen with the katanas sheathed). It stands in for the drawn profile frog during a level
 // cut (no power-up), mirrored for a cut to the left. Sized by the head (a crouch is shorter than standing): its head as wide
 // as the breath frog's (headW: green across the face under the eyes), the soles on the rig's feet line.
-const CUT_ART = { url: '/img/game/frog/cut.ebc44bb99c.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295, eyeH: 68 };
+const CUT_ART = { url: '/img/game/frog/cut.811d18413a.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295, eyeH: 68 };
 const BREATH_HEAD_W = 219;
 const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 // the down cut (Marek's pick 2026-11-20 'down cut 3', same builder): the slim, swift frog in full profile running into a
