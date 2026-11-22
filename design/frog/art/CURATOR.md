@@ -40,6 +40,8 @@ GPU at full quality, and a whole-game render before the ship. The budget now: **
 - weird katanas: a blade with two tips, a doubled or split blade, a blade that passes through the body or another
   blade's hand, a handle without a blade or a blade without a handle, a guard in the wrong place, one hand on two
   handles, stray blade bits floating, a katana much thinner or shorter than the game's
+- a face that is not the frog's: the mouth is its wide line from cheek to cheek, whatever the mood (bent, wobbly or
+  opened wide); a small round human "O" mouth, lips or rows of teeth block (Marek, 2026-11-22: "wtf is this mouth?")
 - leftovers: motion lines, shadows, ground, a second frog, anything but the frog on flat magenta
 - another drawing style than the logo's (outline, palette, shading)
 
