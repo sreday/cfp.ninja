@@ -293,7 +293,9 @@ const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702],
 // the rising cut (Marek's pick 2026-11-22): an upward stroke, or one above its head, and it jumps, knees tucked, both katanas swung up and across.
 // Drawn cutting up to the right, mirrored for the left; lift: how far the toes float above the post.
 const RISE_ART = { url: '/img/game/frog/rise.2733e23b16.webp', size: [562, 793], mid: 263, feet: 793, headW: 235, lift: 600 };
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART };
+// the hop (Marek's pick 2026-11-22, 'this but long katanas'): a level stroke through its body and it springs up over the blade, knees tucked, katanas out level.
+const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -3079,6 +3081,7 @@ export function mountFrogGame(stage, opts = {}) {
                 pose.sB = arm2(150, -172, 1.2);                                                // the other arm back, its blade flat behind
             } else {
                 pose.sLegs = 'tuck'; pose.sDrop = 0; pose.sRot = 22; pose.sHop = JUMP_UP * 4; pose.lookY = 14;
+                pose.artCut = 'hop';          // the picked hop stands in (the drawn tuck: only until the picture has loaded)
                 pose.sF = arm2(smear ? 150 : 104, smear ? 176 : -6, smear ? 2.4 : 2.3);          // down past its feet, the blade flat underneath
                 pose.sB = arm2(-150, -120, 1.2);                                               // the other arm thrown up behind for balance
             }
@@ -5652,6 +5655,7 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'cartwheel (circular slash), back', dur: 0.75, start() { startWheel(W / 2 - fw() * 1.2, head().y - fw() * 0.5, -1, 'back', 30); } });
         cutAnim('cut straight down, both blades', Math.PI / 2, () => ({ x: W / 2, y: head().y + fw() * 0.5 }));
         cutAnim('duck under a level cut', 0, () => ({ x: W / 2 + fw() * 0.1, y: head().y }));
+        cutAnim('hop over a level cut', 0, () => ({ x: W / 2 + fw() * 0.1, y: frogPoint(993, 1100).y }));
         const breath = (name, dx, dy) => out.push({ name, dur: 0.8, tick() { fireLeft = Math.max(fireLeft, 0.3); const h = head(); aim = { x: h.x + dx * fw(), y: h.y + dy * fw() }; }, end() { fireLeft = 0; } });
         [[0.15, 'close (facing us)'], [0.5, 'near (close stance)'], [1.5, 'far (profile)']].forEach(([d, n]) => { breath('breath right, ' + n, d, 0.1); breath('breath left, ' + n, -d, 0.1); });
         breath('breath far right, upwards', 1.5, -1.3); breath('breath far right, downwards', 1.5, 0.9);
@@ -6785,7 +6789,7 @@ export function mountFrogGame(stage, opts = {}) {
             ...[0.3, 0.6, 0.9, 1.4, 1.95].map(t => ({ name: `intro ${t}`, anim: 'intro: laptop flung, katanas drawn', at: t, air: t === 0.3 })),
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
-            ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'duck under a level cut', 'thrust far up-right']
+            ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'duck under a level cut', 'hop over a level cut', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut down(-left)?, far$/.test(n) })),     // (a downward cut is the hop: in the air on purpose)
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
             ...['front', 'back'].flatMap(k => [0.15, 0.4].map(t => ({ name: `cartwheel ${k} ${t}`, anim: `cartwheel (circular slash), ${k}`, at: t, air: true }))),
