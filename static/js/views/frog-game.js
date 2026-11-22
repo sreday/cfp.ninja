@@ -2995,7 +2995,7 @@ export function mountFrogGame(stage, opts = {}) {
     // purposeful"). A new stroke in another direction before that waits (only the newest one is kept) and shows the
     // moment the current pose has had its time. Only the drawing waits: the blade and the cutting are never held back.
     // (The time freeze's release sets swing to null before each strike, so its fast sequence is not slowed.)
-    const POSE_MIN = 0.3;
+    const POSE_MIN = 0.5;      // (0.3 until Marek, 2026-11-22: 'increase the min display time of an animation to .5s')
     let swingNext = null;
     const holdUntil = s => Math.max((s.end || 0) + HOLD, POSE_MIN);
     const JUMP_UP = 45;           // how far a jump lifts the frog (drawing units, front view; the profile uses 4x): a small, held lift, not an arc
@@ -3046,7 +3046,7 @@ export function mountFrogGame(stage, opts = {}) {
             // A cut straight overhead is made with both katanas, facing us: the arms thrown up,
             // the blades crossed above the head for the instant of the cut, then swept apart and
             // held, the frog off its feet for a moment.
-            const smear = s.t < SMEAR, air = s.live || s.t < 0.3 ? 1 : 0;      // in the air is a state: up at once, held, down at once
+            const smear = s.t < SMEAR, air = s.live || s.t < POSE_MIN ? 1 : 0;      // in the air is a state: up at once, held, down at once
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
             pose.artCut = 'over';             // the picked overhead slash stands in (the drawn arms below: only until the picture has loaded)
             pose.lRot = 160; pose.rRot = -160;
@@ -3117,14 +3117,14 @@ export function mountFrogGame(stage, opts = {}) {
             if (cy < -0.3) {
                 // An undercut (an upward stroke) is a move of its own: a held crouch with the blade
                 // low, then the frog drives up through the cut, off its feet, and lands.
-                const wind = 0.07, air = 0.3;
+                const wind = 0.07, air = POSE_MIN;
                 if (s.t < wind) { pose.sLegs = 'down'; pose.sDrop = 120; pose.sRot = 26; aimTh = 60; }
                 else if (s.t < wind + air) pose.sHop = JUMP_UP * 4;             // in the air: one held drawing, no arc
                 else if (s.t < wind + air + 0.06) { pose.sLegs = 'down'; pose.sDrop = 60; }   // the landing, one held drawing
                 else pose.sLegs = 'level';                                       // then it stands, legs and body together
             }
             // a cut above its head: a small jump, legs together, as long as the blade is up there
-            if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
+            if (s.high && cy >= -0.3 && (s.live || s.t < POSE_MIN)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             // feet on the post, no thrust: a level cut is the picked side cut drawing, a down cut the picked down cut (artCutPose)
             // (a thrust into a far corner: the floating side slash too. It was the last cut the old drawn frog still made: Marek, 2026-11-22)
