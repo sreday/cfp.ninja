@@ -312,11 +312,11 @@ const TWITCH = 46, TWITCH_HOLD = 16;
 const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [])[1] || 0;
 const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 120;
 const MORPH_FX = {
-    1: p => ({ out: { op: 1 - p, blur: 130 * p, go: 0.5 * p }, in: { op: p, blur: 130 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
+    1: p => ({ out: { op: 1 - p, blur: 200 * p, go: 0.5 * p }, in: { op: p, blur: 200 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
     2: p => p < 0.5 ? { out: { op: 1, sx: 1 + 2.2 * p, blur: 50, go: 0.9 * p }, in: { op: 0 } }                                                             // stretch: the old pose pulled long toward the new place,
         : { out: { op: 0 }, in: { op: 1, sx: 1 + 3.2 * (1 - p) * (1 - p), blur: 80 * (1 - p), go: -0.4 * (1 - p) } },                                       //   the new one snapping back from long to its shape
     3: p => ({ out: { op: 0.6 * (1 - p) }, in: { op: 0.4 + 0.6 * p }, echo: [{ go: -0.4 * (1 - p), op: 0.4 * (1 - p) }, { go: -0.8 * (1 - p), op: 0.25 * (1 - p) }] }),   // multiples: after-images of the new pose closing up
-    4: p => ({ out: { op: 0.75 * (1 - p), blur: 320, sx: 1.6 + p, go: p }, in: { op: p < 0.3 ? 0 : 1, blur: 220 * (1 - p) * (1 - p), sx: 1 + 0.5 * (1 - p) } }),         // zip: the old pose gone into a speed streak, the new one out of the blur
+    4: p => ({ out: { op: 0.9 * (1 - p), blur: 220, sx: 1.4 + p, go: p }, in: { op: 0.35 + 0.65 * p, blur: 220 * (1 - p) * (1 - p), sx: 1 + 0.5 * (1 - p) } }),         // zip: the old pose gone into a speed streak, the new one out of the blur
     5: p => p < 0.5 ? { out: { op: 1, sx: 1 - 1.7 * p, blur: 60 * p, flat: 1, go: p }, in: { op: 0 } }                                                      // twirl: squeezed to a sliver and opened again,
         : { out: { op: 0 }, in: { op: 1, sx: 0.15 + 1.7 * (p - 0.5), blur: 60 * (1 - p), flat: 1 } },                                                       //   like a card turning
 };
@@ -2155,6 +2155,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
         C.prev = cur;
         let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
+        if (m && !on && (artWheelOn() || artBreathOn() || pose.fallY || pose.chop || pose.up <= 0.5)) m = C.m = null;      // (not back to standing but into a cartwheel, a breath, a fall: those are their own pictures, no blend)
         const show = on || !!m;      // (through a change the cut layer is up either way: the standing frog in it is the copy, the real one comes back when it is over)
         if (show !== C.on) { C.on = show; svg.classList.toggle('fg-art-cut-on', show); }
         const kat = !!(on && Q.katanas);
@@ -6902,7 +6903,7 @@ export function mountFrogGame(stage, opts = {}) {
         const at0 = g => { const m = g.getScreenCTM(); const q = new DOMPoint(0, 0).matrixTransform(m); return [q.x, q.y]; };
         window.frogCurate = {
             // (frame by frame, for what happens between two poses: design/frog/tools/morph_shots.py)
-            step: sec => step(sec), play: name => playAnim(name),
+            step: sec => step(sec), play: name => playAnim(name), stop() { if (demo && demo.a.end) demo.a.end(); demo = null; swing = null; },
             shots: () => SHOTS.map(q => ({ name: q.name, air: !!q.air || !!q.seated })),       // (sitting: its legs hang over the front, on purpose)
             // resolves once the art is in and the first frame is drawn
             ready: async () => { for (let i = 0; i < 200 && artLeft > 0; i++) await new Promise(r => setTimeout(r, 50)); await document.fonts.ready; step(0.5); return artLeft <= 0; },

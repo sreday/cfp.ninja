@@ -48,7 +48,7 @@ def main():
                 if before: b.js(f"window.frogCurate.play({json.dumps(before)}); window.frogCurate.step(0.3)")
                 row = [grab(b)]
                 if start: b.js(f"window.frogCurate.play({json.dumps(start)})")
-                else: b.js("window.frogCurate.step(0.36)")          # let the animation before run out: it stands again
+                else: b.js("window.frogCurate.stop()")              # the cut is over: it stands again
                 for _ in range(frames):
                     b.js("window.frogCurate.step(1/60)"); row.append(grab(b))
                 rows.append((label, row))
