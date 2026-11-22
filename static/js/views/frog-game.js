@@ -297,6 +297,9 @@ const WHEEL_TURN = 1.75 * Math.PI;     // how far round a slash must go to count
 const WHEEL_FIT = 0.24;                // how round: the points' spread off the fitted circle, as a share of its radius
 const WHEEL_R = [0.05, 0.55];          // the circle's radius, as a share of the screen's size S()
 const WHEEL_NUDGE = 300, WHEEL_JIT = 160, WHEEL_GO = 240;   // rig units: toward the circle, random spread, and travel while it spins
+const WHEEL_SIZE = 0.8;                // the spinning frog against the standing one (Marek, 2026-11-22: 20% smaller)
+const WHEEL_LIFT = 700;                // rig units above the body's middle: it spins in the air, clear of the post, blades included (Marek, 2026-11-22)
+const WHEEL_VY = 0.45, WHEEL_HOP = 50; // up-and-down: the share of the vertical nudge and travel kept, and the hop's height in rig units (it was 1 and 120: too bouncy)
 const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rigTop);   // rig y of the body's middle (where it spins)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
@@ -2077,9 +2080,9 @@ export function mountFrogGame(stage, opts = {}) {
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-wheel-on', on); }
         if (!on) return;
         if (C.shown !== wheel.key) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === wheel.key ? 'inline' : 'none'); C.shown = wheel.key; }
-        const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW;
+        const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW * WHEEL_SIZE;
         const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
-        const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y + wheel.oy + wheel.gy * WHEEL_GO * e - Math.sin(p * Math.PI) * 120;
+        const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y - WHEEL_LIFT + Math.min(0, (wheel.oy + wheel.gy * WHEEL_GO * e) * WHEEL_VY) - Math.sin(p * Math.PI) * WHEEL_HOP;   // (never down toward the post)
         const r = wheel.rot0 + wheel.dir * 360 * e;
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(${n2(x)} ${n2(y)}) rotate(${n2(r)}) scale(${n2(wheel.flip * k)} ${n2(k)}) translate(${-Q.pivot[0]} ${-Q.pivot[1]})`);
     }

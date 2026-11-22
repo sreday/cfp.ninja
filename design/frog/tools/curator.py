@@ -291,12 +291,13 @@ def write_sheets(out, index):
     try: font = ImageFont.load_default(20)
     except TypeError: font = ImageFont.load_default()
     cells = []
+    for e in index['shots']:                                                                    # each whole frame first: size, place, the pose as a player sees it
+        cells.append((f'{len(cells) + 1}. FRAME {e["shot"][:30]} @{e["size"]}', 'before | after | changed' if e.get('pair') else 'new shot', os.path.join(out, e.get('pair') or e['after'])))
     for e in index['shots']:
         for h in sorted([h for h in e['hotspots'] if wanted(e, h)], key=lambda h: (not h.get('measured_fault'), h['same_as_before'])):
             if h['same_as_before'] and 'before' in e and not h.get('measured_fault'): continue      # the same pixels as live
+            if index.get('mode') == 'item' and h['part'] not in ('frog', 'feet on the post') and not h.get('measured_fault') and not h['part'].startswith('both'): continue   # an item's look: the figure, its shoulders, its feet
             cells.append((f'{len(cells) + 1}. {e["shot"][:34]} @{e["size"]}', h['part'][:40] + ('  MEASURED FAULT' if h.get('measured_fault') else ''), os.path.join(out, h['crop'])))
-    for e in index['shots']:                                                                    # and each whole frame once
-        cells.append((f'{len(cells) + 1}. FRAME {e["shot"][:30]} @{e["size"]}', 'before | after | changed' if e.get('pair') else 'new shot', os.path.join(out, e.get('pair') or e['after'])))
     paths, CH, PER = [], 380, 12
     for k in range(0, len(cells), PER):
         ims = []
