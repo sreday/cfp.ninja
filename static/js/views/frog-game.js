@@ -284,7 +284,7 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
 // the overhead slash (Marek's pick 2026-11-22, built by design/frog/tools/art_build_pose.py): a jump facing us, knees tucked, both katanas
 // crossed above the head. front: drawn whichever side the cut is on, never mirrored; headW sizes it by its head; lift: how far the toes float above the post.
-const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 300, front: true };
+const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 540, front: true };
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
