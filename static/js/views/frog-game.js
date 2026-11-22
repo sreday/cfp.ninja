@@ -284,12 +284,12 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
 // the overhead slash (Marek's pick 2026-11-22, built by design/frog/tools/art_build_pose.py): a jump facing us, knees tucked, both katanas
 // crossed above the head. front: drawn whichever side the cut is on, never mirrored; headW sizes it by its head; lift: how far the toes float above the post.
-const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 540, front: true };
+const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 800, grow: 1.1, front: true };      // (Marek, 2026-11-22: further up in the air, and 10% bigger)
 // the slash under the frog (Marek's pick 2026-11-22, limbs fixed by him): a jump curled upside down, both katanas driven down below it.
 // feet: its lowest point (a blade tip), lift: how far that stays above the post; faces: drawn looking left, so mirrored the other way round.
-const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 150, faces: -1 };
+const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 450, faces: -1 };      // (Marek, 2026-11-22: further up in the air)
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART };
-const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
+const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
 // it springs from the post to a random spot nudged toward the circle and spins the way the circle was drawn.
@@ -302,7 +302,8 @@ const WHEEL_MS = 650;                  // the cartwheel's length
 const WHEEL_TURN = 1.75 * Math.PI;     // how far round a slash must go to count as a circle (315 degrees)
 const WHEEL_FIT = 0.24;                // how round: the points' spread off the fitted circle, as a share of its radius
 const WHEEL_R = [0.05, 0.55];          // the circle's radius, as a share of the screen's size S()
-const WHEEL_NUDGE = 300, WHEEL_JIT = 160, WHEEL_GO = 240;   // rig units: toward the circle, random spread, and travel while it spins
+const WHEEL_NUDGE = 0, WHEEL_JIT = 0, WHEEL_GO = 0;   // rig units: toward the circle, random spread, and travel while it spins (300, 160, 240 until Marek, 2026-11-22: once in the air it stays where it is, no twitch to the side)
+const WHEEL_SPIN = 180;                // degrees turned in one cartwheel (360 until Marek, 2026-11-22: half the rotation)
 const WHEEL_SIZE = 1;                  // the spinning frog against the standing one (Marek, 2026-11-22: 20% smaller, then back to full size)
 const WHEEL_LIFT = 1260;               // rig units above the body's middle: it spins in the air, clear of the post, blades included (Marek, 2026-11-22)
 const WHEEL_VY = 0.45, WHEEL_HOP = 50; // up-and-down: the share of the vertical nudge and travel kept, and the hop's height in rig units (it was 1 and 120: too bouncy)
@@ -2089,7 +2090,7 @@ export function mountFrogGame(stage, opts = {}) {
         const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW * WHEEL_SIZE;
         const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
         const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y - WHEEL_LIFT + Math.min(0, (wheel.oy + wheel.gy * WHEEL_GO * e) * WHEEL_VY) - Math.sin(p * Math.PI) * WHEEL_HOP;   // (never down toward the post)
-        const r = wheel.rot0 + wheel.dir * 360 * e;
+        const r = wheel.rot0 + wheel.dir * WHEEL_SPIN * e;
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(${n2(x)} ${n2(y)}) rotate(${n2(r)}) scale(${n2(wheel.flip * k)} ${n2(k)}) translate(${-Q.pivot[0]} ${-Q.pivot[1]})`);
     }
     function artBreathPose() {
