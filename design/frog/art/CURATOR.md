@@ -56,6 +56,13 @@ glance (head size against the body, the canon: eyes, smile, cap, limb and katana
 what such a pose hides or foreshortens (a far arm, a handle inside a fist, a torso seen from the side): note those, do not
 fail on them alone. Suggest such poses when a straight-on one keeps failing the spec.
 
+**Action poses: Marek's eye over the ratios (Marek, 2026-11-22, the cartwheel).** The curator measured his cartwheel picks
+at arms 1.2 H and a head about 25% small, and both were fixed to the spec, cleanly. He kept the originals: "the short arms
+look super goofy, same for the big head". In a stretched action pose (cartwheel, spin, leap) limb length and head : body
+are notes, not blockers: long reaching arms and legs are part of the motion. The canon still holds (counts, cap, eyes,
+no scabbards, no extra blades), and so does anything broken (a bent katana, a limb from the wrong place). Before fixing a
+pick to the spec, show Marek the measured fault and ask whether he wants it changed.
+
 - Every run names its **item** (`verdict.json`: `"item": "the seagull"`). The reviewer judges the item's shots and
   anything that got **worse** than live anywhere on screen. Those findings can block.
 - A fault that is already live and lies outside the item is **not** a blocker for this item: it goes into

@@ -830,7 +830,7 @@
      "file": "back-4.png",
      "tier": "back",
      "verdict": "pick",
-     "note": ""
+     "note": "Marek's pick, as drawn (2026-11-22: 'the short arms look super goofy, same for the big head'); front has the bandana checkmark removed"
     },
     {
      "file": "back-5.png",
@@ -860,7 +860,7 @@
      "file": "front-3-nb3.png",
      "tier": "front",
      "verdict": "pick",
-     "note": ""
+     "note": "Marek's pick, as drawn (2026-11-22: 'the short arms look super goofy, same for the big head'); front has the bandana checkmark removed"
     },
     {
      "file": "front-3-pixel.png",
@@ -871,20 +871,20 @@
     {
      "file": "front-3-nb3-final.png",
      "tier": "front",
-     "verdict": "",
-     "note": "curator PASS (round 4): Marek's pick nb3, arms shortened by the local pipeline (SAM 2 + Qwen-Image-Edit-2511 cuffs), nits cleaned"
+     "verdict": "reject",
+     "note": "curator PASS (round 4): Marek's pick nb3, arms shortened by the local pipeline (SAM 2 + Qwen-Image-Edit-2511 cuffs), nits cleaned | Marek: spec-fitted short arms and bigger head look goofy; the originals stay"
     },
     {
      "file": "back-4-fix-c.png",
      "tier": "back",
-     "verdict": "",
-     "note": "curator PASS with nits (round 5, the one to ship): Marek's back-4 pick, torso squeezed, arms slid in, Qwen cuffs, left foot outline restored; legs/handles/tails still long but soft in this pose"
+     "verdict": "reject",
+     "note": "curator PASS with nits (round 5, the one to ship): Marek's back-4 pick, torso squeezed, arms slid in, Qwen cuffs, left foot outline restored; legs/handles/tails still long but soft in this pose | Marek: spec-fitted short arms and bigger head look goofy; the originals stay"
     },
     {
      "file": "back-4-fix-b.png",
      "tier": "back",
-     "verdict": "",
-     "note": "curator PASS with nits, second choice: pill-shaped cuffs with a stronger halo"
+     "verdict": "reject",
+     "note": "curator PASS with nits, second choice: pill-shaped cuffs with a stronger halo | Marek: spec-fitted short arms and bigger head look goofy; the originals stay"
     }
    ],
    "note": "",
@@ -919,8 +919,8 @@
     "front": "front-3-nb3.png",
     "back": "back-4.png"
    },
-   "pick": "back-4.png",
-   "picked_at": "2026-11-22 13:32"
+   "pick": "front-3-nb3.png",
+   "picked_at": "2026-11-22"
   },
   {
    "id": "4.0",
