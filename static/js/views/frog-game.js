@@ -4235,7 +4235,7 @@ export function mountFrogGame(stage, opts = {}) {
     // A circle: the stroke's points fitted with a circle (Kasa's least squares), close to it all round (WHEEL_FIT),
     // going round one way at least WHEEL_TURN, and neither tiny nor bigger than the field (WHEEL_R).
     function wheelPoint(x, y) {
-        if (!artWheel || !artWheel.ready || (phase !== 'play' && !dbg)) return;
+        if (phase !== 'play' && !dbg) return;               // (detected with or without the art; artWheelOn() decides whether the sprite shows)
         const now = performance.now();
         stroke.push({ x, y, t: now }); stroke = stroke.filter(q => now - q.t < 1400);
         if (stroke.length < 10 || (wheel && now - wheel.t0 < WHEEL_MS + 150)) return;
@@ -5698,7 +5698,7 @@ export function mountFrogGame(stage, opts = {}) {
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, pieceXY: pieces.map(q => [Math.round(q.x + cb.left), Math.round(q.y + cb.top)]), fw: fwTint, combo: gradeIx,
-                wheel: artWheelOn() ? wheel.key : '', wheels, pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft, earned: gainAll + timeLeft,
+                wheel: wheel && performance.now() - wheel.t0 < WHEEL_MS ? wheel.key : '', wheels, pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft, earned: gainAll + timeLeft,
                 clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
