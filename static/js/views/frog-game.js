@@ -1659,12 +1659,12 @@ export function mountFrogGame(stage, opts = {}) {
         const root = $('#fg-art-cut');
         const fxImgs = c => Object.entries(CUT_POSES).map(([k, Q]) => `<image data-${c}="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}" display="none"/>`).join('');
         const fxLayerHtml = c => `<g class="fg-fx-${c}-a"><g class="fg-fx-${c}-f"><g class="fg-fx-${c}-b"><g class="fg-cut-${c}">${fxImgs(c)}</g></g></g></g>`;
-        root.innerHTML = `<defs>${['ghost', 'pose'].map(c => `<filter id="fg-morph-${c}" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="0 0"/></filter>`).join('')}</defs>
+        root.innerHTML = `<defs>${['stand', 'ghost', 'pose'].map(c => `<filter id="fg-morph-${c}" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="0 0"/></filter>`).join('')}</defs>
             <g class="fg-cut-kat" display="none"><image href="${BREATH_ART.katanas}" x="${BREATH_ART.katanasAt[0]}" y="${BREATH_ART.katanasAt[1]}" width="${BREATH_ART.katanasSize[0]}" height="${BREATH_ART.katanasSize[1]}"/></g>`
-            + ['ghost', 'e2', 'e1', 'pose'].map(fxLayerHtml).join('');
+            + `<g class="fg-fx-stand-a"><g class="fg-fx-stand-f"><g class="fg-fx-stand-b"><g class="fg-cut-stand"></g></g></g></g>` + ['ghost', 'e2', 'e1', 'pose'].map(fxLayerHtml).join('');
         const fxL = c => ({ a: root.querySelector(`.fg-fx-${c}-a`), f: root.querySelector(`.fg-fx-${c}-f`), b: root.querySelector(`.fg-fx-${c}-b`), t: root.querySelector(`.fg-cut-${c}`), shown: '',
             imgs: Object.fromEntries([...root.querySelectorAll(`image[data-${c}]`)].map(e => [e.getAttribute('data-' + c), e])), fid: 'fg-morph-' + c, blur: root.querySelector(`#fg-morph-${c} feGaussianBlur`) });
-        artCut = { root, kat: root.querySelector('.fg-cut-kat'), on: false, ready: false, L: { ghost: fxL('ghost'), e2: fxL('e2'), e1: fxL('e1'), pose: fxL('pose') } };
+        artCut = { root, kat: root.querySelector('.fg-cut-kat'), on: false, ready: false, L: { stand: fxL('stand'), ghost: fxL('ghost'), e2: fxL('e2'), e1: fxL('e1'), pose: fxL('pose') } };
         Promise.all(Object.values(CUT_POSES).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artCut.ready = true; });
     }
     if (ART.frog) {
@@ -2119,6 +2119,28 @@ export function mountFrogGame(stage, opts = {}) {
         setA(L.f, 'opacity', n2(o.op === undefined ? 1 : o.op));
         if (L.blur) { setA(L.f, 'filter', bl > 1 ? `url(#${L.fid})` : 'none'); if (bl > 1) setA(L.blur, 'stdDeviation', `${n2(bl)} 0`); }
     }
+    // The standing frog is many parts posed by code, not one picture: to blend it with a cut picture it is copied as it stands (only what is
+    // drawn at that moment: the hidden parts and the other frogs are left out) when a cut begins from standing (swingTo), into a layer of its own.
+    // (a mask or a clip of the frog's goes along as a copy of its own: the real one is hidden with the frog while a cut picture is up, and
+    //  a hidden mask hides what it masks: the copy stood there without its body)
+    const NO_COPY = { defs: 1, linearGradient: 1, radialGradient: 1, filter: 1, style: 1, script: 1 };
+    function copyDrawn(node, ids) {
+        if (NO_COPY[node.tagName] || node.id === 'fg-art-cut') return null;
+        if (node.tagName === 'mask' || node.tagName === 'clipPath') { const c = node.cloneNode(true); if (node.id) { c.id = node.id + '-copy'; ids[node.id] = c.id; } return c; }
+        const cs = getComputedStyle(node); if (cs.display === 'none' || cs.visibility === 'hidden' || cs.opacity === '0') return null;
+        const c = node.cloneNode(false); c.removeAttribute('id');
+        for (const ch of node.children) { const k = copyDrawn(ch, ids); if (k) c.appendChild(k); }
+        return c;
+    }
+    function snapStand(C, now) {
+        C.snapT = now; const L = C.L.stand, g = document.createElementNS('http://www.w3.org/2000/svg', 'g'), ids = {};
+        for (const ch of el.all.children) { const k = copyDrawn(ch, ids); if (k) g.appendChild(k); }
+        for (const e of g.querySelectorAll('[mask], [clip-path]')) for (const at of ['mask', 'clip-path']) {
+            const v = e.getAttribute(at), id = v && (v.match(/#([^)"']+)/) || [])[1];
+            if (id && ids[id]) e.setAttribute(at, `url(#${ids[id]})`);
+        }
+        g.setAttribute('display', 'none'); L.t.replaceChildren(g); L.imgs = { stand: g }; L.shown = '';
+    }
     function artCutPose() {
         const C = artCut; if (!C) return;
         const on = artCutOn(), now = performance.now(), key = on ? pose.artCut : '';
@@ -2133,19 +2155,19 @@ export function mountFrogGame(stage, opts = {}) {
         if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
         C.prev = cur;
         let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
-        const show = on || !!(m && m.from), under = !!(m && m.from && !on);      // (under: back to standing, the frog itself is there beneath the picture going out)
+        const show = on || !!m;      // (through a change the cut layer is up either way: the standing frog in it is the copy, the real one comes back when it is over)
         if (show !== C.on) { C.on = show; svg.classList.toggle('fg-art-cut-on', show); }
-        if (under !== !!C.under) { C.under = under; svg.classList.toggle('fg-art-morph', under); }
         const kat = !!(on && Q.katanas);
         if (kat !== !!C.katOn) { C.katOn = kat; setA(C.kat, 'display', kat ? 'inline' : 'none'); }
         if (kat) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
         const L = C.L;
-        if (!m) { fxLayer(L.ghost, ''); fxLayer(L.e1, ''); fxLayer(L.e2, ''); fxLayer(L.pose, key, cur && cur.tf, cur && cur.c, cur && {}); return; }
+        if (!m) { fxLayer(L.stand, ''); fxLayer(L.ghost, ''); fxLayer(L.e1, ''); fxLayer(L.e2, ''); fxLayer(L.pose, key, cur && cur.tf, cur && cur.c, cur && {}); return; }
         const p = clamp((now - m.t0) / MORPH_MS, 0, 1), stand = [993, BREATH_ART.rigFeet + pose.up * RISE - 0.5 * (BREATH_ART.rigFeet - BREATH_ART.rigTop)];
         const a = m.from ? m.from.c : stand, b = cur ? cur.c : stand;
         let vx = b[0] - a[0], vy = b[1] - a[1]; const far = Math.hypot(vx, vy) > 40, line = far ? Math.atan2(vy, vx) * 180 / Math.PI : -90;
         if (!far) { vx = 0; vy = 0; }
         const fx = MORPH_FX[MORPH](p), mk = o => o && { op: o.op, blur: o.blur, sx: o.sx, th: o.flat ? 0 : line, ox: vx * (o.go || 0), oy: vy * (o.go || 0) };
+        fxLayer(L.stand, L.stand.imgs.stand && (!m.from || !cur) ? 'stand' : '', '', stand, !m.from ? mk(fx.out) : mk(fx.in));
         fxLayer(L.ghost, m.from ? m.from.key : '', m.from && m.from.tf, a, m.from && mk(fx.out));
         fxLayer(L.pose, key, cur && cur.tf, b, cur && mk(fx.in));
         const ec = (cur && fx.echo) || [];
@@ -3065,6 +3087,8 @@ export function mountFrogGame(stage, opts = {}) {
     let windUp = false;
     function swingTo(dx, dy, x, y) {
         if (!pose.held) return;
+        // (a cut from standing: the frog as it stands right now, kept for the blend into the cut and back out of it)
+        if (MORPH && artCut && artCut.ready && !swing && !artCut.on && pose.up > 0.5 && !pose.fallY && !pose.chop && !pose.low && !(fireLeft > 0)) snapStand(artCut, performance.now());
         const a = Math.round(Math.atan2(dy, dx) / (Math.PI * 2 / DIRS)) * (Math.PI * 2 / DIRS);
         // the arm on the side the blade is working does the cutting
         const side = x < W / 2 ? 'L' : 'R';
@@ -6105,7 +6129,7 @@ export function mountFrogGame(stage, opts = {}) {
         poseAcc += dt;
         // (stepped only during play, where it sits among smoothly moving fruit; the intro, the
         // start screen and the summon are the only thing moving, so they run at the full frame rate)
-        if (phase !== 'play' || summon || reduced || poseAcc >= (swing || overT > 0 || tongue || punch ? 1 / 30 : 1 / 12)) { poseAcc = 0; applyPose(); }
+        if (phase !== 'play' || summon || reduced || poseAcc >= (artCut && artCut.m ? 0 : swing || overT > 0 || tongue || punch ? 1 / 30 : 1 / 12)) { poseAcc = 0; applyPose(); }      // (between two poses: every frame, the blend is short)
 
         // game; the alarm clock slows the world to SLOWMO (wdt) and stops the countdown, not the frog
         // (the slashes that follow a freeze are made while the world is still slow; then time resumes)
@@ -6877,6 +6901,8 @@ export function mountFrogGame(stage, opts = {}) {
         const around = (x, y, w, h) => ({ x: Math.round(x - w / 2), y: Math.round(y - h / 2), w: Math.round(w), h: Math.round(h) });
         const at0 = g => { const m = g.getScreenCTM(); const q = new DOMPoint(0, 0).matrixTransform(m); return [q.x, q.y]; };
         window.frogCurate = {
+            // (frame by frame, for what happens between two poses: design/frog/tools/morph_shots.py)
+            step: sec => step(sec), play: name => playAnim(name),
             shots: () => SHOTS.map(q => ({ name: q.name, air: !!q.air || !!q.seated })),       // (sitting: its legs hang over the front, on purpose)
             // resolves once the art is in and the first frame is drawn
             ready: async () => { for (let i = 0; i < 200 && artLeft > 0; i++) await new Promise(r => setTimeout(r, 50)); await document.fonts.ready; step(0.5); return artLeft <= 0; },
