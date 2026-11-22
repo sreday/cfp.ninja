@@ -287,19 +287,23 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 800, grow: 1.1, front: true };      // (Marek, 2026-11-22: further up in the air, and 10% bigger)
 // the slash under the frog (Marek's pick 2026-11-22, limbs fixed by him): a jump curled upside down, both katanas driven down below it.
 // feet: its lowest point (a blade tip), lift: how far that stays above the post; faces: drawn looking left, so mirrored the other way round.
-const UNDER_ART = { url: '/img/game/frog/under.501431f6a6.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28 };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
+const UNDER_ART = { url: '/img/game/frog/under.501431f6a6.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28, tw: [0, 1] };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
 // the duck (Marek's pick 2026-11-22): a level stroke through its head and it drops into a deep squat on the post, katanas crossed flat above it.
-const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true };
+const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true, tw: [0, 0] };      // (tw: no twitch, its feet stay on the post)
 // the rising cut (Marek's pick 2026-11-22): an upward stroke, or one above its head, and it jumps, knees tucked, one long katana driven up and out, the other low behind: one rising diagonal.
 // Drawn cutting up to the right, mirrored for the left; lift: how far the toes float above the post.
 const RISE_ART = { url: '/img/game/frog/rise.c544f18464.webp', size: [877, 500], mid: 424, feet: 493, headW: 210, lift: 600 };      // (the second pick: the first, blades crossed overhead, was 'almost identical to upwards slash'; mid/feet: its feet, read off the picture; then 'half the length of katanas')
 // the hop (Marek's pick 2026-11-22, 'this but long katanas'): a level stroke through its body and it springs up over the blade, knees tucked, katanas out level.
-const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true };
+const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true, tw: [0, -1] };
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
 const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true };
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART };
+// The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
+// jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
+// for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
+const TWITCH = 46, TWITCH_HOLD = 16;
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -2089,7 +2093,8 @@ export function mountFrogGame(stage, opts = {}) {
         if (!on) return;
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; setA(C.kat, 'display', CUT_POSES[pose.artCut].katanas ? 'inline' : 'none'); }
         const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
-        setA(C.pose, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}${Q.rock ? ` rotate(${n2(Q.rock * Math.sin(idleT * (4 + 8 * (1 - clamp(timeLeft / LOW_TIME, 0, 1)))))} ${Q.mid} ${Q.feet})` : ''}`);
+        const tw = Q === OVER_ART || Q.rock || !swing ? [0, 0] : Q.tw || [Math.cos(swing.a), Math.sin(swing.a)], td = swing && swing.t < SMEAR ? TWITCH : TWITCH_HOLD;
+        setA(C.pose, 'transform', `translate(${n2(tw[0] * td)} ${n2(pose.up * RISE - (Q.lift || 0) + tw[1] * td)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}${Q.rock ? ` rotate(${n2(Q.rock * Math.sin(idleT * (4 + 8 * (1 - clamp(timeLeft / LOW_TIME, 0, 1)))))} ${Q.mid} ${Q.feet})` : ''}`);
         if (Q.katanas) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
