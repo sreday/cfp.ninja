@@ -40,7 +40,8 @@ def key(rgb):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('masks'); ap.add_argument('spec'); ap.add_argument('out')
     ap.add_argument('--seeds', type=int, default=4); ap.add_argument('--seed0', type=int, default=100)
-    ap.add_argument('--fast', action='store_true', help='8-step Lightning: ~11 s a try, for many seeds')
+    ap.add_argument('--fast', action='store_true', help='(the default now) 8-step Lightning: ~11 s a try')
+    ap.add_argument('--final', action='store_true', help='full quality, ~100 s a try: only for the picked image')
     a = ap.parse_args(); spec = json.load(open(a.spec)); pad = spec.get('pad', 120); seam_r = spec.get('seam', 60)
     A0 = np.asarray(Image.open(a.src).convert('RGBA')).astype(np.float32)
     A = np.pad(A0, ((pad, pad), (pad, pad), (0, 0))); h, w = A.shape[:2]; yy, xx = np.mgrid[0:h, 0:w]
@@ -70,7 +71,7 @@ def main():
     if n > 1:
         sz = ndi.sum(np.ones((h, w)), lab, range(1, n + 1))
         out[np.isin(lab, [i + 1 for i, z in enumerate(sz) if z < 1500])] = 0
-    redraw(out, seams, os.path.splitext(a.out)[0], a.seeds, a.seed0, a.fast, spec.get('prompt', PROMPT))
+    redraw(out, seams, os.path.splitext(a.out)[0], a.seeds, a.seed0, not a.final, spec.get('prompt', PROMPT))
 
 
 def redraw(out, seams, base, seeds, seed0, fast, prompt=PROMPT, soft=8):
@@ -89,7 +90,7 @@ def redraw(out, seams, base, seeds, seed0, fast, prompt=PROMPT, soft=8):
     C = np.zeros((PH, PW, 4), np.float32); C[py:py + ch, px:px + cw] = out[y0:y1, x0:x1]
     Image.fromarray(C.clip(0, 255).astype(np.uint8), 'RGBA').save(base + '-sketch-crop.png')
     subprocess.run([COMFY_PY, os.path.join(HERE, 'qwen_edit.py'), base + '-qwen.png', prompt, base + '-sketch-crop.png',
-                    '--n', str(seeds), '--seed', str(seed0)] + (['--fast'] if fast else []), check=True)
+                    '--n', str(seeds), '--seed', str(seed0)] + ([] if fast else ['--final']), check=True)
     flat = out[..., :3] * (out[..., 3:4] / 255) + np.array([255, 0, 255], np.float32) * (1 - out[..., 3:4] / 255)
     lab, n = ndi.label(seams)
     for k in range(1, seeds + 1):

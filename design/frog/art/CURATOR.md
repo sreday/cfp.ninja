@@ -4,7 +4,53 @@ The art is generated and mostly great. What goes wrong is how it is put together
 scaled, placed, layered and rigged by Claude. The curator looks at the finished game, the way a
 player sees it, and says **GO** or **STOP, redo this, redo that** before anything ships.
 
-## How it runs (between build and deploy)
+## The fast lane: the default for every item (Marek, 2026-11-22: "I need it to be snappy")
+
+The cartwheel took 153 minutes of work for two sprites: five curator rounds redrawing Marek's picks to the ratio
+table (he kept the originals), each round a fresh reviewer reading this whole file and about 18 pictures, tries on the
+GPU at full quality, and a whole-game render before the ship. The budget now: **candidates on his screen in about
+4 minutes, his pick live in about 5.** Whatever does not fit is cut, and he is told what was cut.
+
+**Candidates (before Marek sees them): one sheet, one look, one round.**
+1. Tries run fast: `qwen_edit.py` and `art_slide.py` use the 8-step mode (about 11 s a try). `--final` (about 100 s)
+   is only for the picked image, and only if the fast one shows a flaw at game size.
+2. `python design/frog/tools/art_sheet.py "<candidates folder>"`: every candidate beside the base frog on one sheet,
+   with what a script can tell (a figure cut off by the edge, keying fringe).
+3. One reviewer that did not make them (a helper on a cheaper model is enough) gets the sheet and the section
+   "Candidates: what blocks" below, nothing else, and answers one line per candidate: `ok` or `broken: <what>`.
+   It reads one picture. No spec table, no measuring, no report file.
+4. Broken candidates are dropped, never repaired. The rest go to Marek with the reviewer's notes. If fewer than two
+   are left, one more batch of fast tries, once. Then he sees what there is.
+5. **Proportions are Marek's call.** Head size, limb and katana length, tails: a note under the candidate
+   ("head looks about a quarter small"), never a blocker, never a reason to redraw before he has picked. A redraw to
+   fix a ratio happens only when he asks for it.
+
+**Candidates: what blocks** (the whole list)
+- the wrong count: arms, legs, hands, katanas (2 each), eyes, a head
+- the head or the cap sliced off, a limb or a blade cut by the picture's edge
+- scabbards on the back while the katanas are drawn; a third blade; a blade that is bent, hooped or not a katana
+- a limb growing from the wrong place, a joint bent the way it cannot bend
+- another drawing style than the logo's (outline, palette, shading)
+
+**Into the game: the item's shots only.**
+1. `python design/frog/tools/curator.py --quick --item "<item>" --only "<how its shots start>;ready"`: only those
+   shots, one wide and one phone size, live and new side by side in parallel (about 20 s). It writes
+   `review/sheet-N.png` (12 crops a sheet, changed and measured ones first).
+2. If every judged shot is the very same pixels as live, the tool writes the GO itself. Otherwise one reviewer that
+   did not make the change reads the sheets (not the crops one by one, not this whole file: "The checklist" below
+   only) and writes `verdict.json`. One round. A STOP comes back once; a second STOP on the same thing goes to Marek
+   with the sheet, not into a third round.
+3. `python design/frog/tools/ship.py` (never `--full` for an item). Then the live check and the ping.
+
+**The full check** (everything below: every shot, four sizes, the whole checklist) runs when Marek says "full
+check", before a milestone, or when a change touches the whole scene (background, post, the rig, the cast). Not for
+one pose, one sprite or one effect.
+
+**Tools, not one-off scripts.** A step that will come back (cutting a pick out, building its webp and its table
+entry, a sheet) is a file in `design/frog/tools/` with arguments, reused the next time; no pasted scripts that
+patch a tool in passing.
+
+## The full check: how it runs
 
 1. `python3 design/frog/tools/curator.py` renders every curator shot (`window.frogCurate`, `?curate`)
    at 1280x720, 1920x1080, 390x844 and 390x664, for the build that is live (before) and the
@@ -20,7 +66,7 @@ player sees it, and says **GO** or **STOP, redo this, redo that** before anythin
 3. `python3 design/frog/tools/ship.py` deploys only with a `GO` verdict for the exact commit being shipped.
    On STOP: fix the list, run 1-2 again. Claude never turns a finding into "not a fault" alone: a second
    reviewer has to agree, or Marek.
-4. **Too many rounds:** the same finding back 3 times, or 4 rounds without GO: stop looping. Send
+4. **Too many rounds:** the same finding back twice, or 2 rounds without GO (since 2026-11-22; it was 3 and 4): stop looping. Send
    Marek the board, the before|after crop of each open item, what the curator objects to and what was
    tried. He answers per item "looks fine" (goes into `accepted` in the verdict and the baseline, never
    raised again) or "redo" with a note.
@@ -31,7 +77,7 @@ Keep it lean: crops of where faults hide, not essays; only changed crops need a 
 
 The work goes item by item:
 1. Marek names the thing ("the seagull").
-2. Claude generates **3 iterations** (ElevenLabs), proofreads them (regenerating any that can't be fixed) and shows them.
+2. Claude generates **3 iterations**, puts them through the fast lane's one look (broken ones dropped, not repaired) and shows them.
 3. **Marek picks** the best one.
 4. Claude puts it in the game.
 5. **The curator accepts it, or it is rolled back** (fixed and re-judged, or reverted to live).
@@ -41,13 +87,11 @@ The work goes item by item:
 Claude may suggest what is missing, but does not widen the item on its own. The Backlog below comes first.
 
 **The curator gates candidates too (Marek, 2026-11-20: "I would like the curator to step in").** No generated
-candidate goes to Marek on Claude's own proofread. Before an item's first round, a curator that did not make the
-images measures the base frog (the live 'ready' frog; the logo is seated, so face and style only) and writes the
-target spec: head : standing height, head : shoulders, torso, legs and arms : head, katana : head, bandana tails :
-head width, eye : head, each with a tolerance. That spec goes into the prompt as numbers. Every candidate is then
-measured against it and checked against the canon (head whole, bandana a full cap, limbs and katanas counted, the
-logo's eyes) and only the ones that pass are shown, with the curator's table (`curator-review.md` beside the
-candidates). Image generations and retouches are proposed to Marek and wait for his OK.
+candidate goes to Marek on Claude's own proofread: a reviewer that did not make them looks first. Since 2026-11-22
+that look is the fast lane above (one sheet beside the base frog, the canon counted, broken ones dropped); the
+measured spec table and the per-candidate ratio check are gone, because they cost five rounds on the cartwheel and
+Marek's eye overruled them. The base frog's proportions still go into the prompt, in words and with the base image
+as a reference. Paid generations (ElevenLabs) are proposed to Marek and wait for his OK; local GPU tries do not.
 
 **Less obvious poses (Marek, 2026-11-20): "adding some less obvious poses helps keep the style while not having to be
 pixel perfect".** A pose seen side-on, from behind, mid-hop, with a limb or a katana partly hidden or foreshortened, keeps

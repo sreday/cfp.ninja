@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Local image edits for Frog Ninja art: Qwen-Image-Edit-2511 (Apache 2.0) in ComfyUI on this PC's GPU.
 
-    python qwen_edit.py <out.png> "<instruction>" <image1> [image2] [image3] [--steps 40 --cfg 4 --seed N --n 1]
+    python qwen_edit.py <out.png> "<instruction>" <image1> [image2] [image3] [--seed N --n 1] [--final]
+
+Tries run fast (8 steps, about 11 s each); --final is the slow full-quality pass (40 steps), for the picked image only.
 
 image1 is the picture to edit; image2/3 are references ("the frog in picture 2"). A sprite with transparency is
 put on flat magenta first (the model works in RGB); art_slide.py keys the result back. ComfyUI must be running
@@ -64,8 +66,10 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument('out'); ap.add_argument('prompt'); ap.add_argument('images', nargs='+')
     ap.add_argument('--steps', type=int, default=40); ap.add_argument('--cfg', type=float, default=4.0)
     ap.add_argument('--seed', type=int, default=None); ap.add_argument('--n', type=int, default=1)
-    ap.add_argument('--fast', action='store_true', help='8-step Lightning LoRA (about 5x faster, for iterating)')
+    ap.add_argument('--fast', action='store_true', help='(the default now) 8-step Lightning LoRA, about 11 s a try')
+    ap.add_argument('--final', action='store_true', help='full quality (40 steps, about 100 s): only for the picked image')
     a = ap.parse_args(); names = [flat(p) for p in a.images]
+    a.fast = not a.final      # tries are fast; the slow full-quality pass is asked for by name (Marek, 2026-11-22: snappy)
     if a.fast: a.steps, a.cfg = 8, 1.0
     base, ext = os.path.splitext(a.out)
     for k in range(a.n):

@@ -8,7 +8,7 @@
 3. the art curator's verdict: a GO for this exact commit (verdict.json in a curator run whose
    "after" is this commit, written by a reviewer that did not make the change). On STOP, or no
    verdict yet, it stops here and says what is open.
-   Too many rounds (the same finding 3 times, or 4 STOPs on this branch): it stops and prints the
+   Too many rounds (the same finding twice, or 2 STOPs on this branch): it stops and prints the
    eyeball request for Marek instead (the board, each open item). His "looks fine" goes into the
    verdict's "accepted"; that item then counts as cleared.
 4. fast-forward main to the judged commit, push it, git push heroku main, check the live
@@ -62,8 +62,9 @@ def main():
         for f in v.get('findings', []):
             if f.get('severity') == 'blocker': seen[(f.get('shot'), f.get('crop', '').split('__')[-1])] = seen.get((f.get('shot'), f.get('crop', '').split('__')[-1]), 0) + 1
     stuck = [k for k, n in seen.items() if n >= 3]
+    stuck = stuck or [k for k, n in seen.items() if n >= 2]      # the fast lane: the same thing twice goes to Marek
     if not mine or mine[-1][2].get('verdict') != 'GO':
-        if len(stops) >= 4 or stuck:
+        if len(stops) >= 2 or stuck:
             d, _, v = (mine or vs)[-1]
             print('Too many rounds with the curator: Marek\'s eye decides.\n')
             print(f'Board: {os.path.join(d, "index.html")}\n')

@@ -2,7 +2,10 @@
 """The art curator's eyes: render the game as it is live and as it will be, the very same moments,
 and lay them out to be judged (design/frog/art/CURATOR.md).
 
-    python3 design/frog/tools/curator.py                       # live (heroku/main) vs this working tree, 4 sizes
+    python3 design/frog/tools/curator.py --quick --only "cartwheel (circular slash), front;ready"
+                                                               # THE DEFAULT for one item: its shots, one wide + one phone
+                                                               # size, one review sheet (about a minute)
+    python3 design/frog/tools/curator.py                       # the full check: every shot, 4 sizes (on "full check")
     python3 design/frog/tools/curator.py --only 'ready;scene'  # just these shots (';' between names)
     python3 design/frog/tools/curator.py --before none         # no "before" (first run, or a shot that is new)
     python3 design/frog/tools/curator.py --sizes 1280x720
@@ -122,28 +125,42 @@ def size_check(entry):
                 a['measured_fault'] = (a.get('measured_fault', '') + f' {a["who"]} is {got:.2f}x the {b["who"]} next to it, should be {want:.2f}x').strip()
 
 
-def run_build(root, sizes, only, outdir, tag):
-    """capture every shot of one build; returns {shot: {size: {'file', 'hotspots', 'air'}}}"""
+ALL_SHOTS = set()
+
+
+def run_size(root, size, only, outdir, tag):
+    """capture every shot of one build at one size; returns {shot: {'file', 'hotspots', 'air'}}"""
     res = {}
-    for size in sizes:
-        W, H = map(int, size.split('x'))
-        b = Browser(root, W, H)
-        try:
-            if b.js("typeof window.frogCurate") != 'object':
-                print(f'  {tag} {size}: this build has no curate mode, skipped'); continue
-            b.js("window.frogCurate.ready()", wait=True)
-            shots = b.js("JSON.stringify(window.frogCurate.shots())")
-            for s in json.loads(shots):
-                n = s['name']
-                if only and n not in only: continue
-                b.js(f"window.frogCurate.shoot({json.dumps(n)})")
-                hs = json.loads(b.js("JSON.stringify(window.frogCurate.hotspots())"))
-                raw = os.path.join(outdir, 'raw', f'{safe(n)}__{size}__{tag}.png'); b.shot(raw)
-                res.setdefault(n, {})[size] = {'file': raw, 'hotspots': hs, 'air': s['air']}
-            print(f'  {tag} {size}: {len([1 for v in res.values() if size in v])} shots')
-        finally:
-            b.close()
+    W, H = map(int, size.split('x'))
+    b = Browser(root, W, H)
+    try:
+        if b.js("typeof window.frogCurate") != 'object':
+            print(f'  {tag} {size}: this build has no curate mode, skipped'); return res
+        b.js("window.frogCurate.ready()", wait=True)
+        shots = b.js("JSON.stringify(window.frogCurate.shots())")
+        for s in json.loads(shots):
+            n = s['name']; ALL_SHOTS.add(n)
+            if only and not n.startswith(tuple(only)): continue      # a name, or how it starts ('cartwheel' = all of them)
+            b.js(f"window.frogCurate.shoot({json.dumps(n)})")
+            hs = json.loads(b.js("JSON.stringify(window.frogCurate.hotspots())"))
+            raw = os.path.join(outdir, 'raw', f'{safe(n)}__{size}__{tag}.png'); b.shot(raw)
+            res[n] = {'file': raw, 'hotspots': hs, 'air': s['air']}
+        print(f'  {tag} {size}: {len(res)} shots', flush=True)
+    finally:
+        b.close()
     return res
+
+
+def run_builds(jobs, only, outdir):
+    """jobs: [(tag, root, size)], each in its own Chrome, side by side (the clock is virtual: load does not move a
+    frame). Returns {tag: {shot: {size: {...}}}}"""
+    from concurrent.futures import ThreadPoolExecutor
+    out = {}
+    with ThreadPoolExecutor(max_workers=min(8, len(jobs) or 1)) as ex:
+        futs = [(tag, size, ex.submit(run_size, root, size, only, outdir, tag)) for tag, root, size in jobs]
+        for tag, size, f in futs:
+            for n, v in f.result().items(): out.setdefault(tag, {}).setdefault(n, {})[size] = v
+    return out
 
 
 def safe(n): return ''.join(c if c.isalnum() or c in '-.' else '_' for c in n).strip('_')[:60]
@@ -158,13 +175,18 @@ def main():
     ap.add_argument('--out', default='')
     ap.add_argument('--query', default='', help="extra URL query for the after build, e.g. '&shoulder=a' (previews)")
     ap.add_argument('--repack', default='', help='only rewrite the review packets and board of this run folder')
-    a = ap.parse_args(); QUERY = a.query
+    ap.add_argument('--quick', action='store_true', help='one item: only its shots (--only), one wide + one phone size, one review sheet')
+    ap.add_argument('--item', default='', help='the item being judged (goes into the verdict)')
+    a = ap.parse_args(); QUERY = a.query; t0 = time.time()
     if a.repack:
         ix = json.load(open(os.path.join(a.repack, 'index.json')))
         for f in os.listdir(os.path.join(a.repack, 'review')): os.remove(os.path.join(a.repack, 'review', f))
         write_review(a.repack, ix); write_board(a.repack, ix); print(os.listdir(os.path.join(a.repack, 'review'))); return
     sizes = [s for s in a.sizes.split(',') if s]
     only = set(x.strip() for x in a.only.split(';') if x.strip())     # shot names hold commas: ';' between them
+    if a.quick:
+        if not only: sys.exit('--quick judges one item: name its shots with --only "shot;shot"')
+        if a.sizes == ','.join(SIZES): sizes = list(FROG_SIZES)
     head = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=REPO, capture_output=True, text=True).stdout.strip()
     dirty = bool(subprocess.run(['git', 'status', '--porcelain', '--', 'static'], cwd=REPO, capture_output=True, text=True).stdout.strip())
     out = a.out or os.path.join(DESK, datetime.now().strftime('%Y-%m-%d_%H%M%S'))
@@ -182,15 +204,18 @@ def main():
         if r.returncode: print('before: could not check out', ref, r.stderr.strip()); wt = None
     try:
         print('after: this working tree' + (' (uncommitted changes in static/)' if dirty else f' ({head[:8]})'))
-        after = run_build(os.path.join(REPO, 'static'), sizes, only, out, 'after')
-        if wt:
-            print(f'before: {ref[:8]} (live)')
-            before = run_build(os.path.join(wt, 'static'), sizes, only, out, 'before')
+        if wt: print(f'before: {ref[:8]} (live)')
+        jobs = [('after', os.path.join(REPO, 'static'), s) for s in sizes] + ([('before', os.path.join(wt, 'static'), s) for s in sizes] if wt else [])
+        got = run_builds(jobs, only, out)
+        after, before = got.get('after', {}), got.get('before', {})
+        miss = [o for o in only if not any(n.startswith(o) for n in after)]
+        if miss: sys.exit('no such shot: ' + '; '.join(miss) + '\nthe shots are:\n  ' + '\n  '.join(sorted(ALL_SHOTS)))
     finally:
         if wt: subprocess.run(['git', 'worktree', 'remove', '--force', wt], cwd=REPO, capture_output=True)
 
     branch = subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], cwd=REPO, capture_output=True, text=True).stdout.strip()
-    index = {'made': datetime.now().isoformat(timespec='seconds'), 'branch': branch, 'after': head, 'after_dirty': dirty, 'before': ref if before else None, 'shots': []}
+    index = {'made': datetime.now().isoformat(timespec='seconds'), 'branch': branch, 'after': head, 'after_dirty': dirty, 'before': ref if before else None,
+             'mode': 'item' if a.quick else 'full', 'item': a.item, 'only': sorted(only), 'shots': []}
     for n, per in after.items():
         for size, A in per.items():
             ai = Image.open(A['file']).convert('RGB')
@@ -246,7 +271,52 @@ def main():
     print(f'\n{len(index["shots"])} shots, {sum(len(e["hotspots"]) for e in index["shots"])} crops; measured faults: {len(meas)}')
     for m in meas[:12]: print('  MEASURED', *m)
     print('board:', os.path.join(out, 'index.html'))
-    print('review packet:', os.path.join(out, 'review'))
+    sheets = write_sheets(out, index)
+    same = bool(index['shots']) and all(e.get('changed') == 0 for e in index['shots'])
+    if same and not meas and not dirty:
+        # the very same pixels as live in every judged shot: nothing for an eye to judge
+        json.dump({'verdict': 'GO', 'sha': head, 'item': a.item, 'by': 'curator.py: every judged shot renders exactly as live', 'findings': []},
+                  open(os.path.join(out, 'verdict.json'), 'w'), indent=1)
+        print('verdict: GO written (identical to live), no reviewer needed')
+    else:
+        print('review sheets (ONE look each, then verdict.json):')
+        for s in sheets: print('  ' + s)
+        print('full packet (only if a sheet leaves a doubt):', os.path.join(out, 'review'))
+    print(f'{time.time() - t0:.0f} s')
+
+
+def write_sheets(out, index):
+    """the reviewer's one look: every crop worth judging on a few labelled sheets (measured and changed first)"""
+    from PIL import ImageFont
+    try: font = ImageFont.load_default(20)
+    except TypeError: font = ImageFont.load_default()
+    cells = []
+    for e in index['shots']:
+        for h in sorted([h for h in e['hotspots'] if wanted(e, h)], key=lambda h: (not h.get('measured_fault'), h['same_as_before'])):
+            if h['same_as_before'] and 'before' in e and not h.get('measured_fault'): continue      # the same pixels as live
+            cells.append((f'{len(cells) + 1}. {e["shot"][:34]} @{e["size"]}', h['part'][:40] + ('  MEASURED FAULT' if h.get('measured_fault') else ''), os.path.join(out, h['crop'])))
+    for e in index['shots']:                                                                    # and each whole frame once
+        cells.append((f'{len(cells) + 1}. FRAME {e["shot"][:30]} @{e["size"]}', 'before | after | changed' if e.get('pair') else 'new shot', os.path.join(out, e.get('pair') or e['after'])))
+    paths, CH, PER = [], 380, 12
+    for k in range(0, len(cells), PER):
+        ims = []
+        for a, b, f in cells[k:k + PER]:
+            im = Image.open(f).convert('RGB'); sc = min(CH / im.height, 1100 / im.width)
+            ims.append((a, b, im.resize((max(1, round(im.width * sc)), max(1, round(im.height * sc))), Image.LANCZOS)))
+        rows, row, w = [], [], 0
+        for c in ims:
+            cw = max(c[2].width, 420) + 12                                                      # (room for the label)
+            if row and w + cw > 2400: rows.append(row); row, w = [], 0
+            row.append(c); w += cw
+        if row: rows.append(row)
+        sheet = Image.new('RGB', (2400, len(rows) * (CH + 62) + 10), '#12222a'); d = ImageDraw.Draw(sheet)
+        for r, row in enumerate(rows):
+            x, y = 10, 10 + r * (CH + 62)
+            for a, b, im in row:
+                d.text((x, y), a, fill='#f1eda4', font=font); d.text((x, y + 24), b, fill='#ff8a7a' if 'MEASURED' in b else '#99aabb', font=font)
+                sheet.paste(im, (x, y + 50)); x += max(im.width, 420) + 12
+        p = os.path.join(out, 'review', f'sheet-{k // PER + 1}.png'); sheet.save(p); paths.append(p)
+    return paths
 
 
 SCENE_PARTS = ('post', 'post in the water', 'dancer')     # the same in every frog shot: looked at once per size, on 'scene'
