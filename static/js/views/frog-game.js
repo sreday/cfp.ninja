@@ -285,7 +285,10 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 // the overhead slash (Marek's pick 2026-11-22, built by design/frog/tools/art_build_pose.py): a jump facing us, knees tucked, both katanas
 // crossed above the head. front: drawn whichever side the cut is on, never mirrored; headW sizes it by its head; lift: how far the toes float above the post.
 const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 540, front: true };
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART };
+// the slash under the frog (Marek's pick 2026-11-22, limbs fixed by him): a jump curled upside down, both katanas driven down below it.
+// feet: its lowest point (a blade tip), lift: how far that stays above the post; faces: drawn looking left, so mirrored the other way round.
+const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 150, faces: -1 };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -2072,7 +2075,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
         if (!on) return;
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
-        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 && !Q.front ? -1 : 1;
+        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
@@ -3050,6 +3053,7 @@ export function mountFrogGame(stage, opts = {}) {
             // (drawn in profile: bending forward can't be seen from the front)
             const smear = s.t < SMEAR, arm2 = (armDir, bladeDir, st) => ({ rot: armDir - 90 - pose.sRot, k: bladeDir + 90 - pose.sRot, stretch: st });
             pose.side = s.side === 'L' ? -1 : 1; pose.sQ = false; pose.sHop = 0; pose.face = pose.side; pose.lean = 0; pose.shift = 0;
+            pose.artCut = 'under';            // the picked dive stands in (the drawn frog below: only until the picture has loaded)
             pose.sLegs = 'down'; pose.sDrop = smear ? 40 : 120; pose.sRot = smear ? -14 : 58;
             if (smear) { pose.sF = arm2(-115, -60, 2.0); pose.sB = arm2(-125, -70, 1.8); }       // both blades up and back over the shoulder
             else { pose.sF = arm2(118, 62, 1.5); pose.sB = arm2(62, 118, 1.5); }                  // both arms down, the blades crossed in an X under the chest
