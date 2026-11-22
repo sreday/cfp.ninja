@@ -292,7 +292,7 @@ const UNDER_ART = { url: '/img/game/frog/under.501431f6a6.webp', size: [924, 795
 const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true };
 // the rising cut (Marek's pick 2026-11-22): an upward stroke, or one above its head, and it jumps, knees tucked, one long katana driven up and out, the other low behind: one rising diagonal.
 // Drawn cutting up to the right, mirrored for the left; lift: how far the toes float above the post.
-const RISE_ART = { url: '/img/game/frog/rise.0308a7769a.webp', size: [1207, 602], mid: 589, feet: 562, headW: 210, lift: 600 };      // (the second pick: the first, blades crossed overhead, was 'almost identical to upwards slash'; mid/feet: its feet, read off the picture)
+const RISE_ART = { url: '/img/game/frog/rise.c544f18464.webp', size: [877, 500], mid: 424, feet: 493, headW: 210, lift: 600 };      // (the second pick: the first, blades crossed overhead, was 'almost identical to upwards slash'; mid/feet: its feet, read off the picture; then 'half the length of katanas')
 // the hop (Marek's pick 2026-11-22, 'this but long katanas'): a level stroke through its body and it springs up over the blade, knees tucked, katanas out level.
 const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true };
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
