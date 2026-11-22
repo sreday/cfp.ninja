@@ -304,6 +304,22 @@ const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UN
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
 // for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
 const TWITCH = 46, TWITCH_HOLD = 16;
+// Between two poses (Marek, 2026-11-22: 'a super brief, cartoon-style morphing playing entirely on blending and motion blur, like in old cartoons ...
+// without it feeling stroboscopic'): five styles to try, ?morph=1..5 (none without it: the poses swap at once, as before), ?morphms= its length.
+// Each is a function of p (0..1 through the change) giving the outgoing pose ('out') and the incoming one ('in'): op opacity, blur (rig units, along
+// the line from the old pose's middle to the new one's), sx stretch along that line, go how far along it (a share of the way: the old pose runs ahead,
+// the new one catches up), flat: across the screen instead of along the line; echo: fainter copies of the new pose trailing behind it.
+const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [])[1] || 0;
+const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 120;
+const MORPH_FX = {
+    1: p => ({ out: { op: 1 - p, blur: 130 * p, go: 0.5 * p }, in: { op: p, blur: 130 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
+    2: p => p < 0.5 ? { out: { op: 1, sx: 1 + 2.2 * p, blur: 50, go: 0.9 * p }, in: { op: 0 } }                                                             // stretch: the old pose pulled long toward the new place,
+        : { out: { op: 0 }, in: { op: 1, sx: 1 + 3.2 * (1 - p) * (1 - p), blur: 80 * (1 - p), go: -0.4 * (1 - p) } },                                       //   the new one snapping back from long to its shape
+    3: p => ({ out: { op: 0.6 * (1 - p) }, in: { op: 0.4 + 0.6 * p }, echo: [{ go: -0.4 * (1 - p), op: 0.4 * (1 - p) }, { go: -0.8 * (1 - p), op: 0.25 * (1 - p) }] }),   // multiples: after-images of the new pose closing up
+    4: p => ({ out: { op: 0.75 * (1 - p), blur: 320, sx: 1.6 + p, go: p }, in: { op: p < 0.3 ? 0 : 1, blur: 220 * (1 - p) * (1 - p), sx: 1 + 0.5 * (1 - p) } }),         // zip: the old pose gone into a speed streak, the new one out of the blur
+    5: p => p < 0.5 ? { out: { op: 1, sx: 1 - 1.7 * p, blur: 60 * p, flat: 1, go: p }, in: { op: 0 } }                                                      // twirl: squeezed to a sliver and opened again,
+        : { out: { op: 0 }, in: { op: 1, sx: 0.15 + 1.7 * (p - 0.5), blur: 60 * (1 - p), flat: 1 } },                                                       //   like a card turning
+};
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -1641,9 +1657,14 @@ export function mountFrogGame(stage, opts = {}) {
     }
     if (ART.frog) {
         const root = $('#fg-art-cut');
-        root.innerHTML = `<g class="fg-cut-kat" display="none"><image href="${BREATH_ART.katanas}" x="${BREATH_ART.katanasAt[0]}" y="${BREATH_ART.katanasAt[1]}" width="${BREATH_ART.katanasSize[0]}" height="${BREATH_ART.katanasSize[1]}"/></g><g class="fg-cut-pose">`
-            + Object.entries(CUT_POSES).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('') + '</g>';
-        artCut = { root, pose: root.querySelector('.fg-cut-pose'), kat: root.querySelector('.fg-cut-kat'), on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image[data-pose]')].map(e => [e.dataset.pose, e])) };
+        const fxImgs = c => Object.entries(CUT_POSES).map(([k, Q]) => `<image data-${c}="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}" display="none"/>`).join('');
+        const fxLayerHtml = c => `<g class="fg-fx-${c}-a"><g class="fg-fx-${c}-f"><g class="fg-fx-${c}-b"><g class="fg-cut-${c}">${fxImgs(c)}</g></g></g></g>`;
+        root.innerHTML = `<defs>${['ghost', 'pose'].map(c => `<filter id="fg-morph-${c}" x="-150%" y="-150%" width="400%" height="400%"><feGaussianBlur stdDeviation="0 0"/></filter>`).join('')}</defs>
+            <g class="fg-cut-kat" display="none"><image href="${BREATH_ART.katanas}" x="${BREATH_ART.katanasAt[0]}" y="${BREATH_ART.katanasAt[1]}" width="${BREATH_ART.katanasSize[0]}" height="${BREATH_ART.katanasSize[1]}"/></g>`
+            + ['ghost', 'e2', 'e1', 'pose'].map(fxLayerHtml).join('');
+        const fxL = c => ({ a: root.querySelector(`.fg-fx-${c}-a`), f: root.querySelector(`.fg-fx-${c}-f`), b: root.querySelector(`.fg-fx-${c}-b`), t: root.querySelector(`.fg-cut-${c}`), shown: '',
+            imgs: Object.fromEntries([...root.querySelectorAll(`image[data-${c}]`)].map(e => [e.getAttribute('data-' + c), e])), fid: 'fg-morph-' + c, blur: root.querySelector(`#fg-morph-${c} feGaussianBlur`) });
+        artCut = { root, kat: root.querySelector('.fg-cut-kat'), on: false, ready: false, L: { ghost: fxL('ghost'), e2: fxL('e2'), e1: fxL('e1'), pose: fxL('pose') } };
         Promise.all(Object.values(CUT_POSES).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artCut.ready = true; });
     }
     if (ART.frog) {
@@ -2086,16 +2107,50 @@ export function mountFrogGame(stage, opts = {}) {
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
     // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
     function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && (pose.side || CUT_POSES[pose.artCut].front) && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    // one layer of the cut art: which picture, where (tf), and how the change between two poses treats it (o: see MORPH_FX; c: its middle)
+    function fxLayer(L, key, tf, c, o) {
+        if (!key || !o) { if (L.shown) { setA(L.imgs[L.shown], 'display', 'none'); L.shown = ''; } return; }
+        if (L.shown !== key) { if (L.shown) setA(L.imgs[L.shown], 'display', 'none'); setA(L.imgs[key], 'display', 'inline'); L.shown = key; }
+        const th = o.th || 0, sx = o.sx === undefined ? 1 : o.sx, bl = o.blur || 0, x = n2(c[0]), y = n2(c[1]);
+        setA(L.t, 'transform', tf);
+        setA(L.a, 'transform', `translate(${n2(o.ox || 0)} ${n2(o.oy || 0)}) rotate(${n2(th)} ${x} ${y})`);
+        setA(L.f, 'transform', `translate(${x} ${y}) scale(${n2(sx)} 1) translate(${-x} ${-y})`);
+        setA(L.b, 'transform', `rotate(${n2(-th)} ${x} ${y})`);
+        setA(L.f, 'opacity', n2(o.op === undefined ? 1 : o.op));
+        if (L.blur) { setA(L.f, 'filter', bl > 1 ? `url(#${L.fid})` : 'none'); if (bl > 1) setA(L.blur, 'stdDeviation', `${n2(bl)} 0`); }
+    }
     function artCutPose() {
         const C = artCut; if (!C) return;
-        const on = artCutOn();
-        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
-        if (!on) return;
-        if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; setA(C.kat, 'display', CUT_POSES[pose.artCut].katanas ? 'inline' : 'none'); }
-        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
-        const tw = Q === OVER_ART || Q.rock || !swing ? [0, 0] : Q.tw || [Math.cos(swing.a), Math.sin(swing.a)], td = swing && swing.t < SMEAR ? TWITCH : TWITCH_HOLD;
-        setA(C.pose, 'transform', `translate(${n2(tw[0] * td)} ${n2(pose.up * RISE - (Q.lift || 0) + tw[1] * td)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}${Q.rock ? ` rotate(${n2(Q.rock * Math.sin(idleT * (4 + 8 * (1 - clamp(timeLeft / LOW_TIME, 0, 1)))))} ${Q.mid} ${Q.feet})` : ''}`);
-        if (Q.katanas) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
+        const on = artCutOn(), now = performance.now(), key = on ? pose.artCut : '';
+        let cur = null, Q = null;
+        if (on) {
+            Q = CUT_POSES[key]; const k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
+            const tw = Q === OVER_ART || Q.rock || !swing ? [0, 0] : Q.tw || [Math.cos(swing.a), Math.sin(swing.a)], td = swing && swing.t < SMEAR ? TWITCH : TWITCH_HOLD;
+            cur = { key, tf: `translate(${n2(tw[0] * td)} ${n2(pose.up * RISE - (Q.lift || 0) + tw[1] * td)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}${Q.rock ? ` rotate(${n2(Q.rock * Math.sin(idleT * (4 + 8 * (1 - clamp(timeLeft / LOW_TIME, 0, 1)))))} ${Q.mid} ${Q.feet})` : ''}`,
+                c: [993 + tw[0] * td + f * k * (Q.size[0] / 2 - Q.mid), BREATH_ART.rigFeet + pose.up * RISE - (Q.lift || 0) + tw[1] * td + k * (Q.size[1] / 2 - Q.feet)] };
+        }
+        // a change of pose starts the in-between (only with ?morph=): from the picture last drawn (none: it was standing) to this one
+        if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
+        C.prev = cur;
+        let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
+        const show = on || !!(m && m.from), under = !!(m && m.from && !on);      // (under: back to standing, the frog itself is there beneath the picture going out)
+        if (show !== C.on) { C.on = show; svg.classList.toggle('fg-art-cut-on', show); }
+        if (under !== !!C.under) { C.under = under; svg.classList.toggle('fg-art-morph', under); }
+        const kat = !!(on && Q.katanas);
+        if (kat !== !!C.katOn) { C.katOn = kat; setA(C.kat, 'display', kat ? 'inline' : 'none'); }
+        if (kat) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
+        const L = C.L;
+        if (!m) { fxLayer(L.ghost, ''); fxLayer(L.e1, ''); fxLayer(L.e2, ''); fxLayer(L.pose, key, cur && cur.tf, cur && cur.c, cur && {}); return; }
+        const p = clamp((now - m.t0) / MORPH_MS, 0, 1), stand = [993, BREATH_ART.rigFeet + pose.up * RISE - 0.5 * (BREATH_ART.rigFeet - BREATH_ART.rigTop)];
+        const a = m.from ? m.from.c : stand, b = cur ? cur.c : stand;
+        let vx = b[0] - a[0], vy = b[1] - a[1]; const far = Math.hypot(vx, vy) > 40, line = far ? Math.atan2(vy, vx) * 180 / Math.PI : -90;
+        if (!far) { vx = 0; vy = 0; }
+        const fx = MORPH_FX[MORPH](p), mk = o => o && { op: o.op, blur: o.blur, sx: o.sx, th: o.flat ? 0 : line, ox: vx * (o.go || 0), oy: vy * (o.go || 0) };
+        fxLayer(L.ghost, m.from ? m.from.key : '', m.from && m.from.tf, a, m.from && mk(fx.out));
+        fxLayer(L.pose, key, cur && cur.tf, b, cur && mk(fx.in));
+        const ec = (cur && fx.echo) || [];
+        fxLayer(L.e1, ec[0] ? key : '', cur && cur.tf, b, ec[0] && mk(ec[0]));
+        fxLayer(L.e2, ec[1] ? key : '', cur && cur.tf, b, ec[1] && mk(ec[1]));
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
     function artWheelOn() { return !!(artWheel && artWheel.ready && wheel && performance.now() - wheel.t0 < WHEEL_MS && !artBreathOn() && !pose.fallY); }

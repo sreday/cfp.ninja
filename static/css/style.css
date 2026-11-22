@@ -1807,6 +1807,8 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog #fg-art-cut { display: none; }
 .fg-frog.fg-art-cut-on #fg-art-cut { display: inline; }
 .fg-frog.fg-art-cut-on #fg-all > :not(#fg-art-cut), .fg-frog.fg-art-cut-on #fg-side, .fg-frog.fg-art-cut-on #fg-stand, .fg-frog.fg-art-cut-on #fg-shadow { visibility: hidden; }
+/* a cut picture going out, back to standing (?morph=): the frog itself is already there beneath it */
+.fg-frog.fg-art-cut-on.fg-art-morph #fg-all > :not(#fg-art-cut), .fg-frog.fg-art-cut-on.fg-art-morph #fg-side, .fg-frog.fg-art-cut-on.fg-art-morph #fg-stand { visibility: visible; }
 .fg-has-art-bg #fg-shadow { display: none; }   /* on the generated post the frog stands on its top: no shadow under it */
 /* until the generated art is in, the scene is hidden (no flash of the old drawn one), then it fades in */
 .fg-stage .fg-bg, .fg-stage .fg-pole, .fg-stage .fg-frog, .fg-stage .fg-post-ring, .fg-stage .fg-water-front { transition: opacity .35s ease-out; }
