@@ -298,7 +298,7 @@ const WHEEL_FIT = 0.24;                // how round: the points' spread off the 
 const WHEEL_R = [0.05, 0.55];          // the circle's radius, as a share of the screen's size S()
 const WHEEL_NUDGE = 300, WHEEL_JIT = 160, WHEEL_GO = 240;   // rig units: toward the circle, random spread, and travel while it spins
 const WHEEL_SIZE = 0.8;                // the spinning frog against the standing one (Marek, 2026-11-22: 20% smaller)
-const WHEEL_LIFT = 700;                // rig units above the body's middle: it spins in the air, clear of the post, blades included (Marek, 2026-11-22)
+const WHEEL_LIFT = 880;                // rig units above the body's middle: it spins in the air, clear of the post, blades included (Marek, 2026-11-22)
 const WHEEL_VY = 0.45, WHEEL_HOP = 50; // up-and-down: the share of the vertical nudge and travel kept, and the hop's height in rig units (it was 1 and 120: too bouncy)
 const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rigTop);   // rig y of the body's middle (where it spins)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
