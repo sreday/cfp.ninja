@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Cut poses stay on screen at least POSE_MIN (0.3 s, Marek 2026-11-21): six quick strokes, alternating sides, sampled
-from the page; prints each pose's time on screen and fails on any shown under 0.25 s (the frog redraws at 30 fps in a
-cut and the probe samples about every 40 ms, so one reading can be 0.03-0.04 s short of the real 0.3 s).
+"""Cut poses stay on screen at least POSE_MIN (0.5 s since 2026-11-22; 0.3 s from Marek 2026-11-21): six quick strokes, alternating sides, sampled
+from the page; prints each pose's time on screen and fails on any shown under 0.45 s (the frog redraws at 30 fps in a
+cut and the probe samples about every 40 ms, so one reading can be 0.03-0.04 s short of the real 0.5 s).
 
     python3 design/frog/tools/pose_min_test.py
 """
@@ -13,7 +13,7 @@ from playtest import Game  # noqa: E402
 PROBE = r"""(()=>{const s=document.querySelector('.fg-frog'); const on=s&&s.classList.contains('fg-art-cut-on');
  const r=document.querySelector('#fg-art-cut'); const im=[...r.querySelectorAll('image')].find(e=>e.getAttribute('display')==='inline');
  const f=(r.getAttribute('transform')||'').match(/scale\((-?)/); return on?(im?im.dataset.pose:'?')+(f&&f[1]?'-L':'-R'):'none';})()"""
-MIN_SEEN = 0.25
+MIN_SEEN = 0.45
 
 
 def main():
