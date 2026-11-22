@@ -40,7 +40,8 @@ GPU at full quality, and a whole-game render before the ship. The budget now: **
    did not make the change reads the sheets (not the crops one by one, not this whole file: "The checklist" below
    only) and writes `verdict.json`. One round. A STOP comes back once; a second STOP on the same thing goes to Marek
    with the sheet, not into a third round.
-3. `python design/frog/tools/ship.py` (never `--full` for an item). Then the live check and the ping.
+3. `python design/frog/tools/ship.py` (never `--full` for an item): the scenario checks in 4 parts side by side, no
+   `?art=old` suite, no monkey soak, no wait for GitHub's CI unless Go code changed. Then the live check and the ping.
 
 **The full check** (everything below: every shot, four sizes, the whole checklist) runs when Marek says "full
 check", before a milestone, or when a change touches the whole scene (background, post, the rig, the cast). Not for

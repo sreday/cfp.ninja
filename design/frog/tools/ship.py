@@ -3,8 +3,8 @@
 
     python3 design/frog/tools/ship.py            # from a branch, everything committed
 
-1. push the branch (CI starts on GitHub), scenario tests (art and ?art=old, side by side) and a 30 s monkey soak
-2. wait for the branch's CI (--full: one after the other, 1-minute soak)
+1. push the branch (CI starts on GitHub), the scenario tests in 4 parts side by side (about 80 s)
+2. wait for the branch's CI only if Go code changed (--full: also the ?art=old suite, a 1-minute monkey soak, CI always)
 3. the art curator's verdict: a GO for this exact commit (verdict.json in a curator run whose
    "after" is this commit, written by a reviewer that did not make the change). On STOP, or no
    verdict yet, it stops here and says what is open.
@@ -14,7 +14,7 @@
 4. fast-forward main to the judged commit, push it, git push heroku main, check the live
    files are the ones in the repo.
 """
-import glob, json, os, subprocess, sys
+import glob, json, os, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.abspath(os.path.join(HERE, '..', '..', '..'))
@@ -87,22 +87,33 @@ def main():
     import time
     t0 = time.time(); full = '--full' in sys.argv
     print('1/4 tests, and CI on GitHub alongside'); sh('git', 'push', '-q', '-u', 'origin', branch)
-    scen = [subprocess.Popen([sys.executable, os.path.join(HERE, 'scenario_test.py')], cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                             env=dict(os.environ, FROG_QUERY=q) if q else None) for q in ('', '?art=old')]
+    # Marek, 2026-11-22: a ship took 354 s, "these tests take too long". The default now: the scenario suite once (the
+    # game as players get it), cut in 4 parts that run side by side (every check still runs: about 80 s, it was 200);
+    # no ?art=old suite, no monkey soak; GitHub's CI (the Go tests) is only waited for when Go code changed.
+    # --full: both suites whole, the soak and the CI wait, as before (a milestone, a risky change, on "full check").
+    SHARDS = 4      # (8 was no faster and failed under the load)
+    def suite(q, shard):
+        return subprocess.Popen([sys.executable, os.path.join(HERE, 'scenario_test.py'), '--out', os.path.join(tempfile.gettempdir(), 'frog-scenarios' + shard.replace('/', '-')),
+                                 *(['--shard', shard] if shard else [])], cwd=REPO, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=dict(os.environ, FROG_QUERY=q) if q else None)
+    runs = [('art', suite('', '')), ('?art=old', suite('?art=old', ''))] if full else [(f'part {i + 1}/{SHARDS}', suite('', f'{i}/{SHARDS}')) for i in range(SHARDS)]
     # (no p.wait() here: with stdout piped, a long suite fills the pipe and wait() never returns; communicate() reads it)
-    outs = [p.communicate()[0] for p in scen]
-    for q, out, p in zip(('art', '?art=old'), outs, scen):
-        if 'FAIL' in out or p.returncode:
+    outs = [p.communicate()[0] for _, p in runs]
+    for (q, p), out in zip(runs, outs):
+        if 'FAIL' in out or p.returncode or 'PASS' not in out:
             print(out[-2000:]); print(chr(10).join(l for l in out.splitlines() if l.startswith('FAIL')) or f'(no FAIL line; exit code {p.returncode})')
             sys.exit(f'stopped: scenario tests ({q})')
-    print(f'   scenario tests ok ({time.time() - t0:.0f} s); monkey soak')
-    # (the 120 power-up pairs take ~7 min: gameplay changes only. An art item ships with the plain soak; --full or
-    #  --pairs runs them)
-    pairs = full or '--pairs' in sys.argv
-    r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1' if full else '0.5', *([] if pairs else ['--no-pairs']), quiet=True, check=False)
-    if 'RESULT: PASS' not in r.stdout: print(r.stdout[-2000:]); sys.exit('stopped: monkey soak (rerun once if it was the harness losing Chrome)')
-    print(f'2/4 CI on the branch ({time.time() - t0:.0f} s)')
-    ci(branch, head)
+    print(f'   scenario tests ok: {sum(o.count(chr(10) + "PASS") + o.startswith("PASS") for o in outs)} checks ({time.time() - t0:.0f} s)')
+    if full or '--pairs' in sys.argv:
+        # (the 120 power-up pairs take ~7 min: gameplay changes only; --pairs runs them)
+        pairs = '--pairs' in sys.argv
+        r = sh(sys.executable, os.path.join(HERE, 'monkey.py'), '--minutes', '1', *([] if pairs else ['--no-pairs']), quiet=True, check=False)
+        if 'RESULT: PASS' not in r.stdout: print(r.stdout[-2000:]); sys.exit('stopped: monkey soak (rerun once if it was the harness losing Chrome)')
+    live = sh('git', 'ls-remote', 'heroku', 'main', quiet=True, check=False).stdout.split()
+    go = not live or bool(sh('git', 'diff', '--name-only', live[0], head, '--', '*.go', 'go.mod', 'go.sum', 'Makefile', quiet=True, check=False).stdout.strip())
+    if full or go:
+        print(f'2/4 CI on the branch ({time.time() - t0:.0f} s)')
+        ci(branch, head)
+    else: print('2/4 CI runs on GitHub, not waited for (no Go code changed)')
     print('3/4 curator: GO')
     print('4/4 deploy'); sh('git', 'checkout', '-q', 'main'); sh('git', 'pull', '-q', '--rebase', '--autostash')
     sh('git', 'merge', '-q', '--ff-only', head)     # the judged commit only, never what the branch moved on to since
