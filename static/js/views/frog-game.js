@@ -3127,7 +3127,8 @@ export function mountFrogGame(stage, opts = {}) {
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             // feet on the post, no thrust: a level cut is the picked side cut drawing, a down cut the picked down cut (artCutPose)
-            pose.artCut = s.thrust ? '' : pose.sHop || cy < -0.3 ? 'rise' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
+            // (a thrust into a far corner: the floating side slash too. It was the last cut the old drawn frog still made: Marek, 2026-11-22)
+            pose.artCut = s.thrust ? 'down' : pose.sHop || cy < -0.3 ? 'rise' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
             // How a katana is held: never as an extension of the arm. The grip sets the blade across the
             // forearm, at about a right angle when it is cocked for the cut and never closer than 50
             // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
