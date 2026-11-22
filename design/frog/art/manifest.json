@@ -869,28 +869,22 @@
      "note": ""
     },
     {
-     "file": "back-7.png",
-     "tier": "back",
-     "verdict": "",
-     "note": ""
-    },
-    {
-     "file": "back-9.png",
-     "tier": "back",
-     "verdict": "",
-     "note": ""
-    },
-    {
-     "file": "front-3-nb3-q1.png",
+     "file": "front-3-nb3-final.png",
      "tier": "front",
      "verdict": "",
-     "note": ""
+     "note": "curator PASS (round 4): Marek's pick nb3, arms shortened by the local pipeline (SAM 2 + Qwen-Image-Edit-2511 cuffs), nits cleaned"
     },
     {
-     "file": "front-3-nb3-q2.png",
-     "tier": "front",
+     "file": "back-4-fix-c.png",
+     "tier": "back",
      "verdict": "",
-     "note": ""
+     "note": "curator PASS with nits (round 5, the one to ship): Marek's back-4 pick, torso squeezed, arms slid in, Qwen cuffs, left foot outline restored; legs/handles/tails still long but soft in this pose"
+    },
+    {
+     "file": "back-4-fix-b.png",
+     "tier": "back",
+     "verdict": "",
+     "note": "curator PASS with nits, second choice: pill-shaped cuffs with a stronger halo"
     }
    ],
    "note": "",
