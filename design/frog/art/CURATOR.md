@@ -18,7 +18,12 @@ GPU at full quality, and a whole-game render before the ship. The budget now: **
    with what a script can tell (a figure cut off by the edge, keying fringe).
 3. One reviewer that did not make them (a helper on a cheaper model is enough) gets the sheet and the section
    "Candidates: what blocks" below, nothing else, and answers one line per candidate: `ok` or `broken: <what>`.
-   It reads one picture. No spec table, no measuring, no report file.
+   No spec table, no measuring, no report file.
+   **The screening is strict** (Marek, 2026-11-22: "eliminate frogs that have weird limbs and katanas", after two
+   batches where a shrunken sheet let them through): the reviewer opens every candidate at full size, not only the
+   sheet, and follows each arm and leg from the body to its hand or foot and each katana from pommel to tip. A doubt
+   counts as broken. Make more tries than he will see (about 8 a pose) and show only the clean ones, even if that is
+   one or none; say how many were dropped.
 4. Broken candidates are dropped, never repaired. The rest go to Marek with the reviewer's notes. If fewer than two
    are left, one more batch of fast tries, once. Then he sees what there is.
 5. **Proportions are Marek's call.** Head size, limb and katana length, tails: a note under the candidate
@@ -30,6 +35,12 @@ GPU at full quality, and a whole-game render before the ship. The budget now: **
 - the head or the cap sliced off, a limb or a blade cut by the picture's edge
 - scabbards on the back while the katanas are drawn; a third blade; a blade that is bent, hooped or not a katana
 - a limb growing from the wrong place, a joint bent the way it cannot bend
+- weird limbs: an arm or leg that merges into another or into the body, fades out, is doubled, has no clear shoulder
+  or hip, ends without a hand or foot; a hand that is a blob or has stray fingers; a foot that is not a webbed frog foot
+- weird katanas: a blade with two tips, a doubled or split blade, a blade that passes through the body or another
+  blade's hand, a handle without a blade or a blade without a handle, a guard in the wrong place, one hand on two
+  handles, stray blade bits floating, a katana much thinner or shorter than the game's
+- leftovers: motion lines, shadows, ground, a second frog, anything but the frog on flat magenta
 - another drawing style than the logo's (outline, palette, shading)
 
 **Into the game: the item's shots only.**
