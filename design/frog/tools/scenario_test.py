@@ -90,7 +90,11 @@ def main():
 
         # 5b. a cloud turns cut pieces digital; they come back roasted
         fresh(g); g.js("frogPlay.breath({seconds: 0.5, wide: 2}); frogPlay.drop('fruit:watermelon', 640, 240)")
-        hold(g, 640, 200, 0.45, every=0.05); g.js("frogPlay.cloud(640, 250)"); time.sleep(0.3); st = g.state()
+        hold(g, 640, 200, 0.45, every=0.05)
+        # the cloud goes where the pieces are (under load they drift further in the hold; one fell out of reach, 2026-11-22)
+        pc = g.state()['pieceXY']; cx = sum(p[0] for p in pc) / max(len(pc), 1); cy = sum(p[1] for p in pc) / max(len(pc), 1)
+        cb = json.loads(g.js("JSON.stringify((r => [r.left, r.top])(document.querySelector('.fg-canvas').getBoundingClientRect()))"))
+        g.js(f"frogPlay.cloud({cx - cb[0]:.0f}, {cy - cb[1]:.0f})"); time.sleep(0.3); st = g.state()
         check('pieces in a cloud turn digital, and are not copied', st['pieces'] in (2, 4) and st['hackedPieces'] == st['pieces'], (st['pieces'], st['hackedPieces']))
         g.shot(os.path.join(a.out, 'cloud-pieces.png'))
 
@@ -187,7 +191,7 @@ def main():
         #       the quarters are cut like the fire katana's and left burning
         fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
         g.js("frogPlay.still()"); t0 = g.state(); want = g.js("frogPlay.fwPay('orange')")
-        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['timeRaw'] - t0['timeRaw']
+        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['earned'] - t0['earned']
         check('fireworks: a fruit in the blast is split in four quarters', len(st['fruits']) == 0 and st['pieces'] == 4, (len(st['fruits']), st['pieces']))
         check('fireworks: the four quarters pay what the old blast paid for the fruit, no hand-cut signals', abs(got - want) < 0.02 and st['sigCuts'] == t0['sigCuts'] and st['sigClean'] == t0['sigClean'],
               (round(got, 3), round(want, 3), t0['sigCuts'], st['sigCuts'], t0['phase'], t0['left'], t0['survived']))
@@ -197,8 +201,15 @@ def main():
         fr = g.state()['fruits'][0]; fx, fy = fr['x'], fr['y']
         g.drag([(fx - 180 + 36 * i, fy - 6 + i) for i in range(11)], 0.016); time.sleep(0.05); g.js("frogPlay.still()")
         t0 = g.state(); want = 2 * g.js("frogPlay.fwPay('orange')") * 0.5
-        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['timeRaw'] - t0['timeRaw']
-        check('fireworks: two halves of one fruit in a blast each pay the old piece pay', t0['pieces'] == 2 and abs(got - want) < 0.02, (t0['pieces'], round(got, 3), round(want, 3)))
+        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['earned'] - t0['earned']
+        check('fireworks: two halves of one fruit in a blast each pay the old piece pay, juiced (gone)', t0['pieces'] == 2 and abs(got - want) < 0.02 and st['pieces'] == 0,
+              (t0['pieces'], round(got, 3), round(want, 3), st['pieces']))
+        # ... and a second blast on the quarters of the first juices all four, for pay (Marek 2026-11-22)
+        fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
+        g.js("frogPlay.still(); frogPlay.blast(640, 260)"); t0 = g.state()
+        g.js("frogPlay.blast(640, 260)"); st = g.state(); got = st['earned'] - t0['earned']
+        lg = st['log']; lb = max(i for i, e in enumerate(lg) if e[1] == 'boom'); nb = sum(1 for e in lg[lb:] if e[1] == 'blast')   # (the log keeps 30 entries)
+        check('fireworks: a second blast juices the quarters (all gone, each paid)', t0['pieces'] == 4 and st['pieces'] == 0 and nb == 4 and got > 0.04, (t0['pieces'], st['pieces'], nb, round(got, 3)))
         fresh(g); g.js("frogPlay.still(); frogPlay.drop('fruit:orange', 640, 260)"); time.sleep(0.1)
         g.js("frogPlay.blastFire(640, 260)"); st = g.state()
         check('fire fireworks: four quarters, all of them burning', st['pieces'] == 4 and st['burningPieces'] == 4, (st['pieces'], st['burningPieces']))
@@ -215,6 +226,12 @@ def main():
         g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.08)
         g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.15)
         check('a double click puts the breath out', g.state()['fire'] == 0, g.state()['fire'])
+        # the window is 0.6 s (Marek 2026-11-22): presses 0.45 s apart still put it out, 0.8 s apart do not
+        for gap, out in ((0.45, True), (0.8, False)):
+            fresh(g); g.js("frogPlay.breath({seconds: 3})"); time.sleep(0.2)
+            g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(gap)
+            g.mouse("mousePressed", 900, 250, 1); g.mouse("mouseReleased", 900, 250, 0); time.sleep(0.15)
+            check(f'presses {gap} s apart ' + ('put the breath out' if out else 'leave it burning'), (g.state()['fire'] == 0) == out, g.state()['fire'])
 
         # 12c4. juice over its face (a splat stun): the tongue licks it clean (Marek 2026-11-21)
         fresh(g); g.js("frogPlay.stun('orange')"); time.sleep(0.1); was = g.state()['stunned']

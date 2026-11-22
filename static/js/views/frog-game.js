@@ -235,7 +235,7 @@ const ART = {
     frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.73c2456461.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
-    intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.c3c44280db.json'
+    intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.f8326a2b0a.json'
 };
 // who each dancer pair in the atlas is (in atlas order), for the curator's size check
 const DANCER_WHO = ['fox', 'cat', 'bear', 'raccoon', 'wolf', 'llama', 'corgi', 'rabbit', 'monkey', 'platypus', 'penguin', 'flamingo'];
@@ -4233,7 +4233,7 @@ export function mountFrogGame(stage, opts = {}) {
     function endCut() { noteEmptyCut(); closeCut(); cut = null; gapLeft = CUT_GAP; }
     // a cut that has run out of time ends where the blade is (checked on every move and every frame)
     function expireCut() { if (cut && sakeLeft <= 0 && performance.now() - cut.t0 > CUT_TIME * 1000) endCut(); }
-    const BREATH_DOUBLE_TAP = 350;     // ms: two presses this close together put the breath out
+    const BREATH_DOUBLE_TAP = 600;     // ms (Marek, 2026-11-22: 0.6 s): two presses this close together put the breath out
     let breathTapAt = 0;
     function onDown(e) {
         if (e.isPrimary === false) return;                   // one finger only: a second finger would make the blade jump between them (sake broke on it)
@@ -5035,7 +5035,8 @@ export function mountFrogGame(stage, opts = {}) {
         srcHint = 'fireworks';
         // Fruit caught in a blast is split clean into four quarters (Marek, 2026-11-21: not made to vanish): through the
         // middle at a random angle, then each half at right angles. Fireworks lit by the fire breath cut like the fire
-        // katana: the edges charred, the quarters left nearly grilled. A loose piece in the blast is cut once more.
+        // katana: the edges charred, the quarters left nearly grilled. A loose piece in the blast (hit a second time) is juiced:
+        // gone in a splash of juice, for the old blast's pay for that piece (Marek, 2026-11-22).
         const fireFw2 = fwTint === 'fire';
         // share: of FW_BONUS * RECUT^(cuts before the blast), the old blast's pay for this fruit or piece
         const fwCut = (q, a, share, first, before) => {
@@ -5047,7 +5048,7 @@ export function mountFrogGame(stage, opts = {}) {
             return parts;
         };
         // (the loose pieces are picked before the fruit is quartered: the new quarters are in the blast too)
-        const loose = pieces.filter(q => q.live && q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6 && q.fam.cuts < MAX_CUTS);
+        const loose = pieces.filter(q => q.live && q.poly && Math.hypot(q.x - x, q.y - y) < R + q.R * 0.6);
         // (each loose piece's cut count is taken now: pieces of one fruit share it, and cutting one raises it for the next)
         const looseBefore = new Map(loose.map(q => [q, q.fam.cuts]));
         for (let i = fruits.length - 1; i >= 0; i--) {
@@ -5058,7 +5059,8 @@ export function mountFrogGame(stage, opts = {}) {
             if (!halves) { burnFruit(f, FW_BONUS, true); continue; }          // (too small to cut: as before)
             halves.forEach(h => { if (fwCut(h, a + Math.PI / 2, 0.25, false, before)) { const k = pieces.indexOf(h); if (k >= 0) pieces.splice(k, 1); } });
         }
-        loose.forEach(q => { if (fwCut(q, rand(0, Math.PI), 1, true, looseBefore.get(q))) { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1); } });
+        loose.forEach(q => { const k = pieces.indexOf(q); if (k >= 0) pieces.splice(k, 1);
+            burnFruit({ type: q.type, r: q.R, x: q.x, y: q.y, vx: 0, vy: 0 }, FW_BONUS * Math.pow(RECUT, looseBefore.get(q)), true); });
         srcHint = '';
         for (let i = crates.length - 1; i >= 0; i--) {
             const c = crates[i], d = Math.hypot(c.x - x, c.y - y);
@@ -5467,10 +5469,11 @@ export function mountFrogGame(stage, opts = {}) {
     // clock in debug mode is put back to its starting value after each gain is counted (a second
     // earned is then always worth what it is worth at the very start of a run).
     const GAIN_GAP = 1500, gainEl = $('.fg-gain');
-    let gainSum = 0, gainAt = -1e9, gainShown = '';
+    let gainSum = 0, gainAt = -1e9, gainShown = '', gainAll = 0;     // (gainAll: everything banked here, for the tests)
     function gainStep(tn) {
         if (!dbg) return;
         const d = timeLeft - START_SECONDS;
+        gainAll += d;
         if (d > 0.0005) { if (tn - gainAt > GAIN_GAP) gainSum = 0; gainSum += d; gainAt = tn; }
         timeLeft = START_SECONDS;
         const txt = '+' + gainSum.toFixed(1) + ' s' + (tn - gainAt > GAIN_GAP ? '' : ' ...');
@@ -5613,8 +5616,8 @@ export function mountFrogGame(stage, opts = {}) {
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
-                hackedPieces: pieces.filter(q => q.hacked).length, fw: fwTint, combo: gradeIx,
-                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft,
+                hackedPieces: pieces.filter(q => q.hacked).length, pieceXY: pieces.map(q => [Math.round(q.x + cb.left), Math.round(q.y + cb.top)]), fw: fwTint, combo: gradeIx,
+                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft, earned: gainAll + timeLeft,
                 clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
