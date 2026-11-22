@@ -287,7 +287,7 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 800, grow: 1.1, front: true };      // (Marek, 2026-11-22: further up in the air, and 10% bigger)
 // the slash under the frog (Marek's pick 2026-11-22, limbs fixed by him): a jump curled upside down, both katanas driven down below it.
 // feet: its lowest point (a blade tip), lift: how far that stays above the post; faces: drawn looking left, so mirrored the other way round.
-const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1 };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was)
+const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28 };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
@@ -2077,7 +2077,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (!on) return;
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
         const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
-        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}`);
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
     function artWheelOn() { return !!(artWheel && artWheel.ready && wheel && performance.now() - wheel.t0 < WHEEL_MS && !artBreathOn() && !pose.fallY); }
