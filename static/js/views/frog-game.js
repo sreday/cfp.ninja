@@ -290,7 +290,10 @@ const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832],
 const UNDER_ART = { url: '/img/game/frog/under.a46168a51d.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28 };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
 // the duck (Marek's pick 2026-11-22): a level stroke through its head and it drops into a deep squat on the post, katanas crossed flat above it.
 const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true };
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART };
+// the rising cut (Marek's pick 2026-11-22): an upward stroke, or one above its head, and it jumps, knees tucked, both katanas swung up and across.
+// Drawn cutting up to the right, mirrored for the left; lift: how far the toes float above the post.
+const RISE_ART = { url: '/img/game/frog/rise.2733e23b16.webp', size: [562, 793], mid: 263, feet: 793, headW: 235, lift: 600 };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -3115,7 +3118,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (s.high && cy >= -0.3 && (s.live || s.t < 0.3)) pose.sHop = JUMP_UP * 4;
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             // feet on the post, no thrust: a level cut is the picked side cut drawing, a down cut the picked down cut (artCutPose)
-            pose.artCut = s.thrust || pose.sHop ? '' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
+            pose.artCut = s.thrust ? '' : pose.sHop || cy < -0.3 ? 'rise' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
             // How a katana is held: never as an extension of the arm. The grip sets the blade across the
             // forearm, at about a right angle when it is cocked for the cut and never closer than 50
             // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
