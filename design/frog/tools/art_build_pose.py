@@ -25,7 +25,7 @@ def key(rgb):
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument('name'); ap.add_argument('src'); ap.add_argument('--head-w', type=int, default=0); ap.add_argument('--com', action='store_true', help='mid = the centre of mass (a pose with no feet under it: a dive, a spin)')
+    ap = argparse.ArgumentParser(); ap.add_argument('name'); ap.add_argument('src'); ap.add_argument('--head-w', type=int, default=0); ap.add_argument('--foot', action='store_true', help='mid = the middle of the lowest drawn part (a pose standing on one foot off to a side)'); ap.add_argument('--com', action='store_true', help='mid = the centre of mass (a pose with no feet under it: a dive, a spin)')
     a = ap.parse_args()
     os.makedirs(os.path.join(ART, a.name), exist_ok=True)
     keep = os.path.join(ART, a.name, 'pick.png')
@@ -43,6 +43,7 @@ def main():
     # the body's middle: the centre of the drawn columns in the lower 55% (the tails and blades up top do not pull it)
     cols = np.where(al[int(h * 0.45):].any(axis=0))[0]; mid = (cols[0] + cols[-1]) / 2
     if a.com: mid = (np.arange(w) * al.sum(axis=0)).sum() / al.sum()
+    if a.foot: low = al[int(h * 0.92):].sum(axis=0); mid = (np.arange(w) * low).sum() / low.sum()
     R, G, B = [px[..., i].astype(int) for i in range(3)]
     face = al & (G > 150) & (G > R + 15) & (B < 190)               # face green and the cream of the mouth
     face[int(h * 0.75):] = False                                    # (not the feet)

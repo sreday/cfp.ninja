@@ -295,7 +295,11 @@ const DUCK_ART = { url: '/img/game/frog/duck.5315c8fe2f.webp', size: [800, 702],
 const RISE_ART = { url: '/img/game/frog/rise.2733e23b16.webp', size: [562, 793], mid: 263, feet: 793, headW: 235, lift: 600 };
 // the hop (Marek's pick 2026-11-22, 'this but long katanas'): a level stroke through its body and it springs up over the blade, knees tucked, katanas out level.
 const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true };
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART };
+// the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
+// on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
+// it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
+const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART };
 const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q.grow || 1) : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
@@ -1633,8 +1637,9 @@ export function mountFrogGame(stage, opts = {}) {
     }
     if (ART.frog) {
         const root = $('#fg-art-cut');
-        root.innerHTML = Object.entries(CUT_POSES).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('');
-        artCut = { root, on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])) };
+        root.innerHTML = `<g class="fg-cut-kat" display="none"><image href="${BREATH_ART.katanas}" x="${BREATH_ART.katanasAt[0]}" y="${BREATH_ART.katanasAt[1]}" width="${BREATH_ART.katanasSize[0]}" height="${BREATH_ART.katanasSize[1]}"/></g><g class="fg-cut-pose">`
+            + Object.entries(CUT_POSES).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('') + '</g>';
+        artCut = { root, pose: root.querySelector('.fg-cut-pose'), kat: root.querySelector('.fg-cut-kat'), on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image[data-pose]')].map(e => [e.dataset.pose, e])) };
         Promise.all(Object.values(CUT_POSES).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artCut.ready = true; });
     }
     if (ART.frog) {
@@ -2082,9 +2087,10 @@ export function mountFrogGame(stage, opts = {}) {
         const on = artCutOn();
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
         if (!on) return;
-        if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
+        if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; setA(C.kat, 'display', CUT_POSES[pose.artCut].katanas ? 'inline' : 'none'); }
         const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
-        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}`);
+        setA(C.pose, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})${Q.spin ? ` rotate(${n2(Q.spin * (0.5 - clamp((swing ? swing.t : 0) / POSE_MIN, 0, 1)))} ${Q.mid} ${Q.size[1] / 2})` : ''}${Q.rock ? ` rotate(${n2(Q.rock * Math.sin(idleT * (4 + 8 * (1 - clamp(timeLeft / LOW_TIME, 0, 1)))))} ${Q.mid} ${Q.feet})` : ''}`);
+        if (Q.katanas) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
     function artWheelOn() { return !!(artWheel && artWheel.ready && wheel && performance.now() - wheel.t0 < WHEEL_MS && !artBreathOn() && !pose.fallY); }
@@ -5989,6 +5995,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.sRot = T[0]; pose.sLegs = T[1];
             pose.sF = { rot: T[2] - 90 - T[0], k: T[3] + 90 - T[0], stretch: 1.5 };
             pose.sB = { rot: T[4] - 90 - T[0], k: T[5] + 90 - T[0], stretch: 1.3 };
+            pose.artCut = 'teeter';           // the picked teeter stands in (the four drawings above: only until the picture has loaded)
         }
         pose.breath = Math.sin(idleT * 1.7);
         // the bandana tails trail behind the body: they whip the other way when it leans
