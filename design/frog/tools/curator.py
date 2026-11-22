@@ -35,7 +35,7 @@ DESK = os.path.expanduser('~/Desktop/Frog Ninja art desk/curator')
 SIZES = ['1280x720', '1920x1080', '390x844', '390x664']
 DPR = 2
 GROUPS = [('scene and intro', lambda n: n == 'scene' or n.startswith('intro')),
-          ('standing and cutting', lambda n: n in ('ready', 'wind-up', 'tongue') or n.startswith(('cut', 'thrust'))),
+          ('standing and cutting', lambda n: n in ('ready', 'wind-up', 'tongue') or n.startswith(('cut', 'thrust', 'cartwheel'))),
           ('breath and power-ups', lambda n: n.startswith(('breath', 'stunned', 'drunk', 'time', 'clock'))),
           ('the rest', lambda n: True)]
 

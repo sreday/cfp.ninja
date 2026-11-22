@@ -1816,3 +1816,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* the art curator (?curate): only the scene, no debug panel, no CSS motion (the virtual clock moves everything else) */
 .fg-curate .fg-debug, .fg-curate .fg-fps, .fg-curate .fg-panel { display: none !important; }
 .fg-curate *, .fg-curate *::before, .fg-curate *::after { animation: none !important; transition: none !important; }
+/* the circular slash (Marek, 2026-11-22): the cartwheel sprite in place of the frog while it spins */
+.fg-frog #fg-art-wheel { display: none; }
+.fg-frog.fg-art-wheel-on #fg-art-wheel { display: inline; }
+.fg-frog.fg-art-wheel-on #fg-all > :not(#fg-art-wheel), .fg-frog.fg-art-wheel-on #fg-side, .fg-frog.fg-art-wheel-on #fg-stand, .fg-frog.fg-art-wheel-on #fg-shadow { visibility: hidden; }

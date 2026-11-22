@@ -284,6 +284,20 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART };
 const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
+// The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
+// katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
+// it springs from the post to a random spot nudged toward the circle and spins the way the circle was drawn.
+// pivot = the sprite's centre of mass (it spins about it); headW scales its head to the rig's (design/frog/tools/art_build_wheel.py)
+const WHEEL_ART = {
+    front: { url: '/img/game/frog/wheel-front.e705015ca4.webp', size: [876, 714], pivot: [440, 356], headW: 255 },
+    back: { url: '/img/game/frog/wheel-back.c907763b2c.webp', size: [956, 709], pivot: [473, 349], headW: 271 },
+};
+const WHEEL_MS = 650;                  // the cartwheel's length
+const WHEEL_TURN = 1.75 * Math.PI;     // how far round a slash must go to count as a circle (315 degrees)
+const WHEEL_FIT = 0.24;                // how round: the points' spread off the fitted circle, as a share of its radius
+const WHEEL_R = [0.05, 0.55];          // the circle's radius, as a share of the screen's size S()
+const WHEEL_NUDGE = 300, WHEEL_JIT = 160, WHEEL_GO = 240;   // rig units: toward the circle, random spread, and travel while it spins
+const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rigTop);   // rig y of the body's middle (where it spins)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -544,6 +558,7 @@ const frogSvg = pal => { P = pal; const svg = `
         <g id="fg-art"></g>
         <g id="fg-art-breath"></g>
         <g id="fg-art-cut"></g>
+        <g id="fg-art-wheel"></g>
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
@@ -1581,6 +1596,7 @@ export function mountFrogGame(stage, opts = {}) {
     // takes longer than ART_WAIT_MS, the scene shows with whatever is there (the drawn fallbacks).
     let artBreath = null;                                      // the breath frog (see artBreathPose)
     let artCut = null;                                         // the side cut frog (see artCutPose)
+    let artWheel = null, wheel = null, wheels = 0;             // the cartwheel sprites, the one running, how many so far
     const ART_WAIT_MS = 8000;
     let artLeft = [ART.bg, ART.frog, ART.intro].filter(Boolean).length;
     const artShow = () => { artLeft = 0; stage.classList.remove('fg-art-wait'); };
@@ -1603,6 +1619,12 @@ export function mountFrogGame(stage, opts = {}) {
         root.innerHTML = Object.entries(CUT_POSES).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('');
         artCut = { root, on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])) };
         Promise.all(Object.values(CUT_POSES).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artCut.ready = true; });
+    }
+    if (ART.frog) {
+        const root = $('#fg-art-wheel');
+        root.innerHTML = Object.entries(WHEEL_ART).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('');
+        artWheel = { root, on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])) };
+        Promise.all(Object.values(WHEEL_ART).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artWheel.ready = true; });
     }
     if (ART.frog) (async () => {
         try {
@@ -1942,7 +1964,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the chop is made with the frog's own right arm: while the big hand is up, that arm (and its katana) is not drawn a second time
         setA(el.armR, 'opacity', pose.chop ? 0 : 1);
         setA(el.side, 'opacity', sideOn ? 1 : 0);
-        setA(el.all, 'opacity', sideOn && !artBreathOn() && !artCutOn() ? 0 : 1);      // (the breath and cut frogs live in #fg-all and stand in for the profile too)
+        setA(el.all, 'opacity', sideOn && !artBreathOn() && !artCutOn() && !artWheelOn() ? 0 : 1);      // (the breath, cut and cartwheel frogs live in #fg-all and stand in for the profile too)
         if (sideOn) {
             // (breathing fire: the drawing is narrowed in steps, the more the frog is turned toward us)
             const turnX = pose.sTurn && pose.sTurn < 1 ? ` translate(993 0) scale(${n2(pose.sTurn)} 1) translate(-993 0)` : '';
@@ -2023,6 +2045,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (artIntro) artIntroPose(sideOn);
         artBreathPose();
         artCutPose();
+        artWheelPose();
         if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
     }
     // The intro, drawn: while the frog sits (before the first run, or with the laptop to call its
@@ -2036,7 +2059,7 @@ export function mountFrogGame(stage, opts = {}) {
     const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
     // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
-    function artCutOn() { return !!(artCut && artCut.ready && CUT_POSES[pose.artCut] && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
     function artCutPose() {
         const C = artCut; if (!C) return;
         const on = artCutOn();
@@ -2045,6 +2068,20 @@ export function mountFrogGame(stage, opts = {}) {
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
         const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 ? -1 : 1;
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+    }
+    // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
+    function artWheelOn() { return !!(artWheel && artWheel.ready && wheel && performance.now() - wheel.t0 < WHEEL_MS && !artBreathOn() && !pose.fallY); }
+    function artWheelPose() {
+        const C = artWheel; if (!C) return;
+        const on = artWheelOn();
+        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-wheel-on', on); }
+        if (!on) return;
+        if (C.shown !== wheel.key) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === wheel.key ? 'inline' : 'none'); C.shown = wheel.key; }
+        const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW;
+        const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
+        const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y + wheel.oy + wheel.gy * WHEEL_GO * e - Math.sin(p * Math.PI) * 120;
+        const r = wheel.rot0 + wheel.dir * 360 * e;
+        setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(${n2(x)} ${n2(y)}) rotate(${n2(r)}) scale(${n2(wheel.flip * k)} ${n2(k)}) translate(${-Q.pivot[0]} ${-Q.pivot[1]})`);
     }
     function artBreathPose() {
         const B = artBreath; if (!B) return;
@@ -4194,6 +4231,45 @@ export function mountFrogGame(stage, opts = {}) {
     let down = false, lx = 0, ly = 0, aim = null;
     let cut = null, cutId = 0, gapLeft = 0;     // the live cut; px still to travel before the next one
     let dullId = 0;                             // out of stamina: a thin red trace that doesn't cut
+    let stroke = [];                            // this press's paid slash points (the last 1.4 s): a circle in them is a cartwheel
+    // A circle: the stroke's points fitted with a circle (Kasa's least squares), close to it all round (WHEEL_FIT),
+    // going round one way at least WHEEL_TURN, and neither tiny nor bigger than the field (WHEEL_R).
+    function wheelPoint(x, y) {
+        if (!artWheel || !artWheel.ready || (phase !== 'play' && !dbg)) return;
+        const now = performance.now();
+        stroke.push({ x, y, t: now }); stroke = stroke.filter(q => now - q.t < 1400);
+        if (stroke.length < 10 || (wheel && now - wheel.t0 < WHEEL_MS + 150)) return;
+        const n = stroke.length; let mx0 = 0, my0 = 0;
+        stroke.forEach(q => { mx0 += q.x / n; my0 += q.y / n; });
+        let suu = 0, svv = 0, suv = 0, suuu = 0, svvv = 0, suvv = 0, svuu = 0;
+        stroke.forEach(q => { const u = q.x - mx0, v = q.y - my0; suu += u * u; svv += v * v; suv += u * v; suuu += u * u * u; svvv += v * v * v; suvv += u * v * v; svuu += v * u * u; });
+        const det = suu * svv - suv * suv; if (Math.abs(det) < 1e-6) return;
+        const bu = (suuu + suvv) / 2, bv = (svvv + svuu) / 2;
+        const uc = (bu * svv - bv * suv) / det, vc = (bv * suu - bu * suv) / det;
+        const cx = mx0 + uc, cy = my0 + vc, R = Math.sqrt(uc * uc + vc * vc + (suu + svv) / n);
+        if (!(R > WHEEL_R[0] * S() && R < WHEEL_R[1] * S())) return;
+        let sd = 0; stroke.forEach(q => { const d = Math.hypot(q.x - cx, q.y - cy) - R; sd += d * d / n; });
+        if (Math.sqrt(sd) > WHEEL_FIT * R) return;
+        let turn = 0, abs = 0, a0 = Math.atan2(stroke[0].y - cy, stroke[0].x - cx);
+        for (let i = 1; i < n; i++) {
+            const a = Math.atan2(stroke[i].y - cy, stroke[i].x - cx); let d = a - a0; a0 = a;
+            if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+            turn += d; abs += Math.abs(d);
+        }
+        if (Math.abs(turn) < WHEEL_TURN || abs > Math.abs(turn) * 1.25) return;
+        startWheel(cx, cy, turn > 0 ? 1 : -1); stroke = [];
+    }
+    // the cartwheel: front or back at random, any angle, from the post toward the circle (a little off at random),
+    // spinning the way the circle went (clockwise on screen = dir 1; the sprite is mirrored the other way)
+    function startWheel(cx, cy, dir, key, rot) {
+        const fx = fbox.x + fbox.w * 993 / 1986, fy = fbox.y + fbox.h * (WHEEL_Y + pose.up * RISE) / 1876;
+        let gx = cx - fx, gy = cy - fy; const gd = Math.hypot(gx, gy);
+        if (gd < 1) { const a = Math.random() * 2 * Math.PI; gx = Math.cos(a); gy = Math.sin(a); } else { gx /= gd; gy /= gd; }
+        const jit = () => (Math.random() * 2 - 1) * WHEEL_JIT;
+        wheel = { t0: performance.now(), key: key || (Math.random() < 0.5 ? 'front' : 'back'), dir, flip: dir, rot0: rot ?? Math.random() * 360,
+            gx, gy, ox: gx * WHEEL_NUDGE + jit(), oy: gy * WHEEL_NUDGE + jit() };
+        wheels++; log('wheel', wheel.key, dir, Math.round(cx), Math.round(cy));
+    }
     let press = null;                           // a press that hasn't moved yet: no cut, no stamina
     const TAP_SLOP = 30, TAP_TIME = 300;        // px and ms: how far and how long a finger's tap may slide
     let touchDown = null;                       // the press in progress: where, when, how far it has strayed
@@ -4244,6 +4320,7 @@ export function mountFrogGame(stage, opts = {}) {
         noteInput(e);
         if (dbg) wakeDebug();                                // debug: the first touch of the field sets the world going, 0.5 s later
         traceInput = e.pointerType === 'mouse' ? 'mouse' : 'touch'; log('d', Math.round(e.clientX), Math.round(e.clientY), e.button);
+        stroke = [];                                         // a new press: a circle has to be drawn in this one
         // A quick double click or double tap puts the breath out (Marek, 2026-11-21); otherwise it runs its course.
         if (fireLeft > 0 && phase === 'play') {
             const now = performance.now();
@@ -4412,6 +4489,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (bladeFx.frost) { const d = Math.hypot(ex - lx, ey - ly); if (d > 2) warps.push({ x0: lx, y0: ly, x1: ex, y1: ey, dx: (ex - lx) / d, dy: (ey - ly) / d, t: 0, fade: 0, n: bladeFx.frost }); }
         }
         trail.push({ x: ex, y: ey, t: performance.now(), cut: cut.id, d: cut.len, fx: enchanted });
+        if (cut.paid) wheelPoint(ex, ey);
         // capped mid-move: the rest of the move carries on as the next cut
         if (done) { endCut(); lx = ex; ly = ey; if (seg - left > 0.5) movePoint(x, y); return; }
         lx = x; ly = y;
@@ -5551,6 +5629,9 @@ export function mountFrogGame(stage, opts = {}) {
         }, end() { punch = null; fruits = []; pieces = []; gulls = []; } });
         chop('chop: a crate (open hand)', false); chop('chop: a digital seagull (open hand)', true);
         cutAnim('cut overhead, both blades', 0, () => ({ x: W / 2, y: head().y - fw() * 0.9 }));
+        // the circular slash: a circle drawn up and to the right of the frog, clockwise (front), anticlockwise (back)
+        out.push({ name: 'cartwheel (circular slash), front', dur: 0.75, start() { startWheel(W / 2 + fw() * 1.2, head().y - fw() * 0.5, 1, 'front', 200); } });
+        out.push({ name: 'cartwheel (circular slash), back', dur: 0.75, start() { startWheel(W / 2 - fw() * 1.2, head().y - fw() * 0.5, -1, 'back', 30); } });
         cutAnim('cut straight down, both blades', Math.PI / 2, () => ({ x: W / 2, y: head().y + fw() * 0.5 }));
         const breath = (name, dx, dy) => out.push({ name, dur: 0.8, tick() { fireLeft = Math.max(fireLeft, 0.3); const h = head(); aim = { x: h.x + dx * fw(), y: h.y + dy * fw() }; }, end() { fireLeft = 0; } });
         [[0.15, 'close (facing us)'], [0.5, 'near (close stance)'], [1.5, 'far (profile)']].forEach(([d, n]) => { breath('breath right, ' + n, d, 0.1); breath('breath left, ' + n, -d, 0.1); });
@@ -5617,7 +5698,7 @@ export function mountFrogGame(stage, opts = {}) {
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
                 hackedPieces: pieces.filter(q => q.hacked).length, pieceXY: pieces.map(q => [Math.round(q.x + cb.left), Math.round(q.y + cb.top)]), fw: fwTint, combo: gradeIx,
-                pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft, earned: gainAll + timeLeft,
+                wheel: artWheelOn() ? wheel.key : '', wheels, pieces: pieces.length, roastedPieces: pieces.filter(q => q.roasted).length, burningPieces: pieces.filter(q => q.burn > 0).length, sigCuts: sig.cuts, sigClean: sig.clean, timeRaw: timeLeft, earned: gainAll + timeLeft,
                 clouds: clouds.length, logs: planks.filter(q => q.log).length, planks: planks.length, crateChar: crates.map(c => r2((c.burn || 0) / burnTime())), parked: parkT > 0,
                 pickups: pickups.map(b => Object.assign(at(b), { kind: b.kind, vx: Math.round(b.vx), vy: Math.round(b.vy) })).concat(flies.map(f => Object.assign(at(f), { kind: 'fly', vx: Math.round(f.dir * f.speed), vy: 0 }))),
                 crates: crates.map(at), gulls: gulls.map(g => Object.assign(at(g), { state: g.state, r: Math.round(g.r), hacked: !!g.hacked, burnt: !!g.burnt, hits: g.hits })),
@@ -6688,6 +6769,7 @@ export function mountFrogGame(stage, opts = {}) {
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut down(-left)?, far$/.test(n) })),     // (a downward cut is the hop: in the air on purpose)
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },
+            ...['front', 'back'].flatMap(k => [0.15, 0.4].map(t => ({ name: `cartwheel ${k} ${t}`, anim: `cartwheel (circular slash), ${k}`, at: t, air: true }))),
             ...['breath right, close (facing us)', 'breath right, far (profile)', 'breath left, far (profile)', 'breath straight up (head back)', 'breath at the camera'].map(n => ({ name: n, anim: n, at: 0.4 })),
             { name: 'tongue', anim: 'tongue', at: 0.2 },
             { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },

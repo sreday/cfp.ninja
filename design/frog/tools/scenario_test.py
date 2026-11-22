@@ -300,6 +300,37 @@ def main():
         g.js("sessionStorage.setItem('cfpninja.game.character', 'elder'); location.reload()"); time.sleep(2.5); g.js("document.querySelector('.fg-debug-pill').click(); 1"); time.sleep(3.2); st = g.state()
         check('old master: the Debug button turns the game back to the frog, in debug', st['char'] == 'frog' and st['rate'] == 1.44 and g.js("document.querySelector('.fg-debug-pill').textContent") == 'Exit debug', (st['char'], st['rate']))
         errs = g.errors(); check('no page errors', not errs, errs)
+        # the circular slash (2026-11-22): a slash that closes a circle makes the frog cartwheel, a straight one does not
+        import math
+        def circle(cx, cy, r, turns, n, cw=True):
+            return [(cx + r * math.cos((1 if cw else -1) * 2 * math.pi * turns * i / n), cy + r * math.sin((1 if cw else -1) * 2 * math.pi * turns * i / n)) for i in range(n + 1)]
+        fresh(g); w0 = g.state()['wheels']
+        pts = circle(900, 300, 110, 1.1, 44)
+        g.mouse("mousePressed", pts[0][0], pts[0][1], 1); seen = ''
+        for x, y in pts[1:]:
+            time.sleep(0.012); g.mouse("mouseMoved", x, y, 1)
+            if not seen:
+                seen = g.state()['wheel']
+                if seen: g.shot(os.path.join(a.out, 'wheel-spin.png'))
+        g.mouse("mouseReleased", pts[-1][0], pts[-1][1], 0)
+        st = g.state()
+        check('circular slash: a circle makes the frog cartwheel (front or back sprite)', st['wheels'] == w0 + 1 and seen in ('front', 'back'), (st['wheels'], seen))
+        time.sleep(0.8); st = g.state()
+        check('circular slash: the cartwheel ends, the frog is back on its post', st['wheel'] == '', st['wheel'])
+        fresh(g); w0 = g.state()['wheels']
+        g.drag(circle(500, 320, 90, 1.1, 40, cw=False)); time.sleep(0.05)
+        check('circular slash: counter-clockwise works too', g.state()['wheels'] == w0 + 1, g.state()['wheels'])
+        fresh(g); w0 = g.state()['wheels']
+        g.drag([(300 + i * 18, 200 + i * 6) for i in range(40)]); time.sleep(0.05)
+        g.drag(circle(800, 320, 100, 0.5, 30)); time.sleep(0.05)
+        check('circular slash: a straight slash or half a circle is not a cartwheel', g.state()['wheels'] == w0, g.state()['wheels'])
+        keys = set()
+        for k in range(8):
+            fresh(g)
+            g.drag(circle(640, 300, 120, 1.1, 40, cw=k % 2 == 0)); time.sleep(0.05)
+            log = g.js("JSON.stringify(frogPlay.state().log.filter(e => e[1] === 'wheel').map(e => e[2]))")
+            keys |= set(json.loads(log or '[]')); time.sleep(0.75)
+        check('circular slash: both sprites come up (front and back)', keys == {'front', 'back'}, sorted(keys))
     finally:
         g.close()
     print('pictures in', a.out); sys.exit(1 if FAILS else 0)
