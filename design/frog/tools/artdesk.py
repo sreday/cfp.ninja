@@ -54,11 +54,16 @@ PAGE = r"""<!doctype html><html lang="en" data-theme="dark"><head><meta charset=
  .cand textarea, .el-note { width: 100%; margin-top: 6px; font-size: .85rem; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 4px 6px; }
  .empty { color: var(--text-secondary); font-size: .9rem; padding: 10px 0; }
  .saved { color: #7cb342; font-size: .8rem; margin-left: 8px; }
+ .cand .pic { border-radius: 10px; overflow: hidden; }
+ .cand.onbg .pic { background-size: cover; background-position: center; }
+ .cand.onbg img { background: none; }
+ .spin .cand img { animation: spin 1.6s linear infinite; }
+ @keyframes spin { to { transform: rotate(360deg); } }
 </style></head><body><div class="desk">
 <div class="desk-head"><h1>Frog Ninja art desk</h1><span id="filters"></span></div>
 <div id="list"></div></div>
 <script>
-let M = null, phase = 'all', only = 'with candidates';
+let M = null, phase = 'all', only = 'with candidates', spin = false;
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 async function load() { M = await (await fetch('/api/manifest')).json(); draw(); }
 async function post(path, body) { const r = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); M = await r.json(); draw(); }
@@ -67,25 +72,29 @@ function filters() {
   const show = ['with candidates', 'everything'];
   document.getElementById('filters').innerHTML =
     ph.map(([k, v]) => `<span class="fg-pill ${phase === k ? 'on' : ''}" data-ph="${k}">${esc(v)}</span>`).join(' ') + ' ' +
-    show.map(k => `<span class="fg-pill ${only === k ? 'on' : ''}" data-only="${k}">${k}</span>`).join(' ');
+    show.map(k => `<span class="fg-pill ${only === k ? 'on' : ''}" data-only="${k}">${k}</span>`).join(' ') +
+    ` <span class="fg-pill ${spin ? 'on' : ''}" id="spin" title="turn the candidates, as a pose drawn at any angle">spin</span>`;
+  document.getElementById('spin').onclick = () => { spin = !spin; document.body.classList.toggle('spin', spin); draw(); };
   document.querySelectorAll('[data-ph]').forEach(e => e.onclick = () => { phase = e.dataset.ph; draw(); });
   document.querySelectorAll('[data-only]').forEach(e => e.onclick = () => { only = e.dataset.only; draw(); });
 }
 function cand(el, c) {
   const isPick = (el.picks || {})[c.tier] === c.file;
   const cls = isPick ? 'picked' : c.verdict === 'reject' ? 'rejected' : '';
-  return `<div class="cand ${cls}"><img src="/desk/candidates/${encodeURIComponent(el.id.replace('/', '_'))}/${encodeURIComponent(c.file)}" loading="lazy">
+  const bg = el.bg ? ` style="background-image:url('${esc(el.bg)}')"` : '';
+  return `<div class="cand ${cls} ${el.bg ? 'onbg' : ''}"><div class="pic"${bg}><img src="/desk/candidates/${encodeURIComponent(el.id.replace('/', '_'))}/${encodeURIComponent(c.file)}" loading="lazy"></div>
     <div class="acts"><button class="btn btn-sm btn-primary" data-pick="${esc(el.id)}" data-file="${esc(c.file)}">${isPick ? 'Picked' : 'Pick'}</button>
     <button class="btn btn-sm btn-outline-secondary" data-rej="${esc(el.id)}" data-file="${esc(c.file)}">${c.verdict === 'reject' ? 'Rejected' : 'Reject'}</button></div>
     <textarea rows="2" placeholder="Note on this one" data-cnote="${esc(el.id)}" data-file="${esc(c.file)}">${esc(c.note)}</textarea></div>`;
 }
 function draw() {
   filters();
-  const els = M.elements.filter(e => (phase === 'all' || String(e.phase) === phase) && (only === 'everything' || e.candidates.length));
+  const one = decodeURIComponent(location.hash.slice(1));    // #1.19: that element only (a link to one round)
+  const els = M.elements.filter(e => one ? e.id === one : (phase === 'all' || String(e.phase) === phase) && (only === 'everything' || e.candidates.length));
   let html = '', last = null;
   for (const el of els) {
     if (el.phase !== last) { html += `<div class="phase">${el.phase}. ${esc(M.phases[el.phase])}</div>`; last = el.phase; }
-    const tiers = ['faithful', 'unhinged'].map(t => {
+    const tiers = [...new Set(['faithful', 'unhinged', 'front', 'back', ...el.candidates.map(c => c.tier)])].map(t => {
       const cs = el.candidates.filter(c => c.tier === t);
       return cs.length ? `<span class="tier">${t}</span><div class="cands">${cs.map(c => cand(el, c)).join('')}</div>` : '';
     }).join('');
@@ -101,6 +110,7 @@ function draw() {
   document.querySelectorAll('[data-cnote]').forEach(t => t.onchange = () => post('/api/note', { id: t.dataset.cnote, file: t.dataset.file, note: t.value }));
   document.querySelectorAll('[data-enote]').forEach(t => t.onchange = () => post('/api/note', { id: t.dataset.enote, note: t.value }));
 }
+window.onhashchange = draw;
 load();
 </script></body></html>"""
 
@@ -114,6 +124,12 @@ def save(m):
     json.dump(m, open(tmp, 'w', encoding='utf-8'), indent=1, ensure_ascii=False); os.replace(tmp, MANIFEST)
 
 
+def tier_of(f):
+    """the file name's prefix: faithful-1.png, unhinged-2.png, or any other row (front-1.png, back-3.png: one pick per row)"""
+    t = re.match(r'([a-z]+)-', f)
+    return t.group(1) if t else 'faithful'
+
+
 def sync_candidates(m, desk):
     """files dropped in candidates/<id>/ show up even if nobody logged them"""
     for el in m['elements']:
@@ -122,7 +138,7 @@ def sync_candidates(m, desk):
         have = {c['file'] for c in el['candidates']}
         for f in sorted(os.listdir(d)):
             if IMG.search(f) and f not in have:
-                el['candidates'].append({'file': f, 'tier': 'unhinged' if f.startswith('unhinged') else 'faithful', 'verdict': '', 'note': ''})
+                el['candidates'].append({'file': f, 'tier': tier_of(f), 'verdict': '', 'note': ''})
         if el['candidates'] and el['status'] == 'todo': el['status'] = 'prompting'
     return m
 

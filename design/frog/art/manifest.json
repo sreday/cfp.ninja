@@ -813,6 +813,122 @@
    "pick": null
   },
   {
+   "id": "1.19",
+   "phase": 3,
+   "name": "Circular slash (cartwheel)",
+   "status": "picked",
+   "notes": "Marek, 2026-11-22: shown when the player cuts a circle. Two sprites picked at random: front to us and back to us; any rotation, upside down allowed; placed at random, nudged toward the circle. Pick one in each row.",
+   "current": null,
+   "candidates": [
+    {
+     "file": "front-3.png",
+     "tier": "front",
+     "verdict": "",
+     "note": "round 1 pick (Marek). Arms too long (curator) -> round 2 reworks it"
+    },
+    {
+     "file": "back-4.png",
+     "tier": "back",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "back-5.png",
+     "tier": "back",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "back-6.png",
+     "tier": "back",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "front-3-nb1.png",
+     "tier": "front",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "front-3-nb2.png",
+     "tier": "front",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "front-3-nb3.png",
+     "tier": "front",
+     "verdict": "pick",
+     "note": ""
+    },
+    {
+     "file": "front-3-pixel.png",
+     "tier": "front",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "back-7.png",
+     "tier": "back",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "back-9.png",
+     "tier": "back",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "front-3-nb3-q1.png",
+     "tier": "front",
+     "verdict": "",
+     "note": ""
+    },
+    {
+     "file": "front-3-nb3-q2.png",
+     "tier": "front",
+     "verdict": "",
+     "note": ""
+    }
+   ],
+   "note": "",
+   "bg": "/img/game/bg/plate.84e1b3bc63.webp",
+   "prompts": [
+    {
+     "model": "gemini-3.1-flash-image",
+     "flow": "1kdpXGf3mIylwUHxAIO3",
+     "credits_each": 812,
+     "at": "2026-11-22",
+     "refs": [
+      "ready-ref (live ready frog)",
+      "cut/clean-2-robe.png"
+     ],
+     "tier": "front",
+     "text": "cartwheel circular slash, front view, base-frog spec numbers, magenta bg, 3 variations"
+    },
+    {
+     "model": "gemini-3.1-flash-image",
+     "flow": "1kdpXGf3mIylwUHxAIO3",
+     "credits_each": 812,
+     "at": "2026-11-22",
+     "refs": [
+      "ready-ref (live ready frog)",
+      "cut/clean-2-robe.png"
+     ],
+     "tier": "back",
+     "text": "cartwheel circular slash, back view, base-frog spec numbers, magenta bg, 3 variations"
+    }
+   ],
+   "picks": {
+    "front": "front-3-nb3.png",
+    "back": "back-4.png"
+   },
+   "pick": "back-4.png",
+   "picked_at": "2026-11-22 13:32"
+  },
+  {
    "id": "4.0",
    "name": "Katanas",
    "notes": "The two katanas as rig parts (held, on the back, stuck in the post).",
