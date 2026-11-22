@@ -282,8 +282,11 @@ const SIDESLASH_ART = { url: '/img/game/frog/sideslash.dbb4c96040.webp', size: [
 // Marek 2026-11-20: 'I want two to stay - the one behind the back and the one with frog stretched'; the profile down cut
 // goes. Level cuts: the stretched lunge (CUT_ART, feet on the post); downward cuts: the hop with its back half to us
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART };
-const poseK = Q => cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
+// the overhead slash (Marek's pick 2026-11-22, built by design/frog/tools/art_build_pose.py): a jump facing us, knees tucked, both katanas
+// crossed above the head. front: drawn whichever side the cut is on, never mirrored; headW sizes it by its head; lift: how far the toes float above the post.
+const OVER_ART = { url: '/img/game/frog/over.3017cc56cd.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 300, front: true };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART };
+const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW : cutK() * CUT_ART.eyeH / Q.eyeH * (Q.grow || 1);
 // The circular slash (Marek, 2026-11-22, item 1.19): a slash that closes a circle makes the frog cartwheel through it,
 // katanas out. Two sprites, his picks as drawn (front to us, back to us), one at random; any angle, upside down too;
 // it springs from the post to a random spot nudged toward the circle and spins the way the circle was drawn.
@@ -2062,14 +2065,14 @@ export function mountFrogGame(stage, opts = {}) {
     const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
     // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
-    function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && pose.side && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && (pose.side || CUT_POSES[pose.artCut].front) && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
     function artCutPose() {
         const C = artCut; if (!C) return;
         const on = artCutOn();
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-cut-on', on); }
         if (!on) return;
         if (C.shown !== pose.artCut) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === pose.artCut ? 'inline' : 'none'); C.shown = pose.artCut; }
-        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 ? -1 : 1;
+        const Q = CUT_POSES[pose.artCut], k = poseK(Q), f = pose.side < 0 && !Q.front ? -1 : 1;
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE - (Q.lift || 0))}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(f * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
@@ -3028,6 +3031,7 @@ export function mountFrogGame(stage, opts = {}) {
             // held, the frog off its feet for a moment.
             const smear = s.t < SMEAR, air = s.live || s.t < 0.3 ? 1 : 0;      // in the air is a state: up at once, held, down at once
             pose.side = 0; pose.face = 0; pose.lean = 0; pose.shift = 0;
+            pose.artCut = 'over';             // the picked overhead slash stands in (the drawn arms below: only until the picture has loaded)
             pose.lRot = 160; pose.rRot = -160;
             pose.lStretch = pose.rStretch = smear ? 2.4 : 1.9;
             pose.lK = smear ? 30 : -75; pose.rK = smear ? -30 : 75;      // (50 degrees off the arm, crossed; then 55 the other way)
