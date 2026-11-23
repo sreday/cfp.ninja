@@ -29,7 +29,8 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 // CSS, JS, CSV, SVG, plain text).
 func GzipHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		// audio is compressed already: gzip would only cost time and hide its length
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || strings.HasSuffix(r.URL.Path, ".mp3") {
 			next.ServeHTTP(w, r)
 			return
 		}

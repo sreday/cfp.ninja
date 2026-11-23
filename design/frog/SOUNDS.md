@@ -1,14 +1,62 @@
 # Frog Ninja: every sound
 
-All sound is synthesised in the browser by `static/js/views/frog-audio.js` (Web Audio): the
-game ships no audio files. These are first-pass placeholders, made to be simple and
-effective, and written by an AI that cannot hear them: they were checked for level (none
-silent, none clipping), not for taste. Expect to tune or replace them.
+Every effect is a **recording**, generated with ElevenLabs Sound Effects (2026-11-23) and played by
+`static/js/views/frog-audio.js` (Web Audio). The background is the beach itself, not music. Behind each
+recording stands the first, synthesised version of the sound (`SYNTH`, `LOOPS` in the same file): it plays
+only if a recording has not arrived yet or failed to load. The recordings were picked and levelled by
+measurement (none silent, none clipped, each starts on time), not by ear: Marek's ears are the judge, and
+`Desktop\Frog Ninja soundboard.html` (from `sound_build.py --board`) plays every shipped take by name.
 
-**To replace a sound with a real recording:** put the file in `static/audio/` and add its id
-to `SOUND_FILES` at the top of `frog-audio.js`, e.g. `cut: '/audio/cut.mp3'`. The recording
-is then played instead of the synth; if the file fails to load the synth is used. Keep
-recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
+## How the recordings work
+
+- **The bank.** `design/frog/sounds/bank.json` lists every sound as a pool: its prompt, its length, how many
+  takes (4, the frog's grunt 8, loops 2). 107 pools, about 420 files, about 10 MB, fetched only once the
+  player turns the sound on.
+- **The build.** `python design/frog/tools/sound_build.py` cuts each sound out of its raw take (a few ms
+  before the attack to where it has died away; a take with several hits gives several variants), levels the
+  takes of a pool against each other, and writes `static/audio/<pool>.<n>.<hash>.mp3`,
+  `static/js/views/frog-sounds.js` (the list the game reads) and `design/frog/sounds/prompts.json` (every
+  shipped file with the prompt it came from). The raw takes are not in the repository: they are in the
+  ElevenLabs flows "Game SFX slice A" to "E" and in `Documentsrog-ninja-sound-raw`.
+- **To redo one sound:** change its prompt in `bank.json`, generate new takes into the raw folder as
+  `<pool>__<n>.mp3`, run `sound_build.py --only <pool>`, then `sound_test.py`.
+- **Never the same twice.** `RECORDED` in `frog-audio.js` says which pools a sound id plays, in layers. Each
+  layer takes a variant its pool did not play last time, at a slightly different pitch and level. A cut is
+  the skin (thick rind, thin skin or soft peel), the flesh of that fruit, juice sized to the fruit, and a
+  steel ring if it went through the middle: a few hundred different cuts per fruit.
+- **Where it happened.** A cut is panned a little toward the side of the screen it was on.
+- **Loading.** What a run starts with (blade, cuts, countdown, cloth) is in memory before the countdown
+  (the loading step waits for it, 3 s at most); the rest arrives in the background. On a phone three takes
+  per pool are kept, to spare memory.
+- **Checked by** `python design/frog/tools/sound_test.py`: every recipe names a real pool, every file
+  decodes and starts within 30 ms, the game gets them all into memory, every id plays, no page errors.
+- **Licence.** Generated on a paid ElevenLabs plan, which allows commercial use. Nothing here is lifted from
+  another game, film or sound library, and nothing like that may be added.
+
+## The beach (instead of music)
+
+Three looping beds of different lengths (the sea's wash 30 s, wind in the palms 22 s, the shore at dusk
+26 s), each drifting louder and quieter on its own, so the whole never lines up the same way twice. Over
+them, every 3 to 11 seconds, one small thing somewhere to the left or right: a bigger wave, a gust, a far
+gull, the post creaking, a palm frond, a bamboo chime, a rope, bubbles, a fish, a cricket, the party cheering
+far off. It follows the game: dull and distant while time stands still, stepping back under the fire breath,
+a little lower while drunk. It fades in over 1.5 s. The old synth tune (see Music below) only plays with
+`?music=1`.
+
+## The frog itself
+
+| id | Plays when | Recording |
+|---|---|---|
+| `cloth` (snap, rustle, crouch, hop) | every change of pose during a run: a strike snaps, coming back to standing rustles, a duck folds, a hop flutters | cotton gi foley |
+| `teeter` | the frog loses its footing | feet scrabbling on the post |
+| `wheel` | a cartwheel starts | two blades whirling, sleeves flapping |
+| `flick` | a sharp turn starts a new cut | a wrist flick of the blade |
+| grunt (in `slash`) | about one hard slash in three, never two within 1.6 s | a short froggy "hup" |
+| pant (in `empty`) | a slash refused, out of stamina | two wheezy breaths |
+| groan (in `stun`), hiccup (in `power_sake`), happy croak (in `best`) | with those sounds | the frog's voice |
+| `croak` | the frog tips off the post at time-up | one long falling croak |
+| `toss`, `unsheathe`, `glint` | the intro: the laptop flung, the katanas drawn, the glint | whoosh, steel slide, a high ping |
+| `stick` | a katana lands in the post at time-up | a thunk and a wobble |
 
 **How sound behaves**
 
@@ -20,7 +68,7 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 - A phone only starts sound from a finished touch or a click. The game wakes the sound on every
   one of those, and a run waits for it: after Play there is a loading step (drawings warmed up,
   sound really playing) with a bar if it takes more than a quarter of a second, never longer
-  than 3 s. Music always fades in over 1.5 s. Each run's log says whether the device was
+  than 3 s. The beach always fades in over 1.5 s. Each run's log says whether the device was
   playing sound (`audio` events) and how long loading took (`loaded`).
 - No volume control: the level is the device's own. On phones the hardware volume buttons
   and the silent switch apply.
@@ -31,8 +79,8 @@ recordings short, trimmed to the attack, mono, and normalised to about -6 dB.
 ## Every action and its sound
 
 The rule: every action the player takes, and every thing that happens to them, has its own
-sound, as close as a synth can get to the real thing. "Layers" says how the placeholder is
-built, so whoever records the replacement knows what it is imitating.
+sound. In the tables, "Layers now" describes the synthesised stand-in and "A real recording would be" is what
+the recording now is (the exact prompt of each is in `design/frog/sounds/bank.json`).
 
 ### What makes them hit
 
@@ -42,7 +90,7 @@ and only then the body of the sound. A recording should have the same shape: a h
 weight, then a short tail.
 
 **Drunk filter.** While the sake lasts, every effect is routed through a woozy path: a
-low-pass filter that swims up and down and a slapback echo, with the music pulled back a
+low-pass filter that swims up and down and a slapback echo, with the beach pulled back a
 little. It switches off when the sake ends. Recordings get the same treatment for free,
 because it sits on the effects bus, not in each sound.
 
@@ -162,44 +210,12 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 ### Still silent, on purpose or not yet
 
 - Fruit being thrown in, and pieces falling away: left silent so the action stays readable.
-- The frog's intro (laptop toss, katanas drawn): needs a swish and two steel rings.
 - Scoreboard opening and closing; the debug pill.
 - The bubbly blade has no sound of its own yet (it uses the sake slash).
-- A fruit turning hacked plays `hack`, but hacked fruit floating has no ambience.
-
-### About borrowing sounds from other media
-
-The placeholders stay synthesised for now. Sounds lifted from other games or films can't go
-into this repository or onto the live site: the repository is public and the site serves
-them to everyone, so that would be redistributing someone else's work, placeholder or not.
-What can be used are sounds released for free reuse (CC0 or public domain), for example the
-Kenney audio packs or CC0 uploads on Freesound. `SOUND_FILES` is ready for them; each file
-added should be listed here with its source and licence.
+- Hacked fruit floating has no ambience.
 
 ## Music
 
-One loop: an old samurai film meets a pop beach party. Bright and bouncy, generated note by
-note (`scheduleBar` in `frog-audio.js`): 108 beats a minute, eight bars, about 18 seconds,
-in the sunny Japanese "yo" scale (D, E, F#, A, B).
-
-| Part | From | Now (synth) | A real recording would be |
-|---|---|---|---|
-| Tune | samurai film | a koto-style pluck playing a catchy two-bar riff | koto or shamisen |
-| Answer | samurai film | a breathy flute phrase at the end of each half | shakuhachi |
-| Accent | samurai film | one big taiko hit opening each phrase | taiko |
-| Turnaround | samurai film | wooden clacks speeding up through the last bar | hyoshigi |
-| Kick | beach party | four on the floor, heavy | a dance kick |
-| Claps | beach party | on beats 2 and 4 | hand claps |
-| Hats | beach party | on the offbeats | shaker or hi-hat |
-| Bass | beach party | up front in the mix: a bouncing pattern (root, root, root, fifth, octave) with a sub an octave below and a little buzz so small speakers still carry it | a fat synth bass |
-| Chords | beach party | steel-pan-style stabs on the offbeats | steel pans or a marimba |
-
-Not done yet: the music does not react to the game (it could tighten when time is short,
-or lift during a power-up), and there is no separate title or game-over theme.
-
-## Not covered yet
-
-- Voices for the animals (cheers, groans, the frog's battle cry).
-- Party ambience for the beach (crowd, waves, a distant beat).
-- Distinct sounds for the fire blade, the chronoblade and the bubbly blade.
-- A sound for the time freeze releasing.
+Off since 2026-11-23 (Marek: ambience only). The synth loop is still in `frog-audio.js` (`scheduleBar`: an
+old samurai film meets a pop beach party, 108 beats a minute, eight bars, the "yo" scale) and plays with
+`?music=1`, for comparing.

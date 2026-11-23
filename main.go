@@ -52,6 +52,10 @@ func main() {
 			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		case ext == ".js" || ext == ".css":
 			w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+		case ext == ".mp3":
+			// the game's recorded sounds: the name carries a hash of the content, so a file never changes
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+			w.Header().Set("Content-Type", "audio/mpeg")
 		case ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".svg" || ext == ".ico" || ext == ".woff" || ext == ".woff2" || ext == ".ttf":
 			w.Header().Set("Cache-Control", "public, max-age=3600")
 		}

@@ -1,11 +1,13 @@
-// Frog Ninja sound: every effect and the music are synthesised here with Web Audio, so the
-// game ships no audio files. The full list, with what each sound is for, is in
-// design/frog/SOUNDS.md. To replace a synthesised sound with a real recording, add its id to
-// SOUND_FILES with a URL on this site (e.g. cut: '/audio/cut.mp3'): the file is then played
-// instead of the synth. Sound is off until the player turns it on, and there is no volume
-// control: the level is whatever the device is set to.
+// Frog Ninja sound. Every effect is a recording (generated with ElevenLabs, built by
+// design/frog/tools/sound_build.py into /audio/ and listed in frog-sounds.js), played in layers
+// with a different take, pitch and level each time: RECORDED below says which. Behind each one
+// stands the old synthesised version (SYNTH, LOOPS), which plays if its recording has not
+// arrived or failed to load. The background is the beach (three looping beds and small things
+// now and then), not music; the old synth tune only plays with ?music=1. The full list, with
+// what each sound is for, is in design/frog/SOUNDS.md. Sound is off until the player turns it
+// on, and there is no volume control: the level is whatever the device is set to.
+import { SOUND_BANK } from './frog-sounds.js';
 
-export const SOUND_FILES = {};
 
 // ---------- building blocks ----------
 const noiseBufs = new WeakMap();
@@ -258,7 +260,7 @@ export const SYNTH = {
     place(c, o, t) { tone(c, o, t, { f: 600, f1: 300, dur: 0.07, gain: 0.12 }); }
 };
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
-const MIN_GAP = { plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
+const MIN_GAP = { cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
 function sustained(ctx, out, level, build) {
@@ -394,11 +396,120 @@ export function scheduleBar(ctx, out, t, bar) {
 }
 export const MUSIC_BAR_SECONDS = BAR;
 
+// ---------- the recordings: id -> (options) -> the layers to play ----------
+// A layer: p = pool in SOUND_BANK, g = level, r = pitch (1 = as recorded), j = how far the pitch may wander
+// (0.04 = 4% either way), at = seconds late, chance = how often it plays at all, every = never twice within
+// this many seconds. Every play picks a take the pool did not play last time, at a slightly different pitch
+// and level, so no two are alike; a cut is three or four such picks on top of each other.
+const SKIN = { watermelon: 'skin_thick', pineapple: 'skin_thick', orange: 'skin_soft', banana: 'skin_soft', kiwi: 'skin_soft', chicken: 'skin_soft', apple: 'skin_thin', plum: 'skin_thin', grapes: 'skin_thin' };
+const DRY = { banana: 1, chicken: 1, apple: 1 };            // little juice in these
+const one = (p, g = 1, more) => [Object.assign({ p, g }, more)];
+const SPAWN = { fly: 'fly_buzz', sake: 'sake_slosh', clock: 'clock_tick', fireworks: 'fuse' };
+const WRECK = { fly: 'fly_squish', clock: 'clock_wreck', laptop: 'laptop_smash' };
+const CLOTH = { snap: ['cloth_snap', 0.5], rustle: ['cloth_rustle', 0.4], crouch: ['cloth_crouch', 0.45], hop: ['cloth_hop', 0.5], flutter: ['cloth_flutter', 0.45] };
+export const RECORDED = {
+    // ----- the blade -----
+    slash: ({ kind = '', power = 0.5 } = {}) => [
+        { p: kind === 'fire' ? 'swing_fire' : kind === 'frost' ? 'swing_frost' : kind === 'sake' ? 'swing_sake' : power > 0.62 ? 'swing_hard' : power > 0.3 ? 'swing_med' : 'swing_light', g: 0.5 + 0.4 * power, j: 0.06 },
+        { p: 'grunt', g: 0.4, at: 0.02, chance: power > 0.62 ? 0.3 : 0, every: 1.6, j: 0.06 }],     // now and then the frog puts its back into it
+    flick: () => one('flick', 0.4, { j: 0.08 }),
+    empty: () => [{ p: 'empty', g: 0.6 }, { p: 'pant', g: 0.35, at: 0.06, chance: 0.6, every: 2.5 }],
+    cut({ kind = '', size = 0.5, n = 1, clean = false, chain = 0, hacked = false } = {}) {
+        const re = Math.min(n - 1, 5), small = Math.pow(0.86, re);      // a piece cut again: lighter and a little higher
+        const flesh = SOUND_BANK['flesh_' + kind] ? 'flesh_' + kind : size > 0.6 ? 'flesh_watermelon' : size > 0.3 ? 'flesh_apple' : 'flesh_plum';
+        const L = [{ p: SKIN[kind] || 'skin_thin', g: 0.38 * small, r: 1 + 0.05 * re },
+            { p: flesh, g: 0.95 * small, r: 1 + 0.04 * re, j: 0.05 }];
+        if (re < 3) L.push({ p: size > 0.66 ? 'juice_l' : size > 0.3 ? 'juice_m' : 'juice_s', g: (DRY[kind] ? 0.16 : 0.4) * small, at: 0.03, j: 0.08 });
+        if (clean) L.push({ p: 'shing', g: 0.2, r: Math.pow(1.06, Math.min(chain, 12)), at: 0.01, j: 0.01 });       // the ring of a perfect cut, climbing with a chain
+        if (hacked) L.push({ p: 'hack', g: 0.25 });
+        return L;
+    },
+    bounce: () => one('bounce', 0.6),
+    stick: () => one('stick', 0.6),
+    wheel: () => [{ p: 'wheel', g: 0.6 }, { p: 'cloth_flutter', g: 0.4, at: 0.05 }],
+    // ----- the frog itself -----
+    cloth: ({ kind = 'snap' } = {}) => one((CLOTH[kind] || CLOTH.snap)[0], (CLOTH[kind] || CLOTH.snap)[1], { j: 0.07 }),
+    land: () => one('land', 0.45, { j: 0.06 }),
+    teeter: () => one('teeter', 0.5),
+    croak: () => one('croak_fall', 0.7),
+    toss: () => one('toss', 0.6),
+    unsheathe: () => one('unsheathe', 0.65),
+    glint: () => one('glint', 0.3),
+    // ----- the tongue and the mouth -----
+    tongue: () => one('tongue_out', 0.55, { j: 0.07 }),
+    catch: ({ heavy = false } = {}) => one(heavy ? 'catch_heavy' : 'catch', 0.6),
+    gulp: () => one('gulp', 0.6, { j: 0.07 }),
+    stun: () => [{ p: 'bonk', g: 0.75 }, { p: 'groan', g: 0.5, at: 0.18 }],
+    stun_end: () => one('shake', 0.45),
+    // ----- fire -----
+    power_fire: () => one('fire_ignite', 0.85),
+    burn: () => one('burn', 0.5, { j: 0.08 }),
+    fire_end: () => one('fire_end', 0.6),
+    fire_feed: () => one('fire_feed', 0.65),
+    // ----- sake -----
+    power_sake: () => [{ p: 'sake_pour', g: 0.65 }, { p: 'hiccup', g: 0.55, at: 0.5 }],
+    sake_end: () => one('sigh', 0.5),
+    // ----- the clock -----
+    power_clock: () => one('clock_winddown', 0.7),
+    mark: ({ n = 1 } = {}) => one('mark', 0.4, { r: Math.pow(1.05, Math.min(n, 14)), j: 0.005 }),
+    resume: () => one('resume', 0.6),
+    // ----- fireworks, crates, the gull, the laptop -----
+    power_fireworks: () => one('rocket', 0.5, { j: 0.08 }),
+    spit: () => one('spit', 0.6),
+    boom: ({ big = false } = {}) => one(big ? 'boom_big' : 'boom_small', big ? 1 : 0.8),
+    crate: () => one('crate_break', 0.8),
+    punch: () => one('punch', 0.75),
+    gull: () => one('gull', 0.55),
+    gull_peck: () => one('gull_peck', 0.5),
+    gull_faint: () => one('gull_faint', 0.6),
+    summon: () => one('summon', 0.75),
+    spawn: ({ kind = '' } = {}) => one(SPAWN[kind] || 'crate_creak', 0.45),
+    wreck: ({ kind = '' } = {}) => one(WRECK[kind] || 'glass_smash', 0.7),
+    hack: () => one('hack', 0.35, { j: 0.1 }),
+    // ----- the run -----
+    combo: ({ step = 1 } = {}) => one('combo', 0.6, { r: Math.pow(2, Math.min(step, 10) / 14), j: 0.005 }),
+    combo_lost: () => one('combo_lost', 0.4),
+    lowtime: () => one('heartbeat', 0.8, { j: 0.01 }),
+    count: ({ go = false } = {}) => one(go ? 'count_go' : 'count', go ? 0.9 : 0.6, { j: 0.01 }),
+    over: () => one('gong', 0.8, { j: 0.01 }),
+    best: () => [{ p: 'best', g: 0.7, j: 0.005 }, { p: 'croak_happy', g: 0.5, at: 0.9 }],
+    splash: () => one('splash', 0.9),
+    plop: () => one('plop', 0.45, { j: 0.08 }),
+    // ----- interface -----
+    ui: () => one('ui', 0.5),
+    ui_play: () => one('ui_play', 0.6, { j: 0.01 }),
+    place: () => one('ui', 0.4, { r: 0.8 })
+};
+// states that last: id -> [pool, level]
+const FILE_LOOPS = { fire: ['fire_loop', 0.7], freeze: ['freeze_loop', 0.4], dizzy: ['dizzy_loop', 0.3], drunk: ['drunk_loop', 0.18] };
+// the beach around it all: three beds that never line up twice the same way, and small things that happen now and then
+const BEDS = [['amb_sea', 0.6], ['amb_breeze', 0.34], ['amb_shore', 0.36]];
+const DETAILS = ['amb_wave', 'amb_gust', 'amb_gull_far', 'amb_creak', 'amb_palm', 'amb_chime', 'amb_rope', 'amb_bubbles', 'amb_fish', 'amb_crickets', 'amb_cheer_far'];
+const AMB = 0.55;
+// what a run cannot start without (the rest arrives in the background)
+const FIRST = ['swing_light', 'swing_med', 'swing_hard', 'flick', 'skin_thick', 'skin_thin', 'skin_soft', 'juice_s', 'juice_m', 'juice_l', 'shing',
+    'flesh_watermelon', 'flesh_orange', 'flesh_pineapple', 'flesh_grapes', 'flesh_banana', 'flesh_kiwi', 'flesh_apple', 'flesh_plum',
+    'count', 'count_go', 'ui', 'ui_play', 'cloth_snap', 'cloth_rustle', 'empty', 'bounce', 'tongue_out', 'catch', 'gulp', 'amb_sea'];
+const AUDIO_DIR = '/audio/';
+const MAX_VOICES = 30;
+const mem = typeof navigator !== 'undefined' ? navigator.deviceMemory || 8 : 8;
+const LITE = mem <= 4 || (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);      // a phone: fewer takes of each sound in memory
+const WITH_MUSIC = typeof location !== 'undefined' && /[?&]music=1\b/.test(location.search);                  // the old synth tune, for comparing
+const EQ = (() => { const n = 33, up = new Float32Array(n), down = new Float32Array(n); for (let i = 0; i < n; i++) { up[i] = Math.sin(i / (n - 1) * Math.PI / 2); down[i] = Math.cos(i / (n - 1) * Math.PI / 2); } return { up, down }; })();
+
 // ---------- the player ----------
 export function createAudio() {
     let dry = null, wet = null, drunk = false;
-    let ctx = null, sfxBus = null, musicBus = null, on = false, timer = 0, nextBar = 0, barNo = 0, fresh = false;
-    const lastAt = {}, samples = {}, loops = {};
+    let ctx = null, sfxBus = null, musicBus = null, ambBus = null, ambLP = null, on = false, timer = 0, nextBar = 0, barNo = 0, fresh = false;
+    let live = 0, firstLeft = FIRST.length, loading = false, nextDetail = 0, lastDetail = '', scene = '';
+    const lastAt = {}, loops = {}, bank = {}, raw = {}, beds = [];
+    Object.keys(SOUND_BANK).forEach(p => {
+        let files = SOUND_BANK[p];
+        const long = files[0] && files[0][1] > 5;                                    // a loop or a bed: one take is enough for a visit
+        if (long) files = [files[Math.floor(Math.random() * files.length)]];
+        else if (LITE) files = files.slice(0, 3);
+        bank[p] = { files, ready: [], state: 0, bag: [], last: -1, at: 0, long };
+    });
     const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });
     // On a phone, say what this sound is. Left alone, iOS treats a web page's synthesised sound
     // like a ringtone: silent whenever the ring switch is off, whatever the volume buttons say.
@@ -422,61 +533,185 @@ export function createAudio() {
             const echo = ctx.createDelay(0.5), fb = ctx.createGain(); echo.delayTime.value = 0.13; fb.gain.value = 0.38;
             sfxBus.connect(lp); lp.connect(wet); lp.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(wet); wet.connect(comp);
             musicBus = ctx.createGain(); musicBus.gain.value = 0.5; musicBus.connect(comp);
+            // the beach: its own bus, with a filter that closes when time stands still
+            ambBus = ctx.createGain(); ambBus.gain.value = 0.0001;
+            ambLP = ctx.createBiquadFilter(); ambLP.type = 'lowpass'; ambLP.frequency.value = 20000; ambLP.Q.value = 0.5;
+            ambBus.connect(ambLP); ambLP.connect(comp);
         }
         // (an iPhone leaves the context 'interrupted' after a call or a lock: that needs resuming too)
         if (ctx.state !== 'running') ctx.resume().catch(() => {});
         return true;
     }
+
+    // ----- loading the recordings -----
+    const grab = file => raw[file] || (raw[file] = fetch(AUDIO_DIR + file).then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }));
+    const decode = ab => new Promise((res, rej) => { const p = ctx.decodeAudioData(ab, res, rej); if (p && p.catch) p.catch(rej); });
+    // where the sound really starts in a decoded file (an MP3 may come back with a few ms of nothing in front)
+    function leadOf(buf) {
+        const d = buf.getChannelData(0), n = Math.min(d.length, Math.floor(buf.sampleRate * 0.08));
+        for (let i = 0; i < n; i++) if (d[i] > 0.012 || d[i] < -0.012) return Math.max(0, i / buf.sampleRate - 0.002);
+        return 0;
+    }
+    function loadPool(name) {
+        const P = bank[name];
+        if (!P || P.state) return Promise.resolve();
+        P.state = 1;
+        return Promise.all(P.files.map(([file]) => grab(file).then(ab => decode(ab)).then(buf => { P.ready.push({ buf, lead: P.long ? 0 : leadOf(buf) }); delete raw[file]; }).catch(() => {})))
+            .then(() => { P.state = 2; if (FIRST.includes(name)) firstLeft--; });
+    }
+    function loadAll() {
+        if (loading || !ctx) return;
+        loading = true;
+        const queue = FIRST.filter(p => bank[p]).concat(Object.keys(bank).filter(p => !FIRST.includes(p)));
+        firstLeft = FIRST.filter(p => bank[p] && bank[p].state < 2).length;
+        const next = () => { const p = queue.shift(); if (p) loadPool(p).then(next); };
+        for (let i = 0; i < 4; i++) next();
+    }
+
+    // ----- playing them -----
+    function take(P) {
+        if (!P.bag.length) {
+            P.bag = P.ready.map((_, i) => i);
+            for (let i = P.bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [P.bag[i], P.bag[j]] = [P.bag[j], P.bag[i]]; }
+            if (P.bag.length > 1 && P.bag[P.bag.length - 1] === P.last) P.bag.unshift(P.bag.pop());      // never the same take twice running
+        }
+        P.last = P.bag.pop();
+        return P.ready[P.last];
+    }
+    // one layer. true: it played, or chose not to; false: its recording is not here (yet)
+    function voice(L, t, pan, bus) {
+        const P = bank[L.p];
+        if (!P || !P.ready.length) return false;
+        if (L.chance !== undefined && Math.random() >= L.chance) return true;
+        if (L.every && P.at && t - P.at < L.every) return true;
+        if (live >= MAX_VOICES && L.g < 0.45) return true;                           // a crowd: the quiet layers give way
+        P.at = t;
+        const v = take(P), s = ctx.createBufferSource(), g = ctx.createGain(), j = L.j === undefined ? 0.04 : L.j;
+        s.buffer = v.buf; s.playbackRate.value = (L.r || 1) * (1 + (Math.random() * 2 - 1) * j);
+        g.gain.value = L.g * (0.88 + Math.random() * 0.24);
+        s.connect(g);
+        if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(bus || sfxBus); }
+        else g.connect(bus || sfxBus);
+        live++; s.onended = () => { live--; };
+        s.start(t + (L.at || 0), v.lead);
+        return true;
+    }
+    function recorded(layers, t, o) {
+        const pan = o && typeof o.x === 'number' ? Math.max(-0.6, Math.min(0.6, (o.x - 0.5) * 1.2)) : 0;
+        let any = false;
+        for (let i = 0; i < layers.length; i++) if (voice(layers[i], t, pan)) any = true;
+        return any;
+    }
+    // a recording that goes round for as long as it is wanted. Each pass fades into the next, so the join is never heard.
+    function fileLoop(v, out, level, fadeIn = 0.15) {
+        const g = ctx.createGain(), t = ctx.currentTime, a = 0.03, dur = v.buf.duration - a - 0.05, xf = Math.min(1.2, dur * 0.12);
+        let stopped = false, to = 0; const srcs = [];
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(level, t + fadeIn); g.connect(out);
+        const pass = (t0, first) => {
+            if (stopped) return;
+            const s = ctx.createBufferSource(), e = ctx.createGain(); s.buffer = v.buf; s.connect(e); e.connect(g);
+            if (!first) { e.gain.setValueAtTime(0, t0); e.gain.setValueCurveAtTime(EQ.up, t0, xf); }
+            e.gain.setValueCurveAtTime(EQ.down, t0 + dur - xf, xf);
+            s.start(t0, a, dur); srcs.push(s); if (srcs.length > 3) srcs.shift();
+            const wait = () => {
+                if (stopped) return;
+                if (!ctx || ctx.state !== 'running') { to = setTimeout(wait, 500); return; }          // asleep: nothing to line up
+                const left = t0 + dur - xf - ctx.currentTime;
+                if (left > 0.5) to = setTimeout(wait, Math.min(4000, (left - 0.4) * 1000)); else pass(Math.max(ctx.currentTime + 0.02, t0 + dur - xf), false);
+            };
+            wait();
+        };
+        pass(t + 0.01, true);
+        const stop = (fade = 0.2) => {
+            stopped = true; clearTimeout(to);
+            if (!ctx) return;
+            const e = ctx.currentTime;
+            g.gain.cancelScheduledValues(e); g.gain.setValueAtTime(g.gain.value, e); g.gain.linearRampToValueAtTime(0.0001, e + fade);
+            srcs.forEach(s => { try { s.stop(e + fade + 0.05); } catch (x) { /* already over */ } });
+        };
+        stop.gain = g.gain;
+        return stop;
+    }
+
+    // ----- the beach -----
+    function stopBeds() { beds.forEach(b => b.stop(0.4)); beds.length = 0; }
+    function ambience(t) {
+        BEDS.forEach(([name, level]) => {
+            const P = bank[name];
+            if (!P || !P.ready.length || beds.some(b => b.name === name)) return;
+            const stop = fileLoop(P.ready[0], ambBus, level, 2);
+            beds.push({ name, level, stop, next: t + 4 + Math.random() * 6 });
+        });
+        // each bed breathes on its own: a little louder, a little quieter, never in step with the others
+        beds.forEach(b => { if (t > b.next) { b.stop.gain.setTargetAtTime(b.level * (0.6 + Math.random() * 0.55), t, 2.5); b.next = t + 4 + Math.random() * 7; } });
+        if (!nextDetail) nextDetail = t + 2 + Math.random() * 4;
+        if (t > nextDetail) {
+            const able = DETAILS.filter(p => p !== lastDetail && bank[p] && bank[p].ready.length);
+            if (able.length) {
+                lastDetail = able[Math.floor(Math.random() * able.length)];
+                voice({ p: lastDetail, g: 0.22 + Math.random() * 0.38, j: 0.07 }, t, Math.random() * 1.6 - 0.8, ambBus);
+            }
+            nextDetail = t + 3 + Math.random() * 8;
+        }
+    }
+    const ambLevel = () => AMB * (scene === 'fire' ? 0.45 : scene === 'frozen' ? 0.7 : 1) * (drunk ? 0.75 : 1);
     function tick() {
         if (!on || !ctx || ctx.state !== 'running') return;
-        if (nextBar < ctx.currentTime) { nextBar = ctx.currentTime + 0.1; }
-        // the first bar since the sound came on (the phone may have taken its time to start it):
-        // the music comes up from silence over a second and a half, it never crashes in
+        const t = ctx.currentTime;
+        // the first moment since the sound came on (the phone may have taken its time to start it):
+        // the beach comes up from silence over a second and a half, it never crashes in
         if (fresh) {
-            fresh = false; const g = musicBus.gain, t = ctx.currentTime;
-            g.cancelScheduledValues(t); g.setValueAtTime(0.0001, t); g.linearRampToValueAtTime(drunk ? 0.38 : 0.5, t + 1.5);
+            fresh = false;
+            ambBus.gain.cancelScheduledValues(t); ambBus.gain.setValueAtTime(0.0001, t); ambBus.gain.linearRampToValueAtTime(ambLevel(), t + 1.5);
+            if (WITH_MUSIC) { const g = musicBus.gain; g.cancelScheduledValues(t); g.setValueAtTime(0.0001, t); g.linearRampToValueAtTime(drunk ? 0.38 : 0.5, t + 1.5); }
         }
-        while (nextBar < ctx.currentTime + 0.6) { scheduleBar(ctx, musicBus, nextBar, barNo++); nextBar += BAR; }
-    }
-    function sample(id, t) {
-        const url = SOUND_FILES[id];
-        if (samples[id] === undefined) {
-            samples[id] = null;
-            fetch(url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)).then(buf => { samples[id] = buf; }).catch(() => { samples[id] = false; });
+        ambience(t);
+        if (WITH_MUSIC) {
+            if (nextBar < t) nextBar = t + 0.1;
+            while (nextBar < t + 0.6) { scheduleBar(ctx, musicBus, nextBar, barNo++); nextBar += BAR; }
         }
-        if (!samples[id]) return samples[id] !== false;      // still loading: stay quiet; failed: fall back to the synth
-        const s = ctx.createBufferSource(); s.buffer = samples[id]; s.connect(sfxBus); s.start(t);
-        return true;
     }
     return {
         isOn: () => on,
         // is the device really playing it? (on a phone the answer can be no for a while after it is turned on)
         ready: () => on && !!ctx && ctx.state === 'running',
+        // are the recordings a run starts with here? (true with the sound off: nothing to wait for)
+        loaded: () => !on || firstLeft <= 0,
         state: () => !on ? 'off' : ctx ? ctx.state : 'none',
+        // how many recordings are in memory, of how many (for the tools)
+        bankState: () => { let have = 0, want = 0, failed = 0; Object.keys(bank).forEach(p => { want += bank[p].files.length; have += bank[p].ready.length; if (bank[p].state === 2) failed += bank[p].files.length - bank[p].ready.length; }); return { have, want, failed, voices: live }; },
+        // fetch the files before the first touch (the sound was on last time): decoding waits for that touch
+        preload() { FIRST.forEach(p => bank[p] && bank[p].files.forEach(([file]) => { grab(file).catch(() => {}); })); },
         // call from a click or a tap (browsers only let sound start from one)
         setOn(v) {
             on = !!v;
             session(on);
             if (on) {
                 if (!ensure()) { on = false; return false; }
-                barNo = 0; nextBar = 0; fresh = true; musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+                barNo = 0; nextBar = 0; fresh = true; nextDetail = 0;
+                musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+                ambBus.gain.cancelScheduledValues(ctx.currentTime); ambBus.gain.setValueAtTime(0.0001, ctx.currentTime);
+                loadAll();
                 clearInterval(timer); timer = setInterval(tick, 120); tick();
             } else {
-                clearInterval(timer); stopLoops();
+                clearInterval(timer); stopLoops(); stopBeds();
                 if (musicBus) { musicBus.gain.cancelScheduledValues(ctx.currentTime); musicBus.gain.setTargetAtTime(0, ctx.currentTime, 0.05); }
+                if (ambBus) { ambBus.gain.cancelScheduledValues(ctx.currentTime); ambBus.gain.setTargetAtTime(0, ctx.currentTime, 0.05); }
                 if (ctx) setTimeout(() => { if (!on && ctx) ctx.suspend().catch(() => {}); }, 300);
             }
             return on;
         },
         // the first touch of the page after loading with sound already on
         unlock() { if (on) { ensure(); tick(); } },
+        // o.x (0 = left edge of the screen, 1 = right) puts the sound a little to that side
         play(id, o) {
             if (!on || !ctx || ctx.state !== 'running') return;
             const t = ctx.currentTime, gap = MIN_GAP[id] || 0.02;
             if (lastAt[id] && t - lastAt[id] < gap) return;
             lastAt[id] = t;
-            if (SOUND_FILES[id] && sample(id, t)) return;
-            const fn = SYNTH[id];
+            const rec = RECORDED[id];
+            if (rec && recorded(rec(o || {}), t, o)) return;
+            const fn = SYNTH[id];                                // its recording is not here: the synth stands in
             if (fn) fn(ctx, sfxBus, t, o || {});
         },
         // sake: every effect from now on sounds woozy, until it wears off
@@ -485,18 +720,31 @@ export function createAudio() {
             if (!ctx) return;
             const t = ctx.currentTime;
             dry.gain.setTargetAtTime(drunk ? 0.3 : 1, t, 0.12); wet.gain.setTargetAtTime(drunk ? 0.95 : 0, t, 0.12);
-            if (musicBus) musicBus.gain.setTargetAtTime(on ? (drunk ? 0.38 : 0.5) : 0, t, 0.2);
+            if (WITH_MUSIC) musicBus.gain.setTargetAtTime(on ? (drunk ? 0.38 : 0.5) : 0, t, 0.2);
+            if (on && !fresh) ambBus.gain.setTargetAtTime(ambLevel(), t, 0.2);
+        },
+        // what is going on, for the beach: '' | 'frozen' (time stands still: it goes dull and distant) | 'fire' (it steps back under the roar)
+        setScene(s) {
+            if (s === scene) return;
+            scene = s;
+            if (!ctx || !on) return;
+            const t = ctx.currentTime;
+            ambLP.frequency.setTargetAtTime(s === 'frozen' ? 480 : 20000, t, s === 'frozen' ? 0.12 : 0.3);
+            if (!fresh) ambBus.gain.setTargetAtTime(ambLevel(), t, 0.25);
         },
         // a sound that lasts while something is true (fire, dizzy, freeze, drunk): call every frame
         loop(id, want) {
             const ok = on && ctx && ctx.state === 'running';
-            if (want && ok && !loops[id] && LOOPS[id]) loops[id] = LOOPS[id](ctx, sfxBus);
-            else if ((!want || !ok) && loops[id]) { loops[id](); delete loops[id]; }
+            if (want && ok && !loops[id]) {
+                const fl = FILE_LOOPS[id], P = fl && bank[fl[0]];
+                if (P && P.ready.length) loops[id] = fileLoop(P.ready[0], sfxBus, fl[1]);
+                else if (LOOPS[id]) loops[id] = LOOPS[id](ctx, sfxBus);
+            } else if ((!want || !ok) && loops[id]) { loops[id](); delete loops[id]; }
         },
         // the tab went away or came back
         pause(hidden) { if (!ctx) return; if (hidden) ctx.suspend().catch(() => {}); else if (on) ctx.resume().catch(() => {}); },
         // a touch while the sound is on: wake it if the phone put it to sleep (a call, the lock screen)
         wake() { if (on && ctx && ctx.state !== 'running') ctx.resume().catch(() => {}); },
-        destroy() { clearInterval(timer); on = false; if (ctx) ctx.close().catch(() => {}); ctx = null; }
+        destroy() { clearInterval(timer); stopLoops(); stopBeds(); on = false; if (ctx) ctx.close().catch(() => {}); ctx = null; }
     };
 }

@@ -1373,7 +1373,7 @@ export function mountFrogGame(stage, opts = {}) {
     const audio = createAudio();
     // Every sound is also noted in the run's log, whether or not the device is playing sound:
     // the rare ones as events, the constant ones (cuts, slashes...) as a count at the end.
-    const SND_COUNTED = { plop: 1, slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1 };
+    const SND_COUNTED = { plop: 1, slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1, flick: 1, cloth: 1, wheel: 1 };
     let sndCount = {};
     const snd = (id, o) => {
         sndCount[id] = (sndCount[id] || 0) + 1;
@@ -2155,6 +2155,7 @@ export function mountFrogGame(stage, opts = {}) {
                 c: [993 + tw[0] * td + f * k * (Q.size[0] / 2 - Q.mid), BREATH_ART.rigFeet + pose.up * RISE - (Q.lift || 0) + tw[1] * td + k * (Q.size[1] / 2 - Q.feet)] };
         }
         // a change of pose starts the in-between (only with ?morph=): from the picture last drawn (none: it was standing) to this one
+        if (key !== C.key && C.key !== undefined && phase === 'play') { if (key === 'teeter') snd('teeter'); else if (key !== 'fall') snd('cloth', { kind: !key || key === 'rise' ? 'rustle' : key === 'duck' ? 'crouch' : key === 'hop' ? 'hop' : 'snap' }); }
         if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && !reduced && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
         C.prev = cur;
         let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
@@ -3019,7 +3020,13 @@ export function mountFrogGame(stage, opts = {}) {
 
     // ---------- intro: toss the laptop, draw the katanas ----------
     const INTRO = reduced ? 0.6 : 2.6;
+    let introHeard = 0;
+    const INTRO_SND = reduced ? [[0.3, 'unsheathe']] : [[0.45, 'toss'], [1.0, 'cloth', { kind: 'rustle' }], [1.4, 'unsheathe'], [2.15, 'glint'], [2.2, 'cloth', { kind: 'crouch' }]];
     function intro(t) {
+        // (each sound once, as its moment passes)
+        if (t < introHeard) introHeard = 0;
+        for (const [at, id, o] of INTRO_SND) if (introHeard <= at && t > at) snd(id, o);
+        introHeard = t;
         introArtT = t;
         if (reduced) {
             const k = seg(t, 0, 0.6);
@@ -3575,7 +3582,7 @@ export function mountFrogGame(stage, opts = {}) {
             style = Math.min(STYLE_MAX, style + styleK * (0.5));
         } else { slices++;
         val(summon && cut === summon.cutId ? 'laptop' : cut === markCut ? 'clock' : f.src === 'crate' ? 'crate' : sakeLeft > 0 ? 'sake' : fxLeft > 0 ? 'sword' : 'base', gain);
-        snd('cut', { clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
+        snd('cut', { kind: f.type.kind, x: f.x / W, clean: hit.clean, chain, n: f.fam.cuts, size: sizeK(f.type), hacked: !!f.hacked });
         addToSalad(f.type, (bladeFx.fire && fxOn()) || summonFire || !!(f.char && f.char.length));
         log('cut', f.type.kind, hit.clean ? 1 : 0, f.fam.cuts, r2(gain), f.hacked ? 1 : 0);
         gainPop(f.x, f.y - f.r, gain, chain, hit.clean || chain > 0);
@@ -4378,6 +4385,7 @@ export function mountFrogGame(stage, opts = {}) {
     // the cartwheel: front or back at random, any angle, from the post toward the circle (a little off at random),
     // spinning the way the circle went (clockwise on screen = dir 1; the sprite is mirrored the other way)
     function startWheel(cx, cy, dir, key, rot) {
+        if (phase === 'play') snd('wheel');
         const fx = fbox.x + fbox.w * 993 / 1986, fy = fbox.y + fbox.h * (WHEEL_Y + pose.up * RISE) / 1876;
         let gx = cx - fx, gy = cy - fy; const gd = Math.hypot(gx, gy);
         if (gd < 1) { const a = Math.random() * 2 * Math.PI; gx = Math.cos(a); gy = Math.sin(a); } else { gx /= gd; gy /= gd; }
@@ -4577,7 +4585,7 @@ export function mountFrogGame(stage, opts = {}) {
                 // and start the next cut from that corner, towards where the blade is now
                 const id = cut.id, ad = cut.ad, cx = cut.ax, cy = cut.ay;
                 trail = trail.filter(p => p.cut !== id || p.d <= ad + 0.5);
-                endCut(); lx = cx; ly = cy; movePoint(x, y); return;
+                endCut(); lx = cx; ly = cy; if (phase === 'play') snd('flick'); movePoint(x, y); return;
             }
             cut.hx = hx; cut.hy = hy; cut.ax = x; cut.ay = y; cut.ad = cut.len + Math.hypot(x - lx, y - ly);
         }
@@ -5362,11 +5370,12 @@ export function mountFrogGame(stage, opts = {}) {
     let loadT = 0, loadN = 1, audioWas = '';
     const loadEl = $('.fg-load'), loadBar = loadEl.querySelector('b');
     function logAudio() { const a = audio.state(); if (a !== audioWas) { audioWas = a; log('audio', a); } }
+    let croaked = false;
     function stepLoad(dt) {
         loadT += dt;
         const t0 = performance.now();
         while (warmQ.length && performance.now() - t0 < 8) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }
-        const soundOk = !audio.isOn() || audio.ready() || loadT > LOAD_MAX;
+        const soundOk = !audio.isOn() || (audio.ready() && audio.loaded()) || loadT > LOAD_MAX;
         const k = Math.min(1 - warmQ.length / loadN, soundOk ? 1 : Math.min(0.9, loadT / LOAD_MAX));
         if (loadT > LOAD_SHOW) { loadEl.hidden = false; loadBar.style.width = Math.round(k * 100) + '%'; }     // too quick to see: no bar at all
         if (!warmQ.length && soundOk) {
@@ -5440,15 +5449,16 @@ export function mountFrogGame(stage, opts = {}) {
         dropped.forEach(k => {
             if (k.stuck) { k.stuck += dt; return; }
             k.vy += H * 2.4 * dt; k.y += k.vy * dt; k.x += (k.tx - k.x) * Math.min(1, dt * 5); k.rot += (0 - k.rot) * Math.min(1, dt * 7) + (Math.abs(k.rot) > 0.2 ? dt * 14 * Math.sign(k.rot) : 0);
-            if (k.vy > 0 && k.y >= k.ty) { k.y = k.ty; k.x = k.tx; k.rot = 0; k.stuck = 0.0001; snd('bounce'); }
+            if (k.vy > 0 && k.y >= k.ty) { k.y = k.ty; k.x = k.tx; k.rot = 0; k.stuck = 0.0001; snd('stick'); }
         });
         if (overT <= 0) return;
         overT += dt;
         pose.artCut = 'fall';         // the picked fall stands in for the whole of it: the beat of shock, the topple, the drop
         // a beat of shock (held), then it tips backwards and drops
         const t = overT - (pose.slip ? 0.1 : 0.25);
-        if (t <= 0) { if (!pose.slip) pose.squash = -0.5; pose.lRot = 150; pose.rRot = -150; pose.lookY = -20; }
+        if (t <= 0) { if (!pose.slip) pose.squash = -0.5; pose.lRot = 150; pose.rRot = -150; pose.lookY = -20; croaked = false; }
         else {
+            if (!croaked) { croaked = true; snd('croak'); }
             pose.squash = 0;
             pose.fallRot = pose.slip ? Math.min(170, t * 360) : -Math.min(170, t * 300);                // backwards, heels over head, behind the post (slipping: over sideways, toward the lifted leg)
             pose.fallY = 2600 * t * t;                           // logo px: off the post and down
@@ -5534,7 +5544,8 @@ export function mountFrogGame(stage, opts = {}) {
         }
     }
     $('.fg-again').addEventListener('click', () => { snd('ui'); setPause(false); showTips(-1); start(); });
-    window.addEventListener('keydown', e => { if (e.key === 'Escape' && !e.repeat && (paused || (phase === 'play' && !dbg))) { e.preventDefault(); setPause(!paused); } });
+    const onEsc = e => { if (e.key === 'Escape' && !e.repeat && (paused || (phase === 'play' && !dbg))) { e.preventDefault(); setPause(!paused); } };
+    window.addEventListener('keydown', onEsc);
     function onKey(e) {
         // start screen and game over: any key plays (on game over after a beat, so a key still held doesn't)
         if (paused || (phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
@@ -5551,6 +5562,7 @@ export function mountFrogGame(stage, opts = {}) {
     if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
 
     // ---------- sound toggle ----------
+    let soundOff = () => {};       // takes its window listeners away again
     (function soundToggle() {
         const pill = $('.fg-sound-pill');
         const show = on => { pill.classList.toggle('fg-sound-off', !on); pill.setAttribute('aria-pressed', on ? 'true' : 'false'); pill.title = on ? 'Sound on' : 'Sound off'; };
@@ -5562,12 +5574,15 @@ export function mountFrogGame(stage, opts = {}) {
         // A phone only lets sound start from a finished touch or a click, not from the finger
         // going down: so the sound is woken on those (and on the press, for desktops).
         const ACT = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
-        ACT.forEach(ev => window.addEventListener(ev, () => audio.wake(), true));
+        const wake = () => audio.wake();
+        ACT.forEach(ev => window.addEventListener(ev, wake, true));
+        soundOff = () => ACT.forEach(ev => window.removeEventListener(ev, wake, true));
         // it was on last time: browsers only start sound from a click or a tap, so wait for the first one
         if (store.get(SOUND_KEY) === 1) {
-            show(true);
+            show(true); audio.preload();
             const first = () => { ACT.forEach(ev => window.removeEventListener(ev, first, true)); audio.setOn(true); };
             ACT.slice(1).forEach(ev => window.addEventListener(ev, first, true));
+            const off = soundOff; soundOff = () => { off(); ACT.forEach(ev => window.removeEventListener(ev, first, true)); };
         }
     })();
 
@@ -5575,7 +5590,7 @@ export function mountFrogGame(stage, opts = {}) {
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
         const show = () => { pill.classList.toggle('fg-num-off', !showNums); stage.classList.toggle('fg-nonums', !showNums); pill.title = showNums ? 'Numbers and words shown' : 'Numbers and words hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
-        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });      // (off: only the combo's name is still shown, in the meter and when a step is reached)
+        pill.addEventListener('click', () => { snd('ui'); showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });      // (off: only the combo's name is still shown, in the meter and when a step is reached)
         show();
     })();
 
@@ -5592,6 +5607,7 @@ export function mountFrogGame(stage, opts = {}) {
         const isOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
         const show = () => { pill.textContent = isOn() ? 'Exit full screen' : 'Full screen'; };
         pill.addEventListener('click', () => {
+            snd('ui');
             if (isOn()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
             else { const p = can.call(root); if (p && p.catch) p.catch(() => {}); }
         });
@@ -5810,6 +5826,7 @@ export function mountFrogGame(stage, opts = {}) {
     // script can play the game in its own headless browser and look at it. Only there: a browser
     // driven by automation says so (navigator.webdriver), and such runs go to the AI agents' board.
     if (navigator.webdriver) window.frogPlay = {
+        audio, snd,          // (the sound, for sound_test.py)
         state() {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
@@ -6372,6 +6389,7 @@ export function mountFrogGame(stage, opts = {}) {
         audio.loop('dizzy', live && stunT > 0);
         audio.loop('freeze', live && (freezeLeft > 0 || markQueue.length > 0));
         audio.loop('drunk', live && sakeLeft > 0);
+        audio.setScene(live && (freezeLeft > 0 || markQueue.length > 0) ? 'frozen' : live && fireLeft > 0 ? 'fire' : '');
         if (dbg && live) {
             const busy = fruits.length || pieces.length || pickups.length || flies.length || crates.length || rockets.length || punch || tongue || markQueue.length || summon
                 || sakeLeft > 0 || fireLeft > 0 || freezeLeft > 0 || fwLeft > 0 || fxLeft > 0 || stunT > 0;
@@ -6961,7 +6979,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
 
     function destroy() {
-        dead = true; cancelAnimationFrame(raf); ro.disconnect(); audio.destroy();
+        dead = true; cancelAnimationFrame(raf); ro.disconnect(); audio.destroy(); soundOff(); window.removeEventListener('keydown', onEsc);
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('blur', onBlur);
