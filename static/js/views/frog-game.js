@@ -305,11 +305,11 @@ const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UN
 // for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
 const TWITCH = 46, TWITCH_HOLD = 16;
 // Between two poses (Marek, 2026-11-22: 'a super brief, cartoon-style morphing playing entirely on blending and motion blur, like in old cartoons ...
-// without it feeling stroboscopic'): five styles to try, ?morph=1..5 (none without it: the poses swap at once, as before), ?morphms= its length.
+// without it feeling stroboscopic'): five styles, the stretch (2) is the game's; ?morph=1..5 plays another, ?morph=0 none (the poses swap at once), ?morphms= its length.
 // Each is a function of p (0..1 through the change) giving the outgoing pose ('out') and the incoming one ('in'): op opacity, blur (rig units, along
 // the line from the old pose's middle to the new one's), sx stretch along that line, go how far along it (a share of the way: the old pose runs ahead,
 // the new one catches up), flat: across the screen instead of along the line; echo: fainter copies of the new pose trailing behind it.
-const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [])[1] || 0;
+const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [0, 2])[1];      // (Marek, 2026-11-23: 'let's ship stretch': 2 unless the address says otherwise; ?morph=0: none)
 const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 120;
 const MORPH_FX = {
     1: p => ({ out: { op: 1 - p, blur: 200 * p, go: 0.5 * p }, in: { op: p, blur: 200 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
@@ -2152,7 +2152,7 @@ export function mountFrogGame(stage, opts = {}) {
                 c: [993 + tw[0] * td + f * k * (Q.size[0] / 2 - Q.mid), BREATH_ART.rigFeet + pose.up * RISE - (Q.lift || 0) + tw[1] * td + k * (Q.size[1] / 2 - Q.feet)] };
         }
         // a change of pose starts the in-between (only with ?morph=): from the picture last drawn (none: it was standing) to this one
-        if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
+        if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && !reduced && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
         C.prev = cur;
         let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
         if (m && !on && (artWheelOn() || artBreathOn() || pose.fallY || pose.chop || pose.up <= 0.5)) m = C.m = null;      // (not back to standing but into a cartwheel, a breath, a fall: those are their own pictures, no blend)
