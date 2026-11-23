@@ -299,7 +299,10 @@ const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], 
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
 const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true };
-const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART };
+// the fall (Marek's pick 2026-11-22, 'put the open mouth for now'): game over, arms thrown up, mouth open. It sits in the frog's own group, so the
+// topple and the drop that turned the drawn frog over (pose.fallRot, pose.fallY) turn and drop this picture. No katanas in it: they fall on their own.
+const FALL_ART = { url: '/img/game/frog/fall.1ad4941ca5.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true };
+const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
 // The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
 // for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
@@ -2106,7 +2109,7 @@ export function mountFrogGame(stage, opts = {}) {
     const breathFlip = () => (aim && aim.x < W / 2 - 4) ? -1 : 1;
     function artBreathOn() { return !!(artBreath && artBreath.ready && fireLeft > 0 && (phase === 'play' || dbg) && pose.up > 0.5 && !pose.fallY && !pose.shut); }
     // A level cut (no power-up): the picked side cut frog in place of the drawn profile, mirrored for a cut to the left
-    function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && (pose.side || CUT_POSES[pose.artCut].front) && pose.up > 0.5 && !pose.fallY && !pose.chop && !artBreathOn()); }
+    function artCutOn() { return !!(artCut && artCut.ready && !artWheelOn() && CUT_POSES[pose.artCut] && (pose.side || CUT_POSES[pose.artCut].front) && pose.up > 0.5 && (!pose.fallY || pose.artCut === 'fall') && !pose.chop && !artBreathOn()); }
     // one layer of the cut art: which picture, where (tf), and how the change between two poses treats it (o: see MORPH_FX; c: its middle)
     function fxLayer(L, key, tf, c, o) {
         if (!key || !o) { if (L.shown) { setA(L.imgs[L.shown], 'display', 'none'); L.shown = ''; } return; }
@@ -5441,6 +5444,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
         if (overT <= 0) return;
         overT += dt;
+        pose.artCut = 'fall';         // the picked fall stands in for the whole of it: the beat of shock, the topple, the drop
         // a beat of shock (held), then it tips backwards and drops
         const t = overT - (pose.slip ? 0.1 : 0.25);
         if (t <= 0) { if (!pose.slip) pose.squash = -0.5; pose.lRot = 150; pose.rRot = -150; pose.lookY = -20; }
@@ -6894,6 +6898,7 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'time freeze', anim: 'time freeze', at: 0.3, seated: true },
             { name: 'clock planning', anim: 'clock: planning, points up-right', at: 0.3, seated: true },
             { name: 'teeter', anim: 'under five seconds (losing its footing, going over backward)', at: 0.5 },
+            { name: 'fall', anim: 'time up: slips off one foot', at: 0.6, air: true },
             { name: 'team called', anim: 'laptop: the team is called', at: 2.5, seated: true },
             { name: 'seagull pecks', anim: 'seagull pecks the head', at: 0.8 },
         ];
