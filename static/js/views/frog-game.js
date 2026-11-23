@@ -780,9 +780,9 @@ function drawCrown(ctx, leaves, r, lw, col) {
 }
 const FRUIT_BAG = FRUITS.flatMap(f => Array(f.w).fill(f));
 const APPLE = FRUITS.find(f => f.kind === 'apple');   // a power-up burned by the fire breath counts as one
-// A roast chicken (a seagull that fire has had) that a blade finds is on the board from then on: it is cut,
+// The fried chicken (what a seagull drops when fire has had it; 'roast' in older names and logs) that a blade finds is on the board from then on: it is cut,
 // cut again, cooked and paid for by the rules of an apple. It is never thrown and never goes in the salad.
-const CHICKEN = { kind: 'chicken', pay: 'apple', r: APPLE.r, skin: '#c8742a', flesh: '#f6e3c5', ring: '#e0a45a', juice: '#e8b877', w: 0 };
+const CHICKEN = { kind: 'chicken', pay: 'apple', r: APPLE.r, skin: '#d9902f', flesh: '#fbf1df', ring: '#eec06a', juice: '#f2c56b', w: 0 };      // (batter, white meat, the crumb under the batter, crumbs)
 
 function drawWhole(ctx, f, r, lw) {
     const t = f.type;
@@ -799,7 +799,7 @@ function drawWhole(ctx, f, r, lw) {
         pathPoly(ctx, bananaPoly(r)); ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.stroke();
         return;
     }
-    if (t.kind === 'chicken') { drawRoast(ctx, r, lw); return; }       // a roast chicken on the board (see CHICKEN)
+    if (t.kind === 'chicken') { drawFried(ctx, r, lw); return; }       // a roast chicken on the board (see CHICKEN)
     if (t.kind === 'pineapple' && !f.bare) drawCrown(ctx, f.crown || crownLeaves(r), r, lw);   // behind the body (bare: a flame has had its leaves)
     ctx.save();
     if (t.kind === 'pineapple') ctx.scale(PINE_X, PINE_Y);
@@ -842,7 +842,7 @@ function drawWhole(ctx, f, r, lw) {
 function drawFace(ctx, t, r) {
     if (t.kind === 'grapes') { drawGrapes(ctx, r, Math.max(1.2, r * 0.06)); return; }
     if (t.kind === 'banana') { drawBanana(ctx, t, r); return; }     // the peel; drawPiece adds the pale flesh along the cut
-    if (t.kind === 'chicken') {      // carved: browned skin, white meat, the bone in the middle
+    if (t.kind === 'chicken') {      // carved: batter, white meat, the bone in the middle
         const oval = (rx, ry, col) => { ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.fillStyle = col; ctx.fill(); };
         oval(r * 0.92, r * 0.58, t.skin); oval(r * 0.82, r * 0.48, t.ring); oval(r * 0.76, r * 0.42, t.flesh); oval(r * 0.1, r * 0.1, '#fffaf0');
         ctx.strokeStyle = '#8a4a17'; ctx.lineWidth = Math.max(1, r * 0.04); ctx.beginPath(); ctx.arc(0, 0, r * 0.1, 0, 7); ctx.stroke();
@@ -1190,7 +1190,7 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
-// A seagull, facing right, about r across the body. o: flap (-1..1), out (fainted), burnt
+// A seagull, facing right, about r across the body. o: flap (-1..1), out (fainted), burnt, loot (the fried chicken in its claws),
 // (sooty, wide-eyed), open (beak), t (for the blink), head: 'down' (bent to peck) | 'yell'
 // (thrust forward and down), up (on its back, feet in the air). Every pose is drawn as it is:
 // the drawing is never turned to fake one.
@@ -1199,6 +1199,8 @@ function drawGull(ctx, r, lw, o = {}) {
     ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#000';
     // tail
     ctx.fillStyle = wing; ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.1); ctx.lineTo(-r * 1.25, -r * 0.24); ctx.lineTo(-r * 1.15, r * 0.14); ctx.lineTo(-r * 0.6, r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
+    // its loot, in its claws (above it when it is on its back)
+    if (o.loot) { ctx.save(); ctx.translate(r * 0.04, o.up ? -r * 1.02 : r * 0.94); ctx.rotate(o.up ? 0.2 : -0.15); drawFried(ctx, r * 0.5, lw); ctx.restore(); }
     // feet (in the air when it is on its back)
     ctx.strokeStyle = '#ef6c00'; ctx.lineWidth = Math.max(2, lw * 1.3);
     [[-0.15, -0.28], [0.18, 0.1]].forEach(([a, b]) => { ctx.beginPath(); if (o.up) { ctx.moveTo(r * a, -r * 0.38); ctx.lineTo(r * a, -r * 0.72); ctx.lineTo(r * (a + 0.16), -r * 0.8); } else { ctx.moveTo(r * a, r * 0.38); ctx.lineTo(r * b, r * 0.66); ctx.lineTo(r * (b + 0.16), r * 0.66); } ctx.stroke(); });
@@ -1209,6 +1211,21 @@ function drawGull(ctx, r, lw, o = {}) {
     ctx.beginPath(); ctx.ellipse(0, 0, r * 0.85, r * 0.48, 0, 0, 7); ctx.fill(); ctx.stroke();
     ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.fill(); ctx.stroke();
     if (o.burnt) { [-0.5, 0, 0.5].forEach(a => { ctx.beginPath(); ctx.moveTo(r * (hx + a * 0.3), r * (hy - 0.34)); ctx.lineTo(r * (hx + a * 0.55), r * (hy - 0.6)); ctx.stroke(); }); }   // frazzled feathers
+    // the headband: it is a ninja too, the frog's opposite number (what it does to the frog is turn left into right): the frog's is
+    // red, this one indigo. A straight band across the brow, knotted at the back, two tails flying (a band over the crown read as a comb).
+    {
+        const kx = r * (hx - 0.33), ky = r * (hy - 0.2), w = Math.max(2.5, r * 0.1), fl = (o.flap || 0) * r * 0.08;
+        const band = (width, col) => {
+            ctx.lineWidth = width; ctx.strokeStyle = col;
+            ctx.save(); ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.clip();
+            ctx.beginPath(); ctx.moveTo(r * (hx - 0.45), r * (hy - 0.19)); ctx.lineTo(r * (hx + 0.45), r * (hy - 0.31)); ctx.stroke(); ctx.restore();      // (above the eye)
+            ctx.beginPath(); ctx.moveTo(kx, ky); ctx.quadraticCurveTo(kx - r * 0.2, ky - r * 0.16 + fl, kx - r * 0.46, ky - r * 0.08 - fl); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(kx, ky); ctx.quadraticCurveTo(kx - r * 0.18, ky + r * 0.08 - fl, kx - r * 0.4, ky + r * 0.16 + fl); ctx.stroke();
+        };
+        band(w + lw * 2, '#000'); band(w, o.burnt ? '#7986cb' : '#3949ab');
+        ctx.lineWidth = lw; ctx.strokeStyle = '#000';
+        ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.stroke();      // (the head's outline again, over the band's ends)
+    }
     // beak, pointing along ba (0 = ahead, towards 1.5 = straight down)
     const bc = Math.cos(ba), bs = Math.sin(ba), bp = (along, side) => [r * (hx + bc * along - bs * side), r * (hy + bs * along + bc * side)];
     const tri = (a, b, c) => { ctx.beginPath(); ctx.moveTo(...a); ctx.lineTo(...b); ctx.lineTo(...c); ctx.closePath(); ctx.fill(); ctx.stroke(); };
@@ -1236,20 +1253,25 @@ function drawGull(ctx, r, lw, o = {}) {
     ctx.fillStyle = '#263238'; ctx.beginPath(); ctx.moveTo(-r * 1.1, -r * 0.3); ctx.quadraticCurveTo(-r * 0.9, -r * 0.4, -r * 0.75, -r * 0.36); ctx.lineTo(-r * 0.78, -r * 0.12); ctx.closePath(); ctx.fill(); ctx.stroke();   // black tip
     ctx.restore();
 }
-// what fire makes of a seagull: a roast chicken, golden, drumsticks in the air
-function drawRoast(ctx, r, lw) {
-    ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.lineWidth = lw; ctx.strokeStyle = '#000';
-    [-1, 1].forEach(sd => {        // the drumsticks: a fat thigh, a bone, a knuckle
-        ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(5, r * 0.2) + lw * 2; ctx.beginPath(); ctx.moveTo(sd * r * 0.5, -r * 0.2); ctx.lineTo(sd * r * 0.72, -r * 0.78); ctx.stroke();
-        ctx.strokeStyle = '#fff3e0'; ctx.lineWidth = Math.max(5, r * 0.2); ctx.beginPath(); ctx.moveTo(sd * r * 0.5, -r * 0.2); ctx.lineTo(sd * r * 0.72, -r * 0.78); ctx.stroke();
-        ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = '#fff3e0'; ctx.beginPath(); ctx.arc(sd * r * 0.74, -r * 0.84, r * 0.15, 0, 7); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = '#c8742a'; ctx.beginPath(); ctx.ellipse(sd * r * 0.48, -r * 0.2, r * 0.3, r * 0.36, sd * 0.35, 0, 7); ctx.fill(); ctx.stroke();
-    });
-    ctx.fillStyle = '#d98a2b'; ctx.beginPath(); ctx.ellipse(0, r * 0.12, r * 0.92, r * 0.52, 0, 0, 7); ctx.fill(); ctx.stroke();      // the body
-    ctx.fillStyle = '#c8742a'; ctx.beginPath(); ctx.ellipse(0, r * 0.3, r * 0.7, r * 0.26, 0, 0, Math.PI); ctx.fill();               // darker underneath
-    ctx.strokeStyle = '#8a4a17'; ctx.lineWidth = Math.max(1.5, lw * 0.8);
-    [-0.35, 0, 0.35].forEach(o => { ctx.beginPath(); ctx.moveTo(r * (o - 0.12), r * 0.22); ctx.lineTo(r * (o + 0.12), -r * 0.08); ctx.stroke(); });   // grill lines
-    ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = Math.max(2, r * 0.07); ctx.beginPath(); ctx.arc(-r * 0.35, r * 0.02, r * 0.3, Math.PI * 1.05, Math.PI * 1.45); ctx.stroke();   // the glaze
+// The seagull's loot: a big piece of fried chicken, stolen from the party (Marek, 2026-11-23: the gull drops its
+// lunch, it does not become it). Craggy amber batter, a bone out of one end; the same oval the blade cuts (fruitPoly).
+function drawFried(ctx, r, lw) {
+    ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    // the bone: a shaft and a two-knobbed end
+    ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(4, r * 0.16) + lw * 2; ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.16, -r * 0.4); ctx.stroke();
+    ctx.strokeStyle = '#fff3e0'; ctx.lineWidth = Math.max(4, r * 0.16); ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.16, -r * 0.4); ctx.stroke();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = '#fff3e0';
+    [[1.2, -0.5], [1.26, -0.34]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(r * x, r * y, r * 0.11, 0, 7); ctx.fill(); ctx.stroke(); });
+    // the batter: a lumpy outline, never a clean oval
+    ctx.fillStyle = '#e2a03a'; ctx.beginPath();
+    for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, b = 1 + 0.08 * Math.sin(k * 2.4 + 1) + 0.05 * Math.sin(k * 5.1); ctx.lineTo(Math.cos(a) * r * 0.92 * b, r * 0.04 + Math.sin(a) * r * 0.55 * b); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#c47a22'; ctx.beginPath(); ctx.ellipse(0, r * 0.26, r * 0.66, r * 0.22, 0, 0, Math.PI); ctx.fill();               // darker underneath
+    ctx.strokeStyle = '#9a5a16'; ctx.lineWidth = Math.max(1.5, lw * 0.8);
+    [[-0.5, -0.06], [-0.14, 0.18], [0.24, -0.12], [0.5, 0.16], [-0.02, -0.26]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(r * x, r * y, r * 0.12, 0.3, 2.3); ctx.stroke(); });   // crags
+    ctx.fillStyle = '#f6cf7a';
+    [[-0.36, -0.22], [0.1, 0.04], [0.42, -0.22], [-0.62, 0.1], [0.62, 0]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(r * x, r * y, r * 0.045, 0, 7); ctx.fill(); });               // crumbs
+    ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineWidth = Math.max(2, r * 0.06); ctx.beginPath(); ctx.arc(-r * 0.35, r * 0.02, r * 0.3, Math.PI * 1.05, Math.PI * 1.4); ctx.stroke();
 }
 function drawPickup(ctx, b, lw) {
     if (b.kind === 'clock') drawClock(ctx, b, lw);
@@ -1448,11 +1470,11 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><canvas data-icon="laptop"></canvas><div><b>Laptop (very rare)</b><span>Tongue it: time stops and three friends slash everything on screen, twice. Crates too. Fireflies, sake and clocks they cut go into their blades. Slash, burn or blast it: a blue cloud for 3 s that turns what enters it digital and copies it once.</span></div></div>
                         <div class="fg-row"><canvas data-icon="fireworks"></canvas><div><b>Fireworks (rare)</b><span>Slash them: 3 s of blasts. Tongue them: the frog spits 10 big ones. Blasted fruit pays 50% more. Fire lights them too.</span></div></div>
                         <div class="fg-row"><canvas data-icon="crate"></canvas><div><b>Fruit crate (rare)</b><span>Slash it open, or grab it with the tongue and the frog punches it open: 10 fruit burst out.</span></div></div>
-                        <div class="fg-row"><canvas data-icon="gull"></canvas><div><b>Seagull (rare)</b><span>Leave it alone. Slash or tongue it bare and it attacks: for 2 s left is right. With any boost on, it faints: an apple's worth.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="gull"></canvas><div><b>Seagull (rare)</b><span>Leave it alone. Slash or tongue it bare and it attacks: for 2 s left is right. With any boost on, it faints: an apple's worth. Fire makes it drop its fried chicken: cut it.</span></div></div>
                     </div>
                     <div class="fg-tip" data-page="combo" hidden>
                         <p class="fg-tip-lead">Power-ups combine. Try these.</p>
-                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s, and copies digital things held in it, roast chicken too (cut one for full seagull time). Firefly: fruit cooks faster, and a hacking flame copies 30% faster. Each stacks up to 10 and adds 1 s.</span></div></div>
+                        <div class="fg-row"><canvas data-icon="fly"></canvas><div><b>Fire breath burns a...</b><span>Sake: a wider flame. Clock: it hacks what it touches, which floats for 5 s, and copies digital things held in it, the seagull's fried chicken too (cut one for full seagull time). Firefly: fruit cooks faster, and a hacking flame copies 30% faster. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="sake"></canvas><div><b>On sake, slash a...</b><span>Firefly: fire blade, wide, cooks fruit. Clock: chronoblade, its trace stays and cuts. Sake: bubbles, cuts pay 10% more. Each stacks up to 10 and adds 1 s.</span></div></div>
                         <div class="fg-row"><canvas data-icon="clock"></canvas><div><b>In slow motion, mark...</b><span>Power-ups, crates and cut pieces too. Everything is cut twice, crosswise, as one slash. A marked firefly or sake stays on your sword for 5 s, and each marked sake is half a sake once time flows again.</span></div></div>
                     </div>
@@ -3361,17 +3383,33 @@ export function mountFrogGame(stage, opts = {}) {
         if (g.state === 'fly') {
             // out cold: it drops into the sea, on its back, or as a roast chicken if fire did it
             g.state = 'faint'; g.hacked = false; g.burnt = roast; g.vx = g.dir * g.speed * 0.4; g.vy = -H * 0.35; g.spin = g.dir * rand(3, 6); g.mark = 0;
+            if (roast) dropLoot(g);
             snd('gull_faint');
         } else {
             g.hacked = false;                                  // (a digital roast chicken: the hit knocks the digits off)
-            g.vy = Math.min(g.vy, -FH() * 0.34); g.vx = clamp(g.vx * 0.6 + rand(-0.08, 0.08) * W, -W * 0.2, W * 0.2); if (roast) g.burnt = true;     // knocked up again on its way down
+            g.vy = Math.min(g.vy, -FH() * 0.34); g.vx = clamp(g.vx * 0.6 + rand(-0.08, 0.08) * W, -W * 0.2, W * 0.2); if (roast && !g.burnt) { g.burnt = true; dropLoot(g); }     // knocked up again on its way down
             if (g.x < g.r * 2) g.vx = Math.abs(g.vx); else if (g.x > W - g.r * 2) g.vx = -Math.abs(g.vx);      // (and kept on the screen)
             if (g.hits === 2) floats.push({ x: g.x, y: g.y - g.r - 30, text: 'Got damn seagulls!', t: 0, hot: true });     // the second hit on one that is already out
         }
         feathers(g.x, g.y, g.r, 6, '#fafafa');
         hud();
     }
+    // Fire does not cook the seagull: it lets go of its fried chicken and goes into the sea covered in soot, out cold
+    // (never hurt beyond that). From then on the thing in play (g, burnt) is the chicken, by the rules it always had.
+    let sooty = [];
+    function dropLoot(g) {
+        sooty.push({ x: g.x - g.dir * g.r * 0.4, y: g.y - g.r * 0.9, vx: -g.dir * W * rand(0.2, 0.3), vy: -H * rand(0.42, 0.55), rot: 0, spin: -g.dir * rand(4, 7), r: g.r, dir: g.dir, t: 0 });
+        feathers(g.x, g.y, g.r, 8, '#3b3632');
+    }
+    function stepSooty(wdt) {
+        for (let i = sooty.length - 1; i >= 0; i--) {
+            const q = sooty[i]; q.t += wdt; q.vy += G() * 0.8 * wdt; q.x += q.vx * wdt; q.y += q.vy * wdt; q.rot += q.spin * wdt;
+            if (Math.random() < 10 * wdt) bit(q.x, q.y - q.r * 0.3, ctx => { ctx.fillStyle = 'rgba(40,36,32,.45)'; ctx.beginPath(); ctx.arc(0, 0, q.r * 0.2, 0, 7); ctx.fill(); }, { vx: rand(-20, 20), vy: -H * 0.06, g: -H * 0.05, spin: 0, life: 0.6 });     // a trail of smoke
+            if (q.y > seaY()) { sooty.splice(i, 1); ripples.push({ x: q.x, y: seaY(), r: q.r, t: 0 }); snd('plop'); }
+        }
+    }
     function stepGulls(dt, wdt, floating) {
+        stepSooty(wdt);
         gulls.forEach(g => {
             g.t += wdt;
             if (floating(g)) return;                           // digital (a hacked gull, or a hacked roast chicken): it hangs there
@@ -5402,7 +5440,7 @@ export function mountFrogGame(stage, opts = {}) {
         ['clock', 'sake', 'fireworks', 'laptop'].forEach(kind => on(() => drawPickup(c, { kind, x: 0, y: 0, r: 30, rot: 0, t: 0 }, lw)));
         on(() => drawFly(c, { x: 0, y: 0, dir: 1, phase: 0 }, 9, 0.2));
         on(() => drawCrate(c, 40, lw));
-        on(() => { drawGull(c, 40, lw, {}); drawRoast(c, 40, lw); });
+        on(() => { drawGull(c, 40, lw, {}); drawFried(c, 40, lw); });
         on(() => { c.font = '700 28px Fredoka, Inter, Arial Black, sans-serif'; c.lineWidth = 5; c.strokeText('+0.45s x3', 0, 0); c.fillText('+0.45s x3', 0, 0); glow(c, 0, 0, 60, '129,212,250', 0.5); });
     }
     function start() {
@@ -5417,7 +5455,7 @@ export function mountFrogGame(stage, opts = {}) {
         pickT = { sake: rand(10, 16), clock: rand(16, 24) };
         laptopNext = rand(...LAPTOP_FIRST); summon = null;
         fwLeft = 0; fwShots = 0; fwTint = ''; fwNext = rand(...FW_FIRST); rockets = []; sparks = []; blasts = [];
-        gulls = []; gullOn = null; mirrorT = 0; gullCool = 0; gullT = rand(...GULL_FIRST);
+        gulls = []; sooty = []; gullOn = null; mirrorT = 0; gullCool = 0; gullT = rand(...GULL_FIRST);
         crates = []; planks = []; clouds = []; crateT = rand(...CRATE_FIRST); punch = null; bubbles = []; warps = []; clearBladeFx(); fireTint = ''; fireWide = 0; fireSlow = 0; fireFry = 0; fireFw = false;
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null; headFx = null; bumps = null;
@@ -6640,12 +6678,13 @@ export function mountFrogGame(stage, opts = {}) {
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         gulls.forEach(g => {
             if (g.mark) glow(ctx, g.x, g.y, g.r * 2, '129,212,250', 0.75);
-            if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t }); else drawRoast(c, g.r, lw); })); return; }
+            if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t, loot: true }); else drawFried(c, g.r, lw); })); return; }
             ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.dir, 1);
-            if (g.state !== 'fly' && g.burnt) drawRoast(ctx, g.r, lw);            // grilled: a roast chicken
-            else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air
+            if (g.state !== 'fly' && g.burnt) drawFried(ctx, g.r, lw);            // what fire leaves in play: the fried chicken it dropped
+            else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast, loot: !g.fast } : { out: true, up: true, flap: 0.5, t: g.t, loot: true });     // fainted: on its back, feet in the air, lunch still in its claws
             ctx.restore();
         });
+        sooty.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.scale(q.dir, 1); drawGull(ctx, q.r, lw, { out: true, burnt: true, flap: 0.6, t: q.t }); ctx.restore(); });     // the gull itself, sooty, on its way to the sea
         pieces.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); if (q.ds && q.ds !== 1) ctx.scale(q.ds, q.ds); if (q.pop > 0) { const ps = 1 + 0.3 * q.pop / FIRE_POP; ctx.scale(ps, ps); } ctx.rotate(q.rot); if (q.hacked) drawHacked(ctx, q, tn); else stampPiece(q, lw); ctx.restore(); });
         // sake: the frog sees triple (eases in and out with the sake)
         const drunk = phase === 'play' && sakeLeft > 0 ? clamp(Math.min((SAKE_SECONDS - sakeLeft) / 0.3, sakeLeft / 0.5), 0, 1) : 0;

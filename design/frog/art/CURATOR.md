@@ -290,7 +290,7 @@ unless the state says otherwise (the "unless" column). Sources: `STYLE.md`, `SPE
 | Alarm clock | an alarm clock (bells, hands, face) with a glow; it brings a blue time freeze |
 | Fireworks bundle | five rockets, each a different rainbow colour, with a lit fuse |
 | Fruit crate | a square wooden crate; it breaks into planks and splinters |
-| Seagull | a white seagull with an angry brow; fainted: X eyes, tongue out; roasted: sooty, frazzled; never hurt beyond cartoon soot, never in pieces |
+| Seagull | a white seagull with an angry brow and an indigo ninja headband (two tails), a piece of fried chicken in its claws, which it drops when fire hits it; fainted: X eyes, tongue out; roasted: sooty, frazzled; never hurt beyond cartoon soot, never in pieces |
 | Fruit | 8 kinds: watermelon (as big as the frog's head), pineapple, grapes, orange, apple, banana, kiwi, plum, each 20% smaller than the one before; a cut piece shows its skin and a cross-section, never all flesh; grapes part along the bunch, a berry is never cut |
 | Salad bowls | white bowls filling with fruit, floating on the sea (since 2026-11-18) |
 

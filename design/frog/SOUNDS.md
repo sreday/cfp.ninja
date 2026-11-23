@@ -121,6 +121,7 @@ because it sits on the effects bus, not in each sound.
 | `empty` | a slash is refused, no stamina | a dull, low, breathless swipe | a tired grunt and a weak swipe |
 | `gull` | a seagull arrives, attacks, and keeps on at the frog | two harsh falling calls | a real herring gull's cry, close |
 | `gull_peck` | it pecks the frog's head | a short knock | a woodpecker-fast knock on something hollow |
+| `plop` | the sooty gull that dropped its fried chicken reaches the sea | as `plop` | a plop |
 | `gull_faint` | it is knocked out and falls | a cut-off squawk, then a long whistle down | a strangled squawk and a slide whistle |
 | `cut` | a fruit or piece is cut | four layers: the blade biting the skin (a tick), the thock of the flesh (deeper and longer for bigger fruit), a wet squelch, a drip. Lower for each re-cut of the same fruit | a juicy slice per fruit kind: watermelon crunch, pineapple crackle, citrus spray, apple snap, soft kiwi, small plum pop, a run of grape pops, a soft banana thud |
 | `cut` (clean) | the cut went through the middle | adds a steel ring, climbing in pitch with each fruit in the same slash | a bright "shing" |
