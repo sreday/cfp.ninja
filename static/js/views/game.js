@@ -134,7 +134,7 @@ export function GameView() {
                 ${notchLogin()}
             </div>
             <div id="game-stage"></div>
-            <div class="game-board-screen" id="game-board-screen" hidden>
+            <div class="game-board-screen" id="game-board-screen" data-snd="close" hidden>
                 <div class="game-board-inner">
                     <div class="game-board-head">
                         <div>
@@ -145,7 +145,7 @@ export function GameView() {
                                 <button type="button" class="btn btn-sm btn-outline-secondary game-tab" data-board="agents" aria-pressed="false">AI agents</button>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-primary game-board-close">Back to the game</button>
+                        <button type="button" class="btn btn-primary game-board-close" data-snd="close">Back to the game</button>
                     </div>
                     <ol class="game-podium" id="game-podium" hidden></ol>
                     <ol class="game-board" id="game-board"><li class="game-empty text-muted">Loading...</li></ol>

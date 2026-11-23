@@ -31,6 +31,7 @@ SR = 44100
 
 # how each pool is treated. kind: shot (default) | loop | bed | detail.  max = longest a variant may be (s);
 # gap = silence that separates two hits inside a take (s); multi = keep every strong hit as its own variant;
+# min = the shortest thing that counts as a hit (s, default 0.03: a tick is shorter);
 # peak = level of the loudest sample (dB).  Anything not listed is a plain one-shot, 1.3 s at most.
 TREAT = {
     'splash': {'max': 2.6}, 'juice_l': {'max': 1.6}, 'gong': {'max': 4.6, 'gap': 1.0}, 'best': {'max': 3.2, 'gap': 0.6},
@@ -57,6 +58,7 @@ TREAT = {
     'catch': {'max': 0.6, 'multi': True}, 'catch_heavy': {'max': 0.7, 'multi': True}, 'tongue_out': {'max': 0.6, 'multi': True},
     'swing_light': {'max': 0.8, 'multi': True}, 'swing_med': {'max': 0.9, 'multi': True}, 'swing_hard': {'max': 1.0, 'multi': True},
     'burn': {'max': 1.0, 'multi': True}, 'fly_squish': {'max': 0.6, 'multi': True}, 'hack': {'max': 0.6, 'multi': True},
+    'ui_hover': {'max': 0.2, 'multi': True, 'min': 0.005}, 'ui_switch': {'max': 0.35, 'multi': True}, 'ui_page': {'max': 0.6}, 'ui_open': {'max': 0.7}, 'ui_close': {'max': 0.8},
     'shake': {'max': 0.9}, 'empty': {'max': 0.9}, 'toss': {'max': 1.1},
     # sustained
     'fire_loop': {'kind': 'loop'}, 'freeze_loop': {'kind': 'loop'}, 'dizzy_loop': {'kind': 'loop'}, 'drunk_loop': {'kind': 'loop'},
@@ -204,7 +206,7 @@ def main():
             if kind in ('loop', 'bed'):
                 variants.append((x, name)); continue
             mono = x.mean(axis=1)
-            found = hits(mono, t.get('gap', 1.5 if kind == 'detail' else 0.12 if t.get('multi') else 0.2))      # (a detail is the whole take, its silence trimmed)
+            found = hits(mono, t.get('gap', 1.5 if kind == 'detail' else 0.12 if t.get('multi') else 0.2), t.get('min', 0.03))      # (a detail is the whole take, its silence trimmed)
             if not found:
                 notes.append(f'{name}: nothing in it'); continue
             max_len = t.get('max', 4.5 if kind == 'detail' else 1.3)

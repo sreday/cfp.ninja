@@ -2435,6 +2435,126 @@
     }
    ]
   },
+  "ui_hover": {
+   "prompt": "One extremely soft tiny bamboo tick, very quiet and very short, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "ui_hover.1.591894b6f1.mp3",
+     "seconds": 0.184,
+     "from": "ui_hover__1.mp3"
+    },
+    {
+     "file": "ui_hover.2.78899654bd.mp3",
+     "seconds": 0.2,
+     "from": "ui_hover__2.mp3"
+    },
+    {
+     "file": "ui_hover.3.b62b5cc129.mp3",
+     "seconds": 0.2,
+     "from": "ui_hover__3.mp3"
+    },
+    {
+     "file": "ui_hover.4.19ed23cffe.mp3",
+     "seconds": 0.2,
+     "from": "ui_hover__4.mp3"
+    }
+   ]
+  },
+  "ui_switch": {
+   "prompt": "A small wooden toggle switch clicked once, one soft low tock, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "ui_switch.1.1ec717c138.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__1.mp3"
+    },
+    {
+     "file": "ui_switch.2.d58ffef5d5.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__2.mp3"
+    },
+    {
+     "file": "ui_switch.3.b834332bed.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__4.mp3"
+    }
+   ]
+  },
+  "ui_page": {
+   "prompt": "A single sheet of rice paper turned over quickly, one soft crisp page flick, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "ui_page.1.59bf0ac4cf.mp3",
+     "seconds": 0.6,
+     "from": "ui_page__1.mp3"
+    },
+    {
+     "file": "ui_page.2.4430b9069e.mp3",
+     "seconds": 0.6,
+     "from": "ui_page__2.mp3"
+    },
+    {
+     "file": "ui_page.3.a84e800a3a.mp3",
+     "seconds": 0.6,
+     "from": "ui_page__3.mp3"
+    },
+    {
+     "file": "ui_page.4.e55ec1d613.mp3",
+     "seconds": 0.413,
+     "from": "ui_page__4.mp3"
+    }
+   ]
+  },
+  "ui_open": {
+   "prompt": "A small paper shoji screen sliding open quickly, one soft short wooden slide, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "ui_open.1.b784d540e1.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__1.mp3"
+    },
+    {
+     "file": "ui_open.2.aa6c1fa2cb.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__2.mp3"
+    },
+    {
+     "file": "ui_open.3.c4f3955b57.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__3.mp3"
+    }
+   ]
+  },
+  "ui_close": {
+   "prompt": "A small paper shoji screen sliding shut gently, one soft short wooden slide ending in a light tap, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "ui_close.1.cae801e301.mp3",
+     "seconds": 0.8,
+     "from": "ui_close__1.mp3"
+    },
+    {
+     "file": "ui_close.2.b76a21a11f.mp3",
+     "seconds": 0.8,
+     "from": "ui_close__2.mp3"
+    },
+    {
+     "file": "ui_close.3.e00366966c.mp3",
+     "seconds": 0.8,
+     "from": "ui_close__3.mp3"
+    },
+    {
+     "file": "ui_close.4.7e8ba2456b.mp3",
+     "seconds": 0.8,
+     "from": "ui_close__4.mp3"
+    }
+   ]
+  },
   "amb_sea": {
    "prompt": "Gentle sea waves lapping on a sandy beach at sunset, calm steady wash, no birds, no people, no wind noise",
    "kind": "bed",

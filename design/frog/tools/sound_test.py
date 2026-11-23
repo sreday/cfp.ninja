@@ -5,7 +5,8 @@
 
 Checks: every recipe in frog-audio.js names pools that exist; every file in frog-sounds.js loads and decodes, starts
 within 30 ms and is neither silent nor clipped; with the sound on, the game's own player gets every recording into
-memory with none failed; every sound id plays without an error. It cannot tell whether they sound good: that takes ears.
+memory with none failed; every sound id plays without an error; every button on the page makes its sound, one added a
+moment ago included. It cannot tell whether they sound good: that takes ears.
 """
 import json, os, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -66,6 +67,17 @@ try:
         await new Promise(r => setTimeout(r, 6000));
         return {{ n, top, after: a.bankState().voices }};""", wait=120)
     check('every sound plays, loops start and stop', r.get('top', 0) > 0, r)
+    r = run(g, """const P = window.frogPlay, stage = document.getElementById('game-stage'), n = id => P.heard()[id] || 0;
+        const before = { tap: n('ui'), sw: n('ui_switch'), page: n('ui_page'), open: n('ui_open'), close: n('ui_close') };
+        const fresh = document.createElement('button'); fresh.type = 'button'; fresh.textContent = 'new'; stage.appendChild(fresh); fresh.click(); fresh.remove();
+        stage.querySelector('.fg-num-pill').click(); stage.querySelector('.fg-num-pill').click();
+        const quiet = document.createElement('button'); quiet.dataset.snd = 'none'; stage.appendChild(quiet); quiet.click(); quiet.remove();
+        const pg = document.createElement('button'); pg.dataset.snd = 'page'; stage.appendChild(pg); pg.click(); pg.remove();
+        const link = stage.querySelector('.fg-board-link'), shut = document.querySelector('.game-board-close');
+        if (link) link.click(); if (shut) shut.click();
+        return { tap: n('ui') - before.tap, sw: n('ui_switch') - before.sw, page: n('ui_page') - before.page, open: n('ui_open') - before.open, close: n('ui_close') - before.close, board: !!(link && shut) };""")
+    check('a button nobody wired makes the tap; toggles, pages and panels their own; data-snd="none" is quiet',
+          r.get('tap') == 1 and r.get('sw') == 2 and r.get('page') == 1 and (not r.get('board') or (r.get('open') == 1 and r.get('close') == 1)), r)
     errs = g.errors()
     check('no errors in the page', not errs, errs[:5])
 finally:

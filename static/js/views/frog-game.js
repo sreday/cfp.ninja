@@ -1373,7 +1373,7 @@ export function mountFrogGame(stage, opts = {}) {
     const audio = createAudio();
     // Every sound is also noted in the run's log, whether or not the device is playing sound:
     // the rare ones as events, the constant ones (cuts, slashes...) as a count at the end.
-    const SND_COUNTED = { plop: 1, slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1, flick: 1, cloth: 1, wheel: 1 };
+    const SND_COUNTED = { plop: 1, slash: 1, cut: 1, burn: 1, bounce: 1, mark: 1, boom: 1, catch: 1, tongue: 1, gulp: 1, empty: 1, lowtime: 1, spit: 1, power_fireworks: 1, flick: 1, cloth: 1, wheel: 1, ui: 1, ui_hover: 1, ui_switch: 1, ui_page: 1, ui_open: 1, ui_close: 1 };
     let sndCount = {};
     const snd = (id, o) => {
         sndCount[id] = (sndCount[id] || 0) + 1;
@@ -1409,12 +1409,12 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
-        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" hidden>Full screen</button></div>
-        <button type="button" class="fg-pill fg-sound-pill fg-sound-off" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
+        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button></div>
+        <button type="button" class="fg-pill fg-sound-pill fg-sound-off" data-snd="none" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
             <button type="button" class="fg-pill fg-debug-fold">Hide items</button>
-            <div class="fg-debug-tray"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="gull" title="seagull"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-anims">Animations</button></div>
+            <div class="fg-debug-tray" data-snd="none"><canvas class="fg-debug-item" data-spawn="fruit:watermelon" title="watermelon"></canvas><canvas class="fg-debug-item" data-spawn="fruit:pineapple" title="pineapple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:grapes" title="grapes"></canvas><canvas class="fg-debug-item" data-spawn="fruit:orange" title="orange"></canvas><canvas class="fg-debug-item" data-spawn="fruit:apple" title="apple"></canvas><canvas class="fg-debug-item" data-spawn="fruit:banana" title="banana"></canvas><canvas class="fg-debug-item" data-spawn="fruit:kiwi" title="kiwi"></canvas><canvas class="fg-debug-item" data-spawn="fruit:plum" title="plum"></canvas><canvas class="fg-debug-item" data-spawn="fly" title="fly"></canvas><canvas class="fg-debug-item" data-spawn="sake" title="sake"></canvas><canvas class="fg-debug-item" data-spawn="clock" title="clock"></canvas><canvas class="fg-debug-item" data-spawn="fireworks" title="fireworks"></canvas><canvas class="fg-debug-item" data-spawn="laptop" title="laptop"></canvas><canvas class="fg-debug-item" data-spawn="gull" title="seagull"></canvas><canvas class="fg-debug-item" data-spawn="crate" title="crate"></canvas><canvas class="fg-debug-bowl" role="button" tabindex="0" title="Add a bowl of salad" aria-label="Add a bowl of salad"></canvas><button type="button" class="btn btn-outline-secondary btn-sm fg-debug-anims">Animations</button></div>
         </div>
         <div class="fg-overlay fg-first">
             <div class="fg-panel">
@@ -1469,11 +1469,11 @@ export function mountFrogGame(stage, opts = {}) {
                         <div class="fg-row"><div><b>Pineapple leaves</b><span>Cutting only the crown buys no time.</span></div></div>
                     </div>
                 </div>
-                <button type="button" class="btn fg-start fg-play">Play</button>
-                <button type="button" class="btn fg-play fg-again" hidden>Play again</button>
+                <button type="button" class="btn fg-start fg-play" data-snd="none">Play</button>
+                <button type="button" class="btn fg-play fg-again" data-snd="none" hidden>Play again</button>
                 <p class="fg-anykey" hidden>or press any key</p>
-                <button type="button" class="btn btn-primary btn-sm fg-skip">Show tips</button>
-                ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link">Scoreboard</button>' : ''}
+                <button type="button" class="btn btn-primary btn-sm fg-skip" data-snd="page">Show tips</button>
+                ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link" data-snd="open">Scoreboard</button>' : ''}
                 <div class="fg-replay">
                     <button type="button" class="btn btn-outline-secondary btn-sm fg-rec" hidden>Record my next run</button>
                     <button type="button" class="btn btn-primary btn-sm fg-rec-save" hidden>Save replay</button>
@@ -5512,7 +5512,7 @@ export function mountFrogGame(stage, opts = {}) {
         snd('ui_play');
         showTips(-1); start();
     });
-    el.skip.addEventListener('click', () => { snd('ui'); showTips(tipsPage + 1); });
+    el.skip.addEventListener('click', () => { showTips(tipsPage + 1); });
     stage.querySelectorAll('.fg-char').forEach(b => b.addEventListener('click', () => {
         if ((b.dataset.char === 'elder') === elder) return;
         try { if (b.dataset.char === 'elder') sessionStorage.setItem(CHAR_KEY, 'elder'); } catch (e) { return; }
@@ -5543,7 +5543,7 @@ export function mountFrogGame(stage, opts = {}) {
             log('resume');
         }
     }
-    $('.fg-again').addEventListener('click', () => { snd('ui'); setPause(false); showTips(-1); start(); });
+    $('.fg-again').addEventListener('click', () => { snd('ui_play'); setPause(false); showTips(-1); start(); });
     const onEsc = e => { if (e.key === 'Escape' && !e.repeat && (paused || (phase === 'play' && !dbg))) { e.preventDefault(); setPause(!paused); } };
     window.addEventListener('keydown', onEsc);
     function onKey(e) {
@@ -5562,6 +5562,29 @@ export function mountFrogGame(stage, opts = {}) {
     if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
 
     // ---------- sound toggle ----------
+    // ---------- every button makes a sound ----------
+    // One listener for the whole game page (the scoreboard and the log-in buttons around the game too), so a
+    // button added later is heard without anyone having to remember it: a soft tap, or a toggle's tock if it has
+    // aria-pressed, and a tiny tick as the mouse comes over it (not during a run). data-snd on the button says
+    // otherwise: tap | switch | page | open | close, or none (it plays its own sound, or stays quiet); data-snd="none"
+    // on something around a group of buttons quiets the whole group. A panel's backdrop can carry data-snd too.
+    const UI_SND = { tap: 'ui', switch: 'ui_switch', page: 'ui_page', open: 'ui_open', close: 'ui_close' };
+    const UI_HOT = 'button, a[href], [role="button"], summary, select, input[type="checkbox"], input[type="radio"]';
+    const uiPage = stage.closest('.game-page') || stage;
+    const uiKind = b => b.closest('[data-snd="none"]') ? 'none' : b.dataset.snd || (b.getAttribute('aria-pressed') !== null ? 'switch' : 'tap');
+    let uiOver = null;
+    const onUiClick = e => {
+        const t = e.target, b = t.closest && t.closest(UI_HOT);
+        if (b) { if (!b.disabled && UI_SND[uiKind(b)]) snd(UI_SND[uiKind(b)]); }
+        else if (t.dataset && UI_SND[t.dataset.snd]) snd(UI_SND[t.dataset.snd]);
+    };
+    const onUiOver = e => {
+        const b = e.target.closest && e.target.closest(UI_HOT);
+        if (b === uiOver) return;
+        uiOver = b;
+        if (b && e.pointerType === 'mouse' && !b.disabled && uiKind(b) !== 'none' && (phase !== 'play' || paused)) snd('ui_hover');
+    };
+    uiPage.addEventListener('click', onUiClick, true); uiPage.addEventListener('pointerover', onUiOver, true);
     let soundOff = () => {};       // takes its window listeners away again
     (function soundToggle() {
         const pill = $('.fg-sound-pill');
@@ -5569,7 +5592,7 @@ export function mountFrogGame(stage, opts = {}) {
         pill.addEventListener('click', () => {
             const on = audio.setOn(!audio.isOn());
             store.set(SOUND_KEY, on ? 1 : 0); show(on);
-            if (on) snd('ui');
+            if (on) snd('ui_switch');
         });
         // A phone only lets sound start from a finished touch or a click, not from the finger
         // going down: so the sound is woken on those (and on the press, for desktops).
@@ -5590,7 +5613,7 @@ export function mountFrogGame(stage, opts = {}) {
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
         const show = () => { pill.classList.toggle('fg-num-off', !showNums); stage.classList.toggle('fg-nonums', !showNums); pill.title = showNums ? 'Numbers and words shown' : 'Numbers and words hidden'; pill.setAttribute('aria-pressed', showNums ? 'true' : 'false'); };
-        pill.addEventListener('click', () => { snd('ui'); showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });      // (off: only the combo's name is still shown, in the meter and when a step is reached)
+        pill.addEventListener('click', () => { showNums = !showNums; store.set(NUMS_KEY, showNums ? 0 : 1); if (!showNums) floats = []; show(); });      // (off: only the combo's name is still shown, in the meter and when a step is reached)
         show();
     })();
 
@@ -5607,7 +5630,6 @@ export function mountFrogGame(stage, opts = {}) {
         const isOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
         const show = () => { pill.textContent = isOn() ? 'Exit full screen' : 'Full screen'; };
         pill.addEventListener('click', () => {
-            snd('ui');
             if (isOn()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
             else { const p = can.call(root); if (p && p.catch) p.catch(() => {}); }
         });
@@ -5826,7 +5848,7 @@ export function mountFrogGame(stage, opts = {}) {
     // script can play the game in its own headless browser and look at it. Only there: a browser
     // driven by automation says so (navigator.webdriver), and such runs go to the AI agents' board.
     if (navigator.webdriver) window.frogPlay = {
-        audio, snd,          // (the sound, for sound_test.py)
+        audio, snd, heard: () => Object.assign({}, sndCount),          // (the sound, for sound_test.py)
         state() {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
@@ -6980,6 +7002,7 @@ export function mountFrogGame(stage, opts = {}) {
 
     function destroy() {
         dead = true; cancelAnimationFrame(raf); ro.disconnect(); audio.destroy(); soundOff(); window.removeEventListener('keydown', onEsc);
+        uiPage.removeEventListener('click', onUiClick, true); uiPage.removeEventListener('pointerover', onUiOver, true);
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('keydown', onKey);
         window.removeEventListener('blur', onBlur);

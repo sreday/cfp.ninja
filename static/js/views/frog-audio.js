@@ -260,7 +260,8 @@ export const SYNTH = {
     place(c, o, t) { tone(c, o, t, { f: 600, f1: 300, dur: 0.07, gain: 0.12 }); }
 };
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
-const MIN_GAP = { cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
+['ui_switch', 'ui_page', 'ui_open', 'ui_close'].forEach(id => { SYNTH[id] = SYNTH.ui; });      // (their stand-in: the plain click)
+const MIN_GAP = { ui_hover: 0.07, cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
 function sustained(ctx, out, level, build) {
@@ -476,7 +477,13 @@ export const RECORDED = {
     splash: () => one('splash', 0.9),
     plop: () => one('plop', 0.45, { j: 0.08 }),
     // ----- interface -----
+    // (frog-game.js plays these for every button on the page by itself: see 'every button makes a sound' there)
     ui: () => one('ui', 0.5),
+    ui_hover: () => one('ui_hover', 0.16, { j: 0.08 }),
+    ui_switch: () => one('ui_switch', 0.42),
+    ui_page: () => one('ui_page', 0.4, { j: 0.06 }),
+    ui_open: () => one('ui_open', 0.4),
+    ui_close: () => one('ui_close', 0.36),
     ui_play: () => one('ui_play', 0.6, { j: 0.01 }),
     place: () => one('ui', 0.4, { r: 0.8 })
 };
@@ -489,7 +496,7 @@ const AMB = 0.55;
 // what a run cannot start without (the rest arrives in the background)
 const FIRST = ['swing_light', 'swing_med', 'swing_hard', 'flick', 'skin_thick', 'skin_thin', 'skin_soft', 'juice_s', 'juice_m', 'juice_l', 'shing',
     'flesh_watermelon', 'flesh_orange', 'flesh_pineapple', 'flesh_grapes', 'flesh_banana', 'flesh_kiwi', 'flesh_apple', 'flesh_plum',
-    'count', 'count_go', 'ui', 'ui_play', 'cloth_snap', 'cloth_rustle', 'empty', 'bounce', 'tongue_out', 'catch', 'gulp', 'amb_sea'];
+    'count', 'count_go', 'ui', 'ui_play', 'ui_hover', 'ui_switch', 'ui_page', 'ui_open', 'ui_close', 'cloth_snap', 'cloth_rustle', 'empty', 'bounce', 'tongue_out', 'catch', 'gulp', 'amb_sea'];
 const AUDIO_DIR = '/audio/';
 const MAX_VOICES = 30;
 const mem = typeof navigator !== 'undefined' ? navigator.deviceMemory || 8 : 8;

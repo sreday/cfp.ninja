@@ -99,6 +99,12 @@
     {"id": "ui", "slice": "D", "dur": 1.5, "infl": 0.7, "prompt": "One very soft small wooden tap, like a fingertip on bamboo, close-mic, dry studio"},
     {"id": "ui_play", "slice": "D", "dur": 1.5, "infl": 0.7, "prompt": "A wooden temple block struck twice quickly, low then high, bright and inviting, close-mic, dry studio"},
 
+    {"id": "ui_hover", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "One extremely soft tiny bamboo tick, very quiet and very short, close-mic, dry studio"},
+    {"id": "ui_switch", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A small wooden toggle switch clicked once, one soft low tock, close-mic, dry studio"},
+    {"id": "ui_page", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A single sheet of rice paper turned over quickly, one soft crisp page flick, close-mic, dry studio"},
+    {"id": "ui_open", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A small paper shoji screen sliding open quickly, one soft short wooden slide, close-mic, dry studio"},
+    {"id": "ui_close", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A small paper shoji screen sliding shut gently, one soft short wooden slide ending in a light tap, close-mic, dry studio"},
+
     {"id": "amb_sea", "slice": "E", "dur": 30, "infl": 0.5, "loop": true, "takes": 2, "prompt": "Gentle sea waves lapping on a sandy beach at sunset, calm steady wash, no birds, no people, no wind noise"},
     {"id": "amb_breeze", "slice": "E", "dur": 22, "infl": 0.5, "loop": true, "takes": 2, "prompt": "A soft warm evening breeze moving through palm fronds, light dry leaf rustle, steady, no birds, no water"},
     {"id": "amb_shore", "slice": "E", "dur": 26, "infl": 0.5, "loop": true, "takes": 2, "prompt": "Quiet tropical shore at dusk, a few evening insects and very distant soft surf, calm and sparse, no people, no music"},

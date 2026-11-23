@@ -33,6 +33,22 @@ measurement (none silent, none clipped, each starts on time), not by ear: Marek'
 - **Licence.** Generated on a paid ElevenLabs plan, which allows commercial use. Nothing here is lifted from
   another game, film or sound library, and nothing like that may be added.
 
+## The rule: nothing new without its sound
+
+Marek, 2026-11-23: "When we add new elements, remember to add sound." So:
+
+- **A new button, link, toggle or panel** is heard without any work: one listener on the whole game page
+  (`every button makes a sound` in `frog-game.js`) plays a soft tap for anything clickable, a toggle's tock for
+  anything with `aria-pressed`, and a tiny tick when the mouse comes over it (never during a run, never on
+  touch). Say otherwise with `data-snd` on the element: `tap`, `switch`, `page` (a paper turn), `open`,
+  `close` (a paper screen sliding), or `none` (it plays its own sound). `data-snd="none"` on a container
+  quiets everything in it. `sound_test.py` adds a button nobody wired and fails if it is silent.
+- **A new thing in the game** (a fruit, a power-up, a pose, an enemy, an effect) ships with its sounds in the
+  same change: a pool in `bank.json`, takes generated, a line in `RECORDED`, the `snd()` call, and its row in
+  the tables below. A new fruit needs `flesh_<kind>` and an entry in `SKIN`; without them it falls back to
+  the nearest fruit by size, which is a stopgap, not an answer.
+- Interface sounds stay subtle: quieter than anything in the run, short, wood and paper, no chimes.
+
 ## The beach (instead of music)
 
 Three looping beds of different lengths (the sea's wash 30 s, wind in the palms 22 s, the shore at dusk
@@ -196,7 +212,11 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 | id | Plays when | Layers now | A real recording would be |
 |---|---|---|---|
 | `ui_play` | Play or Play again is pressed | two bright notes | a wooden block and a "hai!" |
-| `ui` | tips are paged, sound is turned on | a tiny click | a soft tap |
+| `ui` | any button or link with no sound of its own | a tiny click | a soft tap on bamboo |
+| `ui_hover` | the mouse comes over a button (not during a run) | none | a tiny bamboo tick, very quiet |
+| `ui_switch` | a toggle (Numbers, Full screen, Lock, Sound, the scoreboard's tabs) | the click | a small wooden tock |
+| `ui_page` | the tips are paged | the click | a sheet of rice paper turned |
+| `ui_open`, `ui_close` | the scoreboard opens; it closes (its button, or a click beside it) | the click | a paper screen sliding open, and shut |
 | `place` | debug: an item is dropped on the field | a short falling blip | a pop |
 
 ### Added later
@@ -210,7 +230,6 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 ### Still silent, on purpose or not yet
 
 - Fruit being thrown in, and pieces falling away: left silent so the action stays readable.
-- Scoreboard opening and closing; the debug pill.
 - The bubbly blade has no sound of its own yet (it uses the sake slash).
 - Hacked fruit floating has no ambience.
 
