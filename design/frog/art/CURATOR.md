@@ -45,6 +45,20 @@ GPU at full quality, and a whole-game render before the ship. The budget now: **
 - leftovers: motion lines, shadows, ground, a second frog, anything but the frog on flat magenta
 - another drawing style than the logo's (outline, palette, shading)
 
+**What worked for the base poses (2026-11-22/23), for the next ones**
+- He picks on the local page: `python design/frog/tools/pick_site.py` (http://127.0.0.1:8777; his clicks and notes land in
+  `Frog Ninja picks/picks.json`). His pick wins over the screening: a tangled headband tail or short katanas are notes.
+- Poses that came out clean: plain, front-facing ones, redrawn from a sprite already in the game (`sources/candidates/<pose>/pick.png`
+  as picture 1, "change only the arms and the katanas"). Asymmetric three-quarter poses mostly came out broken.
+- Airborne poses: legs always tucked (the space above the post is small). Faces: scared or shocked stays restrained,
+  and the mouth is the frog's wide one.
+- The model will not shorten or lengthen a blade when asked. Cut the blade on the picture (flat magenta over the part
+  to lose), then ask it to redraw only the tips; to lengthen, give it a wider magenta canvas first.
+- A picked pose into the game: `art_build_pose.py <name> <pick.png> [--head-w N] [--com|--foot]`, an entry in CUT_POSES
+  (frog-game.js), `pose.artCut = '<name>'` where the old drawn pose was set, a curate shot for it.
+- A change in motion (the in-between of two poses, a sway): he judges it moving, not on stills. `morph_film.py` makes a
+  looping side-by-side film; `morph_shots.py` is for checking frames.
+
 **Into the game: the item's shots only.**
 1. `python design/frog/tools/curator.py --quick --item "<item>" --only "<how its shots start>;ready"`: only those
    shots, one wide and one phone size, live and new side by side in parallel (about 20 s). It writes
