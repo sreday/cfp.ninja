@@ -46,7 +46,7 @@ def main():
                 cur, start = v, t
         segs.append((cur, round(log[-1][0] - start, 3)))
         print(segs)
-        short = [s for s in segs[:-1] if s[0] != 'none' and s[1] < MIN_SEEN]
+        short = [s for s in segs[:-1] if s[0] != 'none' and not s[0].startswith('undefined') and s[1] < MIN_SEEN]      # ('undefined': the in-between of two poses, 60 ms, not a pose)
         print(f'poses shown under {MIN_SEEN} s:', short)
         return 1 if short or not any(s[0] != 'none' for s in segs) else 0
     finally:
