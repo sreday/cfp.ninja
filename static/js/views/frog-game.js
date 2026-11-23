@@ -6782,10 +6782,10 @@ export function mountFrogGame(stage, opts = {}) {
         halves.forEach(h => { ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.rot); drawHalf(ctx, h, h.r, lw); ctx.restore(); });
         gulls.forEach(g => {
             if (g.mark) glow(ctx, g.x, g.y, g.r * 2, '129,212,250', 0.75);
-            if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t, loot: true }); else drawFried(c, g.r, lw); })); return; }
+            if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t }); else drawFried(c, g.r, lw); })); return; }
             ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.dir, 1);
             if (g.state !== 'fly' && g.burnt) drawFried(ctx, g.r * (g.lootT === undefined ? 1 : clamp(LOOT_K + (1 - LOOT_K) * (g.t - g.lootT) / 0.18, LOOT_K, 1)), lw);            // what fire leaves in play: the fried chicken it dropped (out of the claws it comes up to its full size, no jump)
-            else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast, loot: !g.fast } : { out: true, up: true, flap: 0.5, t: g.t, loot: true });     // fainted: on its back, feet in the air, lunch still in its claws
+            else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast } : { out: true, up: true, flap: 0.5, t: g.t });     // fainted: on its back, feet in the air, lunch still in its claws
             ctx.restore();
         });
         sooty.forEach(q => { ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.scale(q.dir, 1); drawGull(ctx, q.r, lw, { out: true, burnt: true, flap: 0.6, t: q.t }); ctx.restore(); });     // the gull itself, sooty, on its way to the sea
