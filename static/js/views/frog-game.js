@@ -314,10 +314,11 @@ const TWITCH = 46, TWITCH_HOLD = 16;
 // the new one catches up), flat: across the screen instead of along the line; echo: fainter copies of the new pose trailing behind it.
 const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [0, 2])[1];      // (Marek, 2026-11-23: 'let's ship stretch': 2 unless the address says otherwise; ?morph=0: none)
 const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 60;      // (120 until Marek, 2026-11-23: twice as fast)
+// (The stretch, 2: every amount is 70% of what it was, Marek 2026-11-23: '30% less pronounced'. It was sx 2.2 / 3.2, blur 50 / 80, go 0.9 / -0.4.)
 const MORPH_FX = {
     1: p => ({ out: { op: 1 - p, blur: 200 * p, go: 0.5 * p }, in: { op: p, blur: 200 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
-    2: p => p < 0.5 ? { out: { op: 1, sx: 1 + 2.2 * p, blur: 50, go: 0.9 * p }, in: { op: 0 } }                                                             // stretch: the old pose pulled long toward the new place,
-        : { out: { op: 0 }, in: { op: 1, sx: 1 + 3.2 * (1 - p) * (1 - p), blur: 80 * (1 - p), go: -0.4 * (1 - p) } },                                       //   the new one snapping back from long to its shape
+    2: p => p < 0.5 ? { out: { op: 1, sx: 1 + 1.54 * p, blur: 35, go: 0.63 * p }, in: { op: 0 } }                                                             // stretch: the old pose pulled long toward the new place,
+        : { out: { op: 0 }, in: { op: 1, sx: 1 + 2.24 * (1 - p) * (1 - p), blur: 56 * (1 - p), go: -0.28 * (1 - p) } },                                       //   the new one snapping back from long to its shape
     3: p => ({ out: { op: 0.6 * (1 - p) }, in: { op: 0.4 + 0.6 * p }, echo: [{ go: -0.4 * (1 - p), op: 0.4 * (1 - p) }, { go: -0.8 * (1 - p), op: 0.25 * (1 - p) }] }),   // multiples: after-images of the new pose closing up
     4: p => ({ out: { op: 0.9 * (1 - p), blur: 220, sx: 1.4 + p, go: p }, in: { op: 0.35 + 0.65 * p, blur: 220 * (1 - p) * (1 - p), sx: 1 + 0.5 * (1 - p) } }),         // zip: the old pose gone into a speed streak, the new one out of the blur
     5: p => p < 0.5 ? { out: { op: 1, sx: 1 - 1.7 * p, blur: 60 * p, flat: 1, go: p }, in: { op: 0 } }                                                      // twirl: squeezed to a sliver and opened again,
