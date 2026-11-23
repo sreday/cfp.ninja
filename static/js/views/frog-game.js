@@ -6915,6 +6915,7 @@ export function mountFrogGame(stage, opts = {}) {
                 [fruits, halves, pieces, drops, floats, slashes, flies, pickups, gulls, crates, planks, bits, flames, clouds].forEach(a => { a.length = 0; });
                 fireLeft = 0; freezeLeft = 0; sakeLeft = 0; stunT = 0; headFx = null; bumps = null; swing = null; gullOn = null;
                 if (q.anim) { playAnim(q.anim); step(q.at); } else step(0.2);
+                if (artCut && artCut.m) { artCut.m = null; applyPose(); }      // (a shot is of the pose itself: the cut shots are taken 0.12 s in, right at the end of the in-between, and caught its last stretched frame)
                 return true;
             },
             // where faults hide, in CSS px of the viewport: joints, contacts, seams, silhouettes
