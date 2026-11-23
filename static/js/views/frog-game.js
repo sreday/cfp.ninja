@@ -1200,7 +1200,7 @@ function drawGull(ctx, r, lw, o = {}) {
     // tail
     ctx.fillStyle = wing; ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.1); ctx.lineTo(-r * 1.25, -r * 0.24); ctx.lineTo(-r * 1.15, r * 0.14); ctx.lineTo(-r * 0.6, r * 0.2); ctx.closePath(); ctx.fill(); ctx.stroke();
     // its loot, in its claws (above it when it is on its back)
-    if (o.loot) { ctx.save(); ctx.translate(r * 0.04, o.up ? -r * 1.02 : r * 0.94); ctx.rotate(o.up ? 0.2 : -0.15); drawFried(ctx, r * 0.5, lw); ctx.restore(); }
+    if (o.loot) { ctx.save(); ctx.translate(r * 0.04, o.up ? -r * 1.1 : r * 1.02); ctx.rotate(o.up ? 0.2 : -0.15); drawFried(ctx, r * LOOT_K, lw); ctx.restore(); }
     // feet (in the air when it is on its back)
     ctx.strokeStyle = '#ef6c00'; ctx.lineWidth = Math.max(2, lw * 1.3);
     [[-0.15, -0.28], [0.18, 0.1]].forEach(([a, b]) => { ctx.beginPath(); if (o.up) { ctx.moveTo(r * a, -r * 0.38); ctx.lineTo(r * a, -r * 0.72); ctx.lineTo(r * (a + 0.16), -r * 0.8); } else { ctx.moveTo(r * a, r * 0.38); ctx.lineTo(r * b, r * 0.66); ctx.lineTo(r * (b + 0.16), r * 0.66); } ctx.stroke(); });
@@ -1212,19 +1212,25 @@ function drawGull(ctx, r, lw, o = {}) {
     ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.fill(); ctx.stroke();
     if (o.burnt) { [-0.5, 0, 0.5].forEach(a => { ctx.beginPath(); ctx.moveTo(r * (hx + a * 0.3), r * (hy - 0.34)); ctx.lineTo(r * (hx + a * 0.55), r * (hy - 0.6)); ctx.stroke(); }); }   // frazzled feathers
     // the headband: it is a ninja too, the frog's opposite number (what it does to the frog is turn left into right): the frog's is
-    // red, this one indigo. A straight band across the brow, knotted at the back, two tails flying (a band over the crown read as a comb).
+    // red, this one indigo. A thin band high on the head, slanting down toward the beak: it is the angry brow as well (no brow stroke
+    // under it, which crowded the eye). Knotted at the back, two short tails that always fly up and away from the body, whatever
+    // the head is doing (lying back along it they read as a bar across the chest, or as wing feathers).
     {
-        const kx = r * (hx - 0.33), ky = r * (hy - 0.2), w = Math.max(2.5, r * 0.1), fl = (o.flap || 0) * r * 0.08;
+        const w = Math.max(2, r * 0.075), fl = (o.flap || 0) * 0.25;
+        const kx = r * (hx - 0.33), ky = r * (hy - 0.34);                                  // the knot, at the band's back end
+        const bc0 = Math.cos(ba), bs0 = Math.sin(ba), ul = Math.hypot(bc0, bs0 + 0.9) || 1, ux = -bc0 / ul, uy = -(bs0 + 0.9) / ul;      // away from the beak, and up
+        const tail = (turn, len) => { const c = Math.cos(turn), n = Math.sin(turn), dx = ux * c - uy * n, dy = ux * n + uy * c;
+            ctx.beginPath(); ctx.moveTo(kx, ky); ctx.quadraticCurveTo(kx + dx * r * len * 0.5 - dy * r * 0.08, ky + dy * r * len * 0.5 + dx * r * 0.08, kx + dx * r * len, ky + dy * r * len); ctx.stroke(); };
         const band = (width, col) => {
             ctx.lineWidth = width; ctx.strokeStyle = col;
+            tail(-0.32 + fl, 0.5); tail(0.3 - fl, 0.42);
             ctx.save(); ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.clip();
-            ctx.beginPath(); ctx.moveTo(r * (hx - 0.45), r * (hy - 0.19)); ctx.lineTo(r * (hx + 0.45), r * (hy - 0.31)); ctx.stroke(); ctx.restore();      // (above the eye)
-            ctx.beginPath(); ctx.moveTo(kx, ky); ctx.quadraticCurveTo(kx - r * 0.2, ky - r * 0.16 + fl, kx - r * 0.46, ky - r * 0.08 - fl); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(kx, ky); ctx.quadraticCurveTo(kx - r * 0.18, ky + r * 0.08 - fl, kx - r * 0.4, ky + r * 0.16 + fl); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(r * (hx - 0.45), r * (hy - 0.36)); ctx.lineTo(r * (hx + 0.45), r * (hy - 0.2)); ctx.stroke(); ctx.restore();
         };
-        band(w + lw * 2, '#000'); band(w, o.burnt ? '#7986cb' : '#3949ab');
+        band(w + lw * 1.6, '#000'); band(w, o.burnt ? '#7986cb' : '#3949ab');
         ctx.lineWidth = lw; ctx.strokeStyle = '#000';
         ctx.beginPath(); ctx.arc(r * hx, r * hy, r * 0.37, 0, 7); ctx.stroke();      // (the head's outline again, over the band's ends)
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(kx, ky, w * 0.75, 0, 7); ctx.fill();      // the knot
     }
     // beak, pointing along ba (0 = ahead, towards 1.5 = straight down)
     const bc = Math.cos(ba), bs = Math.sin(ba), bp = (along, side) => [r * (hx + bc * along - bs * side), r * (hy + bs * along + bc * side)];
@@ -1245,7 +1251,7 @@ function drawGull(ctx, r, lw, o = {}) {
         ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
     } else {
         ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(ex, ey, r * 0.07, 0, 7); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(ex - r * 0.2, ey - r * 0.2); ctx.lineTo(ex + r * 0.14, ey - r * 0.08); ctx.stroke();     // the brow: it means trouble
+        // (the brow that meant trouble is the headband now)
     }
     // the near wing, on top, hinged at the shoulder
     ctx.save(); ctx.translate(r * 0.12, -r * 0.14); ctx.rotate((o.flap || 0) * 1.0);
@@ -1255,13 +1261,17 @@ function drawGull(ctx, r, lw, o = {}) {
 }
 // The seagull's loot: a big piece of fried chicken, stolen from the party (Marek, 2026-11-23: the gull drops its
 // lunch, it does not become it). Craggy amber batter, a bone out of one end; the same oval the blade cuts (fruitPoly).
+const LOOT_K = 0.66;      // its size in the gull's claws, against its size once dropped
 function drawFried(ctx, r, lw) {
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     // the bone: a shaft and a two-knobbed end
-    ctx.strokeStyle = '#000'; ctx.lineWidth = Math.max(4, r * 0.16) + lw * 2; ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.16, -r * 0.4); ctx.stroke();
-    ctx.strokeStyle = '#fff3e0'; ctx.lineWidth = Math.max(4, r * 0.16); ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.16, -r * 0.4); ctx.stroke();
-    ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.fillStyle = '#fff3e0';
-    [[1.2, -0.5], [1.26, -0.34]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(r * x, r * y, r * 0.11, 0, 7); ctx.fill(); ctx.stroke(); });
+    const ol = Math.min(lw, Math.max(1.2, r * 0.07));      // (a small piece gets a thinner outline, or its bone is all black)
+    ctx.strokeStyle = '#000'; ctx.lineWidth = r * 0.2 + ol * 2; ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.26, -r * 0.46); ctx.stroke();
+    ctx.strokeStyle = '#fff3e0'; ctx.lineWidth = r * 0.2; ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.08); ctx.lineTo(r * 1.26, -r * 0.46); ctx.stroke();
+    ctx.strokeStyle = '#000'; ctx.lineWidth = ol; ctx.fillStyle = '#fff3e0';
+    [[1.3, -0.58], [1.38, -0.4]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(r * x, r * y, r * 0.14, 0, 7); ctx.fill(); ctx.stroke(); });
+    ctx.strokeStyle = '#fff3e0'; ctx.lineWidth = r * 0.16; ctx.beginPath(); ctx.moveTo(r * 1.1, -r * 0.37); ctx.lineTo(r * 1.28, -r * 0.47); ctx.stroke();      // (the shaft runs into the knobs, no line between)
+    ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
     // the batter: a lumpy outline, never a clean oval
     ctx.fillStyle = '#e2a03a'; ctx.beginPath();
     for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2, b = 1 + 0.08 * Math.sin(k * 2.4 + 1) + 0.05 * Math.sin(k * 5.1); ctx.lineTo(Math.cos(a) * r * 0.92 * b, r * 0.04 + Math.sin(a) * r * 0.55 * b); }
@@ -3399,7 +3409,7 @@ export function mountFrogGame(stage, opts = {}) {
     let sooty = [];
     function dropLoot(g) {
         sooty.push({ x: g.x - g.dir * g.r * 0.4, y: g.y - g.r * 0.9, vx: -g.dir * W * rand(0.2, 0.3), vy: -H * rand(0.42, 0.55), rot: 0, spin: -g.dir * rand(4, 7), r: g.r, dir: g.dir, t: 0 });
-        feathers(g.x, g.y, g.r, 8, '#3b3632');
+        feathers(g.x, g.y, g.r, 8, '#3b3632'); g.lootT = g.t;
     }
     function stepSooty(wdt) {
         for (let i = sooty.length - 1; i >= 0; i--) {
@@ -6680,7 +6690,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (g.mark) glow(ctx, g.x, g.y, g.r * 2, '129,212,250', 0.75);
             if (g.hacked && (g.state === 'fly' || g.burnt)) { cells(g, g.r, () => drawOutline(g.x, g.y, g.r * 2.2, tn, c => { c.scale(g.dir, 1); if (g.state === 'fly') drawGull(c, g.r, lw, { flap: -0.3, t: g.t, loot: true }); else drawFried(c, g.r, lw); })); return; }
             ctx.save(); ctx.translate(g.x, g.y); ctx.scale(g.dir, 1);
-            if (g.state !== 'fly' && g.burnt) drawFried(ctx, g.r, lw);            // what fire leaves in play: the fried chicken it dropped
+            if (g.state !== 'fly' && g.burnt) drawFried(ctx, g.r * (g.lootT === undefined ? 1 : clamp(LOOT_K + (1 - LOOT_K) * (g.t - g.lootT) / 0.18, LOOT_K, 1)), lw);            // what fire leaves in play: the fried chicken it dropped (out of the claws it comes up to its full size, no jump)
             else drawGull(ctx, g.r, lw, g.state === 'fly' ? { flap: Math.round(Math.sin(g.t * 11) * 2) / 2 * 0.8 * (g.fast ? 1.4 : 1), t: g.t, open: !!g.fast, loot: !g.fast } : { out: true, up: true, flap: 0.5, t: g.t, loot: true });     // fainted: on its back, feet in the air, lunch still in its claws
             ctx.restore();
         });
