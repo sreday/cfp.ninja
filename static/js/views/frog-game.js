@@ -313,7 +313,7 @@ const TWITCH = 46, TWITCH_HOLD = 16;
 // the line from the old pose's middle to the new one's), sx stretch along that line, go how far along it (a share of the way: the old pose runs ahead,
 // the new one catches up), flat: across the screen instead of along the line; echo: fainter copies of the new pose trailing behind it.
 const MORPH = +((typeof location !== 'undefined' && location.search.match(/[?&]morph=(\d)/)) || [0, 2])[1];      // (Marek, 2026-11-23: 'let's ship stretch': 2 unless the address says otherwise; ?morph=0: none)
-const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 120;
+const MORPH_MS = +((typeof location !== 'undefined' && location.search.match(/[?&]morphms=(\d+)/)) || [])[1] || 60;      // (120 until Marek, 2026-11-23: twice as fast)
 const MORPH_FX = {
     1: p => ({ out: { op: 1 - p, blur: 200 * p, go: 0.5 * p }, in: { op: p, blur: 200 * (1 - p), go: -0.5 * (1 - p) } }),                                  // smear blend: a cross-fade, both streaked along the way
     2: p => p < 0.5 ? { out: { op: 1, sx: 1 + 2.2 * p, blur: 50, go: 0.9 * p }, in: { op: 0 } }                                                             // stretch: the old pose pulled long toward the new place,
@@ -3088,7 +3088,7 @@ export function mountFrogGame(stage, opts = {}) {
     // purposeful"). A new stroke in another direction before that waits (only the newest one is kept) and shows the
     // moment the current pose has had its time. Only the drawing waits: the blade and the cutting are never held back.
     // (The time freeze's release sets swing to null before each strike, so its fast sequence is not slowed.)
-    const POSE_MIN = 0.5;      // (0.3 until Marek, 2026-11-22: 'increase the min display time of an animation to .5s')
+    const POSE_MIN = 0.3;      // (Marek, 2026-11-23: back to 0.3 and the change between poses twice as fast, 'the game doesn't feel super snappy now'; it was 0.5 from 2026-11-22, 0.3 before)
     let swingNext = null;
     const holdUntil = s => Math.max((s.end || 0) + HOLD, POSE_MIN);
     const JUMP_UP = 45;           // how far a jump lifts the frog (drawing units, front view; the profile uses 4x): a small, held lift, not an arc
