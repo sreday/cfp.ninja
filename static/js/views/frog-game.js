@@ -1202,14 +1202,14 @@ function drawLaptop(ctx, b, lw) {
 // soles' middle; every friend's body is 'body' px tall. ?gang=old shows the code-drawn friends.
 // GANG_ART:begin (written by design/frog/tools/art_build_gang.py: do not edit by hand)
 const GANG_ART = { body: 340, poses: {
-    'monkey-up': { url: '/img/game/gang/monkey-up.61622b6a3f.webp', size: [305, 341], at: [150.5, 340.4] },
-    'monkey-cut': { url: '/img/game/gang/monkey-cut.5cc89da7c3.webp', size: [345, 341], at: [201.5, 340.8] },
-    'llama-up': { url: '/img/game/gang/llama-up.404e6a8ad5.webp', size: [248, 387], at: [153.1, 386.9] },
-    'llama-cut': { url: '/img/game/gang/llama-cut.70c863fe6b.webp', size: [244, 344], at: [143.8, 343.4] },
-    'platypus-up': { url: '/img/game/gang/platypus-up.a6b10df72e.webp', size: [323, 374], at: [171.0, 373.6] },
-    'platypus-cut': { url: '/img/game/gang/platypus-cut.72b5caf909.webp', size: [330, 345], at: [173.7, 344.3] },
-    'corgi-up': { url: '/img/game/gang/corgi-up.20276318c6.webp', size: [250, 341], at: [142.5, 340.4] },
-    'corgi-cut': { url: '/img/game/gang/corgi-cut.233426ff31.webp', size: [267, 341], at: [137.3, 340.8] },
+    'monkey-up': { url: '/img/game/gang/monkey-up.5325aa3d00.webp', size: [337, 376], at: [166.7, 375.2], dir: 1 },
+    'monkey-cut': { url: '/img/game/gang/monkey-cut.b314c1fa4c.webp', size: [345, 341], at: [197.3, 340.7], dir: -1 },
+    'llama-up': { url: '/img/game/gang/llama-up.9cb3f1627b.webp', size: [248, 387], at: [153.3, 386.9], dir: -1 },
+    'llama-cut': { url: '/img/game/gang/llama-cut.dee99518e5.webp', size: [255, 359], at: [150.5, 358.8], dir: -1 },
+    'platypus-up': { url: '/img/game/gang/platypus-up.b7e96e2ccd.webp', size: [323, 374], at: [171.2, 373.6], dir: 1 },
+    'platypus-cut': { url: '/img/game/gang/platypus-cut.1b1d27b3eb.webp', size: [338, 352], at: [177.7, 351.7], dir: -1 },
+    'corgi-up': { url: '/img/game/gang/corgi-up.33cc0e051e.webp', size: [249, 341], at: [143.7, 340.7], dir: -1 },
+    'corgi-cut': { url: '/img/game/gang/corgi-cut.650c6c9742.webp', size: [249, 319], at: [119.8, 318.1], dir: -1 },
 } };
 // GANG_ART:end
 const gangArt = { ready: false, img: {} };
@@ -4033,6 +4033,11 @@ export function mountFrogGame(stage, opts = {}) {
             if (!b) continue;                                    // a blast set off by this stroke may have taken others with it
             if (segDist(b.x, b.y, ax, ay, bx, by) < b.r * 1.15 + wideBy) { if (b.kind === 'fireworks') spared++; breakPickup(pickups.splice(i, 1)[0], ang); }
         }
+        // a half of a cut laptop, cut again: it breaks up and its insides pour out (Marek, 2026-11-24)
+        for (let i = bits.length - 1; i >= 0; i--) {
+            const q = bits[i];
+            if (q.half && q.cutBy !== cut && q.t < q.life - 0.35 && segDist(q.x, q.y, ax, ay, bx, by) < q.half * 0.75 + wideBy) { bits.splice(i, 1); spillLaptop(q, ang); }
+        }
         const lost = wrecked - flies.length - pickups.length - spared;
         if (lost && sakeLeft <= 0 && !elder && !(dbg && stamLock)) { stamina = Math.max(0, stamina - lost); emptyFlash = 0.5; }
     }
@@ -4059,6 +4064,52 @@ export function mountFrogGame(stage, opts = {}) {
             drawFly(ctx, { x: 0, y: 0, dir: f.dir, phase: f.phase }, f.s, 0);
         }, { vx: nx * H * 0.15 * sd, vy: ny * H * 0.15 * sd - H * 0.1, rot: 0, spin: sd * rand(4, 8) }));
         splash(f.x, f.y, '#eeff41', 8, 3);
+    }
+    // A laptop half cut again: two smaller shards of the case fly off, and out pours what was inside it: circuit boards,
+    // chips, keycaps, a fan, a RAM stick, a battery, screws and a tangle of ribbon cable, with sparks. Nothing more to cut.
+    function spillLaptop(q, ang) {
+        const r = q.half; log('wreck', 'laptop', 'again'); snd('wreck', { kind: 'laptop' });
+        const ink = C.ink, nx = -Math.sin(ang), ny = Math.cos(ang);
+        const pour = (draw, o = {}) => bit(q.x, q.y, draw, Object.assign({ vx: rand(-0.12, 0.12) * H + q.vx * 0.3, vy: rand(-0.22, 0.02) * H, spin: rand(-6, 6), life: 1.9 }, o));
+        [1, -1].forEach(sd => bit(q.x, q.y, (ctx, lw) => {                                                     // the case, in two
+            const pts = shardPath(4, r * rand(0.45, 0.6)); fillPoly(ctx, pts, sd > 0 ? C.laptop : C.laptopHi, lw);
+        }, { vx: nx * H * 0.22 * sd, vy: ny * H * 0.22 * sd - H * 0.15, spin: sd * rand(3, 6), life: 1.9 }));
+        const board = (ctx, lw, w, h) => {                                                                   // a green board with gold tracks
+            ctx.fillStyle = '#2e7d32'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.7; ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+            ctx.strokeStyle = '#ffca28'; ctx.lineWidth = Math.max(1, lw * 0.35); ctx.beginPath();
+            for (let k = -1; k <= 1; k++) { ctx.moveTo(-w * 0.4, k * h * 0.25); ctx.lineTo(w * 0.1, k * h * 0.25); ctx.lineTo(w * 0.25, k * h * 0.15); }
+            ctx.stroke(); ctx.fillStyle = '#212121'; ctx.fillRect(w * 0.12, -h * 0.3, w * 0.25, h * 0.6);
+        };
+        for (let i = 0; i < 2; i++) { const w = r * rand(0.55, 0.75), h = w * 0.55; pour((ctx, lw) => board(ctx, lw, w, h)); }
+        for (let i = 0; i < 4; i++) { const c = r * rand(0.13, 0.18); pour((ctx, lw) => {                    // chips with their legs
+            ctx.strokeStyle = '#b0bec5'; ctx.lineWidth = Math.max(1, lw * 0.4); ctx.beginPath();
+            for (let k = -1; k <= 1; k++) { ctx.moveTo(-c * 1.35, k * c * 0.5); ctx.lineTo(c * 1.35, k * c * 0.5); } ctx.stroke();
+            ctx.fillStyle = '#212121'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.rect(-c, -c, c * 2, c * 2); ctx.fill(); ctx.stroke();
+        }); }
+        for (let i = 0; i < 7; i++) { const k = r * rand(0.08, 0.12); pour((ctx, lw) => {                    // keycaps
+            ctx.fillStyle = '#eceff1'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#b0bec5'; ctx.fillRect(-k * 0.6, k * 0.35, k * 1.2, k * 0.35);
+        }); }
+        { const f = r * 0.22; pour((ctx, lw) => {                                                            // the fan
+            ctx.fillStyle = '#37474f'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.arc(0, 0, f, 0, 7); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#90a4ae'; for (let k = 0; k < 5; k++) { ctx.save(); ctx.rotate(k * 1.2566); ctx.beginPath(); ctx.ellipse(f * 0.5, 0, f * 0.42, f * 0.16, 0.5, 0, 7); ctx.fill(); ctx.restore(); }
+        }, { spin: rand(10, 16) }); }
+        { const w = r * 0.7, h = r * 0.14; pour((ctx, lw) => {                                               // a RAM stick
+            ctx.fillStyle = '#1b5e20'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#212121'; for (let k = 0; k < 4; k++) ctx.fillRect(-w * 0.42 + k * w * 0.22, -h * 0.3, w * 0.14, h * 0.6);
+            ctx.fillStyle = '#ffca28'; ctx.fillRect(-w * 0.45, h * 0.32, w * 0.9, h * 0.16);
+        }); }
+        { const w = r * 0.42, h = r * 0.22; pour((ctx, lw) => {                                              // the battery
+            ctx.fillStyle = '#263238'; ctx.strokeStyle = ink; ctx.lineWidth = lw * 0.6; ctx.beginPath(); ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#7cb342'; ctx.fillRect(-w * 0.35, -h * 0.2, w * 0.45, h * 0.4);
+        }); }
+        for (let i = 0; i < 4; i++) pour(ctx => { ctx.fillStyle = '#cfd8dc'; ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, r * 0.04), 0, 7); ctx.fill(); });   // screws
+        { const len = r * 0.9; pour((ctx, lw) => {                                                           // ribbon cable
+            ctx.strokeStyle = '#9e9e9e'; ctx.lineWidth = Math.max(2, r * 0.07); ctx.lineCap = 'round'; ctx.beginPath();
+            ctx.moveTo(-len / 2, 0); ctx.bezierCurveTo(-len / 6, -len * 0.3, len / 6, len * 0.3, len / 2, 0); ctx.stroke();
+        }, { spin: rand(-3, 3) }); }
+        splash(q.x, q.y, '#fff59d', 10, 3);                                                                  // sparks
+        floats.push({ x: q.x, y: q.y - r * 0.6, text: 'Crunch!', t: 0, hot: false });
     }
     function breakPickup(b, ang) {
         log('wreck', b.kind, sakeLeft > 0 ? 1 : 0); snd(b.kind === 'fireworks' ? 'power_fireworks' : 'wreck', { kind: b.kind });
@@ -4112,7 +4163,7 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.rotate(ang - b.rot);
                 ctx.strokeStyle = '#263238'; ctx.lineWidth = lw * 1.8; ctx.beginPath(); ctx.moveTo(-r * 1.15, 0); ctx.lineTo(r * 1.15, 0); ctx.stroke();
                 ctx.strokeStyle = '#66bb6a'; ctx.lineWidth = lw * 0.6; ctx.setLineDash([r * 0.12, r * 0.1]); ctx.beginPath(); ctx.moveTo(-r * 1.05, 0); ctx.lineTo(r * 1.05, 0); ctx.stroke(); ctx.setLineDash([]);
-            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2 }));
+            }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(1.5, 4), life: 2.4, half: r, cutBy: cut }));     // (half: it can be cut again by another stroke, spillLaptop)
             for (let i = 0; i < 9; i++) { const k = r * rand(0.1, 0.16); bit(b.x, b.y, (ctx, lw) => { ctx.fillStyle = '#eceff1'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw * 0.5; ctx.beginPath(); ctx.rect(-k, -k, k * 2, k * 2); ctx.fill(); ctx.stroke(); }, { life: 1.6 }); }     // keys
             splash(b.x, b.y, '#fff59d', 14, 3);                                                                                  // sparks
             digitalCloud(b.x, b.y, 'slash');
@@ -5181,9 +5232,11 @@ export function mountFrogGame(stage, opts = {}) {
     };
     // the painted friend (GANG_ART): the same place and size as the drawn one below (soles at y + 5u, 11u tall), its
     // katana raised ('up') or mid-cut ('cut'); a blade that took an element glows with it, behind the friend
-    function drawGang(name, pose, x, y, size, flip, fx) {
-        const Q = GANG_ART.poses[name + '-' + pose], im = gangArt.img[name + '-' + pose], k = size / GANG_ART.body;
-        ctx.save(); ctx.translate(x, y + size * 5 / 11); if (flip) ctx.scale(-1, 1);
+    // face: which way the slash goes (+1 right, -1 left): towards the middle of the screen; each picture is mirrored to match.
+    // (Marek, 2026-11-24: 20% bigger than the drawn friends, and every slash facing the middle)
+    function drawGang(name, pose, x, y, size, face, fx) {
+        const Q = GANG_ART.poses[name + '-' + pose], im = gangArt.img[name + '-' + pose], k = size * 1.2 / GANG_ART.body;
+        ctx.save(); ctx.translate(x, y + size * 5 / 11); if ((Q.dir || 1) !== face) ctx.scale(-1, 1);
         const FXC = { fire: '255,120,20', bubbles: '255,213,60', frost: '79,195,247' }[fx];
         if (FXC) glow(ctx, pose === 'up' ? 0 : size * 0.25, pose === 'up' ? -size * 1.1 : -size * 0.2, size * 0.55, FXC, 0.6);
         ctx.drawImage(im, -Q.at[0] * k, -Q.at[1] * k, Q.size[0] * k, Q.size[1] * k);
@@ -5256,7 +5309,7 @@ export function mountFrogGame(stage, opts = {}) {
         // they run in from the left, the top and the right and meet in the middle of the screen to slash
         const mid = fieldY(0.45), gap = Math.min(S() * 0.34, W * 0.3);
         const spots = [{ x: W / 2 - gap, y: mid, fx: -1, fy: 0 }, { x: W / 2, y: mid - S() * 0.2, fx: 0, fy: -1 }, { x: W / 2 + gap, y: mid, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
-        summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n, jit: rand(-28, 28), late: rand(0, 0.07) }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
+        summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n, jit: rand(-28, 28), late: rand(0, 0.07), face: Math.random() < 0.5 ? -1 : 1 }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
         use('laptop'); snd('summon'); log('summon', who.join('+'));
         down = false; cut = null; press = null; autoCut = false; swing = null;
         floats.push({ x: W / 2, y: H * 0.3, text: 'Calling the team!', t: 0, hot: true });
@@ -5356,7 +5409,7 @@ export function mountFrogGame(stage, opts = {}) {
             const arm = tt < SUMMON.slash1 ? -100 + j : tt < SUMMON.slash1 + 0.3 ? 70 + j * 0.6 : tt < SUMMON.slash2 ? 170 - j : j * 0.8;
             const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1 - 0.04) / 0.12, 1 - Math.abs(t - SUMMON.slash2 - 0.04) / 0.12) * size * 0.3;
             const x = fr.x + fr.fx * off - fr.fx * hit, y = fr.y + fr.fy * off - fr.fy * hit + size * 0.1;
-            if (gangArt.ready) drawGang(fr.n, arm > 0 && arm < 120 || (tt >= SUMMON.slash2 && arm < 120) ? 'cut' : 'up', x, y, size, fr.fx > 0, fr.el);
+            if (gangArt.ready) drawGang(fr.n, arm > 0 && arm < 120 || (tt >= SUMMON.slash2 && arm < 120) ? 'cut' : 'up', x, y, size, fr.fx ? -fr.fx : fr.face, fr.el);
             else drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw, fr.el);
         });
     }
@@ -6149,6 +6202,7 @@ export function mountFrogGame(stage, opts = {}) {
         state() {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
+                halves: bits.filter(q => q.half).map(q => [Math.round(q.x), Math.round(q.y)]),      // (the halves of a cut laptop, still up for a second cut)
                 arms: artFrog && artFrog.on && !svg.classList.contains('fg-art-cut-on') ? (artFrog.standNow || 'rig ' + Math.round(pose.lRot) + '/' + Math.round(pose.rRot) + (pose.held && !pose.noBlades && !pose.stuck ? '' : ' unarmed')) : '',      // (which arms the standing frog shows: a painted stand, or the jointed rig at these angles)
                 pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
                 vr: VR_RAY, press: press ? [Math.round(press.x), Math.round(press.y), press.drag || 0] : null, down,      // (the pointer, for the controller-ray checks)
