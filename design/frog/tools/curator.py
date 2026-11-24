@@ -144,7 +144,7 @@ def run_size(root, size, only, outdir, tag):
             b.js(f"window.frogCurate.shoot({json.dumps(n)})")
             hs = json.loads(b.js("JSON.stringify(window.frogCurate.hotspots())"))
             raw = os.path.join(outdir, 'raw', f'{safe(n)}__{size}__{tag}.png'); b.shot(raw)
-            res[n] = {'file': raw, 'hotspots': hs, 'air': s['air']}
+            res[n] = {'file': raw, 'hotspots': hs, 'air': s['air'], 'one': s.get('one', False)}
         print(f'  {tag} {size}: {len(res)} shots', flush=True)
     finally:
         b.close()
@@ -255,6 +255,9 @@ def main():
                     if hs.get('air'): h2['air'] = True     # (the game says it is off its feet right now: a hop in a cut)
                     if not A['air'] and not hs.get('air'):
                         bad = [f for f in (h2['feet'] or []) if f['supported'] < 0.8 or abs(f['gap_px']) > 4]
+                        # a pose that stands on one foot on purpose (the teeter): the lifted foot and the flung-out hands are green
+                        # near the post line too, and were being read as soles off the post; one good sole is what it needs
+                        if A.get('one') and len(bad) < len(h2['feet'] or []): bad = []
                         if bad: h2['measured_fault'] = 'a sole is not on the post: ' + json.dumps(bad)
                         elif h2['feet'] is not None and not h2['feet']:
                             h2['measured_fault'] = 'no foot on the post (hovering, or off it)'

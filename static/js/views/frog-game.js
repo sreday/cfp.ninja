@@ -298,7 +298,7 @@ const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], 
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
-const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -62 };      // (Marek, 2026-11-24: 10% smaller; set down a little so its toes are still on the wood)
+const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -14 };      // (Marek, 2026-11-24: 10% smaller; set down a touch so its toes are still on the wood)
 // the fall (Marek's pick 2026-11-22, 'put the open mouth for now'): game over, arms thrown up, mouth open. It sits in the frog's own group, so the
 // topple and the drop that turned the drawn frog over (pose.fallRot, pose.fallY) turn and drop this picture. No katanas in it: they fall on their own.
 const FALL_ART = { url: '/img/game/frog/fall.1ad4941ca5.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true, grow: 0.9 };      // (the size of the teeter before it)
@@ -7180,7 +7180,7 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'drunk', anim: 'drunk (sake)', at: 0.45 },
             { name: 'time freeze', anim: 'time freeze', at: 0.3, seated: true },
             { name: 'clock planning', anim: 'clock: planning, points up-right', at: 0.3, seated: true },
-            { name: 'teeter', anim: 'under five seconds (losing its footing, going over backward)', at: 0.5 },
+            { name: 'teeter', anim: 'under five seconds (losing its footing, going over backward)', at: 0.5, one: true },      // (one: on one foot on purpose, the other and both hands in the air)
             { name: 'fall', anim: 'time up: slips off one foot', at: 0.6, air: true },
             { name: 'team called', anim: 'laptop: the team is called', at: 2.5, seated: true },
             { name: 'seagull pecks', anim: 'seagull pecks the head', at: 0.8 },
@@ -7192,7 +7192,7 @@ export function mountFrogGame(stage, opts = {}) {
         window.frogCurate = {
             // (frame by frame, for what happens between two poses: design/frog/tools/morph_shots.py)
             step: sec => step(sec), play: name => playAnim(name), stop() { if (demo && demo.a.end) demo.a.end(); demo = null; swing = null; },
-            shots: () => SHOTS.map(q => ({ name: q.name, air: !!q.air || !!q.seated })),       // (sitting: its legs hang over the front, on purpose)
+            shots: () => SHOTS.map(q => ({ name: q.name, air: !!q.air || !!q.seated, one: !!q.one })),       // (sitting: its legs hang over the front, on purpose)
             // resolves once the art is in and the first frame is drawn
             ready: async () => { for (let i = 0; i < 200 && artLeft > 0; i++) await new Promise(r => setTimeout(r, 50)); await document.fonts.ready; step(0.5); return artLeft <= 0; },
             shoot(name) {
