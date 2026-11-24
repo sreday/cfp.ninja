@@ -1,114 +1,54 @@
 #!/usr/bin/env python3
-"""Step 2 of the painted standing frog (see art_build_stand.py): the redrawn frogs (qwen_edit.py on the captures of
-art_stand_capture.py; here d-6 = ready, w-3 = wind) are coloured to the gi's red, cut off magenta, registered on their
-capture by the legs, put in frog units (K px a unit), the redrawn head taken out (the rig's head goes on top) and the
-rig's own neck put under it. Writes stand-<state>.png and stand.json (x, y, w, h in frog units): copy them to
-design/frog/art/sources/stand/ as ready.png, wind.png, stand.json. Run in the folder with the captures."""
-import sys, os, json, numpy as np
+"""Step 2 of the painted standing frog (see art_build_stand.py). Run in the folder with the captures of
+art_stand_capture.py (cap-<state>-full/body.png, cap.json) and the picked drawings.
+
+Each pose is ONE drawing of the whole body WITHOUT a head (Marek's rule, 2026-11-24: a part that carries a moving part
+is proven on its own, then the head is glued on top). It is made in two edits with qwen_edit.py: first the pose with
+slim sleeves that are one piece with the jacket (from the rig's capture), then that drawing with "remove the head: the
+collar closes around a short green neck stump". The head never leaves a hole: the neck and collar are drawn.
+(Tried and thrown away: cutting the head out of the first drawing and filling what was under it by rule. Every head
+movement showed a new seam.)
+
+Here the headless drawing is cut off magenta, registered on the capture by its legs, put in frog units (K px a unit),
+and given the rig's own feet (so the toes sit on the post exactly as before). Writes stand-<state>.png and stand.json
+(x, y, w, h in frog units): copy them to design/frog/art/sources/stand/ as <state>.png and stand.json.
+"""
 import sys, os, json, numpy as np
 sys.path.insert(0, r'C:\Users\marek\Documents\GitHub\cfp.ninja\design\frog\tools')
 from art_build_gull import keyed
 from PIL import Image
 from scipy import ndimage
+PICKS = {'ready': 'nh-ready-3', 'wind': 'nh-wind-3', 'tired': 'nh-tired-3', 'stun': 'nh-stun-3'}       # the headless drawings
 info = json.load(open('cap.json'))
 K = 0.5; U0 = (-1300, -900); RW, RH = int(4600 * K), int(2900 * K)       # raster: px = (unit - U0) * K
+ANKLE = 1500          # frog units: from here down the rig's feet
+BOX = (680, 860, 1880, 1660)         # the part of the 2x capture the drawings were made from
 def to_raster(img, ctm, off=(0, 0), res=Image.BICUBIC):
     a, b, c, d, e, f = ctm
-    # raster px -> source px:  sx = 2*(a*(px/K+U0x)+e) - offx
     return img.transform((RW, RH), Image.AFFINE, (2 * a / K, 0, 2 * (a * U0[0] + e) - off[0], 0, 2 * d / K, 2 * (d * U0[1] + f) - off[1]), res)
 def notmag(im):
     A = np.asarray(im.convert('RGB')).astype(int); return ~((A[..., 0] > A[..., 1] + 45) & (A[..., 2] > A[..., 1] + 20))
-def redmask(A): return (A[..., 0] > 110) & (A[..., 1] < 70) & (A[..., 2] < 70)
-ref = np.asarray(Image.open('in-idle.png').convert('RGB')).astype(float); rm = np.median(ref[redmask(ref)], axis=0)
 out = {}
-ANKLE = 1500          # frog units: from here down the rig's feet
-for state, gen in (('ready', 'd-6'), ('wind', 'w-3'), ('tired', 'tired-2'), ('stun', 'stun-6')):
-    im = Image.open(gen).convert('RGB').resize((1200, 800), Image.LANCZOS); A = np.asarray(im).astype(float)
-    m = (A[..., 0] > 80) & (A[..., 1] < 75) & (A[..., 2] < 75) & (A[..., 0] > A[..., 1] * 1.8)
-    # (no colour fix here any more: the colour guardian paints the palette over the built picture)
-    Image.fromarray(A.astype(np.uint8)).save('cc.png'); fr = keyed('cc.png', loose=True)
+for state, gen in PICKS.items():
+    Image.open(gen).convert('RGB').resize((BOX[2] - BOX[0], BOX[3] - BOX[1]), Image.LANCZOS).save('cc.png'); fr = keyed('cc.png', loose=True)
     full = Image.open(f'cap-{state}-full.png').convert('RGB')
-    # register the generated frog on the capture it was made from: the feet and legs did not change
-    fa = np.asarray(fr)[..., 3] > 128; ca = notmag(full.crop((680, 860, 1880, 1660)))
-    best = None
-    for dy in range(-8, 9):
-        for dx in range(-8, 9):
-            s = (np.roll(np.roll(fa, dy, 0), dx, 1)[560:780] ^ ca[560:780]).sum()
+    # register the drawing on the capture it was made from: the feet and legs did not change
+    fa = np.asarray(fr)[..., 3] > 128; ca = notmag(full.crop(BOX)); best = None
+    for dy in range(-10, 11):
+        for dx in range(-10, 11):
+            s = (np.roll(np.roll(fa, dy, 0), dx, 1)[600:780] ^ ca[600:780]).sum()
             if best is None or s < best[0]: best = (s, dx, dy)
-    print(state, 'register', best)
-    _, dx, dy = best
-    P = to_raster(fr, info[f'{state}-full'], (680 + dx, 860 + dy))
-    M = np.asarray(to_raster(Image.fromarray((notmag(Image.open(f'cap-{state}-head.png')) * 255).astype(np.uint8)), info[f'{state}-head'])) > 128
+    _, dx, dy = best; print(state, 'register', best)
+    PA = np.asarray(to_raster(fr, info[f'{state}-full'], (BOX[0] + dx, BOX[1] + dy))).copy()
+    lab, n = ndimage.label(PA[..., 3] > 40); big = 1 + int(np.argmax(ndimage.sum(PA[..., 3] > 40, lab, range(1, n + 1)))); PA[lab != big, 3] = 0      # loose scraps go
+    # the feet are the rig's own: from the ankles down, blended over a few rows
     B = np.asarray(to_raster(Image.fromarray((notmag(Image.open(f'cap-{state}-body.png')) * 255).astype(np.uint8)), info[f'{state}-body'])) > 128
-    Fu = to_raster(full, info[f'{state}-full'])
-    PA = np.asarray(P).copy(); al = PA[..., 3] > 40
-    ys, xs = np.nonzero(M); headmid = (ys.min() + ys.max()) / 2
-    red = redmask(PA.astype(int)) & al; red[:int(headmid)] = False
-    # the torso's zone: from the first red of each column (below the head's middle) down, and the outline just above it
-    zone = np.zeros_like(al); H = al.shape[0]
-    for x in range(al.shape[1]):
-        r = np.nonzero(red[:, x])[0]
-        if len(r): zone[max(0, r[0] - 9):, x] = True
-    ring = ndimage.binary_dilation(M, iterations=4) & ~M                         # (the redrawn head is a hair off the rig's: its outline goes too)
-    erase = M | ring
-    PA[erase, 3] = 0
-    lab, n = ndimage.label(PA[..., 3] > 40); big = 1 + int(np.argmax(ndimage.sum(PA[..., 3] > 40, lab, range(1, n + 1)))); PA[lab != big, 3] = 0      # scraps of the redrawn head and tails go
     BI = np.asarray(to_raster(Image.open(f'cap-{state}-body.png').convert('RGB'), info[f'{state}-body']))
-    # Under the head the body carries on: the head moves (it turns to the cursor, tips, blinks), and what it uncovers
-    # must be the jacket and the chest, not a hole or the rig's neck. The shoulders' top runs straight from where the
-    # left shoulder goes under the head to where the right one comes out; below that line the picture's own colours
-    # are carried up (never its ink), and the line itself is inked, so the shoulder's outline goes on under the cheek.
-    kept = PA[..., 3] > 200; yy, xx = np.nonzero(ndimage.binary_dilation(erase, iterations=3) & kept & (np.arange(RH)[:, None] > headmid))
-    xl, xr = xx.min(), xx.max(); yl = yy[xx < xl + 8].min(); yr = yy[xx > xr - 8].min()
-    # each shoulder's top goes on under the head at its own slope (a straight chord between the two made a flat corner
-    # beside the chin when the head moved), up to a flat neck top
-    top = np.where(kept.any(0), kept.argmax(0), RH).astype(float); cols = np.arange(RW)
-    def slope(x0, x1):
-        k = (cols >= x0) & (cols <= x1) & (top < RH)
-        return float(np.polyfit(cols[k], top[k], 1)[0]) if k.sum() > 8 else 0.0
-    sl = float(np.clip(slope(xl - 45, xl - 3), -0.35, 0)); sr = float(np.clip(slope(xr + 3, xr + 45), 0, 0.35))
-    cap = min(yl, yr) - 34
-    line = np.maximum(np.maximum(yl + sl * (cols - xl), yr + sr * (cols - xr)), cap)[None, :]; rows_ = np.arange(RH)[:, None]
-    inkish = PA[..., :3].max(-1) < 70
-    near = ndimage.binary_dilation(M, iterations=10)
-    flatsrc = ndimage.binary_erosion(kept & ~inkish, iterations=5) & ~near     # (flat colour only: an edge pixel would smear as a streak)
-    _, (iy, ix) = ndimage.distance_transform_edt(~flatsrc, return_indices=True)
-    # just outside the head's place the redrawn head left its outline and soft edge: whatever there is not the flat
-    # colour beside it goes too, and is filled like the rest
-    dirty = near & ~erase & kept & (rows_ > headmid) & (np.abs(PA[..., :3].astype(int) - PA[iy, ix, :3].astype(int)).max(-1) > 40)
-    erase = erase | dirty; PA[dirty, 3] = 0
-    seam = ndimage.binary_dilation(erase, iterations=2) & ~erase & (rows_ > headmid) & near       # (the soft pixels along the cut would stay as a hairline)
-    erase = erase | seam; PA[seam, 3] = 0
-    fill = erase & (rows_ > line + 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
-    # two plain colours only: the chest's cream where the chest is nearest, the robe's own red everywhere else (a carried-up
-    # highlight or lapel showed as an odd patch beside the chin when the head turned; Marek, 2026-11-24)
-    srcc = PA[iy[fill], ix[fill], :3].astype(int); creamy = (srcc[:, 0] > 190) & (srcc[:, 1] > 190)
-    rb = PA[..., :3][kept & (PA[..., 0] > 120) & (PA[..., 1] < 70) & (PA[..., 2] < 70)]; robe = np.median(rb, axis=0)
-    cr = srcc[creamy]; cream = np.median(cr, axis=0) if len(cr) else robe
-    PA[fill, :3] = np.where(creamy[:, None], cream, robe).astype(np.uint8); PA[fill, 3] = 255
-    edge = erase & (np.abs(rows_ - line) <= 4) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
-    PA[edge, :3] = 0; PA[edge, 3] = 255
-    # soften the cut edge under the head a touch is not needed: the head covers it
-    # the feet are the rig's own (the redrawn toes sat a little off the post's edge): from the ankles down, blended over a few rows
     yc = int((ANKLE - U0[1]) * K); wgt = np.clip((np.arange(RH) - yc) / 8.0, 0, 1)[:, None]
     rig = np.dstack([BI, (B * 255).astype(np.uint8)]).astype(float); PAf = PA.astype(float)
     pm = PAf.copy(); pm[..., :3] *= PAf[..., 3:] / 255; rg = rig.copy(); rg[..., :3] *= rig[..., 3:] / 255
     mix = pm * (1 - wgt[..., None]) + rg * wgt[..., None]; aa = np.maximum(mix[..., 3:], 1e-6)
     PA = np.dstack([np.clip(mix[..., :3] / aa * 255, 0, 255), mix[..., 3]]).astype(np.uint8)
-    P2 = Image.fromarray(PA, 'RGBA')
-    al2 = PA[..., 3] > 40
-    peek = B & ~al2 & ~ndimage.binary_dilation(M, iterations=6); print(state, 'body peeking px', int(peek.sum()))
-    box = P2.getbbox(); crop = P2.crop(box); crop.save(f'stand-{state}.png')
-    out[state] = dict(x=round(box[0] / K + U0[0], 1), y=round(box[1] / K + U0[1], 1), w=round(crop.width / K, 1), h=round(crop.height / K, 1))
-    # preview: body under, the picture, the head over (cut from the capture)
-    bodyim = to_raster(Image.open(f'cap-{state}-body.png').convert('RGB'), info[f'{state}-body']).convert('RGBA'); ba = np.asarray(bodyim).copy(); ba[..., 3] = B * 255
-    headim = to_raster(Image.open(f'cap-{state}-head.png').convert('RGB'), info[f'{state}-head']).convert('RGBA'); ha = np.asarray(headim).copy(); ha[..., 3] = M * 255
-    pv = Image.new('RGBA', (RW, RH), (60, 140, 200, 255))
-    pv.alpha_composite(P2); pv.alpha_composite(Image.fromarray(ha))
-    nb = Image.new('RGBA', (RW, RH), (60, 140, 200, 255)); nb.alpha_composite(P2)
-    pk = np.asarray(pv.convert('RGB')).copy(); pk[peek] = (255, 255, 0)
-    bb = (box[0] - 20, 250, box[2] + 20, box[3] + 20)
-    sh = Image.new('RGB', ((bb[2] - bb[0]) * 2, (bb[3] - bb[1]) * 2))
-    for i, t in enumerate((Fu, pv.convert('RGB'), nb.convert('RGB'), Image.fromarray(pk))): sh.paste(t.crop(bb), ((i % 2) * (bb[2] - bb[0]), (i // 2) * (bb[3] - bb[1])))
-    sh.save(f'pv-{state}.png'); print(state, out[state], sh.size)
+    P2 = Image.fromarray(PA, 'RGBA'); box = P2.getbbox(); crop = P2.crop(box); crop.save(f'stand-{state}.png')
+    out[state] = dict(x=round(box[0] / K + U0[0], 1), y=round(box[1] / K + U0[1], 1), w=round(crop.width / K, 1), h=round(crop.height / K, 1)); print(state, out[state])
 json.dump(out, open('stand.json', 'w'))
