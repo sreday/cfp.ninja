@@ -77,7 +77,7 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 
 | # | Element | Notes | Status |
 |---|---|---|---|
-| 3.1 | Firefly | Marek's pick 'firefly E' (2026-11-24, round 2 "more fiery red"): a big round tail burning red, orange and a hot yellow core, red head with the frog's heavy brow, brown body, two see-through wings. Painted, four pictures (wings up, wings down, laid on one another; the bug without wings and the wings alone, for the cut), built by `art_build_fly.py` from `art/sources/firefly/`; the steady glow around it is drawn by the game (no pulsing). Caught on the tongue; a cut takes its wings off: they flutter away, the whole bug drops glowing at half. Colours in `palette.json` props (firefly-*) | in game |
+| 3.1 | Firefly | Marek's pick 'firefly E' (2026-11-24, round 2 "more fiery red"): a big round tail burning red, orange and a hot yellow core, red head with the frog's heavy brow, brown body, two see-through wings. Painted, four pictures (wings up, wings down, laid on one another; the bug without wings and the wings alone, for the cut), built by `art_build_fly.py` from `art/sources/firefly/`; the steady glow around it is drawn by the game (no pulsing). Caught on the tongue; a cut takes its wings off: they flutter away, the whole bug drops, its light out (no glow, the tail at half brightness). Colours in `palette.json` props (firefly-*) | in game |
 | 3.2 | Golden sake | bottle, tumbling; glow; smashed into shards and a splash | placeholder |
 | 3.3 | Alarm clock | tumbling, ringing; glow; broken into bells, gears, hands, spring | placeholder |
 | 3.4 | Fireworks bundle | five rockets, each a different rainbow colour, lit fuse | placeholder |

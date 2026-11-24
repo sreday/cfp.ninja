@@ -1112,14 +1112,24 @@ function drawFly(ctx, fl, s, t) {
     const pulse = 0.65 + 0.35 * Math.sin(t * 6 + fl.phase);
     if (flyArt.ready) {
         // a steady glow round the burning tail (warm near it, fiery red further out; no pulsing: Marek, 2026-11-24, it reads
-        // better still), then the picture. fl.part: 'bare' = the bug with its wings cut off, 'wings' = the wings alone (no
-        // glow); fl.dim: the glow's strength (a cut bug falls glowing at half).
-        const [tx, ty] = FLY_ART.tail, k = s / FLY_ART.px, dim = fl.dim == null ? 1 : fl.dim;
-        if (fl.part !== 'wings') {
-            glow(ctx, tx * s, ty * s, s * 5, '255,40,16', 0.85 * dim);
-            glow(ctx, tx * s, ty * s, s * 2.6, '255,150,40', 0.8 * dim);
+        // better still), then the picture. fl.part: 'bare' = the bug with its wings cut off, its light out (no glow, the
+        // tail dimmed by half: Marek, 2026-11-24), 'wings' = the wings alone.
+        const [tx, ty, tr] = FLY_ART.tail, k = s / FLY_ART.px;
+        if (!fl.part) {
+            glow(ctx, tx * s, ty * s, s * 5, '255,40,16', 0.85);
+            glow(ctx, tx * s, ty * s, s * 2.6, '255,150,40', 0.8);
         }
-        ctx.drawImage(flyArt.img[fl.part || (flap > 0.5 ? 'up' : 'down')], -FLY_ART.at[0] * k, -FLY_ART.at[1] * k, FLY_ART.size[0] * k, FLY_ART.size[1] * k);
+        let img = flyArt.img[fl.part || (flap > 0.5 ? 'up' : 'down')];
+        if (fl.part === 'bare') {
+            if (!flyArt.out) {                       // made once: the wingless bug with its tail at half brightness
+                const c = document.createElement('canvas'); c.width = FLY_ART.size[0]; c.height = FLY_ART.size[1]; const g = c.getContext('2d');
+                g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(0,0,0,0.5)';
+                g.beginPath(); g.arc(FLY_ART.at[0] + tx * FLY_ART.px, FLY_ART.at[1] + ty * FLY_ART.px, tr * FLY_ART.px * 1.08, 0, 7); g.fill();
+                flyArt.out = c;
+            }
+            img = flyArt.out;
+        }
+        ctx.drawImage(img, -FLY_ART.at[0] * k, -FLY_ART.at[1] * k, FLY_ART.size[0] * k, FLY_ART.size[1] * k);
         ctx.restore(); return;
     }
     ctx.save();
@@ -4101,12 +4111,12 @@ export function mountFrogGame(stage, opts = {}) {
         if (sakeLeft <= 0) hurtFlash = 0.35;                // you just wasted a power-up (free of charge on sake: no flash)
         setBladeFx('fire', f.x, f.y);
         if (flyArt.ready) {
-            // the blade takes its wings off (Marek, 2026-11-24): the wings flutter away, and the whole bug drops, its glow
-            // whole but at half strength. Nothing of it is cut in two.
+            // the blade takes its wings off (Marek, 2026-11-24): the wings flutter away, and the whole bug drops, its light
+            // out. Nothing of it is cut in two.
             const sd = Math.sign(Math.cos(ang)) || 1, o = { x: 0, y: 0, dir: f.dir, phase: f.phase };
             bit(f.x, f.y, ctx => drawFly(ctx, Object.assign({ part: 'wings' }, o), f.s, 0),
                 { vx: -sd * H * rand(0.06, 0.12), vy: -H * rand(0.12, 0.2), g: G() * 0.25, rot: 0, spin: -sd * rand(1.5, 3), life: 1.3 });
-            bit(f.x, f.y, ctx => drawFly(ctx, Object.assign({ part: 'bare', dim: 0.5 }, o), f.s, 0),
+            bit(f.x, f.y, ctx => drawFly(ctx, Object.assign({ part: 'bare' }, o), f.s, 0),
                 { vx: (f.dir || 0) * (f.speed || 0) * 0.3, vy: -H * 0.05, rot: 0, spin: sd * rand(1, 2.2), life: 2.2 });
             return;
         }
