@@ -1190,6 +1190,12 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
+// The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
+// pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
+// STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
+const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.c9e24b6132.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2232.0 }, wind: { url: '/img/game/frog/stand-wind.1d99b5f478.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1866.0 } };
+// STAND_ART:end
+const STAND_ON = typeof location === 'undefined' || !/[?&]stand=0(&|$)/.test(location.search);
 // The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).
 // SPLASH_ART:begin (written by design/frog/tools/art_build_splash.py: do not edit by hand)
 const SPLASH_ART = { url: '/img/game/fx/splash.534a031bc0.webp', size: [560, 299] };
@@ -1857,7 +1863,7 @@ export function mountFrogGame(stage, opts = {}) {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
             // load every part first, so the frog never shows half drawn
-            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes, LOOK_ART.face]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
+            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes, LOOK_ART.face, STAND_ART.ready.url, STAND_ART.wind.url]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
             if (dead) return;
             const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
             const armSvg = s => {
@@ -1897,6 +1903,7 @@ export function mountFrogGame(stage, opts = {}) {
                 <polygon class="fg-slope-fillL" fill="#941c19"/><polygon class="fg-slope-fillR" fill="#941c19"/></g>
                 <path class="fg-slope-lineL" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/><path class="fg-slope-lineR" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/>
                 <g class="fg-art-cap">${cap('#941c19', 0)}</g>${armSvg('L')}${armSvg('R')}
+                <g class="fg-art-stand" display="none">${['ready', 'wind'].map(n => { const q = STAND_ART[n]; return `<image class="fg-stand-${n}" href="${q.url}" x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" preserveAspectRatio="none"/>`; }).join('')}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}${lookFace()}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s), at = root.querySelector('.fg-art-limbat' + s);
@@ -1921,7 +1928,8 @@ export function mountFrogGame(stage, opts = {}) {
                     armB: { ...a2('fg-art-armB'), reach: p['p-armF'].reach }, armF: { ...a2('fg-art-armF'), reach: p['p-armN'].reach } };
             }
             const faces = Object.fromEntries(['base', 'fire', 'stun', 'back', 'look'].map(n => [n, root.querySelector('.fg-face-' + n)]).filter(e => e[1]));
-            artFrog = { g, root, on: false, side, faces, faceNow: 'base', saya: root.querySelector('.fg-art-saya'), body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R') };
+            artFrog = { g, root, on: false, side, faces, faceNow: 'base', saya: root.querySelector('.fg-art-saya'), body: root.querySelector('.fg-art-body'), head: root.querySelector('.fg-art-head'), tail: root.querySelector('.fg-art-tail'), armL: arm('L'), armR: arm('R'), stand: root.querySelector('.fg-art-stand'), standNow: '',
+                rig: [...root.querySelectorAll(':scope > .fg-art-capline, :scope > g[mask], :scope > path, :scope > .fg-art-cap, :scope > .fg-art-armL, :scope > .fg-art-armR')] };
             applyPose();
         } catch (e) { console.warn('frog art', e); }
         finally { artDone(); }
@@ -2469,6 +2477,16 @@ export function mountFrogGame(stage, opts = {}) {
         };
         arm(A.armL, G.shoulderL, pose.lRot, pose.lStretch, pose.lK);
         arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
+        // The two poses seen most are painted whole (STAND_ART): standing ready, and pressed. The rig's body and arms
+        // are put away while one shows; any other arm pose (tired, stunned, the tongue...) is still the rig.
+        const plainArms = armed && pose.lStretch === 1 && pose.rStretch === 1;
+        const st = !STAND_ON || !plainArms ? '' : pose.lRot === READY.l && pose.rRot === READY.r && Math.abs(pose.lK - READY.lK) < 4 ? 'ready'
+            : pose.lRot === READY.l + 18 && pose.rRot === READY.r - 18 && pose.lK === READY.lK - 25 ? 'wind' : '';
+        if (st !== A.standNow) {
+            A.standNow = st; setA(A.stand, 'display', st ? 'inline' : 'none'); A.rig.forEach(e => setA(e, 'display', st ? 'none' : 'inline'));
+            if (st) [...A.stand.children].forEach(e => setA(e, 'display', e.classList.contains('fg-stand-' + st) ? 'inline' : 'none'));
+        }
+        if (st) setA(A.stand, 'transform', `translate(0 1700) scale(1 ${n2(1 + pose.breath * 0.012)}) translate(0 -1700)`);
         // the shoulder caps follow their arm's pivot (and, for an oval that follows, its turn)
         const capAt = (at, rot, out) => SHOULDER.follow ? `translate(${at[0]} ${at[1]}) rotate(${n2(rot)}) translate(0 ${SHOULDER.dy})`
             : `translate(${at[0] + out * SHOULDER.dx} ${at[1] + SHOULDER.dy})`;
