@@ -1193,7 +1193,7 @@ function drawLaptop(ctx, b, lw) {
 // The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
 // pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
 // STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
-const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.00558872f0.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.ef9d7319b0.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 } };
+const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.0d601b6f3c.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.06520e6fc9.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 } };
 // STAND_ART:end
 const STAND_ON = typeof location === 'undefined' || !/[?&]stand=0(&|$)/.test(location.search);
 // The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).
@@ -6052,6 +6052,9 @@ export function mountFrogGame(stage, opts = {}) {
             tick(t) { if (t < INTRO) intro(t); else if (introArtT >= 0) readyPose(); }, end() { readyPose(); } });
         out.push({ name: 'ready (idle)', dur: 0.6 });
         out.push({ name: 'wind-up (pressed)', dur: 0.5, tick() { windUp = true; }, end() { windUp = false; } });
+        // (the head turns and tips to the cursor: what it uncovers at the neck and shoulders has to be drawn; Marek 2026-11-24)
+        out.push({ name: 'ready, cursor far left', dur: 0.6, tick() { aim = { x: 0, y: H * 0.6 }; }, end() { aim = null; } });
+        out.push({ name: 'wind-up, cursor far right', dur: 0.5, tick() { windUp = true; aim = { x: W, y: H * 0.3 }; }, end() { windUp = false; aim = null; } });
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
         out.push({ name: 'stunned', dur: 0.9, start() { stunT = stunFor = 0.9; headFx = null; } });
         [['watermelon', 'stuck on its head'], ['pineapple', 'stuck on its head'], ['grapes', 'splattered over its face'], ['orange', 'splattered over its face'], ['apple', 'a bump comes up'], ['banana', 'worn as a hat'], ['kiwi', 'eating it'], ['plum', 'eating it']].forEach(([kind, what]) =>
@@ -7187,6 +7190,8 @@ export function mountFrogGame(stage, opts = {}) {
             ...[0.3, 0.6, 0.9, 1.4, 1.95].map(t => ({ name: `intro ${t}`, anim: 'intro: laptop flung, katanas drawn', at: t, air: t === 0.3 })),
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
+            { name: 'ready looking left', anim: 'ready, cursor far left', at: 0.45 },
+            { name: 'wind-up looking right', anim: 'wind-up, cursor far right', at: 0.4 },
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'duck under a level cut', 'hop over a level cut', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut down(-left)?, far$/.test(n) })),     // (a downward cut is the hop: in the air on purpose)
             { name: 'cut high, right (jump)', anim: 'cut high, right (jump)', at: 0.12, air: true },

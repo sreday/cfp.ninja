@@ -49,15 +49,30 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3')):
     for x in range(al.shape[1]):
         r = np.nonzero(red[:, x])[0]
         if len(r): zone[max(0, r[0] - 9):, x] = True
-    ring = ndimage.binary_dilation(M, iterations=10) & ~M
-    erase = M | (ring & ~zone)
-    # (never the katanas: they pass close to the head only above it, outside the ring; checked by eye)
+    ring = ndimage.binary_dilation(M, iterations=4) & ~M                         # (the redrawn head is a hair off the rig's: its outline goes too)
+    erase = M | ring
     PA[erase, 3] = 0
     lab, n = ndimage.label(PA[..., 3] > 40); big = 1 + int(np.argmax(ndimage.sum(PA[..., 3] > 40, lab, range(1, n + 1)))); PA[lab != big, 3] = 0      # scraps of the redrawn head and tails go
     BI = np.asarray(to_raster(Image.open(f'cap-{state}-body.png').convert('RGB'), info[f'{state}-body']))
-    neck = B & ndimage.binary_dilation(M, iterations=12) & (PA[..., 3] < 255)                    # the rig's own neck and collar, under the head (seen when the head tips)
-    under = PA.copy(); under[..., :3] = BI; under[..., 3] = neck * 255
-    PA = np.asarray(Image.alpha_composite(Image.fromarray(under, 'RGBA'), Image.fromarray(PA, 'RGBA'))).copy()
+    # Under the head the body carries on: the head moves (it turns to the cursor, tips, blinks), and what it uncovers
+    # must be the jacket and the chest, not a hole or the rig's neck. The shoulders' top runs straight from where the
+    # left shoulder goes under the head to where the right one comes out; below that line the picture's own colours
+    # are carried up (never its ink), and the line itself is inked, so the shoulder's outline goes on under the cheek.
+    kept = PA[..., 3] > 200; yy, xx = np.nonzero(ndimage.binary_dilation(erase, iterations=3) & kept & (np.arange(RH)[:, None] > headmid))
+    xl, xr = xx.min(), xx.max(); yl = yy[xx < xl + 8].min(); yr = yy[xx > xr - 8].min()
+    line = (yl + (yr - yl) * (np.arange(RW) - xl) / max(1, xr - xl))[None, :]; rows_ = np.arange(RH)[:, None]
+    inkish = PA[..., :3].max(-1) < 70
+    near = ndimage.binary_dilation(M, iterations=10)
+    flatsrc = ndimage.binary_erosion(kept & ~inkish, iterations=5) & ~near     # (flat colour only: an edge pixel would smear as a streak)
+    _, (iy, ix) = ndimage.distance_transform_edt(~flatsrc, return_indices=True)
+    # just outside the head's place the redrawn head left its outline and soft edge: whatever there is not the flat
+    # colour beside it goes too, and is filled like the rest
+    dirty = near & ~erase & kept & (rows_ > headmid) & (np.abs(PA[..., :3].astype(int) - PA[iy, ix, :3].astype(int)).max(-1) > 40)
+    erase = erase | dirty; PA[dirty, 3] = 0
+    fill = erase & (rows_ > line + 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
+    PA[fill, :3] = PA[iy[fill], ix[fill], :3]; PA[fill, 3] = 255
+    edge = erase & (np.abs(rows_ - line) <= 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
+    PA[edge, :3] = 0; PA[edge, 3] = 255
     # soften the cut edge under the head a touch is not needed: the head covers it
     # the feet are the rig's own (the redrawn toes sat a little off the post's edge): from the ankles down, blended over a few rows
     yc = int((ANKLE - U0[1]) * K); wgt = np.clip((np.arange(RH) - yc) / 8.0, 0, 1)[:, None]
