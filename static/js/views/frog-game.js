@@ -1182,6 +1182,16 @@ const LAPTOP_ART = { url: '/img/game/frog/laptop.2b28d644d0.webp', size: [642, 3
 // LAPTOP_ART:end
 const laptopArt = { img: null };
 if (typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search)) { const i = new Image(); i.onload = () => { laptopArt.img = i; }; i.src = LAPTOP_ART.url; }
+// An icon of the seagull or the laptop is painted before their pictures have loaded: paint it again once they are in
+// (Marek, 2026-11-24: the debug tray still showed the old seagull). paint(x) draws the icon on a fresh context.
+function iconWhenArt(c, k, paint) {
+    const x0 = c.getContext('2d'); x0.save(); paint(x0); x0.restore();
+    if ((gullArt.ready || !ART.frog) && laptopArt.img) return;
+    let n = 0; const t = setInterval(() => {
+        const done = (gullArt.ready || !ART.frog) && laptopArt.img;
+        if (done || ++n > 60) { clearInterval(t); if (!done) return; const x = c.getContext('2d'); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); x.scale(k, k); paint(x); x.restore(); }
+    }, 250);
+}
 // the grey CFP.ninja laptop from the logo, open, seen from the front (2.3 r wide); the drawing below until the picture is in
 function drawLaptop(ctx, b, lw) {
     const r = b.r;
@@ -1729,8 +1739,8 @@ export function mountFrogGame(stage, opts = {}) {
             if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
             else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
-            else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
-            else if (kind === 'gull') { x.translate(S / 2 - 2, S / 2 + 2); drawGull(x, 13, 1.6, { flap: -0.5 }); }
+            else if (kind === 'laptop') iconWhenArt(c, k, g => drawLaptop(g, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6));
+            else if (kind === 'gull') iconWhenArt(c, k, g => { g.translate(S / 2 - 2, S / 2 + 2); drawGull(g, 13, 1.6, { flap: -0.5 }); });
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
         });
@@ -6302,8 +6312,8 @@ export function mountFrogGame(stage, opts = {}) {
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
-            else if (kind === 'laptop') drawLaptop(x, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6);
-            else if (kind === 'gull') { x.translate(S / 2 - 2, S / 2 + 2); drawGull(x, 13, 1.6, { flap: -0.5 }); }
+            else if (kind === 'laptop') iconWhenArt(c, k, g => drawLaptop(g, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6));
+            else if (kind === 'gull') iconWhenArt(c, k, g => { g.translate(S / 2 - 2, S / 2 + 2); drawGull(g, 13, 1.6, { flap: -0.5 }); });
             else { x.translate(S / 2, S / 2 + 1); drawCrate(x, 15, 1.6); }
             // drag it out of the tray: a ghost follows the pointer, and it lands where you let go
             c.addEventListener('pointerdown', e => {
