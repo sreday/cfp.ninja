@@ -7235,6 +7235,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the curator's handle: shots (deterministic states), stepping the virtual clock, and where to look
         const SHOTS = [
             { name: 'scene', seated: true },
+            { name: 'intro throw', anim: 'intro: laptop flung, katanas drawn', at: 0.95, seated: true },      // (the logo's laptop in the air: the same picture and size as in the lap)
             ...[0.3, 0.6, 0.9, 1.4, 1.95].map(t => ({ name: `intro ${t}`, anim: 'intro: laptop flung, katanas drawn', at: t, air: t === 0.3 })),
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
