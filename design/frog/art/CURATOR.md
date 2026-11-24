@@ -347,3 +347,15 @@ between figures standing at about the same depth.
 | 2026-11-20 | Empty scabbards on the back while the katanas are in its hands (scabbards only show with the katanas sheathed) | the frog's back, every cut and breath |
 
 A new kind of fault that Marek points out becomes a new line in the checklist and a new row here.
+
+## Moving parts over a painted picture (added 2026-11-24, after glitches under the chin went live)
+
+The head turns and tips to the cursor, over a body that is one painted picture. A still taken with the cursor in
+the middle hides whatever the head uncovers when it moves. So:
+
+- Any picture that a moving part sits on (the head on the standing frog, a hand on a prop) is judged with that part
+  off its rest place: the shots `ready looking left` and `wind-up looking right` exist for this. A new painted pose
+  with the rig's head on top gets its own "looking left / looking right" shot before it ships.
+- The reviewer opens the `neck` and `both shoulders and chest` crops at full size. The review sheets are too small
+  to show a stray dash or a leftover outline.
+- Whoever makes the change looks at the same crops at full size before asking for the review.
