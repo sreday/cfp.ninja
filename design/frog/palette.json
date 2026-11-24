@@ -1,5 +1,5 @@
 {
- "note": "The frog's colours. Read by design/frog/tools/color_guardian.py: every frog asset is checked against this before it ships and repainted if it drifted. A new prop (a sake bottle, a flame) goes into 'extras'; a new look on purpose (a new skin, the sensei) is a new entry under 'skins'. Change a value here only with Marek's OK: this is the brand.",
+ "note": "The frog's colours. Read by design/frog/tools/color_guardian.py: every frog asset is checked against this before it ships and repainted if it drifted. A new prop (a sake bottle, a flame) goes into 'extras'; a new look on purpose (a new skin, the sensei) is a new entry under 'skins'. Change a value here only with Marek's OK: this is the brand. Skins llama/platypus/monkey/corgi: the laptop gang's outfits (one colour each, in shades), measured off Marek's picks; the frog's own check does not cover them yet.",
  "skins": {
   "frog": {
    "ink": {
@@ -51,6 +51,94 @@
     "hex": "#e9808a",
     "name": "Tongue",
     "from": "the stunned face (Marek's pick)"
+   }
+  },
+  "llama": {
+   "cloth-very-dark": {
+    "hex": "#245f42",
+    "name": "LLMday llama outfit, very dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-dark": {
+    "hex": "#277c56",
+    "name": "LLMday llama outfit, dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth": {
+    "hex": "#38c772",
+    "name": "LLMday llama outfit, ",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-bright": {
+    "hex": "#38c772",
+    "name": "LLMday llama outfit, bright",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   }
+  },
+  "platypus": {
+   "cloth-very-dark": {
+    "hex": "#7d300b",
+    "name": "PLATFORMday platypus outfit, very dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-dark": {
+    "hex": "#b04001",
+    "name": "PLATFORMday platypus outfit, dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth": {
+    "hex": "#e8711c",
+    "name": "PLATFORMday platypus outfit, ",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-bright": {
+    "hex": "#fd730c",
+    "name": "PLATFORMday platypus outfit, bright",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   }
+  },
+  "monkey": {
+   "cloth-very-dark": {
+    "hex": "#4b1761",
+    "name": "SREday monkey outfit, very dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-dark": {
+    "hex": "#4b1761",
+    "name": "SREday monkey outfit, dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth": {
+    "hex": "#713483",
+    "name": "SREday monkey outfit, ",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-bright": {
+    "hex": "#713483",
+    "name": "SREday monkey outfit, bright",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   }
+  },
+  "corgi": {
+   "cloth-very-dark": {
+    "hex": "#091437",
+    "name": "Conf42 corgi outfit, very dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-dark": {
+    "hex": "#2e518a",
+    "name": "Conf42 corgi outfit, dark",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth": {
+    "hex": "#37669a",
+    "name": "Conf42 corgi outfit, ",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
+   },
+   "cloth-bright": {
+    "hex": "#4388c9",
+    "name": "Conf42 corgi outfit, bright",
+    "from": "the picked gang sprite (2026-11-24): one colour in shades"
    }
   }
  },

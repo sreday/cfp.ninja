@@ -1190,6 +1190,27 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
+// The friends the laptop calls, painted (Marek's picks, 2026-11-24): each in its brand's puppet style and a ninja outfit in
+// shades of its one colour, one katana, two pictures: 'up' (raised) and 'cut' (mid-slash). Drawn facing right; 'at' = the
+// soles' middle; every friend's body is 'body' px tall. ?gang=old shows the code-drawn friends.
+// GANG_ART:begin (written by design/frog/tools/art_build_gang.py: do not edit by hand)
+const GANG_ART = { body: 340, poses: {
+    'monkey-up': { url: '/img/game/gang/monkey-up.61622b6a3f.webp', size: [305, 341], at: [150.5, 340.4] },
+    'monkey-cut': { url: '/img/game/gang/monkey-cut.5cc89da7c3.webp', size: [345, 341], at: [201.5, 340.8] },
+    'llama-up': { url: '/img/game/gang/llama-up.404e6a8ad5.webp', size: [248, 387], at: [153.1, 386.9] },
+    'llama-cut': { url: '/img/game/gang/llama-cut.70c863fe6b.webp', size: [244, 344], at: [143.8, 343.4] },
+    'platypus-up': { url: '/img/game/gang/platypus-up.a6b10df72e.webp', size: [323, 374], at: [171.0, 373.6] },
+    'platypus-cut': { url: '/img/game/gang/platypus-cut.72b5caf909.webp', size: [330, 345], at: [173.7, 344.3] },
+    'corgi-up': { url: '/img/game/gang/corgi-up.20276318c6.webp', size: [250, 341], at: [142.5, 340.4] },
+    'corgi-cut': { url: '/img/game/gang/corgi-cut.233426ff31.webp', size: [267, 341], at: [137.3, 340.8] },
+} };
+// GANG_ART:end
+const gangArt = { ready: false, img: {} };
+if (ART.frog && typeof Image !== 'undefined' && !/[?&]gang=old(&|$)/.test(typeof location === 'undefined' ? '' : location.search)) {
+    const all = Object.entries(GANG_ART.poses);
+    Promise.all(all.map(([k, q]) => new Promise(ok => { const i = new Image(); i.onload = () => { gangArt.img[k] = i; ok(); }; i.onerror = ok; i.src = q.url; })))
+        .then(() => { gangArt.ready = all.every(([k]) => gangArt.img[k]); });
+}
 // The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
 // pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
 // STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
@@ -5151,6 +5172,16 @@ export function mountFrogGame(stage, opts = {}) {
         platypus: { fur: '#7a5140', face: '#5d6770', gi: '#ef7d14', hi: '#ffa040' },
         corgi: { fur: '#f29a3f', face: '#ffffff', gi: '#1f6fd6', hi: '#4c93ee' }
     };
+    // the painted friend (GANG_ART): the same place and size as the drawn one below (soles at y + 5u, 11u tall), its
+    // katana raised ('up') or mid-cut ('cut'); a blade that took an element glows with it, behind the friend
+    function drawGang(name, pose, x, y, size, flip, fx) {
+        const Q = GANG_ART.poses[name + '-' + pose], im = gangArt.img[name + '-' + pose], k = size / GANG_ART.body;
+        ctx.save(); ctx.translate(x, y + size * 5 / 11); if (flip) ctx.scale(-1, 1);
+        const FXC = { fire: '255,120,20', bubbles: '255,213,60', frost: '79,195,247' }[fx];
+        if (FXC) glow(ctx, pose === 'up' ? 0 : size * 0.25, pose === 'up' ? -size * 1.1 : -size * 0.2, size * 0.55, FXC, 0.6);
+        ctx.drawImage(im, -Q.at[0] * k, -Q.at[1] * k, Q.size[0] * k, Q.size[1] * k);
+        ctx.restore();
+    }
     // drawn facing right, feet at y = 5u, about 11u tall; arm = where the sword arm points (deg, 0 = forward, -90 = up)
     function drawFriend(name, x, y, size, flip, arm, lw, fx) {
         const F = FRIEND[name], u = size / 11, ink = C.ink;
@@ -5318,7 +5349,8 @@ export function mountFrogGame(stage, opts = {}) {
             const arm = tt < SUMMON.slash1 ? -100 + j : tt < SUMMON.slash1 + 0.3 ? 70 + j * 0.6 : tt < SUMMON.slash2 ? 170 - j : j * 0.8;
             const hit = Math.max(0, 1 - Math.abs(t - SUMMON.slash1 - 0.04) / 0.12, 1 - Math.abs(t - SUMMON.slash2 - 0.04) / 0.12) * size * 0.3;
             const x = fr.x + fr.fx * off - fr.fx * hit, y = fr.y + fr.fy * off - fr.fy * hit + size * 0.1;
-            drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw, fr.el);
+            if (gangArt.ready) drawGang(fr.n, arm > 0 && arm < 120 || (tt >= SUMMON.slash2 && arm < 120) ? 'cut' : 'up', x, y, size, fr.fx > 0, fr.el);
+            else drawFriend(fr.n, x, y, size, fr.fx > 0, arm, lw, fr.el);
         });
     }
     // The chop. What the tongue hauled in (a crate, a digital seagull) is brought up beside the frog's

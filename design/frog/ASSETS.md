@@ -83,6 +83,7 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 | 3.4 | Fireworks bundle | five rockets, each a different rainbow colour, lit fuse | placeholder |
 | 3.5 | Fruit crate | square wooden crate; closed; breaking; individual planks and splinters | placeholder |
 | 3.7 | Seagull | a plain seagull in the frog's style (Marek's pick 'seagull A', 2026-11-24: no headband, nothing in its claws; the rival-ninja and carried-chicken ideas were dropped). Painted, one drawing per pose, built by `art_build_gull.py` from `art/sources/gull/`: wing beat (up, mid, down), beak open, perched, pecking, screaming, fainted on its back; sooty = the same drawings darkened in the game. Fire knocks it out sooty and leaves a piece of fried chicken to cut (still a code drawing). Never shown hurt beyond cartoon soot, never in pieces | in game |
+| 3.8 | The team (laptop) | the four friends the laptop calls (llama, platypus, monkey, corgi), each in its own brand's puppet style, a ninja outfit in shades of its one colour (green, orange, purple, blue), one katana; two pictures each: katana up, and mid-cut. Marek's picks 2026-11-24 (gang round 6), built by `art_build_gang.py` from `art/sources/gang/`; colours in `palette.json` skins | in game |
 | 3.6 | Icons | a small icon of each of the five, for the tips pages and the debug tray | placeholder (same drawings, small) |
 
 ## 4. Effects
