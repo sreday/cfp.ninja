@@ -227,7 +227,7 @@ const HEAD = 'M505 600 C470 470 560 400 600 360 C640 180 820 110 993 110 C1166 1
 // bg: the beach at dusk (5.1), the party cut out and placed by screen shape (5.5), its dancers
 // (5.6), built by design/frog/tools/art_build_bg.py. Hashed names: cached forever, never stale.
 const ART = {
-    bg: '/img/game/bg/bg.f43df9828d.json',
+    bg: '/img/game/bg/bg.5d7b6e6348.json',
     title: '/img/game/ui/title.5c35ca5e51.webp',         // the FROG NINJA lockup (7.9) on the first panel
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
@@ -1795,14 +1795,13 @@ export function mountFrogGame(stage, opts = {}) {
                 const at = { left: (pb.left - sb.left + pb.width / 2 - rw / 2) + 'px', top: (wy - rh * 0.5) + 'px', width: rw + 'px', height: rh + 'px' };
                 Object.assign(artBg.ringEl.style, at); if (artBg.ringBack) Object.assign(artBg.ringBack.style, at);
                 artBg.waterY = wy;
-                // the post ends under the water: cut just below the waterline, where the ring's front arc covers the cut
-                // (below it the sea is the plate's own; a see-through post down there read as a faint rectangle)
-                pe.style.clipPath = `inset(0 0 ${Math.max(0, Math.round(pb.bottom - sb.top - (wy + rh * 0.44)))}px 0)`;
-                // ... and it fades into the water before that cut: the ring's front arc is foam lines with sea between them,
-                // and through those gaps the hard cut showed as a straight edge and a pale band (Marek, 2026-11-20, a
-                // near-square window). Solid wood to the waterline, gone where the front foam starts.
-                const f0 = Math.round(wy - (pb.top - sb.top) + rh * 0.06), f1 = Math.round(wy - (pb.top - sb.top) + rh * 0.26);
-                pe.style.maskImage = pe.style.webkitMaskImage = `linear-gradient(to bottom, #000 ${f0}px, transparent ${f1}px)`;
+                // the post ends AT the water: a round bottom edge, the waterline of a round stump, its sides at the waterline and its
+                // middle dipping to where the ring's front foam starts. (It used to fade out below the waterline and be cut under
+                // the front foam; through the gaps in the foam the half-faded wood showed as a dark band with a line in it:
+                // Marek, 2026-11-24, "this glitch has been in forever".)
+                const yw = Math.round(wy - (pb.top - sb.top)), pw = Math.round(pb.width);
+                pe.style.maskImage = pe.style.webkitMaskImage = '';
+                pe.style.clipPath = `path('M0 0 H${pw} V${yw} A${pw / 2} ${Math.round(pw * 0.13)} 0 0 1 0 ${yw} Z')`;
                 artBg.postBox = { x: pb.left - sb.left, y: pb.top - sb.top, w: pb.width, h: pb.height };   // (the water front skips its dry part)
                 if (artBg.waveEl) { artBg.waveEl.width = Math.round(W * k); artBg.waveEl.height = Math.round(H * k); }
             }
@@ -1976,7 +1975,10 @@ export function mountFrogGame(stage, opts = {}) {
                 const r = g.props.rects.ring, half = Math.round(r[3] / 2);
                 [ringBack, ringEl].forEach(cv => { cv.width = r[2]; cv.height = r[3]; });
                 ringBack.getContext('2d').drawImage(props, r[0], r[1], r[2], half, 0, 0, r[2], half);
-                ringEl.getContext('2d').drawImage(props, r[0], r[1] + half, r[2], r[3] - half, 0, half, r[2], r[3] - half);
+                // (only the ring's own oval: the corner of its box in the props picture holds the top of the rock beside it, which
+                //  showed as a brown wedge under the ring's right end)
+                const rc = ringEl.getContext('2d'); rc.beginPath(); rc.ellipse(r[2] / 2, r[3] / 2, r[2] / 2, r[3] / 2, 0, 0, 7); rc.clip();
+                rc.drawImage(props, r[0], r[1] + half, r[2], r[3] - half, 0, half, r[2], r[3] - half);
             }
             artBg = { g, plate, party, dancers, props, postEl, ringEl, ringBack, waveEl, waterY: 0, warm: glowSprite('255,214,140'), fire: glowSprite('255,140,40'), k: 1, at: 0,
                 seed: g.lights.map((_, i) => [1.5 + (i * 7919 % 13) / 6, (i * 104729 % 628) / 100]) };
@@ -4609,6 +4611,13 @@ export function mountFrogGame(stage, opts = {}) {
     }
     let press = null;                           // a press that hasn't moved yet: no cut, no stamina
     const TAP_SLOP = 30, TAP_TIME = 300;        // px and ms: how far and how long a finger's tap may slide
+    // A VR headset's browser (Meta Quest / Oculus Browser, Wolvic, Pico): the hand controller is a ray that the browser reports
+    // as a mouse, held in the air, so it never keeps as still as a mouse on a desk, and it has no right button for the tongue.
+    // There a press is judged as a finger's: a quick pull of the trigger that slid a little is still a tap (the tongue), and a
+    // tongue-only power-up gets the finger's wider target. ?vr=1 turns it on by hand (a headset showing the PC's own browser,
+    // as the Rift does, cannot be told from a mouse).
+    const VR_RAY = /OculusBrowser|Quest|Wolvic|Pico/i.test(navigator.userAgent || '') || /[?&]vr=1(&|$)/.test(location.search);
+    let sawButtons = false;                     // this pointer has reported a held button on a move (see onMove)
     let touchDown = null;                       // the press in progress: where, when, how far it has strayed
     const PRESS_DRAG = 10;                      // px of drag before a press becomes the first cut
     const cutMax = () => CUT_MAX * Math.max(W, H);
@@ -4686,10 +4695,11 @@ export function mountFrogGame(stage, opts = {}) {
         // A press that lands on a tongue-only power-up is meant for the tongue: give it the
         // benefit of the doubt. It may slide much further (and take as long as it likes) before
         // it turns into a slash, and the tongue goes for the power-up itself, wherever it has got to.
-        const finger = e.pointerType !== 'mouse', pad = finger ? 26 : 14;
+        const finger = e.pointerType !== 'mouse' || VR_RAY, pad = finger ? 26 : 14;
         const target = pickups.find(b => Math.hypot(b.x - px, b.y - py) < b.r * 1.3 + pad) || flies.find(f => Math.hypot(f.x - px, f.y - py) < f.s * 2 + pad + 6);
         if (target && phase === 'play') { press.target = target; press.drag = finger ? 70 : 45; }
-        touchDown = { x: px, y: py, t: performance.now(), far: 0, finger: e.pointerType !== 'mouse' };
+        touchDown = { x: px, y: py, t: performance.now(), far: 0, finger }; sawButtons = false;
+        if (VR_RAY) press.drag = Math.max(press.drag || 0, 24);      // (a ray in the hand wanders: it has to travel this far before the press is a slash; the slash still starts where it was pressed)
     }
     function onMove(e) {
         if (e.isPrimary === false) return;
@@ -4697,7 +4707,10 @@ export function mountFrogGame(stage, opts = {}) {
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
         const b = canvas.getBoundingClientRect();
-        if (down && e.pointerType === 'mouse' && !(e.buttons & 1)) { down = false; cut = null; press = null; dullId = 0; gapLeft = 0; }
+        // (a mouse whose button came up where we could not see it. Only for a pointer that does report its buttons while it
+        //  moves: some emulated mice, a headset's controller ray among them, report none all through a held drag, and the
+        //  slash must not be dropped on every move for those; their release comes as pointerup, which capture guarantees)
+        if (down && e.pointerType === 'mouse') { if (e.buttons & 1) sawButtons = true; else if (sawButtons) { down = false; cut = null; press = null; dullId = 0; gapLeft = 0; } }
         const list = ((down || sakeLeft > 0 || freezeLeft > 0) && e.getCoalescedEvents && e.getCoalescedEvents()) || [];
         const evs = list.length ? list : [e];
         for (const ce of evs) movePoint(mx(ce.clientX - b.left), ce.clientY - b.top, ce.timeStamp || e.timeStamp);
@@ -6070,6 +6083,7 @@ export function mountFrogGame(stage, opts = {}) {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
                 pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
+                vr: VR_RAY, press: press ? [Math.round(press.x), Math.round(press.y), press.drag || 0] : null, down,      // (the pointer, for the controller-ray checks)
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),

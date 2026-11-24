@@ -226,6 +226,11 @@ def main():
     drop = max(0, cut - int(pw0 * 0.8)); d0 = int(ph0 * 0.36)
     if drop:
         post = Image.fromarray(np.vstack([np.asarray(post)[:d0], np.asarray(post)[d0 + drop:]]), 'RGBA'); ph0 -= drop; cut -= drop
+    # The game shows the post wider than it was drawn and keeps its waterline where it was (POST_WET in frog-game.js), so the
+    # water meets it at about 0.58 of its width down, not at `cut`. From just above there on down the wood is that one row of
+    # grain drawn on: the picked post had the rim of its base there (a curved line and a pale band), which showed right under
+    # the waterline through the gaps in the foam (Marek, 2026-11-24: 'this glitch has been in forever').
+    A = np.asarray(post).copy(); r0 = int(pw0 * 0.56); A[r0:] = A[r0 - 1]; post = Image.fromarray(A, 'RGBA')
     top, low = post.crop((0, 0, pw0, cut)), post.crop((0, cut, pw0, ph0))
     low = low.resize((pw0, int(pw0 * 3.4) - cut), Image.BICUBIC)
     # under the waterline the wood sinks into the sea: tinted toward the water and fading out
