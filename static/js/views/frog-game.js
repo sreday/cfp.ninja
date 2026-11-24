@@ -1193,7 +1193,7 @@ function drawLaptop(ctx, b, lw) {
 // The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
 // pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
 // STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
-const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.0d601b6f3c.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.06520e6fc9.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 } };
+const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.edd3bfe270.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.115d8a6933.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 }, tired: { url: '/img/game/frog/stand-tired.85771de6e0.webp', x: -1234.0, y: 252.0, w: 4466.0, h: 1446.0 }, stun: { url: '/img/game/frog/stand-stun.03128e01eb.webp', x: -580.0, y: -306.0, w: 3150.0, h: 2004.0 } };
 // STAND_ART:end
 const STAND_ON = typeof location === 'undefined' || !/[?&]stand=0(&|$)/.test(location.search);
 // The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).
@@ -1863,7 +1863,7 @@ export function mountFrogGame(stage, opts = {}) {
         try {
             const g = await (await fetch(ART.frog)).json(), p = g.parts;
             // load every part first, so the frog never shows half drawn
-            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes, LOOK_ART.face, STAND_ART.ready.url, STAND_ART.wind.url]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
+            await Promise.all(Object.values(p).map(q => q.href).concat([STUN_ART.face, STUN_ART.eyes, LOOK_ART.face, ...Object.values(STAND_ART).map(q => q.url)]).map(u => new Promise((ok, no) => { const i = new Image(); i.onload = ok; i.onerror = no; i.src = u; })));
             if (dead) return;
             const im = (q, x, y, extra = '') => `<image href="${q.href}" x="${x}" y="${y}" width="${q.w}" height="${q.h}"${extra}/>`;
             const armSvg = s => {
@@ -1903,7 +1903,7 @@ export function mountFrogGame(stage, opts = {}) {
                 <polygon class="fg-slope-fillL" fill="#a3211d"/><polygon class="fg-slope-fillR" fill="#a3211d"/></g>
                 <path class="fg-slope-lineL" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/><path class="fg-slope-lineR" stroke="#000" stroke-width="24" stroke-linecap="round" fill="none"/>
                 <g class="fg-art-cap">${cap('#a3211d', 0)}</g>${armSvg('L')}${armSvg('R')}
-                <g class="fg-art-stand" display="none">${['ready', 'wind'].map(n => { const q = STAND_ART[n]; return `<image class="fg-stand-${n}" href="${q.url}" x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" preserveAspectRatio="none"/>`; }).join('')}</g>
+                <g class="fg-art-stand" display="none">${Object.keys(STAND_ART).map(n => { const q = STAND_ART[n]; return `<image class="fg-stand-${n}" href="${q.url}" x="${q.x}" y="${q.y}" width="${q.w}" height="${q.h}" preserveAspectRatio="none"/>`; }).join('')}</g>
                 <g class="fg-art-head"><g class="fg-face-base">${im(p.head, p.head.x, p.head.y)}</g>${['fire', 'stun', 'back'].filter(n => p['fh-' + n])
                 .map(n => n === 'stun' ? stunFace() : `<g class="fg-face-${n}" opacity="0">${im(p['fh-' + n], p['fh-' + n].x, p['fh-' + n].y)}</g>`).join('')}${lookFace()}</g>`;
             const arm = s => { const a = root.querySelector('.fg-art-arm' + s), at = root.querySelector('.fg-art-limbat' + s);
@@ -2478,10 +2478,14 @@ export function mountFrogGame(stage, opts = {}) {
         arm(A.armL, G.shoulderL, pose.lRot, pose.lStretch, pose.lK);
         arm(A.armR, G.shoulderR, pose.rRot, pose.rStretch, pose.rK);
         // The two poses seen most are painted whole (STAND_ART): standing ready, and pressed. The rig's body and arms
-        // are put away while one shows; any other arm pose (tired, stunned, the tongue...) is still the rig.
+        // are put away while one shows: ready, the wind-up, out of stamina, stunned. Any other arm pose would be the rig
+        // (frogPlay.state().arms says which: the sweep in CURATOR.md must find no 'rig').
         const plainArms = armed && pose.lStretch === 1 && pose.rStretch === 1;
-        const st = !STAND_ON || !plainArms ? '' : pose.lRot === READY.l && pose.rRot === READY.r && Math.abs(pose.lK - READY.lK) < 4 ? 'ready'
-            : pose.lRot === READY.l + 18 && pose.rRot === READY.r - 18 && pose.lK === READY.lK - 25 ? 'wind' : '';
+        const kNear = Math.abs(((pose.lK - READY.lK) % 360 + 540) % 360 - 180) < 4;         // (the intro ends a full turn on: 330 is -30)
+        const st = !STAND_ON || !plainArms ? '' : pose.lRot === READY.l && pose.rRot === READY.r && kNear ? 'ready'
+            : pose.lRot === READY.l + 18 && pose.rRot === READY.r - 18 && pose.lK === READY.lK - 25 ? 'wind'
+            : pose.lRot === READY.l - 12 && pose.lK === READY.lK - 55 ? 'tired'
+            : pose.lRot === READY.l - 25 && pose.rRot === READY.r + 25 ? 'stun' : '';
         if (st !== A.standNow) {
             A.standNow = st; setA(A.stand, 'display', st ? 'inline' : 'none'); A.rig.forEach(e => setA(e, 'display', st ? 'none' : 'inline'));
             if (st) [...A.stand.children].forEach(e => setA(e, 'display', e.classList.contains('fg-stand-' + st) ? 'inline' : 'none'));
@@ -3293,7 +3297,7 @@ export function mountFrogGame(stage, opts = {}) {
     let poseAcc = 0;
     let lowSide = 0;              // under five seconds: which way it is facing while it teeters (held for the whole spell)
     let swing = null;             // { a: heading (rad, snapped to 8), side: 'L'|'R', t, live }
-    let windUp = false;
+    let windUp = false, dbgNoHead = false;
     function swingTo(dx, dy, x, y) {
         if (!pose.held) return;
         // (a cut from standing: the frog as it stands right now, kept for the blend into the cut and back out of it)
@@ -6053,6 +6057,9 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'ready (idle)', dur: 0.6 });
         out.push({ name: 'wind-up (pressed)', dur: 0.5, tick() { windUp = true; }, end() { windUp = false; } });
         // (the head turns and tips to the cursor: what it uncovers at the neck and shoulders has to be drawn; Marek 2026-11-24)
+        out.push({ name: 'ready, body alone', dur: 0.6, tick() { dbgNoHead = true; }, end() { dbgNoHead = false; } });
+        out.push({ name: 'wind-up, body alone', dur: 0.5, tick() { windUp = true; dbgNoHead = true; }, end() { windUp = false; dbgNoHead = false; } });
+        out.push({ name: 'out of stamina, body alone', dur: 0.7, tick() { stamina = 0; dbgNoHead = true; }, end() { stamina = STAMINA_BARS; dbgNoHead = false; hud(); } });
         out.push({ name: 'ready, cursor far left', dur: 0.6, tick() { aim = { x: 0, y: H * 0.6 }; }, end() { aim = null; } });
         out.push({ name: 'wind-up, cursor far right', dur: 0.5, tick() { windUp = true; aim = { x: W, y: H * 0.3 }; }, end() { windUp = false; aim = null; } });
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
@@ -6103,6 +6110,7 @@ export function mountFrogGame(stage, opts = {}) {
         state() {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
+                arms: artFrog && artFrog.on && !svg.classList.contains('fg-art-cut-on') ? (artFrog.standNow || 'rig ' + Math.round(pose.lRot) + '/' + Math.round(pose.rRot) + (pose.held && !pose.noBlades && !pose.stuck ? '' : ' unarmed')) : '',      // (which arms the standing frog shows: a painted stand, or the jointed rig at these angles)
                 pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
                 vr: VR_RAY, press: press ? [Math.round(press.x), Math.round(press.y), press.drag || 0] : null, down,      // (the pointer, for the controller-ray checks)
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
@@ -6394,6 +6402,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.squash = 0.5;
         }
         pose.noHead = false;
+        if (dbgNoHead) pose.noHead = true;             // (debug: the body judged on its own, without the head over it)
         if (stunT > 0 && headFx) {
             if (headFx.mode === 'stuck') pose.noHead = true;                                   // the fruit is where its head was
             if (headFx.mode === 'eat') pose.mouthOpen = Math.floor(idleT * 12) % 2 === 0;       // chewing: open, shut, open
@@ -7191,6 +7200,10 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'ready', anim: 'ready (idle)', at: 0.3 },
             { name: 'wind-up', anim: 'wind-up (pressed)', at: 0.25 },
             { name: 'ready looking left', anim: 'ready, cursor far left', at: 0.45 },
+            { name: 'ready body alone', anim: 'ready, body alone', at: 0.45 },
+            { name: 'wind-up body alone', anim: 'wind-up, body alone', at: 0.4 },
+            { name: 'tired', anim: 'out of stamina', at: 0.5 },
+            { name: 'tired body alone', anim: 'out of stamina, body alone', at: 0.5 },
             { name: 'wind-up looking right', anim: 'wind-up, cursor far right', at: 0.4 },
             ...['cut right, far', 'cut left, far', 'cut left, near', 'cut up, near', 'cut down, far', 'cut down-left, far', 'cut overhead, both blades', 'cut straight down, both blades', 'duck under a level cut', 'hop over a level cut', 'thrust far up-right']
                 .map(n => ({ name: n, anim: n, at: 0.12, air: /^cut down(-left)?, far$/.test(n) })),     // (a downward cut is the hop: in the air on purpose)

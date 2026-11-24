@@ -22,10 +22,10 @@ def redmask(A): return (A[..., 0] > 110) & (A[..., 1] < 70) & (A[..., 2] < 70)
 ref = np.asarray(Image.open('in-idle.png').convert('RGB')).astype(float); rm = np.median(ref[redmask(ref)], axis=0)
 out = {}
 ANKLE = 1500          # frog units: from here down the rig's feet
-for state, gen in (('ready', 'd-6'), ('wind', 'w-3')):
+for state, gen in (('ready', 'd-6'), ('wind', 'w-3'), ('tired', 'tired-2'), ('stun', 'stun-6')):
     im = Image.open(gen).convert('RGB').resize((1200, 800), Image.LANCZOS); A = np.asarray(im).astype(float)
     m = (A[..., 0] > 80) & (A[..., 1] < 75) & (A[..., 2] < 75) & (A[..., 0] > A[..., 1] * 1.8)
-    A[m] = np.clip(A[m] * (rm / np.median(A[redmask(A)], axis=0)), 0, 255)
+    # (no colour fix here any more: the colour guardian paints the palette over the built picture)
     Image.fromarray(A.astype(np.uint8)).save('cc.png'); fr = keyed('cc.png', loose=True)
     full = Image.open(f'cap-{state}-full.png').convert('RGB')
     # register the generated frog on the capture it was made from: the feet and legs did not change
@@ -60,7 +60,15 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3')):
     # are carried up (never its ink), and the line itself is inked, so the shoulder's outline goes on under the cheek.
     kept = PA[..., 3] > 200; yy, xx = np.nonzero(ndimage.binary_dilation(erase, iterations=3) & kept & (np.arange(RH)[:, None] > headmid))
     xl, xr = xx.min(), xx.max(); yl = yy[xx < xl + 8].min(); yr = yy[xx > xr - 8].min()
-    line = (yl + (yr - yl) * (np.arange(RW) - xl) / max(1, xr - xl))[None, :]; rows_ = np.arange(RH)[:, None]
+    # each shoulder's top goes on under the head at its own slope (a straight chord between the two made a flat corner
+    # beside the chin when the head moved), up to a flat neck top
+    top = np.where(kept.any(0), kept.argmax(0), RH).astype(float); cols = np.arange(RW)
+    def slope(x0, x1):
+        k = (cols >= x0) & (cols <= x1) & (top < RH)
+        return float(np.polyfit(cols[k], top[k], 1)[0]) if k.sum() > 8 else 0.0
+    sl = float(np.clip(slope(xl - 45, xl - 3), -0.7, 0)); sr = float(np.clip(slope(xr + 3, xr + 45), 0, 0.7))
+    cap = min(yl, yr) - 60
+    line = np.maximum(np.maximum(yl + sl * (cols - xl), yr + sr * (cols - xr)), cap)[None, :]; rows_ = np.arange(RH)[:, None]
     inkish = PA[..., :3].max(-1) < 70
     near = ndimage.binary_dilation(M, iterations=10)
     flatsrc = ndimage.binary_erosion(kept & ~inkish, iterations=5) & ~near     # (flat colour only: an edge pixel would smear as a streak)

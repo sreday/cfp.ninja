@@ -20,7 +20,7 @@ SRC = os.path.join(FROG, 'art', 'sources', 'stand'); OUT = os.path.join(REPO, 's
 
 def main():
     at = json.load(open(os.path.join(SRC, 'stand.json'))); rows = []
-    for p in ('ready', 'wind'):
+    for p in at:
         img = fix_image(Image.open(os.path.join(SRC, p + '.png')).convert('RGBA'))          # the logo's colours (design/frog/palette.json)
         b = io.BytesIO(); img.save(b, 'WEBP', quality=92, method=6); data = b.getvalue()
         fn = f'stand-{p}.{hashlib.sha256(data).hexdigest()[:10]}.webp'

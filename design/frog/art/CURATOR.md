@@ -359,3 +359,18 @@ the middle hides whatever the head uncovers when it moves. So:
 - The reviewer opens the `neck` and `both shoulders and chest` crops at full size. The review sheets are too small
   to show a stray dash or a leftover outline.
 - Whoever makes the change looks at the same crops at full size before asking for the review.
+
+## Parts are proven on their own, then glued (Marek's rule, 2026-11-24)
+
+"When there are moving parts in the sprite, the elements are tested separately to work on their own, to then glue the
+head on top of the chest."
+
+- A body that carries a moving head is a whole headless body: shoulders that go on under the head at their own
+  slope, a neck, the jacket and chest carried up, all outlined. It is shown and judged WITHOUT the head first (the
+  shots `ready body alone`, `wind-up body alone`, `tired body alone`; the debug animations "..., body alone").
+  If it looks broken alone, it is broken: the head only hides it until it bobs, tips or turns.
+- Then the head goes on, and the pair is judged with the head off its rest place (`ready looking left`,
+  `wind-up looking right`) and while it bobs.
+- No jointed-rig arms in any standing pose: `python design/frog/tools/arm_sweep.py` plays every debug animation and
+  must print nothing. A new arm pose is a new painted picture in `STAND_ART` (art_stand_capture.py -> qwen_edit.py ->
+  art_stand_cut.py -> art_build_stand.py), not the rig.
