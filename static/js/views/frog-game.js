@@ -1190,11 +1190,56 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
+// The seagull as a painted character (3.7; Marek's pick 'seagull A', 2026-11-24: "a plain seagull made in the style of the
+// frog", no headband, nothing in its claws): one drawing per pose, built by art_build_gull.py. px = pixels per r; at = the
+// gull's centre in the picture. ?art=old (or a picture that did not load) leaves the code drawing below.
+// GULL_ART:begin (written by design/frog/tools/art_build_gull.py: do not edit by hand)
+const GULL_ART = { px: 96, poses: {
+    up: { url: '/img/game/gull/up.ec3282c97f.webp', size: [270, 186], at: [174.0, 110.3] },
+    mid: { url: '/img/game/gull/mid.eca8949765.webp', size: [329, 176], at: [174.0, 100.4] },
+    down: { url: '/img/game/gull/down.2e1eb02f3b.webp', size: [229, 211], at: [156.3, 65.6] },
+    squawk: { url: '/img/game/gull/squawk.bcd62ce5e3.webp', size: [267, 201], at: [169.9, 125.0] },
+    fainted: { url: '/img/game/gull/fainted.0e74fb0cef.webp', size: [207, 243], at: [115.2, 89.6] },
+    perched: { url: '/img/game/gull/perched.942b479251.webp', size: [210, 201], at: [137.4, 133.8] },
+    peck: { url: '/img/game/gull/peck.f3286eb6eb.webp', size: [242, 160], at: [166.7, 92.8] },
+    yell: { url: '/img/game/gull/yell.d9845a10b4.webp', size: [276, 197], at: [167.3, 129.8] },
+} };
+// GULL_ART:end
+const gullArt = { ready: false, img: {}, soot: {} };
+if (ART.frog && typeof Image !== 'undefined') {
+    const all = Object.entries(GULL_ART.poses);
+    Promise.all(all.map(([k, q]) => new Promise(ok => { const i = new Image(); i.onload = () => { gullArt.img[k] = i; ok(); }; i.onerror = ok; i.src = q.url; })))
+        .then(() => { gullArt.ready = all.length > 0 && all.every(([k]) => gullArt.img[k]); });
+}
+// which drawing a pose is: the wing beat has three (up, mid, down), a fourth with the beak open; on the frog it stands
+function gullPose(o) {
+    const f = o.flap || 0;
+    if (o.out) return 'fainted';
+    if (o.head === 'down') return 'peck';
+    if (o.head === 'yell') return 'yell';
+    if (o.perch) return 'perched';
+    if (f > 0.2) return o.open ? 'squawk' : 'up';
+    return f < -0.2 ? 'down' : 'mid';
+}
+function drawGullArt(ctx, r, o) {
+    const key = gullPose(o), q = GULL_ART.poses[key], k = r / GULL_ART.px;
+    let img = gullArt.img[key];
+    if (o.burnt) {      // sooty: the same drawing, blackened (made once)
+        if (!gullArt.soot[key]) {
+            const c = document.createElement('canvas'); c.width = q.size[0]; c.height = q.size[1];
+            const x = c.getContext('2d'); x.drawImage(img, 0, 0, q.size[0], q.size[1]); x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(34,29,26,.8)'; x.fillRect(0, 0, c.width, c.height);
+            gullArt.soot[key] = c;
+        }
+        img = gullArt.soot[key];
+    }
+    ctx.drawImage(img, -q.at[0] * k, -q.at[1] * k, q.size[0] * k, q.size[1] * k);
+}
 // A seagull, facing right, about r across the body. o: flap (-1..1), out (fainted), burnt, loot (the fried chicken in its claws),
 // (sooty, wide-eyed), open (beak), t (for the blink), head: 'down' (bent to peck) | 'yell'
 // (thrust forward and down), up (on its back, feet in the air). Every pose is drawn as it is:
 // the drawing is never turned to fake one.
 function drawGull(ctx, r, lw, o = {}) {
+    if (gullArt.ready) { drawGullArt(ctx, r, o); return; }
     // Drawn as a real herring gull (Marek, 2026-11-23: "more detailed, not like a child's drawing"): one silhouette for body, neck
     // and head, a hooked beak with its red spot, a pale eye under an angry lid, grey wings in feather rows with black tips and
     // white spots, a fanned tail, webbed feet. Small (the icons) it drops the fine lines and keeps the shapes.
@@ -3563,7 +3608,7 @@ export function mountFrogGame(stage, opts = {}) {
             x = perch.x + dir * k * W * 0.3; y = perch.y - k * k * H * 0.6; o.flap = flapNow;
         } else if (a.v === 0) {                                // pecking: two drawings, head up and head down
             const dn = (u * 6) % 1 < 0.4;
-            o.head = dn ? 'down' : ''; o.flap = dn ? 0.1 : -0.2;
+            o.head = dn ? 'down' : ''; o.flap = dn ? 0.1 : -0.2; o.perch = true;
             if (dn) { ctx.save(); ctx.translate(x + dir * r * 0.95, y + r * 0.8); ctx.strokeStyle = '#ffeb3b'; ctx.lineWidth = Math.max(2, lw); ctx.lineCap = 'round'; for (let i = 0; i < 5; i++) { const an = i * 1.256 + u * 9; ctx.beginPath(); ctx.moveTo(Math.cos(an) * r * 0.15, Math.sin(an) * r * 0.15); ctx.lineTo(Math.cos(an) * r * 0.36, Math.sin(an) * r * 0.36); ctx.stroke(); } ctx.restore(); }
         } else if (a.v === 1) {                                // slapping: it hangs in front of the face, turning from side to side, wings going
             dir = Math.sin(u * 20) > 0 ? 1 : -1; x += dir * r * 0.55; y += Math.sin(u * 13) * r * 0.12;

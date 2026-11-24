@@ -82,7 +82,7 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 | 3.3 | Alarm clock | tumbling, ringing; glow; broken into bells, gears, hands, spring | placeholder |
 | 3.4 | Fireworks bundle | five rockets, each a different rainbow colour, lit fuse | placeholder |
 | 3.5 | Fruit crate | square wooden crate; closed; breaking; individual planks and splinters | placeholder |
-| 3.7 | Seagull | a rival ninja (Marek, 2026-11-23): an indigo headband with two tails, the frog's opposite number, a stolen piece of fried chicken in its claws. Fire makes it drop the chicken (the thing the player then cuts) and fall into the sea sooty: it is never cooked or eaten. Flying loop (flap), angry brow; fainted (X eyes, tongue out), and the same comically burnt (sooty, wide white eyes, frazzled feathers, smoke); three harassing loops on the frog: pecking its head, slapping its face with both wings, screaming into its face from on top of its head; fly-in and fly-off. Never shown hurt beyond cartoon soot, never in pieces | placeholder |
+| 3.7 | Seagull | a plain seagull in the frog's style (Marek's pick 'seagull A', 2026-11-24: no headband, nothing in its claws; the rival-ninja and carried-chicken ideas were dropped). Painted, one drawing per pose, built by `art_build_gull.py` from `art/sources/gull/`: wing beat (up, mid, down), beak open, perched, pecking, screaming, fainted on its back; sooty = the same drawings darkened in the game. Fire knocks it out sooty and leaves a piece of fried chicken to cut (still a code drawing). Never shown hurt beyond cartoon soot, never in pieces | in game |
 | 3.6 | Icons | a small icon of each of the five, for the tips pages and the debug tray | placeholder (same drawings, small) |
 
 ## 4. Effects
