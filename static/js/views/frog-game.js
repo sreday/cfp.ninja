@@ -1193,7 +1193,7 @@ function drawLaptop(ctx, b, lw) {
 // The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
 // pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
 // STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
-const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.edd3bfe270.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.115d8a6933.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 }, tired: { url: '/img/game/frog/stand-tired.85771de6e0.webp', x: -1234.0, y: 252.0, w: 4466.0, h: 1446.0 }, stun: { url: '/img/game/frog/stand-stun.03128e01eb.webp', x: -580.0, y: -306.0, w: 3150.0, h: 2004.0 } };
+const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.b344d66c30.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.7519a41923.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 }, tired: { url: '/img/game/frog/stand-tired.ed4c6f7d17.webp', x: -1234.0, y: 252.0, w: 4466.0, h: 1446.0 }, stun: { url: '/img/game/frog/stand-stun.56ba88c718.webp', x: -580.0, y: -306.0, w: 3150.0, h: 2004.0 } };
 // STAND_ART:end
 const STAND_ON = typeof location === 'undefined' || !/[?&]stand=0(&|$)/.test(location.search);
 // The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).

@@ -77,6 +77,8 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3'), ('tired', 'tired-2'), ('st
     # colour beside it goes too, and is filled like the rest
     dirty = near & ~erase & kept & (rows_ > headmid) & (np.abs(PA[..., :3].astype(int) - PA[iy, ix, :3].astype(int)).max(-1) > 40)
     erase = erase | dirty; PA[dirty, 3] = 0
+    seam = ndimage.binary_dilation(erase, iterations=2) & ~erase & (rows_ > headmid) & near       # (the soft pixels along the cut would stay as a hairline)
+    erase = erase | seam; PA[seam, 3] = 0
     fill = erase & (rows_ > line + 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
     PA[fill, :3] = PA[iy[fill], ix[fill], :3]; PA[fill, 3] = 255
     edge = erase & (np.abs(rows_ - line) <= 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
