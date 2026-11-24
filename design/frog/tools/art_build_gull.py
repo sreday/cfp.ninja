@@ -26,15 +26,20 @@ POSES = {'up': ('body', 1), 'mid': ('body', 1), 'down': ('body', 1.08), 'squawk'
          'perched': ('feet', 1), 'peck': ('feet', 1), 'yell': ('feet', 1)}
 
 
-def keyed(path):
-    """cut the bird off its magenta ground: the ground is whatever pink is joined to the picture's edge"""
-    D = np.asarray(Image.open(path).convert('RGB')).astype(np.int16); R, G, B = D[..., 0], D[..., 1], D[..., 2]
+def keyed(path, loose=False, box=None):
+    """cut the bird off its magenta ground: the ground is whatever pink is joined to the picture's edge.
+    loose: keep the bits that are not joined to the main figure (a splash's drops), and take out pink shut in between them
+    (a bird keeps its pink tongue). box: only this part of the picture (left, top, right, bottom)."""
+    im = Image.open(path).convert('RGB')
+    if box: im = im.crop(box)
+    D = np.asarray(im).astype(np.int16); R, G, B = D[..., 0], D[..., 1], D[..., 2]
     pink = (R > G + 45) & (B > G + 20)
     lab, _ = ndimage.label(pink)
     edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])); edge = edge[edge > 0]
     ground = np.isin(lab, edge)
+    if loose: ground |= pink & (ndimage.sum(pink, lab, lab) > 150)
     bird, n = ndimage.label(~ground)                                                # only the bird: loose marks around it (motion lines) go with the ground
-    if n > 1: ground = bird != (1 + int(np.argmax(ndimage.sum(~ground, bird, range(1, n + 1)))))
+    if n > 1 and not loose: ground = bird != (1 + int(np.argmax(ndimage.sum(~ground, bird, range(1, n + 1)))))
     ground = ndimage.binary_dilation(ground, iterations=2)                       # (take the pink fringe of the outline with it)
     al = np.asarray(Image.fromarray(((~ground) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(0.8))).astype(np.float32) / 255
     al = np.clip((al - 0.35) / 0.6, 0, 1)

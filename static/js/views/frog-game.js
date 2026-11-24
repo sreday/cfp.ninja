@@ -298,10 +298,10 @@ const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], 
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
-const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true };
+const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9 };      // (Marek, 2026-11-24: 10% smaller)
 // the fall (Marek's pick 2026-11-22, 'put the open mouth for now'): game over, arms thrown up, mouth open. It sits in the frog's own group, so the
 // topple and the drop that turned the drawn frog over (pose.fallRot, pose.fallY) turn and drop this picture. No katanas in it: they fall on their own.
-const FALL_ART = { url: '/img/game/frog/fall.1ad4941ca5.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true };
+const FALL_ART = { url: '/img/game/frog/fall.1ad4941ca5.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true, grow: 0.9 };      // (the size of the teeter before it)
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
 // The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
@@ -1190,6 +1190,12 @@ function drawLaptop(ctx, b, lw) {
     ctx.beginPath(); ctx.rect(-r * 1.05, r * 0.6, r * 2.1, r * 0.18); ctx.fill(); ctx.stroke();
     ctx.restore();
 }
+// The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).
+// SPLASH_ART:begin (written by design/frog/tools/art_build_splash.py: do not edit by hand)
+const SPLASH_ART = { url: '/img/game/fx/splash.534a031bc0.webp', size: [560, 299] };
+// SPLASH_ART:end
+const splashArt = { img: null };
+if (ART.frog && SPLASH_ART && typeof Image !== 'undefined') { const i = new Image(); i.onload = () => { splashArt.img = i; }; i.src = SPLASH_ART.url; }
 // The seagull as a painted character (3.7; Marek's pick 'seagull A', 2026-11-24: "a plain seagull made in the style of the
 // frog", no headband, nothing in its claws): one drawing per pose, built by art_build_gull.py. px = pixels per r; at = the
 // gull's centre in the picture. ?art=old (or a picture that did not load) leaves the code drawing below.
@@ -1199,7 +1205,7 @@ const GULL_ART = { px: 96, poses: {
     mid: { url: '/img/game/gull/mid.eca8949765.webp', size: [329, 176], at: [174.0, 100.4] },
     down: { url: '/img/game/gull/down.2e1eb02f3b.webp', size: [229, 211], at: [156.3, 65.6] },
     squawk: { url: '/img/game/gull/squawk.bcd62ce5e3.webp', size: [267, 201], at: [169.9, 125.0] },
-    fainted: { url: '/img/game/gull/fainted.0e74fb0cef.webp', size: [207, 243], at: [115.2, 89.6] },
+    fainted: { url: '/img/game/gull/fainted.a495502124.webp', size: [265, 174], at: [155.1, 94.8] },
     perched: { url: '/img/game/gull/perched.942b479251.webp', size: [210, 201], at: [137.4, 133.8] },
     peck: { url: '/img/game/gull/peck.f3286eb6eb.webp', size: [242, 160], at: [166.7, 92.8] },
     yell: { url: '/img/game/gull/yell.d9845a10b4.webp', size: [276, 197], at: [167.3, 129.8] },
@@ -2334,7 +2340,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (m && !on && (artWheelOn() || artBreathOn() || pose.fallY || pose.chop || pose.up <= 0.5)) m = C.m = null;      // (not back to standing but into a cartwheel, a breath, a fall: those are their own pictures, no blend)
         const show = on || !!m;      // (through a change the cut layer is up either way: the standing frog in it is the copy, the real one comes back when it is over)
         if (show !== C.on) { C.on = show; svg.classList.toggle('fg-art-cut-on', show); }
-        const kat = !!(on && Q.katanas);
+        const kat = !!(on && Q.katanas && !pose.over);      // (at the end of a run the canvas has them: see 'left in the post')
         if (kat !== !!C.katOn) { C.katOn = kat; setA(C.kat, 'display', kat ? 'inline' : 'none'); }
         if (kat) { const bk = breathK(); setA(C.kat, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(993 ${BREATH_ART.rigFeet}) scale(${n2(bk)} ${n2(bk)}) translate(${-BREATH_ART.mid} ${-BREATH_ART.feet})`); }      // (where the fire breath has them: never mirrored)
         const L = C.L;
@@ -3305,7 +3311,26 @@ export function mountFrogGame(stage, opts = {}) {
         if (swingNext && swing.t >= POSE_MIN) { const q = swingNext; swingNext = null; swingTo(...q); }      // the stroke that waited
         if (swing && !swing.live && swing.t > holdUntil(swing) + SETTLE) swing = null;
     }
+    // Never the same picture of the frog twice running (Marek, 2026-11-24): a stroke that would show the picture the stroke
+    // before it showed (same pose, same side) shows that pose's stand-in instead: side cut <> floating slash, rising cut <>
+    // overhead, dive <> duck, hop > rising cut.
+    const POSE_ALT = { cut: 'down', down: 'cut', rise: 'over', over: 'rise', under: 'duck', duck: 'under', hop: 'rise' };
+    let lastPic = '';
+    const katImg = new Image(); katImg.onload = () => { katImg.ok = true; }; if (ART.frog) katImg.src = BREATH_ART.katanas;      // (the painted pair in the post, for the end of a run)
     function poseSwing() {
+        poseSwing0();
+        const s = swing, key = pose.artCut;
+        if (!s || !key || !POSE_ALT[key] || !artCut || !artCut.ready) return;
+        if (!s.pics) s.pics = {};
+        if (!(key in s.pics)) {
+            const first = !Object.keys(s.pics).length, sideOf = k => CUT_POSES[k].front && !CUT_POSES[k].faces ? 0 : pose.side || (s.side === 'L' ? -1 : 1);
+            const alt = first && key + sideOf(key) === lastPic ? POSE_ALT[key] : key;
+            s.pics[key] = alt; if (first) lastPic = alt + sideOf(alt);
+        }
+        const show = s.pics[key];
+        if (show !== key) { pose.artCut = show; if (!pose.side) { pose.side = s.side === 'L' ? -1 : 1; pose.face = pose.side; } }
+    }
+    function poseSwing0() {
         const s = swing, deg = s.a * 180 / Math.PI, cx = Math.cos(s.a), cy = Math.sin(s.a);
         const settling = !s.live && s.t > holdUntil(s);
         const k = settling ? 0.35 : 1;                               // one in-between on the way back to ready
@@ -5639,6 +5664,7 @@ export function mountFrogGame(stage, opts = {}) {
             k.vy += H * 2.4 * dt; k.y += k.vy * dt; k.x += (k.tx - k.x) * Math.min(1, dt * 5); k.rot += (0 - k.rot) * Math.min(1, dt * 7) + (Math.abs(k.rot) > 0.2 ? dt * 14 * Math.sign(k.rot) : 0);
             if (k.vy > 0 && k.y >= k.ty) { k.y = k.ty; k.x = k.tx; k.rot = 0; k.stuck = 0.0001; snd('stick'); }
         });
+        pose.over = overT > 0;
         if (overT <= 0) return;
         overT += dt;
         pose.artCut = 'fall';         // the picked fall stands in for the whole of it: the beat of shock, the topple, the drop
@@ -5689,7 +5715,10 @@ export function mountFrogGame(stage, opts = {}) {
         // full, and only then (OVER_WAIT s) the panel comes up
         // its katanas are left behind: they drop and stick, point down, in the top of the post
         const top = H - (H * 0.18 + 16) + fbox.w * 0.09;       // a little below the rim: the points are in the wood
-        dropped = [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
+        // (painted: they are in the post, the same picture of them the teeter and the fire breath have, and they stay there
+        //  when the frog has gone: none drop. The two drawn ones below are for ?art=old only.)
+        const inPost = !!(artCut && artCut.ready);
+        dropped = inPost ? [] : [-1, 1].map(sd => { const h = frogPoint(sd < 0 ? 300 : 1686, 700); return { x: h.x, y: h.y, tx: W / 2 + sd * fbox.w * 0.11, ty: top, rot: sd * 2.4, vy: -H * 0.25, stuck: 0 }; });
         pose.noBlades = true;
         // (it was teetering on one foot: that foot slips, and it goes over as it stands, the other leg still up)
         pose.side = 0; pose.slip = !!pose.low; stage.classList.add('fg-fallen'); overT = 0.0001; splashed = false; swing = null; windUp = false; down = false; cut = null;
@@ -6040,6 +6069,7 @@ export function mountFrogGame(stage, opts = {}) {
         state() {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
+                pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
                 sake: r2(sakeLeft), fire: r2(fireLeft), freeze: r2(freezeLeft), mirrored: mirrorT > 0, stunned: stunT > 0, tongue: !!tongue, still: dbg && dbgFrozen,
                 fruits: fruits.filter(f => f.entered && !isBehind(f)).map(f => Object.assign(at(f), { r: Math.round(f.r), vx: Math.round(f.vx), vy: Math.round(f.vy), g: Math.round(f.g), kind: f.type.kind, hacked: !!f.hacked, bare: !!f.bare, roasted: !!f.roasted })),
@@ -6056,6 +6086,7 @@ export function mountFrogGame(stage, opts = {}) {
         debug() { if (!dbg) { el.tips.hidden = true; el.overlay.hidden = true; startDebug(); } dbgFrozen = false; dbgWake = 0; },
         drop(what, x, y) { spawnDebug(what, x, y, true); dbgFrozen = false; dbgWake = 0; },
         still() { dbgFrozen = true; dbgWake = 0; },
+        over() { timeLeft = 0; gameOver(); },      // (the end of a run, now: for the end-of-game pictures)
         health() { return { bugs: bugSeen, letdowns, snaps, crashes, phase, survived: r2(clockT) }; },   // the monkey bot reads this                // debug: back to the stand-still before the first touch
         roast(x, y) { spawnGull(x, y); const g = gulls[gulls.length - 1]; Object.assign(g, { state: 'faint', burnt: true, hits: 3, vx: 0, vy: -H * 0.2, speed: 0 }); },
         breath(o) { fireLeft = o.seconds || FIRE_SECONDS; fireEmit = 0; fireSlow = o.slow || 0; fireWide = o.wide || 0; fireFry = o.fry || 0; fireTint = fireSlow ? 'clock' : ''; fireFw = false; },
@@ -6775,7 +6806,10 @@ export function mountFrogGame(stage, opts = {}) {
             splashT += 1 / 60;
             const k = splashT / 0.9, sea = H * 0.9, up = Math.sin(Math.min(1, k * 1.6) * Math.PI) * H * 0.2;
             bctx.save(); bctx.globalAlpha = 1 - k;
-            [-1, 1].forEach(sd => {
+            if (splashArt.img) {      // the painted splash: it comes up from the water line, hangs, and sinks back as it fades
+                const rise = Math.sin(Math.min(1, k * 1.25) * Math.PI * 0.62) / Math.sin(Math.PI * 0.62), sw = fbox.w * (1.5 + 0.5 * Math.min(1, k * 2)), sh = sw * SPLASH_ART.size[1] / SPLASH_ART.size[0] * (0.25 + 0.75 * rise);
+                bctx.globalAlpha = Math.min(1, (1 - k) * 2.2); bctx.drawImage(splashArt.img, W / 2 - sw / 2, sea + fbox.w * 0.04 - sh, sw, sh); bctx.globalAlpha = 1 - k;
+            } else [-1, 1].forEach(sd => {
                 const x0 = W / 2 + sd * fbox.w * 0.2;
                 bctx.beginPath(); bctx.moveTo(x0, sea); bctx.quadraticCurveTo(x0 + sd * fbox.w * 0.25, sea - up * 1.6, x0 + sd * fbox.w * (0.55 + k * 0.3), sea - up * 0.5);
                 bctx.quadraticCurveTo(x0 + sd * fbox.w * 0.45, sea - up * 0.3, x0 + sd * fbox.w * 0.5, sea); bctx.closePath();
@@ -6995,6 +7029,12 @@ export function mountFrogGame(stage, opts = {}) {
         const parked = !stuckNow.length && !dropped.length && !pose.plan && pose.held && !pose.noBlades && stage.classList.contains('fg-drunk');
         parkT = parked ? parkT + 1 / 60 : 0;
         if (parked) stuckNow.push({ x: W / 2 + fbox.w * 0.17, y: H - (H * 0.18 + 16) + fbox.w * 0.09, rot: Math.PI / 4, stuck: Math.max(parkT, 0.0001) });
+        // left in the post: at the end of a run the frog goes over and into the sea, and its two katanas stay where the teeter's
+        // picture had them, stuck in the top of the post (the same painted pair, drawn here because the frog's own layer falls)
+        if (pose.over && katImg.ok) {
+            const Q = BREATH_ART, bk = breathK(), sx = fbox.w / 1986, sy = fbox.h / 1876;
+            ctx.drawImage(katImg, fbox.x + (993 + bk * (Q.katanasAt[0] - Q.mid)) * sx, fbox.y + (Q.rigFeet + bk * (Q.katanasAt[1] - Q.feet)) * sy, bk * Q.katanasSize[0] * sx, bk * Q.katanasSize[1] * sy);
+        }
         dropped.concat(stuckNow).forEach(k => {   // a katana, point down: falling, then quivering in the wood
             const L = fbox.w * 0.42, wob = k.stuck ? Math.sin(k.stuck * 40) * 0.12 * Math.exp(-k.stuck * 6) : 0;
             ctx.save(); ctx.translate(k.x, k.y); ctx.rotate(k.rot + wob);
