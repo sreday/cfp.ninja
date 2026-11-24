@@ -235,7 +235,7 @@ const ART = {
     frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.f87e29aacb.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
-    intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.f8326a2b0a.json'
+    intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.934249f215.json'
 };
 // who each dancer pair in the atlas is (in atlas order), for the curator's size check
 const DANCER_WHO = ['fox', 'cat', 'bear', 'raccoon', 'wolf', 'llama', 'corgi', 'rabbit', 'monkey', 'platypus', 'penguin', 'flamingo'];
@@ -1176,10 +1176,17 @@ function drawFireworks(ctx, b, lw) {
     ctx.fillStyle = '#fff59d'; ctx.beginPath(); ctx.arc(0, r * 1.25, r * 0.16 * sp + 1.5, 0, 7); ctx.fill();
     ctx.restore();
 }
-// the grey CFP.ninja laptop from the logo, open, seen from the front
+// The CFP.ninja laptop, cut out of the logo itself (art_build_laptop.py): the power-up, its wreck and its icons draw it.
+// LAPTOP_ART:begin (written by design/frog/tools/art_build_laptop.py: do not edit by hand)
+const LAPTOP_ART = { url: '/img/game/frog/laptop.2b28d644d0.webp', size: [642, 368] };
+// LAPTOP_ART:end
+const laptopArt = { img: null };
+if (typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search)) { const i = new Image(); i.onload = () => { laptopArt.img = i; }; i.src = LAPTOP_ART.url; }
+// the grey CFP.ninja laptop from the logo, open, seen from the front (2.3 r wide); the drawing below until the picture is in
 function drawLaptop(ctx, b, lw) {
     const r = b.r;
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    if (laptopArt.img) { const w = r * 2.3, h = w * LAPTOP_ART.size[1] / LAPTOP_ART.size[0]; ctx.drawImage(laptopArt.img, -w / 2, -h / 2, w, h); ctx.restore(); return; }
     ctx.lineJoin = 'round'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
     ctx.fillStyle = C.laptop; ctx.beginPath(); ctx.moveTo(-r * 1.15, -r * 0.8); ctx.lineTo(r * 1.15, -r * 0.8); ctx.lineTo(r, r * 0.55); ctx.lineTo(-r, r * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
     ctx.strokeStyle = C.laptopHi; ctx.lineWidth = Math.max(1, lw * 0.5); ctx.strokeRect(-r * 0.98, -r * 0.68, r * 1.96, r * 1.1);
