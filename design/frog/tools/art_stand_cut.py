@@ -5,6 +5,7 @@ capture by the legs, put in frog units (K px a unit), the redrawn head taken out
 rig's own neck put under it. Writes stand-<state>.png and stand.json (x, y, w, h in frog units): copy them to
 design/frog/art/sources/stand/ as ready.png, wind.png, stand.json. Run in the folder with the captures."""
 import sys, os, json, numpy as np
+import sys, os, json, numpy as np
 sys.path.insert(0, r'C:\Users\marek\Documents\GitHub\cfp.ninja\design\frog\tools')
 from art_build_gull import keyed
 from PIL import Image
@@ -20,6 +21,7 @@ def notmag(im):
 def redmask(A): return (A[..., 0] > 110) & (A[..., 1] < 70) & (A[..., 2] < 70)
 ref = np.asarray(Image.open('in-idle.png').convert('RGB')).astype(float); rm = np.median(ref[redmask(ref)], axis=0)
 out = {}
+ANKLE = 1500          # frog units: from here down the rig's feet
 for state, gen in (('ready', 'd-6'), ('wind', 'w-3')):
     im = Image.open(gen).convert('RGB').resize((1200, 800), Image.LANCZOS); A = np.asarray(im).astype(float)
     m = (A[..., 0] > 80) & (A[..., 1] < 75) & (A[..., 2] < 75) & (A[..., 0] > A[..., 1] * 1.8)
@@ -57,6 +59,12 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3')):
     under = PA.copy(); under[..., :3] = BI; under[..., 3] = neck * 255
     PA = np.asarray(Image.alpha_composite(Image.fromarray(under, 'RGBA'), Image.fromarray(PA, 'RGBA'))).copy()
     # soften the cut edge under the head a touch is not needed: the head covers it
+    # the feet are the rig's own (the redrawn toes sat a little off the post's edge): from the ankles down, blended over a few rows
+    yc = int((ANKLE - U0[1]) * K); wgt = np.clip((np.arange(RH) - yc) / 8.0, 0, 1)[:, None]
+    rig = np.dstack([BI, (B * 255).astype(np.uint8)]).astype(float); PAf = PA.astype(float)
+    pm = PAf.copy(); pm[..., :3] *= PAf[..., 3:] / 255; rg = rig.copy(); rg[..., :3] *= rig[..., 3:] / 255
+    mix = pm * (1 - wgt[..., None]) + rg * wgt[..., None]; aa = np.maximum(mix[..., 3:], 1e-6)
+    PA = np.dstack([np.clip(mix[..., :3] / aa * 255, 0, 255), mix[..., 3]]).astype(np.uint8)
     P2 = Image.fromarray(PA, 'RGBA')
     al2 = PA[..., 3] > 40
     peek = B & ~al2 & ~ndimage.binary_dilation(M, iterations=6); print(state, 'body peeking px', int(peek.sum()))
