@@ -1,0 +1,90 @@
+{
+ "note": "The frog's colours. Read by design/frog/tools/color_guardian.py: every frog asset is checked against this before it ships and repainted if it drifted. A new prop (a sake bottle, a flame) goes into 'extras'; a new look on purpose (a new skin, the sensei) is a new entry under 'skins'. Change a value here only with Marek's OK: this is the brand.",
+ "skins": {
+  "frog": {
+   "ink": {
+    "hex": "#000000",
+    "name": "Inking",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "robe": {
+    "hex": "#a3211d",
+    "name": "Robe",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "robe-light": {
+    "hex": "#ba2823",
+    "name": "Robe, lit",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "robe-dark": {
+    "hex": "#6d1814",
+    "name": "Robe, shaded",
+    "from": "the picked game frog's shade, on the logo's red"
+   },
+   "skin": {
+    "hex": "#98b74b",
+    "name": "Skin",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "skin-dark": {
+    "hex": "#7c9d42",
+    "name": "Skin, shaded",
+    "from": "the picked game frog's shade, on the logo's green"
+   },
+   "belly": {
+    "hex": "#f1eda4",
+    "name": "Belly and mouth",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "belly-dark": {
+    "hex": "#c8bf76",
+    "name": "Belly, shaded",
+    "from": "the picked game frog's chin shade, on the logo's cream"
+   },
+   "white": {
+    "hex": "#ffffff",
+    "name": "Eye white, text",
+    "from": "the logo (static/img/cfpninja_full.png)"
+   },
+   "tongue": {
+    "hex": "#e9808a",
+    "name": "Tongue",
+    "from": "the stunned face (Marek's pick)"
+   }
+  }
+ },
+ "props": {
+  "laptop": {
+   "hex": "#495154",
+   "name": "Laptop",
+   "from": "the logo (static/img/cfpninja_full.png)",
+   "family": "grey"
+  },
+  "laptop-edge": {
+   "hex": "#5d666a",
+   "name": "Laptop edge",
+   "from": "the logo (static/img/cfpninja_full.png)",
+   "family": "grey"
+  },
+  "steel-dark": {
+   "hex": "#282b2c",
+   "name": "Katana wrap, dark",
+   "from": "the logo (static/img/cfpninja_full.png)",
+   "family": "grey"
+  },
+  "steel": {
+   "hex": "#a5a9a9",
+   "name": "Katana grip and blade",
+   "from": "the logo (static/img/cfpninja_full.png)",
+   "family": "grey"
+  },
+  "steel-light": {
+   "hex": "#b1b5b5",
+   "name": "Katana blade, lit",
+   "from": "the logo (static/img/cfpninja_full.png)",
+   "family": "grey"
+  }
+ },
+ "extras": {}
+}

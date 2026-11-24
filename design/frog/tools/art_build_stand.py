@@ -13,6 +13,7 @@ STAND_ART line in frog-game.js between its markers.
 import hashlib, io, json, os, re
 from PIL import Image
 from art_build_gull import FROG, REPO, JS
+from color_guardian import fix_image
 
 SRC = os.path.join(FROG, 'art', 'sources', 'stand'); OUT = os.path.join(REPO, 'static', 'img', 'game', 'frog')
 
@@ -20,8 +21,8 @@ SRC = os.path.join(FROG, 'art', 'sources', 'stand'); OUT = os.path.join(REPO, 's
 def main():
     at = json.load(open(os.path.join(SRC, 'stand.json'))); rows = []
     for p in ('ready', 'wind'):
-        img = Image.open(os.path.join(SRC, p + '.png')).convert('RGBA')
-        b = io.BytesIO(); img.save(b, 'WEBP', quality=90, method=6); data = b.getvalue()
+        img = fix_image(Image.open(os.path.join(SRC, p + '.png')).convert('RGBA'))          # the logo's colours (design/frog/palette.json)
+        b = io.BytesIO(); img.save(b, 'WEBP', quality=92, method=6); data = b.getvalue()
         fn = f'stand-{p}.{hashlib.sha256(data).hexdigest()[:10]}.webp'
         for old in os.listdir(OUT):
             if old.startswith(f'stand-{p}.') and old != fn: os.remove(os.path.join(OUT, old))

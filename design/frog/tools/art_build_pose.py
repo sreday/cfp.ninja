@@ -52,7 +52,8 @@ def main():
         xs = np.where(face[y])[0]
         if len(xs) > 20 and abs((xs[0] + xs[-1]) / 2 - mid) < w * 0.12: runs.append(xs[-1] - xs[0])   # centred rows: the head, not a fist
     head_w = a.head_w or (int(max(runs)) if runs else 0)
-    b = io.BytesIO(); im.save(b, 'WEBP', quality=90, method=6); data = b.getvalue()
+    from color_guardian import fix_image; im = fix_image(im)          # the logo's colours over whatever the generation came back in (design/frog/palette.json)
+    b = io.BytesIO(); im.save(b, 'WEBP', quality=92, method=6); data = b.getvalue()
     fn = f'{a.name}.{hashlib.sha256(data).hexdigest()[:10]}.webp'; open(os.path.join(OUT, fn), 'wb').write(data)
     print(f"{{ url: '/img/game/frog/{fn}', size: [{w}, {h}], mid: {mid:.0f}, feet: {h}, headW: {head_w} }}   ({len(data) // 1024} KB)")
 

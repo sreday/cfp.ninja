@@ -86,6 +86,10 @@ def main():
     # branch's CI is waited for. --full: the old, slower, one-after-the-other order with the 1-minute soak.
     import time
     t0 = time.time(); full = '--full' in sys.argv
+    # the colour guardian: every frog picture in the logo's palette (instant: a picture judged once stays judged by its hashed name)
+    cg = subprocess.run([sys.executable, os.path.join(HERE, 'color_guardian.py'), 'check'], cwd=REPO, capture_output=True, text=True)
+    if cg.returncode: print(cg.stdout[-3000:]); sys.exit('stopped: frog colours off the palette. Run design/frog/tools/color_guardian.py rewire (or add a new colour to palette.json), commit, ship again.')
+    print('   colours: ' + cg.stdout.strip().splitlines()[-1])
     print('1/4 tests, and CI on GitHub alongside'); sh('git', 'push', '-q', '-u', 'origin', branch)
     # Marek, 2026-11-22: a ship took 354 s, "these tests take too long". The default now: the scenario suite once (the
     # game as players get it), cut in 4 parts that run side by side (every check still runs: about 80 s, it was 200);
