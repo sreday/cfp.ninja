@@ -3,9 +3,9 @@
  "skins": {
   "frog": {
    "ink": {
-    "hex": "#000000",
+    "hex": "#0e0e10",
     "name": "Inking",
-    "from": "the logo (static/img/cfpninja_full.png)"
+    "from": "off-black (Marek, 2026-11-24: never pure black; the logo's own ink measures #000000)"
    },
    "robe": {
     "hex": "#a3211d",

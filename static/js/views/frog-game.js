@@ -232,7 +232,7 @@ const ART = {
     // the frog (1.1, route B): rig parts cut from the picked drawing, built by art_build_frog.py.
     // Live for everyone (Marek, 2026-11-19: ship each new piece as it lands); ?art=old shows the
     // drawn frog instead, for comparing. Poses without their art yet are still the drawn frog.
-    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.0c894b85d5.json',
+    frog: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/frog.f87e29aacb.json',
     // the intro (1.2): the logo itself as the seated frog, then key frames held in turn (built by
     // art_build_intro.py), the logo's laptop flung off in code; ?art=old turns it off with the frog
     intro: /[?&]art=old\b/.test(location.search) ? null : '/img/game/frog/intro.f8326a2b0a.json'
@@ -248,9 +248,9 @@ const depthK = gy => (85 + Math.max(0, gy - 900) * 0.5) / 190;   // the plate's 
 // the standing face with its pupils taken out (built by design/frog/tools/art_build_look.py; head px): the game draws the
 // pupils (where the picture had them, the highlight toward the nose) a little after the cursor, and blinks green lids
 // over the eyes every 2 s (Marek, 2026-11-21). The eye mask is the stunned face's.
-const LOOK_ART = { face: '/img/game/frog/look-face.549a9cce24.webp', size: [649, 495], pupils: [[204.4, 221.6], [444.9, 221.4]], r: 55,
+const LOOK_ART = { face: '/img/game/frog/look-face.917f090318.webp', size: [649, 495], pupils: [[204.4, 221.6], [444.9, 221.4]], r: 55,
     shines: [[12.7, -12.7], [-12.6, -12.4]], shineR: 18, eyes: [{ c: [189, 234], rx: 78, ry: 67 }, { c: [460, 234], rx: 78, ry: 67 }], look: [14, 10] };
-const STUN_ART = { face: '/img/game/frog/stun-face.ac9785531f.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
+const STUN_ART = { face: '/img/game/frog/stun-face.9d272546f2.webp', eyes: '/img/game/frog/stun-eyes.3ecd076d46.png', size: [649, 495],
     pupils: [[174, 228], [438, 254]], r: 50, shine: [15, -22], shineR: 22, roll: 12 };
 // breathing fire (Marek's pick 2026-11-20, built by design/frog/tools/art_build_breath.py; picture px): the frog with its
 // mouth open, fists up, the katanas stuck in the post; the game draws the flame from 'mouth' and fills the mouth with its
@@ -258,15 +258,15 @@ const STUN_ART = { face: '/img/game/frog/stun-face.ac9785531f.webp', eyes: '/img
 // the rig's head top.
 // (2026-11-21, Marek: the katanas cut out of it, they no longer swap sides when it is mirrored: the game draws its own
 //  katanas stuck in the post, at fixed places; and the flame leaves from inside the open mouth, not its corner by the chin)
-const BREATH_ART = { url: '/img/game/frog/breath.f1f38ea7f3.webp', mouthMask: '/img/game/frog/breath-mouth.f9245a3192.png', size: [478, 497],
+const BREATH_ART = { url: '/img/game/frog/breath.a9cbd9fd96.webp', mouthMask: '/img/game/frog/breath-mouth.f9245a3192.png', size: [478, 497],
     feet: 490, top: 32, mid: 279, mouth: [297, 148], mouthBox: [179, 113, 358, 202], rigFeet: 1701, rigTop: -290.7,
-    katanas: '/img/game/frog/breath-katanas.0d961334b5.webp', katanasAt: [-63, 215], katanasSize: [628, 270] };
+    katanas: '/img/game/frog/breath-katanas.c5202980bf.webp', katanasAt: [-63, 215], katanasSize: [628, 270] };
 const breathK = () => (BREATH_ART.rigFeet - BREATH_ART.rigTop) / (BREATH_ART.feet - BREATH_ART.top);
 // the side cut (Marek's pick 2026-11-20 'side cut 2', built by design/frog/tools/art_build_cut.py; picture px): a wide lunge
 // turned to the right, the front katana level, the back one raised, no scabbards (only seen with the katanas sheathed). It stands in for the drawn profile frog during a level
 // cut (no power-up), mirrored for a cut to the left. Sized by the head (a crouch is shorter than standing): its head as wide
 // as the breath frog's (headW: green across the face under the eyes), the soles on the rig's feet line.
-const CUT_ART = { url: '/img/game/frog/cut.cfb0b9badb.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295, eyeH: 68 };
+const CUT_ART = { url: '/img/game/frog/cut.9308aaac2e.webp', size: [1242, 663], feet: 653, top: 54, mid: 548, headW: 295, eyeH: 68 };
 const BREATH_HEAD_W = 219;
 const cutK = () => breathK() * BREATH_HEAD_W / CUT_ART.headW;
 // the down cut (Marek's pick 2026-11-20 'down cut 3', same builder): the slim, swift frog in full profile running into a
@@ -278,30 +278,30 @@ const DOWNCUT_ART = { url: '/img/game/frog/downcut.d2d130b201.webp', size: [1155
 // the side slash (Marek 2026-11-20: 'ship the one where the frog is back to us'; side slash round 3 candidate 1 with its smile retouched): a light hop, side-on
 // mid-slash, front katana level, back one raised. It replaces the lunge (CUT_ART, kept for its numbers: the side cut's
 // eye is the size every pose is matched to). lift: how far it floats above the post (rig units), in the air on purpose.
-const SIDESLASH_ART = { url: '/img/game/frog/sideslash.be43a72d5e.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 480 };     // (Marek: float a bit more, it is clearly mid-jump; 260 and 340 left the toes on the post's back rim: about 0.11 px a unit at 1280x720)
+const SIDESLASH_ART = { url: '/img/game/frog/sideslash.a0335c12ca.webp', size: [986, 680], feet: 668, top: 71, mid: 371, eyeH: 71, lift: 480 };     // (Marek: float a bit more, it is clearly mid-jump; 260 and 340 left the toes on the post's back rim: about 0.11 px a unit at 1280x720)
 // Marek 2026-11-20: 'I want two to stay - the one behind the back and the one with frog stretched'; the profile down cut
 // goes. Level cuts: the stretched lunge (CUT_ART, feet on the post); downward cuts: the hop with its back half to us
 // (SIDESLASH_ART, in the air on purpose). DOWNCUT_ART is kept only for its numbers.
 // the overhead slash (Marek's pick 2026-11-22, built by design/frog/tools/art_build_pose.py): a jump facing us, knees tucked, both katanas
 // crossed above the head. front: drawn whichever side the cut is on, never mirrored; headW sizes it by its head; lift: how far the toes float above the post.
-const OVER_ART = { url: '/img/game/frog/over.a45a127380.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 800, grow: 1.1, front: true };      // (Marek, 2026-11-22: further up in the air, and 10% bigger)
+const OVER_ART = { url: '/img/game/frog/over.b63ebf0534.webp', size: [637, 832], mid: 306, feet: 832, headW: 300, lift: 800, grow: 1.1, front: true };      // (Marek, 2026-11-22: further up in the air, and 10% bigger)
 // the slash under the frog (Marek's pick 2026-11-22, limbs fixed by him): a jump curled upside down, both katanas driven down below it.
 // feet: its lowest point (a blade tip), lift: how far that stays above the post; faces: drawn looking left, so mirrored the other way round.
-const UNDER_ART = { url: '/img/game/frog/under.907ba45dd2.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28, tw: [0, 1] };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
+const UNDER_ART = { url: '/img/game/frog/under.0fc423009a.webp', size: [924, 795], mid: 458, feet: 795, headW: 270, lift: 730, grow: 0.8, faces: -1, spin: 28, tw: [0, 1] };      // (Marek, 2026-11-22: further up in the air, then 20% smaller; the lift keeps its middle where it was; spin: degrees it tumbles forward about its middle while it cuts, 'rotate slightly')
 // the duck (Marek's pick 2026-11-22): a level stroke through its head and it drops into a deep squat on the post, katanas crossed flat above it.
-const DUCK_ART = { url: '/img/game/frog/duck.3d3b5d0e8c.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true, tw: [0, 0] };      // (tw: no twitch, its feet stay on the post)
+const DUCK_ART = { url: '/img/game/frog/duck.c60c86a57c.webp', size: [800, 702], mid: 390, feet: 690, headW: 325, front: true, tw: [0, 0] };      // (tw: no twitch, its feet stay on the post)
 // the rising cut (Marek's pick 2026-11-22): an upward stroke, or one above its head, and it jumps, knees tucked, one long katana driven up and out, the other low behind: one rising diagonal.
 // Drawn cutting up to the right, mirrored for the left; lift: how far the toes float above the post.
-const RISE_ART = { url: '/img/game/frog/rise.b872365e3c.webp', size: [877, 500], mid: 424, feet: 493, headW: 210, lift: 600 };      // (the second pick: the first, blades crossed overhead, was 'almost identical to upwards slash'; mid/feet: its feet, read off the picture; then 'half the length of katanas')
+const RISE_ART = { url: '/img/game/frog/rise.68f10447f0.webp', size: [877, 500], mid: 424, feet: 493, headW: 210, lift: 600 };      // (the second pick: the first, blades crossed overhead, was 'almost identical to upwards slash'; mid/feet: its feet, read off the picture; then 'half the length of katanas')
 // the hop (Marek's pick 2026-11-22, 'this but long katanas'): a level stroke through its body and it springs up over the blade, knees tucked, katanas out level.
-const HOP_ART = { url: '/img/game/frog/hop.37c19ead1c.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true, tw: [0, -1] };
+const HOP_ART = { url: '/img/game/frog/hop.88e57fd7a3.webp', size: [1280, 530], mid: 634, feet: 530, headW: 225, lift: 600, front: true, tw: [0, -1] };
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
-const TEETER_ART = { url: '/img/game/frog/teeter.0c552bf430.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -14 };      // (Marek, 2026-11-24: 10% smaller; set down a touch so its toes are still on the wood)
+const TEETER_ART = { url: '/img/game/frog/teeter.792626105e.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -14 };      // (Marek, 2026-11-24: 10% smaller; set down a touch so its toes are still on the wood)
 // the fall (Marek's pick 2026-11-22, 'put the open mouth for now'): game over, arms thrown up, mouth open. It sits in the frog's own group, so the
 // topple and the drop that turned the drawn frog over (pose.fallRot, pose.fallY) turn and drop this picture. No katanas in it: they fall on their own.
-const FALL_ART = { url: '/img/game/frog/fall.9d3c2ade92.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true, grow: 0.9 };      // (the size of the teeter before it)
+const FALL_ART = { url: '/img/game/frog/fall.99b86249a9.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true, grow: 0.9 };      // (the size of the teeter before it)
 const CUT_POSES = { cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
 // The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
@@ -330,8 +330,8 @@ const poseK = Q => Q.headW && !Q.eyeH ? breathK() * BREATH_HEAD_W / Q.headW * (Q
 // it springs from the post to a random spot nudged toward the circle and spins the way the circle was drawn.
 // pivot = the sprite's centre of mass (it spins about it); headW scales its head to the rig's (design/frog/tools/art_build_wheel.py)
 const WHEEL_ART = {
-    front: { url: '/img/game/frog/wheel-front.dff5a9c976.webp', size: [876, 714], pivot: [440, 356], headW: 255 },
-    back: { url: '/img/game/frog/wheel-back.d01f3188dc.webp', size: [956, 709], pivot: [473, 349], headW: 271 },
+    front: { url: '/img/game/frog/wheel-front.2ac27b7ded.webp', size: [876, 714], pivot: [440, 356], headW: 255 },
+    back: { url: '/img/game/frog/wheel-back.039e70b2d1.webp', size: [956, 709], pivot: [473, 349], headW: 271 },
 };
 const WHEEL_MS = 650;                  // the cartwheel's length
 const WHEEL_TURN = 1.75 * Math.PI;     // how far round a slash must go to count as a circle (315 degrees)
@@ -1193,7 +1193,7 @@ function drawLaptop(ctx, b, lw) {
 // The standing frog, painted (Marek's pick, 2026-11-24): body, arms, fists and katanas as one picture, standing ready and
 // pressed (the wind-up); the rig's head and tails go on top. x, y, w, h: where it sits in the frog's units. ?stand=0: the rig.
 // STAND_ART:begin (written by design/frog/tools/art_build_stand.py: do not edit by hand)
-const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.b344d66c30.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.7519a41923.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 }, tired: { url: '/img/game/frog/stand-tired.ed4c6f7d17.webp', x: -1234.0, y: 252.0, w: 4466.0, h: 1446.0 }, stun: { url: '/img/game/frog/stand-stun.56ba88c718.webp', x: -580.0, y: -306.0, w: 3150.0, h: 2004.0 } };
+const STAND_ART = { ready: { url: '/img/game/frog/stand-ready.675491d6ce.webp', x: -596.0, y: -532.0, w: 3196.0, h: 2230.0 }, wind: { url: '/img/game/frog/stand-wind.819ec6a0ec.webp', x: -1142.0, y: -176.0, w: 4274.0, h: 1874.0 }, tired: { url: '/img/game/frog/stand-tired.30f2cab0ab.webp', x: -1234.0, y: 252.0, w: 4466.0, h: 1446.0 }, stun: { url: '/img/game/frog/stand-stun.f716de56f9.webp', x: -580.0, y: -306.0, w: 3150.0, h: 2004.0 } };
 // STAND_ART:end
 const STAND_ON = typeof location === 'undefined' || !/[?&]stand=0(&|$)/.test(location.search);
 // The frog's splash when it goes into the sea at the end of a run, painted (built by art_build_splash.py).
