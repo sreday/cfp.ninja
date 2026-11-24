@@ -29,14 +29,14 @@ INK = (14, 14, 16)                       # the frog's ink (palette.json skins.fr
 RECOLOR = {'monkey': (142, 62, 200)}     # a friend's own colour that came out as the key colour: the monkey's headband
 
 
-def keyed(path, f):
+def keyed(path, f, pocket=16):
     """off the ground: the ground's colour is read off the picture's border (each picture's magenta is a little different);
     what is near it and joined to the edge goes, and big pockets of it that are really close (between an arm and the body).
     What is near it but is the friend's own (the monkey's bright purple headband) stays, recoloured to its purple."""
     D = np.asarray(Image.open(path).convert('RGB')).astype(np.int16)
     bg = np.median(np.concatenate([D[0], D[-1], D[:, 0], D[:, -1]]), axis=0); d = np.abs(D - bg).max(-1)
     near = d < 60; lab, _ = ndimage.label(near); edge = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]])); edge = edge[edge > 0]
-    close = d < 16; lab2, _ = ndimage.label(close)
+    close = d < pocket; lab2, _ = ndimage.label(close)        # (pocket: how near the key a shut-in pocket must be to go; a picture with nothing of its own near the key can take more)
     ground = np.isin(lab, edge) | (close & (ndimage.sum(close, lab2, lab2) > 400))
     ground = ndimage.binary_dilation(ground, iterations=2)
     D = D.copy()
