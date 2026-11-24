@@ -66,8 +66,8 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3'), ('tired', 'tired-2'), ('st
     def slope(x0, x1):
         k = (cols >= x0) & (cols <= x1) & (top < RH)
         return float(np.polyfit(cols[k], top[k], 1)[0]) if k.sum() > 8 else 0.0
-    sl = float(np.clip(slope(xl - 45, xl - 3), -0.7, 0)); sr = float(np.clip(slope(xr + 3, xr + 45), 0, 0.7))
-    cap = min(yl, yr) - 60
+    sl = float(np.clip(slope(xl - 45, xl - 3), -0.35, 0)); sr = float(np.clip(slope(xr + 3, xr + 45), 0, 0.35))
+    cap = min(yl, yr) - 34
     line = np.maximum(np.maximum(yl + sl * (cols - xl), yr + sr * (cols - xr)), cap)[None, :]; rows_ = np.arange(RH)[:, None]
     inkish = PA[..., :3].max(-1) < 70
     near = ndimage.binary_dilation(M, iterations=10)
@@ -80,8 +80,13 @@ for state, gen in (('ready', 'd-6'), ('wind', 'w-3'), ('tired', 'tired-2'), ('st
     seam = ndimage.binary_dilation(erase, iterations=2) & ~erase & (rows_ > headmid) & near       # (the soft pixels along the cut would stay as a hairline)
     erase = erase | seam; PA[seam, 3] = 0
     fill = erase & (rows_ > line + 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
-    PA[fill, :3] = PA[iy[fill], ix[fill], :3]; PA[fill, 3] = 255
-    edge = erase & (np.abs(rows_ - line) <= 3) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
+    # two plain colours only: the chest's cream where the chest is nearest, the robe's own red everywhere else (a carried-up
+    # highlight or lapel showed as an odd patch beside the chin when the head turned; Marek, 2026-11-24)
+    srcc = PA[iy[fill], ix[fill], :3].astype(int); creamy = (srcc[:, 0] > 190) & (srcc[:, 1] > 190)
+    rb = PA[..., :3][kept & (PA[..., 0] > 120) & (PA[..., 1] < 70) & (PA[..., 2] < 70)]; robe = np.median(rb, axis=0)
+    cr = srcc[creamy]; cream = np.median(cr, axis=0) if len(cr) else robe
+    PA[fill, :3] = np.where(creamy[:, None], cream, robe).astype(np.uint8); PA[fill, 3] = 255
+    edge = erase & (np.abs(rows_ - line) <= 4) & (np.arange(RW)[None, :] >= xl) & (np.arange(RW)[None, :] <= xr)
     PA[edge, :3] = 0; PA[edge, 3] = 255
     # soften the cut edge under the head a touch is not needed: the head covers it
     # the feet are the rig's own (the redrawn toes sat a little off the post's edge): from the ankles down, blended over a few rows
