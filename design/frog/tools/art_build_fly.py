@@ -44,23 +44,44 @@ def parts(img):
     return np.array(tail[::-1]), np.array(head[::-1]), np.array((tx, ty)), (area / np.pi) ** 0.5, np.array(core[::-1])
 
 
+def cut_wings(img, head):
+    """the two wings alone: their pale see-through fill, and the ink line round it (dark pixels next to the fill)"""
+    A = np.asarray(img).copy(); al = A[..., 3] > 128; R, G, B = (A[..., i].astype(int) for i in range(3))
+    mx, mn = np.maximum(np.maximum(R, G), B), np.minimum(np.minimum(R, G), B)
+    pale = al & (mn > 140) & (mx - mn < 60)
+    lab, n = ndimage.label(pale); sz = ndimage.sum(pale, lab, range(1, n + 1))
+    cx = [ndimage.center_of_mass(pale, lab, i + 1)[1] for i in range(n)]
+    pale = np.isin(lab, [i + 1 for i in range(n) if sz[i] > 400 and cx[i] < head[0] - 60])     # the wings, not the eye's white or a glint
+    pale = ndimage.binary_fill_holes(ndimage.binary_closing(pale, iterations=3))
+    ink = al & (mx < 90) & ndimage.binary_dilation(pale, iterations=14)
+    keep = pale | (ink & ~ndimage.binary_dilation(~pale & ~ink & al, iterations=1)) | (ink & ndimage.binary_dilation(pale, iterations=9))
+    A[..., 3] = np.where(keep, A[..., 3], 0)
+    return Image.fromarray(A, 'RGBA')
+
+
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--sheet', default=''); a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
-    up = inked(keyed(os.path.join(SRC, 'up.png'), 'fly')); dn = inked(keyed(os.path.join(SRC, 'down.png'), 'fly'))
-    t0, h0, tc, tr, core = parts(up); t1, h1, *_ = parts(dn)
-    k = np.linalg.norm(h0 - t0) / np.linalg.norm(h1 - t1)            # the down frame onto the up frame
-    dn = dn.resize((round(dn.width * k), round(dn.height * k)), Image.LANCZOS)
-    off = np.round((t0 + h0) / 2 - (t1 + h1) / 2 * k).astype(int)
-    W, H = up.width, up.height
-    big = Image.new('RGBA', (W * 2, H * 2), (0, 0, 0, 0)); big.alpha_composite(dn, (int(W // 2 + off[0]), int(H // 2 + off[1])))
-    dn = big.crop((W // 2, H // 2, W // 2 + W, H // 2 + H))
-    box = up.getbbox(); b2 = dn.getbbox()
-    box = (min(box[0], b2[0]), min(box[1], b2[1]), max(box[2], b2[2]), max(box[3], b2[3]))
+    up = inked(keyed(os.path.join(SRC, 'up.png'), 'fly'))
+    t0, h0, tc, tr, core = parts(up); W, H = up.width, up.height
+
+    def onto_up(img):
+        # another frame of the same bug laid onto the up frame by its tail rim and its head
+        t1, h1, *_ = parts(img); k = np.linalg.norm(h0 - t0) / np.linalg.norm(h1 - t1)
+        img = img.resize((round(img.width * k), round(img.height * k)), Image.LANCZOS)
+        off = np.round((t0 + h0) / 2 - (t1 + h1) / 2 * k).astype(int)
+        big = Image.new('RGBA', (W * 2, H * 2), (0, 0, 0, 0)); big.alpha_composite(img, (int(W // 2 + off[0]), int(H // 2 + off[1])))
+        return big.crop((W // 2, H // 2, W // 2 + W, H // 2 + H))
+    dn = onto_up(inked(keyed(os.path.join(SRC, 'down.png'), 'fly')))
+    bare = onto_up(inked(keyed(os.path.join(SRC, 'bare.png'), 'fly')))     # no wings: what falls when the wings are cut off
+    wings = cut_wings(up, h0)                                                 # the wings alone, off the up frame: they flutter away
+    box = up.getbbox()
+    for b2 in (dn.getbbox(), bare.getbbox()):
+        box = (min(box[0], b2[0]), min(box[1], b2[1]), max(box[2], b2[2]), max(box[3], b2[3]))
     s = float(PX * SPAN / np.linalg.norm(h0 - t0))                         # picture px -> built px
     anchor = (t0 + h0) / 2
     rows = []; built = {}
-    for name, img in (('up', up), ('down', dn)):
+    for name, img in (('up', up), ('down', dn), ('bare', bare), ('wings', wings)):
         im = img.crop(box); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
         b = io.BytesIO(); im.save(b, 'WEBP', quality=90, method=6); data = b.getvalue()
         fn = f'{name}.{hashlib.sha256(data).hexdigest()[:10]}.webp'
@@ -80,7 +101,7 @@ def main():
     if n != 1: raise SystemExit('frog-game.js has no FLY_ART markers')
     open(JS, 'w', encoding='utf-8', newline='\n').write(s2)
     if a.sheet:
-        sh = Image.new('RGBA', (900, 300), (22, 62, 86, 255))
+        sh = Image.new('RGBA', (1780, 420), (22, 62, 86, 255))
         for i, im in enumerate(built.values()):
             sh.alpha_composite(im, (20 + i * 440, 20))
         sh.convert('RGB').save(a.sheet); print(a.sheet)
