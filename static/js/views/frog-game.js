@@ -1087,11 +1087,38 @@ function glow(ctx, x, y, r, rgb, a) {
 }
 const GLOWS = {};
 
+// The firefly, painted (Marek's pick 'firefly E', 2026-11-24: a big fiery-red glowing tail): wings up and wings down,
+// laid on one another. Sizes in s (the fly's size); at = the anchor in the pictures' px. ?art=old: the drawing below.
+// FLY_ART:begin (written by design/frog/tools/art_build_fly.py: do not edit by hand)
+const FLY_ART = { px: 110, size: [396, 366], at: [188.8, 190.3], tail: [-0.87, 0.33, 0.81], core: [-0.54, 0.28], frames: {
+    up: '/img/game/fly/up.624c468aa2.webp',
+    down: '/img/game/fly/down.51ba4b1f0c.webp',
+} };
+// FLY_ART:end
+const flyArt = { ready: false, img: {} };
+const FLY_ON = typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search);
+if (FLY_ON) {
+    const all = Object.entries(FLY_ART.frames);
+    Promise.all(all.map(([k, u]) => new Promise(ok => { const i = new Image(); i.onload = () => { flyArt.img[k] = i; ok(); }; i.onerror = ok; i.src = u; })))
+        .then(() => { flyArt.ready = all.every(([k]) => flyArt.img[k]); });
+}
+
 function drawFly(ctx, fl, s, t) {
     // a firefly: dark body, red head, flapping wings, a pulsing glowing tail
     ctx.save(); ctx.translate(fl.x, fl.y); ctx.rotate(fl.dir < 0 ? Math.PI : 0); ctx.scale(1, fl.dir < 0 ? -1 : 1);
     const flap = Math.abs(Math.sin(t * 55 + fl.phase));
     const pulse = 0.65 + 0.35 * Math.sin(t * 6 + fl.phase);
+    if (flyArt.ready) {
+        // the glow around the burning tail (warm near it, fiery red further out), the picture, then the core breathing on top
+        const [tx, ty, tr] = FLY_ART.tail, [cx, cy] = FLY_ART.core, k = s / FLY_ART.px;
+        glow(ctx, tx * s, ty * s, s * 5, '255,40,16', 0.85);
+        glow(ctx, tx * s, ty * s, s * 2.6, '255,150,40', 0.6 + 0.3 * pulse);
+        ctx.drawImage(flyArt.img[flap > 0.5 ? 'up' : 'down'], -FLY_ART.at[0] * k, -FLY_ART.at[1] * k, FLY_ART.size[0] * k, FLY_ART.size[1] * k);
+        const was = ctx.globalCompositeOperation; ctx.globalCompositeOperation = 'lighter';
+        glow(ctx, cx * s, cy * s, tr * s * 0.75, '255,200,90', 0.12 + 0.28 * pulse);
+        ctx.globalCompositeOperation = was;
+        ctx.restore(); return;
+    }
     ctx.save();
     glow(ctx, -s * 0.75, 0, s * 4.6, '255,23,23', 0.9);                   // a strong red glow
     glow(ctx, -s * 0.75, 0, s * 2.2, '255,82,60', 0.75 + 0.25 * pulse);
@@ -1182,13 +1209,13 @@ const LAPTOP_ART = { url: '/img/game/frog/laptop.2b28d644d0.webp', size: [642, 3
 // LAPTOP_ART:end
 const laptopArt = { img: null };
 if (typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search)) { const i = new Image(); i.onload = () => { laptopArt.img = i; }; i.src = LAPTOP_ART.url; }
-// An icon of the seagull or the laptop is painted before their pictures have loaded: paint it again once they are in
+// An icon of the seagull, the laptop or the firefly is painted before their pictures have loaded: paint it again once they are in
 // (Marek, 2026-11-24: the debug tray still showed the old seagull). paint(x) draws the icon on a fresh context.
 function iconWhenArt(c, k, paint) {
     const x0 = c.getContext('2d'); x0.save(); paint(x0); x0.restore();
-    if ((gullArt.ready || !ART.frog) && laptopArt.img) return;
+    if ((gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON)) return;
     let n = 0; const t = setInterval(() => {
-        const done = (gullArt.ready || !ART.frog) && laptopArt.img;
+        const done = (gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON);
         if (done || ++n > 60) { clearInterval(t); if (!done) return; const x = c.getContext('2d'); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); x.scale(k, k); paint(x); x.restore(); }
     }, 250);
 }
@@ -1736,7 +1763,7 @@ export function mountFrogGame(stage, opts = {}) {
         const prep = c => { c.width = S * k; c.height = S * k; c.style.width = c.style.height = S + 'px'; const x = c.getContext('2d'); x.scale(k, k); return x; };
         stage.querySelectorAll('canvas[data-icon]').forEach(c => {
             const x = prep(c), kind = c.dataset.icon;
-            if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
+            if (kind === 'fly') iconWhenArt(c, k, g => drawFly(g, { x: S / 2 + 2, y: S / 2, dir: 1, phase: 0 }, 8, 0.26));
             else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
             else if (kind === 'laptop') iconWhenArt(c, k, g => drawLaptop(g, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6));
@@ -1761,12 +1788,15 @@ export function mountFrogGame(stage, opts = {}) {
                 x.fillStyle = C.steel; x.beginPath(); x.rect(-L * 0.05, -L * 0.94, L * 0.1, L * 0.28); x.fill(); x.stroke();
                 x.restore();
             } else if (kind === 'tongue') {
-                const x = big(c, 96, 72), line = w => { x.lineWidth = w; x.beginPath(); x.moveTo(8, 66); x.quadraticCurveTo(40, 58, 62, 30); x.stroke(); };
-                x.lineCap = 'round'; x.strokeStyle = '#000'; line(12); x.strokeStyle = '#e57373'; line(8.5);
-                x.fillStyle = '#ef9a9a'; x.strokeStyle = '#000'; x.lineWidth = 1.6; x.beginPath(); x.arc(62, 30, 8, 0, 7); x.fill(); x.stroke();
-                drawFly(x, { x: 66, y: 27, dir: 1, phase: 0 }, 6.5, 0.26);
-            } else {
-                const x = big(c, 176, 84); x.translate(0, 8); const at = (px, py, fn) => { x.save(); x.translate(px, py); fn(); x.restore(); };
+                big(c, 96, 72);
+                iconWhenArt(c, k, x => {
+                    const line = w => { x.lineWidth = w; x.beginPath(); x.moveTo(8, 66); x.quadraticCurveTo(40, 58, 62, 30); x.stroke(); };
+                    x.lineJoin = 'round'; x.lineCap = 'round'; x.strokeStyle = '#000'; line(12); x.strokeStyle = '#e57373'; line(8.5);
+                    x.fillStyle = '#ef9a9a'; x.strokeStyle = '#000'; x.lineWidth = 1.6; x.beginPath(); x.arc(62, 30, 8, 0, 7); x.fill(); x.stroke();
+                    drawFly(x, { x: 66, y: 27, dir: 1, phase: 0 }, 6.5, 0.26);
+                });
+            } else big(c, 176, 84), iconWhenArt(c, k, x => {
+                x.lineJoin = 'round'; x.translate(0, 8); const at = (px, py, fn) => { x.save(); x.translate(px, py); fn(); x.restore(); };
                 const fr = kindOf => FRUITS.find(t => t.kind === kindOf) || FRUITS[0];
                 at(40, 46, () => drawWhole(x, { type: fr('watermelon') }, 26, 2));
                 at(96, 34, () => drawWhole(x, { type: fr('pineapple') }, 21, 2));
@@ -1777,7 +1807,7 @@ export function mountFrogGame(stage, opts = {}) {
                 drawSake(x, { x: 160, y: 24, r: 14, rot: 0.25, t: 0 }, 2);
                 drawFireworks(x, { x: 66, y: 22, r: 12, rot: -0.3, t: 0 }, 1.6);
                 drawFly(x, { x: 124, y: 20, dir: 1, phase: 0 }, 5, 0.26);
-            }
+            });
         });
         const seen = new Set(), box = stage.querySelector('.fg-fruits');
         FRUITS.slice().sort((a, b) => a.r - b.r).forEach(t => {
@@ -4070,7 +4100,7 @@ export function mountFrogGame(stage, opts = {}) {
         // cut in half: the halves fly apart, then drop
         const nx = -Math.sin(ang), ny = Math.cos(ang);
         [1, -1].forEach(sd => bit(f.x, f.y, ctx => {
-            ctx.beginPath(); ctx.rect(sd > 0 ? 0 : -f.s * 3, -f.s * 3, f.s * 3, f.s * 6); ctx.clip();
+            ctx.beginPath(); ctx.rect(sd > 0 ? 0 : -f.s * 4, -f.s * 4, f.s * 4, f.s * 8); ctx.clip();
             drawFly(ctx, { x: 0, y: 0, dir: f.dir, phase: f.phase }, f.s, 0);
         }, { vx: nx * H * 0.15 * sd, vy: ny * H * 0.15 * sd - H * 0.1, rot: 0, spin: sd * rand(4, 8) }));
         splash(f.x, f.y, '#eeff41', 8, 3);
@@ -6308,7 +6338,7 @@ export function mountFrogGame(stage, opts = {}) {
             const x = c.getContext('2d'); x.scale(k, k);
             const [kind, name] = c.dataset.spawn.split(':');
             if (kind === 'fruit') { const t = FRUITS.find(f => f.kind === name); x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * ICON_K(name), 2); }
-            else if (kind === 'fly') drawFly(x, { x: S / 2 + 4, y: S / 2, dir: 1, phase: 0 }, 9, 0.26);
+            else if (kind === 'fly') iconWhenArt(c, k, g => drawFly(g, { x: S / 2 + 2, y: S / 2, dir: 1, phase: 0 }, 8, 0.26));
             else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
             else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);

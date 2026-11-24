@@ -77,7 +77,7 @@ That is 12 elements x 8 fruits. 2.3-2.5 are the "sliced in three different spots
 
 | # | Element | Notes | Status |
 |---|---|---|---|
-| 3.1 | Firefly | flying loop (wings), red glow; caught on the tongue; cut in half | placeholder |
+| 3.1 | Firefly | Marek's pick 'firefly E' (2026-11-24, round 2 "more fiery red"): a big round tail burning red, orange and a hot yellow core, red head with the frog's heavy brow, brown body, two see-through wings. Painted, two frames (wings up, wings down, laid on one another), built by `art_build_fly.py` from `art/sources/firefly/`; the glow around it and the core's pulse are drawn by the game. Caught on the tongue; cut in half. Colours in `palette.json` props (firefly-*) | in game |
 | 3.2 | Golden sake | bottle, tumbling; glow; smashed into shards and a splash | placeholder |
 | 3.3 | Alarm clock | tumbling, ringing; glow; broken into bells, gears, hands, spring | placeholder |
 | 3.4 | Fireworks bundle | five rockets, each a different rainbow colour, lit fuse | placeholder |

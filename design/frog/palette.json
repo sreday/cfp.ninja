@@ -172,6 +172,32 @@
    "name": "Katana blade, lit",
    "from": "the logo (static/img/cfpninja_full.png)",
    "family": "grey"
+  },
+  "firefly-red": {
+   "hex": "#a51a24",
+   "name": "firefly tail rim and head",
+   "from": "firefly E, Marek's pick 2026-11-24"
+  },
+  "firefly-flame": {
+   "hex": "#f78e32",
+   "name": "firefly tail flame",
+   "from": "firefly E, Marek's pick 2026-11-24"
+  },
+  "firefly-core": {
+   "hex": "#fbef60",
+   "name": "firefly hot core",
+   "from": "firefly E, Marek's pick 2026-11-24"
+  },
+  "firefly-body": {
+   "hex": "#55362c",
+   "name": "firefly body",
+   "from": "firefly E, Marek's pick 2026-11-24"
+  },
+  "firefly-wing": {
+   "hex": "#d3dbc7",
+   "name": "firefly wings",
+   "from": "firefly E, Marek's pick 2026-11-24",
+   "family": "grey"
   }
  },
  "extras": {}
