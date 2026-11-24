@@ -298,7 +298,7 @@ const HOP_ART = { url: '/img/game/frog/hop.f4e8b0205d.webp', size: [1280, 530], 
 // the teeter (Marek's pick 2026-11-22, 'really off-base, like about to fall very strongly'; scared, not loud): under five seconds it is tipped right over
 // on the toes of one foot, arms flung out, hands empty: its katanas are stuck in the post (the fire breath's picture of them). mid/feet: the toes
 // it stands on (read off the picture: the builder's --foot caught a hand too); rock: degrees it sways about them, faster the less time there is.
-const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -46 };      // (Marek, 2026-11-24: 10% smaller; set down a little so its toes are still on the wood)
+const TEETER_ART = { url: '/img/game/frog/teeter.47b8c075fd.webp', size: [839, 692], mid: 112, feet: 687, headW: 260, rock: 7, katanas: true, grow: 0.9, lift: -62 };      // (Marek, 2026-11-24: 10% smaller; set down a little so its toes are still on the wood)
 // the fall (Marek's pick 2026-11-22, 'put the open mouth for now'): game over, arms thrown up, mouth open. It sits in the frog's own group, so the
 // topple and the drop that turned the drawn frog over (pose.fallRot, pose.fallY) turn and drop this picture. No katanas in it: they fall on their own.
 const FALL_ART = { url: '/img/game/frog/fall.1ad4941ca5.webp', size: [528, 707], mid: 236, feet: 707, headW: 245, lift: 120, front: true, grow: 0.9 };      // (the size of the teeter before it)
