@@ -8,6 +8,9 @@ import { SLASH_DIRS, slashCell, slashPick, slashTraces, tracePoly, traceLife, sp
 // ?curate: a seeded Math.random and a virtual clock that only moves when the curator steps it, so
 // two builds render the very same moment, pixel for pixel, and can be compared.
 const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.search);
+// ?perf=1: the frames a second stay on screen, and the game-over panel says how smooth the run was (the time between frames,
+// measured while playing): for trying the game on a slower phone or tablet (2026-11-25)
+const PERF = typeof location !== 'undefined' && /[?&]perf\b/.test(location.search);
 const VCLOCK = { t: 0 };
 if (CURATE) {
     let sd = 0x2f6b1d;
@@ -1950,7 +1953,7 @@ export function mountFrogGame(stage, opts = {}) {
         snapToPost();
         measureFrog();
         if (artBg) {
-            const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0;
+            const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; artBg.box = '';
             if (artBg.ringEl) {
                 // the ring sits where the post's wet band starts, centred on it, twice its width
                 const pe = artBg.postEl, sb = stage.getBoundingClientRect(), pb = pe.getBoundingClientRect();
@@ -2163,7 +2166,6 @@ export function mountFrogGame(stage, opts = {}) {
         const a = artBg, g = a.g, c = actx, t = now / 1000;
         c.setTransform(a.k, 0, 0, a.k, 0, 0);
         const s = Math.max(W / g.w, H / g.h), ox = (W - g.w * s) / 2, oy = H - g.h * s;
-        c.drawImage(a.plate, ox, oy, g.w * s, g.h * s);
         // the party: smaller on narrow screens, right of the frog, right edge past the screen's
         const pk = clamp(0.45 + 0.35 * W / H, 0.6, 1), ps = s * pk;
         const pw = g.party.w * ps, ph = g.party.h * ps;
@@ -2175,6 +2177,13 @@ export function mountFrogGame(stage, opts = {}) {
         let px = Math.min(right - pw, W * 0.85 - focus);
         px = Math.max(px, W - pw, fbox.x + fbox.w + 10 - focus);
         const py = bottom - ph;
+        // Only the party moves (dancers, lights, the bonfire): after the first full paint, each tick repaints just its box
+        // (plus a margin for the glow of the lights), not the whole screen; a moved party or a resize paints all of it again.
+        const box = [px, py, pw, ph].map(v => Math.round(v)).join(), m = pw * 0.18;
+        c.save();
+        if (a.box === box) { c.beginPath(); c.rect(px - m, py - m, pw + m * 2, ph + m * 2); c.clip(); }
+        a.box = box;
+        c.drawImage(a.plate, ox, oy, g.w * s, g.h * s);
         c.drawImage(a.party, px, py, pw, ph);
         const X = x => px + (x - g.party.x) * ps, Y = y => py + (y - g.party.y) * ps;
         const still = reduced;
@@ -2204,12 +2213,13 @@ export function mountFrogGame(stage, opts = {}) {
             c.globalAlpha = 0.45 * fl; c.drawImage(a.fire, X(g.fire[0]) - r, Y(g.fire[1]) - r * 0.85, r * 2, r * 2);
         }
         c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+        c.restore();
     }
     // Water in front of the post (depth): cel-style foam crests drifting across the sea, in bands
     // from the waterline down, each band its own speed and way; drawn every frame (a few paths).
     const WAVE_BANDS = [[-0.35, 0.28, 0.5], [0.15, -0.2, 0.75], [0.6, 0.33, 0.95], [1.1, -0.26, 1]];   // depth below the ring (post widths), speed, opacity
     function drawWaterFront(now) {
-        const a = artBg, c = a.waveEl.getContext('2d'), t = now / 1000, pw = a.postEl.getBoundingClientRect().width || 60;
+        const a = artBg, c = a.waveEl.getContext('2d'), t = now / 1000, pw = (a.postBox && a.postBox.w) || 60;      // (measured at resize: a layout read here ran every frame)
         c.setTransform(a.k, 0, 0, a.k, 0, 0); c.clearRect(0, 0, W, H);
         const amp = Math.max(2, pw * 0.05), lam = Math.max(40, pw * 0.9);
         // The post stands IN the water: above the ring it is dry wood (no band crosses it); below, it is cut off
@@ -2786,7 +2796,9 @@ export function mountFrogGame(stage, opts = {}) {
             const x = c.getContext('2d'), k = SNAP_W / W;
             x.fillStyle = '#1b2733'; x.fillRect(0, 0, SNAP_W, h); x.drawImage(canvas, 0, 0, SNAP_W, h);
             if (fbox && fbox.w) { x.strokeStyle = '#7cb342'; x.lineWidth = 2; x.strokeRect(fbox.x * k, fbox.y * k, fbox.w * k, fbox.h * k); }
-            snaps++; log('snap', why, c.toDataURL('image/jpeg', 0.5));
+            // (the small picture is taken now; the JPEG is made when the browser has a free moment: encoding it inside a frame
+            // was a hitch on slower phones)
+            snaps++; (window.requestIdleCallback || (f => setTimeout(f, 300)))(() => { try { log('snap', why, c.toDataURL('image/jpeg', 0.5)); } catch (e) { /* lost */ } }, { timeout: 4000 });
         } catch (e) { /* a tainted or lost canvas: no picture */ }
     }
     function letdown(kind, ...a) {
@@ -2963,18 +2975,25 @@ export function mountFrogGame(stage, opts = {}) {
         if (mk && q.poly && q.type.kind !== 'grapes') { ctx.save(); ctx.globalAlpha = mk * 0.3; ctx.fillStyle = '#ff6d00'; pathPoly(ctx, q.poly); ctx.fill(); ctx.restore(); }
     }
     // Quality governor. The game starts at full sharpness; if the device can't hold 50 frames a
-    // second for two seconds running it drops the canvas resolution a step (2x -> 1.5x -> 1x), and
-    // never anything else: no effect is removed and nothing about the game changes.
-    let slowSeconds = 0;
+    // second for two seconds running it drops the canvas resolution a step (2x -> 1.5x -> 1x); at 1x and
+    // still slow it thins the loose bits (juice drops, flames, sparks, debris: the oldest go first). How the
+    // game plays never changes. What it settles on is kept for the rest of the visit (2026-11-25: every run
+    // used to start at full sharpness again, so a slow phone stuttered at the start of every run).
+    let slowSeconds = 0, fxLow = false;
     function govern(frames) {
         if (document.hidden) return;
         // (a steady 30 is the browser holding the page back, as in low power mode: lower resolution wouldn't help)
         slowSeconds = frames < 50 && !(frames >= 27 && frames <= 33) ? slowSeconds + 1 : 0;
-        if (slowSeconds >= 2 && dprCap > 1 && (window.devicePixelRatio || 1) > 1) {
-            dprCap = dprCap > 1.5 ? 1.5 : 1; slowSeconds = 0; wholeSprites.clear();
+        if (slowSeconds < 2) return;
+        slowSeconds = 0;
+        if (dprCap > 1 && (window.devicePixelRatio || 1) > 1) {
+            dprCap = dprCap > 1.5 ? 1.5 : 1; wholeSprites.clear();
             log('q', dprCap); resize();
-        }
+        } else if (!fxLow) { fxLow = true; log('q', 'fx'); }
     }
+    // the loose bits, thinned on a slow device (the oldest first: they are about to go anyway)
+    const thin = (a, n) => { if (a.length > n) a.splice(0, a.length - n); };
+    function thinFx() { if (!fxLow) return; thin(drops, 60); thin(flames, 36); thin(sparks, 80); thin(bits, 40); thin(seaDrops, 24); }
     // where the sea is on screen (the backdrop is anchored to the bottom and scaled to cover)
     const seaY = () => H - 190 * Math.max(W / 1600, H / 900);
     let ripples = [], seaDrops = [];
@@ -5924,7 +5943,6 @@ export function mountFrogGame(stage, opts = {}) {
         on(() => { c.font = '700 28px Fredoka, Inter, Arial Black, sans-serif'; c.lineWidth = 5; c.strokeText('+0.45s x3', 0, 0); c.fillText('+0.45s x3', 0, 0); glow(c, 0, 0, 60, '129,212,250', 0.5); });
     }
     function start() {
-        if (dprCap !== 2) { dprCap = 2; wholeSprites.clear(); resize(); }      // every run starts at full sharpness
         warmUp();
         el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = '';
         stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
@@ -6008,7 +6026,8 @@ export function mountFrogGame(stage, opts = {}) {
         snd(isBest ? 'best' : 'over');
         if (isBest) { best = ms; store.set(bestKey, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
         el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
-        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (touch ? '' : '');
+        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (PERF ? perfNote() : '');
+        if (PERF) log('perf', el.sub.textContent);
         el.start.textContent = 'Play again';
         showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
@@ -6214,22 +6233,9 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function recStop() { if (rec.recorder && rec.recorder.state !== 'inactive') rec.recorder.stop(); rec.recorder = null; }
 
-    // ---------- the interface gets out of the way ----------
-    // Pills, bars and buttons fade while the blade (or the flame's aim) is working right next to
-    // them, so the action under them can be seen.
-    const dimEls = [];
-    function dimMeasure() {
-        dimEls.length = 0;
-        const page = stage.closest('.game-page') || stage, sb = canvas.getBoundingClientRect();
-        page.querySelectorAll('.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-debug-pill, .fg-sound-pill, .fg-full-pill, .fg-num-pill, .game-notch, .fg-debug-tray, .fg-debug-title').forEach(n => {
-            const r = n.getBoundingClientRect();
-            if (r.width) dimEls.push({ n, x0: r.left - sb.left - 46, y0: r.top - sb.top - 46, x1: r.right - sb.left + 46, y1: r.bottom - sb.top + 46, dim: n.classList.contains('fg-dim') });      // (the list is rebuilt now and then: a part that is dimmed stays known as dimmed, or it would never come back)
-        });
-    }
-    // The interface gets out of the way as one: when anything in play covers any one of its
-    // elements (the blade, a fruit, a piece, a power-up, a crate, a seagull), all of them fade
-    // together, and come back a moment after the last one is clear.
-    let dimAt = 0;
+    // ---------- the interface stays put ----------
+    // (Until 2026-11-25 the pills, bars and buttons faded while the blade or a fruit was over them. Marek: "no longer dim
+    // UI elements, it's giving headache". They stay as they are; that also saves a layout read every 1.5 s.)
     // Debug: how many seconds the last burst of action earned, shown to the right of the combo meter,
     // so one combination can be weighed against another. A burst ends after GAIN_GAP without a gain;
     // the next gain starts a new count. So that every burst is measured on the same terms, the
@@ -6246,28 +6252,7 @@ export function mountFrogGame(stage, opts = {}) {
         const txt = '+' + gainSum.toFixed(1) + ' s' + (tn - gainAt > GAIN_GAP ? '' : ' ...');
         if (txt !== gainShown) { gainShown = txt; gainEl.textContent = txt; gainEl.classList.toggle('live', tn - gainAt <= GAIN_GAP); }
     }
-    function dimStep(tn) {
-        gainStep(tn);
-        if (tn - dimAt > 1500) { dimAt = tn; dimMeasure(); }
-        // Each part of the interface fades on its own, and only while something is over it: the blade,
-        // a fruit, a piece, a power-up, a crate, a gull. The rest stays readable.
-        const PAD = 46, slashing = phase === 'play' && pointer && (down || autoCut || swing);
-        // (x0..y1 already reach PAD past the element, for the blade; things are tested against the element itself plus their own size)
-        const over = (d, x, y, r) => x > d.x0 + PAD - r && x < d.x1 - PAD + r && y > d.y0 + PAD - r && y < d.y1 - PAD + r;
-        for (const d of dimEls) {
-            let hit = false;
-            if (phase === 'play') {
-                if (slashing && pointer.x > d.x0 && pointer.x < d.x1 && pointer.y > d.y0 && pointer.y < d.y1) hit = true;
-                else if (d.n.classList.contains('fg-debug-tray') || d.n.classList.contains('fg-debug-title')) hit = false;     // the debug tray is not hidden by what is dropped from it
-                else hit = fruits.some(f => f.entered && over(d, f.x, f.y, f.R || f.r)) || pieces.some(q => q.poly && over(d, q.x, q.y, q.R * 0.7))
-                    || pickups.some(b => over(d, b.x, b.y, b.r)) || flies.some(f => over(d, f.x, f.y, f.s * 1.5)) || crates.some(c => over(d, c.x, c.y, c.hw))
-                    || gulls.some(g => over(d, g.x, g.y, g.r));
-            }
-            if (hit) d.until = tn + 250;
-            const on = tn < (d.until || 0);
-            if (on !== !!d.dim) { d.dim = on; d.n.classList.toggle('fg-dim', on); }
-        }
-    }
+    function dimStep(tn) { gainStep(tn); }
 
     // ---------- debug mode ----------
     // A sandbox for trying things out: no clock, no spawns, no score. Drag fruit and power-ups
@@ -6555,7 +6540,7 @@ export function mountFrogGame(stage, opts = {}) {
         // the tray folds away to the bottom edge, so the whole field can be seen (and unfolds again)
         $('.fg-debug-fold').addEventListener('click', e => {
             const box = stage.querySelector('.fg-debug'), folded = box.classList.toggle('fg-debug-folded');
-            e.currentTarget.textContent = folded ? 'Show items' : 'Hide items'; dimAt = 0;
+            e.currentTarget.textContent = folded ? 'Show items' : 'Hide items';
         });
         $('.fg-debug-bowl').addEventListener('click', () => {
             const grilled = Math.random() < 0.35;
@@ -6583,16 +6568,26 @@ export function mountFrogGame(stage, opts = {}) {
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         // debug: frames a second, big, top left; green at 60, red at 30 and under
         fpsN++;
+        if (PERF && phase === 'play' && frameAt0) perfGaps.push(t0 - frameAt0);
+        frameAt0 = t0;
         if (t0 - fpsAt >= 500) {
             const fps = Math.round(fpsN * 1000 / (t0 - fpsAt)); fpsN = 0; fpsAt = t0;
-            if (dbg) { fpsEl.textContent = fps; fpsEl.style.color = `hsl(${Math.round(clamp((fps - 30) / 30, 0, 1) * 120)}, 85%, 55%)`; }
+            if (dbg || PERF) { fpsEl.textContent = fps; fpsEl.style.color = `hsl(${Math.round(clamp((fps - 30) / 30, 0, 1) * 120)}, 85%, 55%)`; }
         }
         try { frameBody(now); }
         catch (err) { crashed(err); if (crashes > 30) { dead = true; return; } }
         frameJs += performance.now() - t0;
         if (!dead && !CURATE) raf = requestAnimationFrame(frame);
     }
-    let frameAt = 0, frameGap = 0, frameJs = 0, fpsN = 0, fpsAt = 0;
+    let frameAt = 0, frameGap = 0, frameJs = 0, fpsN = 0, fpsAt = 0, frameAt0 = 0, perfGaps = [];
+    if (PERF) stage.classList.add('fg-perf');
+    // how smooth the run was: the typical frame gap, and the share of frames that took longer than 60 a second allows
+    function perfNote() {
+        const g = perfGaps.slice().sort((a, b) => a - b), n = g.length; perfGaps = [];
+        if (!n) return '';
+        const mid = g[n >> 1], slow = g.filter(x => x > 1000 / 60 * 1.25).length / n, p95 = g[Math.floor(n * 0.95)];
+        return ` Smoothness: ${Math.round(1000 / mid)} fps typical, ${(slow * 100).toFixed(1)}% slow frames, worst 5% ${Math.round(p95)} ms; sharpness ${dprCap}x${fxLow ? ', fewer effects' : ''}.`;
+    }
     const fpsEl = $('.fg-fps');
     function frameBody(now) {
         if (dead) return;
@@ -6725,7 +6720,7 @@ export function mountFrogGame(stage, opts = {}) {
             pose.rRot = -31; pose.rStretch = 1.55;                                             // the other hand rests on its knee
         } else if (pose.plan) { pose.plan = false; pose.up = 1; pose.lStretch = pose.rStretch = 1; }
         stepFall(dt);
-        dimStep(now);
+        dimStep(now); thinFx();
         // The frog is drawn in held poses, not tweened: at rest a new "drawing" about 12 times a
         // second, during a cut, the intro or a fall up to 30 times a second.
         poseAcc += dt;

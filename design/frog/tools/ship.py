@@ -160,6 +160,11 @@ def main():
             print(out[-2000:]); print(chr(10).join(l for l in out.splitlines() if l.startswith('FAIL')) or f'(no FAIL line; exit code {p.returncode})')
             sys.exit(f'stopped: scenario tests ({q})')
     print(f'   scenario tests ok: {sum(o.count(chr(10) + "PASS") + o.startswith("PASS") for o in outs)} checks ({time.time() - t0:.0f} s)')
+    # frame times on a slow phone (CPU /4, 2x pixels; ~20 s, after the suites so their load does not skew it): Marek,
+    # 2026-11-25, "we need to hit 60 fps minimum" on an older phone or tablet
+    pf = subprocess.run([sys.executable, os.path.join(HERE, 'perf_test.py')], cwd=REPO, capture_output=True, text=True)
+    print('   ' + ((pf.stdout.strip().splitlines() or ['perf: no output'])[-1]))
+    if pf.returncode: print(pf.stdout[-1500:] + pf.stderr[-1500:]); sys.exit('stopped: too many slow frames on a slow phone (design/frog/tools/perf_test.py)')
     if full or '--pairs' in sys.argv:
         # (the 120 power-up pairs take ~7 min: gameplay changes only; --pairs runs them)
         pairs = '--pairs' in sys.argv

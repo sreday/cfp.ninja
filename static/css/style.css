@@ -1634,9 +1634,6 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 /* a narrower window has no room for them beside the combo meter: a second row, top right */
 @media (min-width: 576px) and (max-width: 1459px) { .fg-top-pills { top: 58px; right: 12px; } }
 @media (max-width: 575px) { .fg-top-pills { top: auto; bottom: 8px; right: auto; left: 56px; gap: 6px; } .fg-full-pill, .fg-num-pill { height: 30px; font-size: .7rem; padding: 0 10px; } }
-/* the interface fades while the blade works next to it */
-.fg-pill, .fg-stamina, .fg-grade, .fg-debug-tray, .fg-debug-title { transition: opacity .15s ease; }
-.fg-dim { opacity: .18 !important; }
 /* replays */
 .fg-replay { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .fg-replay [hidden] { display: none; }
@@ -1775,7 +1772,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-nonums .fg-grade-bonus { display: none; }
 /* debug: frames a second */
 .fg-fps { display: none; position: absolute; left: 16px; top: 60px; z-index: 6; pointer-events: none; font: 900 3rem/1 Inter, sans-serif; font-variant-numeric: tabular-nums; color: #7ed957; text-shadow: -2px 0 #000, 2px 0 #000, 0 -2px #000, 0 2px #000; }
-.fg-debugging .fg-fps { display: block; }
+.fg-debugging .fg-fps, .fg-perf .fg-fps { display: block; }
 @media (max-width: 575px) { .fg-fps { left: 10px; top: 98px; font-size: 2.2rem; } }
 @media (max-width: 575px) { .fg-stam-left { font-size: .9rem; } }
 
