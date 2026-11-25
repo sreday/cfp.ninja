@@ -1645,6 +1645,16 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-sound-off::after { content: ''; position: absolute; left: 9px; right: 9px; top: 50%; height: 2.5px; border-radius: 2px; background: #e53935; transform: rotate(-38deg); }
 @media (max-width: 575px) { .fg-debug-pill { width: auto; top: auto; bottom: 8px; right: 8px; height: 30px; font-size: .7rem; } .fg-debugging .fg-debug-pill { bottom: auto; top: 8px; right: 8px; height: 38px; width: calc((100vw - 28px) / 3); } }
 @media (max-width: 575px) { .fg-sound-pill { top: auto; bottom: 8px; right: auto; left: 8px; width: 40px; height: 30px; font-size: .9rem; } }
+/* the volume slider: under the sound pill on hover, desktop only (a phone has its own volume buttons) */
+.fg-vol { display: none; }
+@media (hover: hover) and (pointer: fine) and (min-width: 576px) {
+    .fg-vol { display: flex; position: absolute; top: 56px; right: 136px; z-index: 7; width: 46px; height: 132px; padding: 12px 0; justify-content: center; box-sizing: border-box;
+        border-radius: 999px; background: #173d45; border: 2px solid #f1eda4; box-shadow: 0 0 0 2px #000, 0 3px 0 2px #000;      /* the game's pills */
+        opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .15s ease, transform .15s ease; }
+    .fg-vol::before { content: ''; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }        /* the mouse can cross from the pill */
+    .fg-sound-pill:hover + .fg-vol, .fg-vol:hover, .fg-vol:focus-within { opacity: 1; pointer-events: auto; transform: none; }
+    .fg-vol input { writing-mode: vertical-lr; direction: rtl; width: 22px; height: 100%; margin: 0; accent-color: #f1eda4; cursor: pointer; }
+}
 /* debug mode: a tray of things to drag onto the field, under the frog, and a big title */
 .fg-debug { position: absolute; left: 0; right: 0; bottom: 6px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: none; }
 .fg-debug[hidden] { display: none; }

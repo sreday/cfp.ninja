@@ -262,7 +262,7 @@ export const SYNTH = {
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
 ['ui_switch', 'ui_page', 'ui_open', 'ui_close'].forEach(id => { SYNTH[id] = SYNTH.ui; });      // (their stand-in: the plain click)
 SYNTH.team_slash = (c, o, t) => SYNTH.slash(c, o, t, { power: 1 });                         // (its stand-in: the frog's hardest swing)
-SYNTH.tongue_miss = SYNTH.tongue; SYNTH.lick = SYNTH.tongue; SYNTH.team_cheer = () => {};        // (stand-ins until the recordings load)
+SYNTH.tongue_miss = SYNTH.tongue; SYNTH.lick = SYNTH.tongue; SYNTH.team_cheer = () => {}; SYNTH.gulp = () => {};        // (stand-ins until the recordings load)
 const MIN_GAP = { ui_hover: 0.07, cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
@@ -408,15 +408,16 @@ const SKIN = { watermelon: 'skin_thick', pineapple: 'skin_thick', orange: 'skin_
 const DRY = { banana: 1, chicken: 1, apple: 1 };            // little juice in these
 const one = (p, g = 1, more) => [Object.assign({ p, g }, more)];
 const SPAWN = { fly: 'fly_buzz', sake: 'sake_slosh', clock: 'clock_tick', fireworks: 'fuse' };
+// each helper's own mark, no voices (Marek 2026-11-25: the game is mute): bamboo, a wooden bell, a plip, a collar tag
+const TEAM = { monkey: 'monkey_arrive', llama: 'llama_arrive', platypus: 'platypus_arrive', corgi: 'corgi_arrive' };
 const WRECK = { clock: 'clock_wreck', laptop: 'laptop_smash' };
 const CLOTH = { snap: ['cloth_snap', 0.5], rustle: ['cloth_rustle', 0.4], crouch: ['cloth_crouch', 0.45], hop: ['cloth_hop', 0.5], flutter: ['cloth_flutter', 0.45] };
 export const RECORDED = {
     // ----- the blade -----
     slash: ({ kind = '', power = 0.5 } = {}) => [
-        { p: kind === 'fire' ? 'swing_fire' : kind === 'frost' ? 'swing_frost' : kind === 'sake' ? 'swing_sake' : power > 0.62 ? 'swing_hard' : power > 0.3 ? 'swing_med' : 'swing_light', g: 0.5 + 0.4 * power, j: 0.06 },
-        { p: 'grunt', g: 0.4, at: 0.02, chance: power > 0.62 ? 0.3 : 0, every: 1.6, j: 0.06 }],     // now and then the frog puts its back into it
+        { p: kind === 'fire' ? 'swing_fire' : kind === 'frost' ? 'swing_frost' : kind === 'sake' ? 'swing_sake' : power > 0.62 ? 'swing_hard' : power > 0.3 ? 'swing_med' : 'swing_light', g: 0.5 + 0.4 * power, j: 0.06 }],
     flick: () => one('flick', 0.4, { j: 0.08 }),
-    empty: () => [{ p: 'empty', g: 0.6 }, { p: 'pant', g: 0.35, at: 0.06, chance: 0.6, every: 2.5 }],
+    empty: () => one('empty', 0.6),
     cut({ kind = '', size = 0.5, n = 1, clean = false, chain = 0, hacked = false } = {}) {
         const re = Math.min(n - 1, 5), small = Math.pow(0.86, re);      // a piece cut again: lighter and a little higher
         const flesh = SOUND_BANK['flesh_' + kind] ? 'flesh_' + kind : size > 0.6 ? 'flesh_watermelon' : size > 0.3 ? 'flesh_apple' : 'flesh_plum';
@@ -425,7 +426,7 @@ export const RECORDED = {
         if (re < 3) L.push({ p: size > 0.66 ? 'juice_l' : size > 0.3 ? 'juice_m' : 'juice_s', g: (DRY[kind] ? 0.16 : 0.4) * small, at: 0.03, j: 0.08 });
         // a perfect cut: a juicy pop, a touch higher with a chain (Marek 2026-11-25: juicy, not mini gongs)
         if (clean) L.push({ p: 'juice_pop', g: (DRY[kind] ? 0.3 : 0.5) * small, r: Math.pow(1.025, Math.min(chain, 12)), at: 0.01, j: 0.05 });
-        if (re < 2 && !DRY[kind]) L.push({ p: 'squelch', g: 0.35 * small, at: 0.02, chance: 0.6, j: 0.07 });
+        if (re < 2 && !DRY[kind]) L.push({ p: 'squelch', g: 0.3 * small, at: 0.02, chance: 0.3, j: 0.07 });
         if (hacked) L.push({ p: 'hack', g: 0.25 });
         return L;
     },
@@ -441,13 +442,13 @@ export const RECORDED = {
     unsheathe: () => one('unsheathe', 0.65),
     glint: () => one('glint', 0.3),
     // ----- the tongue and the mouth -----
-    tongue: () => [{ p: 'tongue_out', g: 0.55, j: 0.07 }, { p: 'frog_hup', g: 0.45, chance: 0.5, every: 1.2, j: 0.06 }],
+    // the tongue is mechanical only (Marek 2026-11-25: no mouth noises): an elastic whip out, a suction-cup catch, a snap back
+    tongue: () => one('tongue_out', 0.5, { j: 0.07 }),
     tongue_miss: () => one('tongue_miss', 0.5, { j: 0.06 }),
-    lick: () => one('frog_lick', 0.6, { j: 0.05 }),
-    catch: ({ heavy = false } = {}) => [{ p: heavy ? 'catch_heavy' : 'catch', g: 0.6, j: 0.05 }, { p: 'kotsuzumi', g: 0.28, at: 0.01, chance: 0.5, j: 0.04 },
-        { p: 'slurp', g: 0.42, at: 0.07, j: 0.06 }, { p: 'frog_strain', g: 0.5, at: 0.05, chance: heavy ? 1 : 0, j: 0.05 }],
-    gulp: () => [{ p: 'gulp', g: 0.6, j: 0.07 }, { p: 'frog_yum', g: 0.42, at: 0.25, chance: 0.35, every: 3, j: 0.05 }, { p: 'frog_burp', g: 0.4, at: 0.35, chance: 0.08, every: 8, j: 0.05 }],
-    stun: () => [{ p: 'bonk', g: 0.75 }, { p: 'groan', g: 0.5, at: 0.18 }],
+    lick: () => one('tongue_out', 0.4, { r: 0.9, j: 0.05 }),
+    catch: ({ heavy = false } = {}) => one(heavy ? 'catch_heavy' : 'catch', 0.55, { j: 0.05 }),
+    gulp: () => [],                                            // swallowing is silent (the catch already said it)
+    stun: () => one('bonk', 0.7),
     stun_end: () => one('shake', 0.45),
     // ----- fire -----
     power_fire: () => [{ p: 'fire_ignite', g: 0.85 }, { p: 'shamisen', g: 0.35, j: 0.04 }],
@@ -455,8 +456,8 @@ export const RECORDED = {
     fire_end: () => one('fire_end', 0.6),
     fire_feed: () => one('fire_feed', 0.65),
     // ----- sake -----
-    power_sake: () => [{ p: 'sake_pour', g: 0.65 }, { p: 'shamisen', g: 0.3, r: 1.12, j: 0.04 }, { p: 'hiccup', g: 0.55, at: 0.5 }],
-    sake_end: () => one('sigh', 0.5),
+    power_sake: () => [{ p: 'sake_pour', g: 0.65 }, { p: 'shamisen', g: 0.3, r: 1.12, j: 0.04 }],
+    sake_end: () => one('shakuhachi', 0.3, { r: 0.9, j: 0.03 }),
     // ----- the clock -----
     power_clock: () => [{ p: 'clock_winddown', g: 0.7 }, { p: 'shakuhachi', g: 0.4, at: 0.05, j: 0.03 }],
     mark: ({ n = 1 } = {}) => one('mark', 0.4, { r: Math.pow(1.05, Math.min(n, 14)), j: 0.005 }),
@@ -471,20 +472,20 @@ export const RECORDED = {
     gull_peck: () => one('gull_peck', 0.5),
     gull_faint: () => one('gull_faint', 0.6),
     summon: ({ who = [] } = {}) => [{ p: 'summon', g: 0.75 }, { p: 'suzu', g: 0.4, at: 0.05, j: 0.05 }]
-        .concat(who.map((n, i) => ({ p: n + '_arrive', g: 0.55, at: 0.25 + 0.14 * i, j: 0.05 }))),
-    team_cheer: ({ who = [] } = {}) => who.map((n, i) => ({ p: n + '_cheer', g: 0.45, at: 0.1 * i, j: 0.05 })),
+        .concat(who.map((n, i) => ({ p: TEAM[n], g: 0.45, at: 0.25 + 0.14 * i, j: 0.05 })).filter(L => L.p)),
+    team_cheer: ({ who = [] } = {}) => who.map((n, i) => ({ p: TEAM[n], g: 0.3, r: 1.12, at: 0.1 * i, j: 0.05 })).filter(L => L.p),
     spawn: ({ kind = '' } = {}) => one(SPAWN[kind] || 'crate_creak', 0.45),
     // a cut firefly: a snip, its wings flutter off, its light goes out (2026-11-25)
     wreck: ({ kind = '' } = {}) => kind === 'fly' ? [{ p: 'fly_snip', g: 0.6, j: 0.06 }, { p: 'fly_fizzle', g: 0.4, at: 0.08, j: 0.08 }]
         : one(WRECK[kind] || 'glass_smash', 0.7),
     // the team's slash: three blades at once, and the battle cry on the first blow
     team_slash: ({ first = false, who = [] } = {}) => [{ p: 'team_slash', g: 0.8, j: 0.05 }, { p: 'shing', g: 0.15, at: 0.03, j: 0.02 }]
-        .concat(first ? [{ p: 'taiko_don', g: 0.5, j: 0.03 }].concat(who.length ? who.map((n, i) => ({ p: n + '_kiai', g: 0.5, at: 0.015 * i, j: 0.05 })) : [{ p: 'team_kiai', g: 0.55, at: 0.02, j: 0.05 }]) : []),
+        .concat(first ? [{ p: 'taiko_don', g: 0.45, j: 0.03 }] : []),
     hack: () => one('hack', 0.35, { j: 0.1 }),
     // ----- the run -----
     combo: ({ step = 1 } = {}) => [{ p: 'combo', g: 0.6, r: Math.pow(2, Math.min(step, 10) / 14), j: 0.005 },
         { p: 'koto_pluck', g: 0.45, r: [1, 1, 9 / 8, 4 / 3, 3 / 2, 16 / 9, 2][Math.min(step, 6)], at: 0.04, j: 0.003 },
-        { p: 'frog_ribbit', g: 0.45, at: 0.3, chance: 0.5, j: 0.05 }, { p: 'taiko_don', g: 0.5, chance: step >= 3 ? 1 : 0, j: 0.02 }],
+        { p: 'taiko_don', g: 0.45, chance: step >= 3 ? 1 : 0, j: 0.02 }],
     combo_lost: () => one('combo_lost', 0.4),
     lowtime: () => one('heartbeat', 0.8, { j: 0.01 }),
     count: ({ go = false } = {}) => one(go ? 'count_go' : 'count', go ? 0.9 : 0.6, { j: 0.01 }),
@@ -507,14 +508,19 @@ export const RECORDED = {
 const FILE_LOOPS = { fire: ['fire_loop', 0.7], freeze: ['freeze_loop', 0.4], dizzy: ['dizzy_loop', 0.3], drunk: ['drunk_loop', 0.18] };
 // the beach around it all: three beds that never line up twice the same way, and small things that happen now and then
 const BEDS = [['amb_sea', 0.6], ['amb_breeze', 0.34], ['amb_shore', 0.36]];
-const DETAILS = ['amb_wave', 'amb_gust', 'amb_gull_far', 'amb_creak', 'amb_palm', 'amb_chime', 'amb_rope', 'amb_bubbles', 'amb_fish', 'amb_crickets', 'amb_cheer_far'];
+const DETAILS = ['amb_wave', 'amb_gust', 'amb_gull_far', 'amb_creak', 'amb_palm', 'amb_chime', 'amb_rope', 'amb_bubbles', 'amb_fish', 'amb_crickets'];
 const AMB = 0.55;
 // what a run cannot start without (the rest arrives in the background)
 const FIRST = ['swing_light', 'swing_med', 'swing_hard', 'flick', 'skin_thick', 'skin_thin', 'skin_soft', 'juice_s', 'juice_m', 'juice_l', 'shing',
     'flesh_watermelon', 'flesh_orange', 'flesh_pineapple', 'flesh_grapes', 'flesh_banana', 'flesh_kiwi', 'flesh_apple', 'flesh_plum',
-    'count', 'count_go', 'ui', 'ui_play', 'ui_hover', 'ui_switch', 'ui_page', 'ui_open', 'ui_close', 'cloth_snap', 'cloth_rustle', 'empty', 'bounce', 'tongue_out', 'catch', 'gulp', 'amb_sea'];
+    'count', 'count_go', 'ui', 'ui_play', 'ui_hover', 'ui_switch', 'ui_page', 'ui_open', 'ui_close', 'cloth_snap', 'cloth_rustle', 'empty', 'bounce', 'tongue_out', 'catch', 'amb_sea'];
 const AUDIO_DIR = '/audio/';
-const MAX_VOICES = 30;
+const MAX_VOICES = 14;
+// Marek, 2026-11-25: "if they drag on too long then it confuses the player": no effect rings past MAX_LEN seconds
+// (it fades out over the last FADE). The end of a run may take a little longer. The beach is not cut.
+const MAX_LEN = 0.8, FADE = 0.12;
+const LONGER = { gong: 1.2, best: 1.2, splash: 1.0, count_go: 1.0, croak_fall: 1.0 };
+const VOL_KEY = 'fg-volume';
 const mem = typeof navigator !== 'undefined' ? navigator.deviceMemory || 8 : 8;
 const LITE = mem <= 4 || (typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches);      // a phone: fewer takes of each sound in memory
 const WITH_MUSIC = typeof location !== 'undefined' && /[?&]music=1\b/.test(location.search);                  // the old synth tune, for comparing
@@ -522,7 +528,8 @@ const EQ = (() => { const n = 33, up = new Float32Array(n), down = new Float32Ar
 
 // ---------- the player ----------
 export function createAudio() {
-    let dry = null, wet = null, drunk = false;
+    let dry = null, wet = null, drunk = false, master = null;
+    let volume = (() => { try { const v = parseFloat(localStorage.getItem(VOL_KEY)); return isFinite(v) ? Math.max(0, Math.min(1, v)) : 0.8; } catch (e) { return 0.8; } })();
     let ctx = null, sfxBus = null, musicBus = null, ambBus = null, ambLP = null, on = false, timer = 0, nextBar = 0, barNo = 0, fresh = false;
     let live = 0, firstLeft = FIRST.length, loading = false, nextDetail = 0, lastDetail = '', scene = '';
     const lastAt = {}, loops = {}, bank = {}, raw = {}, beds = [];
@@ -545,10 +552,11 @@ export function createAudio() {
             const AC = window.AudioContext || window.webkitAudioContext;
             if (!AC) return false;
             ctx = new AC();
-            const comp = ctx.createDynamicsCompressor(); comp.connect(ctx.destination);
+            master = ctx.createGain(); master.gain.value = volume * volume; master.connect(ctx.destination);      // the volume slider (a square law: it feels even)
+            const comp = ctx.createDynamicsCompressor(); comp.connect(master);
             // every effect goes through sfxBus. Sober, it goes straight out (dry). Drunk, most of it
             // goes through a woozy path instead: a low-pass that swims up and down, and a slapback echo.
-            sfxBus = ctx.createGain(); sfxBus.gain.value = 0.9;
+            sfxBus = ctx.createGain(); sfxBus.gain.value = 0.72;
             dry = ctx.createGain(); dry.gain.value = 1; sfxBus.connect(dry); dry.connect(comp);
             wet = ctx.createGain(); wet.gain.value = 0;
             const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1500; lp.Q.value = 4;
@@ -611,12 +619,16 @@ export function createAudio() {
         P.at = t;
         const v = take(P), s = ctx.createBufferSource(), g = ctx.createGain(), j = L.j === undefined ? 0.04 : L.j;
         s.buffer = v.buf; s.playbackRate.value = (L.r || 1) * (1 + (Math.random() * 2 - 1) * j);
-        g.gain.value = L.g * (0.88 + Math.random() * 0.24);
+        const level = L.g * (0.88 + Math.random() * 0.24); g.gain.value = level;
         s.connect(g);
         if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = pan; g.connect(p); p.connect(bus || sfxBus); }
         else g.connect(bus || sfxBus);
         live++; s.onended = () => { live--; };
-        s.start(t + (L.at || 0), v.lead);
+        const at = t + (L.at || 0); s.start(at, v.lead);
+        if (bus !== ambBus) {                                                        // the gate: nothing drags on
+            const cap = L.max || LONGER[L.p] || MAX_LEN, len = (v.buf.duration - (v.lead || 0)) / s.playbackRate.value;
+            if (len > cap) { g.gain.setValueAtTime(level, at + cap - FADE); g.gain.linearRampToValueAtTime(0.0001, at + cap); s.stop(at + cap + 0.02); }
+        }
         return true;
     }
     function recorded(layers, t, o) {
@@ -696,6 +708,13 @@ export function createAudio() {
     }
     return {
         isOn: () => on,
+        // the overall volume, 0..1 (the slider beside the sound pill on desktop); kept for the next visit
+        volume: () => volume,
+        setVolume(v) {
+            volume = Math.max(0, Math.min(1, +v || 0));
+            try { localStorage.setItem(VOL_KEY, String(volume)); } catch (e) { /* private mode */ }
+            if (master && ctx) master.gain.setTargetAtTime(volume * volume, ctx.currentTime, 0.03);
+        },
         // is the device really playing it? (on a phone the answer can be no for a while after it is turned on)
         ready: () => on && !!ctx && ctx.state === 'running',
         // are the recordings a run starts with here? (true with the sound off: nothing to wait for)

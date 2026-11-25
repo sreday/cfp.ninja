@@ -256,6 +256,28 @@ Japanese instruments on actions, and enough variety not to be dizzy after 10 min
 - Raw takes: slices H (frog + juice), I (team), J (instruments), K and L (second wordings), in the
   ElevenLabs flows of the same names and in `Documentsrog-ninja-sound-raw`.
 
+### 2026-11-25, later: tamer, mute, short (Marek: "the sounds are nice, but they are now too intense")
+
+- **The game is mute: no words, nothing to be understood.** No voice of any kind: the frog's grunts, pants,
+  groans, sighs, hiccups, gulp, "mlep", "mmm", burp, strain, lick and ribbit are gone; so are the team's battle
+  cries, the crowd in the laptop chime and the far beach party. `python design/frog/tools/sound_words.py`
+  (Whisper on the GPU) lists any shipped file it hears words in; run it after every new batch. It hears
+  "you" / "Thank you" / "I'm going to..." in plain noise: those are filtered. What it still names and we kept on
+  purpose: the gull's laugh (a real gull), wind and creaks of the beach, a rising tape whirr ("woo"), a slosh,
+  a wooden click ("yep").
+- **The tongue is mechanical only:** an elastic whip out (`tongue_out`), a suction-cup catch (`catch`,
+  `catch_heavy`), an elastic snap back on a miss (`tongue_miss`). Swallowing is silent. Licking a thing off the
+  head is the whip, lower.
+- **Each helper's mark is not a voice:** monkey = bamboo clacks, llama = a wooden bell, platypus = a water plip,
+  corgi = a collar tag (`<name>_arrive`): played as each runs in, and quieter as they leave.
+- **The gate: nothing drags on.** In `frog-audio.js` every effect is cut at `MAX_LEN` = 0.8 s with a 0.12 s fade
+  (`LONGER`: the gong and the new-best phrase 1.2 s, the splash, the last croak and "Go!" 1.0 s). The beach and
+  the held states (fire, freeze, drunk, dizzy) are not cut. At most 14 effects at once (was 30); past that the
+  quiet layers give way. The effects bus is a little lower (0.72, was 0.9), the squelch on a cut plays a third
+  of the time, the kotsuzumi is gone.
+- **Volume:** on desktop, hovering the sound pill shows a slider under it (`.fg-vol`); it sets the master
+  volume (square law), is kept in localStorage (`fg-volume`), and moving it up turns the sound on.
+
 ### Still silent, on purpose or not yet
 
 - Fruit being thrown in, and pieces falling away: left silent so the action stays readable.

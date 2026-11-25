@@ -1757,362 +1757,80 @@
    ]
   },
   "tongue_out": {
-   "prompt": "A wet rubbery whip crack, one fast sticky tongue flicking out, cartoon frog, close-mic, dry studio",
+   "prompt": "A rubber band shot through the air, one fast dry elastic twang-whip, short, close-mic, dry studio",
    "kind": "shot",
    "files": [
     {
-     "file": "tongue_out.1.66ac3352d8.mp3",
-     "seconds": 0.219,
+     "file": "tongue_out.1.e18ff8ed6a.mp3",
+     "seconds": 0.6,
      "from": "tongue_out__1.mp3"
     },
     {
-     "file": "tongue_out.2.8c8cb2cd98.mp3",
-     "seconds": 0.264,
+     "file": "tongue_out.2.98d5438b53.mp3",
+     "seconds": 0.6,
      "from": "tongue_out__2.mp3"
     },
     {
-     "file": "tongue_out.3.ee18af9bfe.mp3",
-     "seconds": 0.234,
+     "file": "tongue_out.3.4553769025.mp3",
+     "seconds": 0.6,
      "from": "tongue_out__3.mp3"
     },
     {
-     "file": "tongue_out.4.62be805e5a.mp3",
-     "seconds": 0.239,
+     "file": "tongue_out.4.c3974a1363.mp3",
+     "seconds": 0.6,
      "from": "tongue_out__4.mp3"
-    },
-    {
-     "file": "tongue_out.5.11ef8c699f.mp3",
-     "seconds": 0.6,
-     "from": "tongue_out__5.mp3",
-     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
-    },
-    {
-     "file": "tongue_out.6.167a44f8bc.mp3",
-     "seconds": 0.6,
-     "from": "tongue_out__6.mp3",
-     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
-    },
-    {
-     "file": "tongue_out.7.a0a2e629a8.mp3",
-     "seconds": 0.6,
-     "from": "tongue_out__7.mp3",
-     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
-    },
-    {
-     "file": "tongue_out.8.bc6e1a1074.mp3",
-     "seconds": 0.476,
-     "from": "tongue_out__7.mp3",
-     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
     }
    ]
   },
   "catch": {
-   "prompt": "Something wet and sticky slapping onto a small object, one short gooey smack, close-mic, dry studio",
+   "prompt": "A small suction cup sticking onto a smooth object, one short dry thock, close-mic, dry studio",
    "kind": "shot",
    "files": [
     {
-     "file": "catch.1.0ab911870d.mp3",
-     "seconds": 0.6,
+     "file": "catch.1.2b4f7236c2.mp3",
+     "seconds": 0.209,
      "from": "catch__1.mp3"
     },
     {
-     "file": "catch.2.92597d770a.mp3",
-     "seconds": 0.393,
+     "file": "catch.2.9302e96c24.mp3",
+     "seconds": 0.224,
      "from": "catch__2.mp3"
     },
     {
-     "file": "catch.3.ba802fd3f9.mp3",
-     "seconds": 0.6,
+     "file": "catch.3.368e62c117.mp3",
+     "seconds": 0.553,
      "from": "catch__3.mp3"
     },
     {
-     "file": "catch.4.f95a337362.mp3",
-     "seconds": 0.347,
-     "from": "catch__4.mp3"
-    },
-    {
-     "file": "catch.5.332f777c56.mp3",
-     "seconds": 0.28,
-     "from": "catch__6.mp3",
-     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
-    },
-    {
-     "file": "catch.6.fa8dfdd928.mp3",
-     "seconds": 0.302,
-     "from": "catch__6.mp3",
-     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
-    },
-    {
-     "file": "catch.7.7d82aa58da.mp3",
+     "file": "catch.4.2b5360a2ed.mp3",
      "seconds": 0.6,
-     "from": "catch__7.mp3",
-     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
-    },
-    {
-     "file": "catch.8.5a1a4ded85.mp3",
-     "seconds": 0.439,
-     "from": "catch__8.mp3",
-     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
+     "from": "catch__4.mp3"
     }
    ]
   },
   "catch_heavy": {
-   "prompt": "Something wet and sticky slapping hard onto a wooden box, one dull gooey thunk, close-mic, dry studio",
+   "prompt": "A rubber suction cup slapping onto a wooden box, one dull short thunk, close-mic, dry studio",
    "kind": "shot",
    "files": [
     {
-     "file": "catch_heavy.1.53f78dea71.mp3",
-     "seconds": 0.229,
+     "file": "catch_heavy.1.bfa8cc539d.mp3",
+     "seconds": 0.194,
      "from": "catch_heavy__1.mp3"
     },
     {
-     "file": "catch_heavy.2.e93a22fd81.mp3",
-     "seconds": 0.224,
+     "file": "catch_heavy.2.c3f7e3700b.mp3",
+     "seconds": 0.378,
      "from": "catch_heavy__2.mp3"
     },
     {
-     "file": "catch_heavy.3.15559c3ab7.mp3",
-     "seconds": 0.229,
+     "file": "catch_heavy.3.2c0f87ffa9.mp3",
+     "seconds": 0.199,
      "from": "catch_heavy__3.mp3"
     },
     {
-     "file": "catch_heavy.4.c5dedfebbb.mp3",
-     "seconds": 0.204,
+     "file": "catch_heavy.4.113938b625.mp3",
+     "seconds": 0.234,
      "from": "catch_heavy__4.mp3"
-    },
-    {
-     "file": "catch_heavy.5.ace6b59ff1.mp3",
-     "seconds": 0.638,
-     "from": "catch_heavy__5.mp3",
-     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
-    },
-    {
-     "file": "catch_heavy.6.cda1b1568b.mp3",
-     "seconds": 0.7,
-     "from": "catch_heavy__6.mp3",
-     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
-    },
-    {
-     "file": "catch_heavy.7.17d4c277f5.mp3",
-     "seconds": 0.7,
-     "from": "catch_heavy__7.mp3",
-     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
-    },
-    {
-     "file": "catch_heavy.8.bb4798e7ed.mp3",
-     "seconds": 0.7,
-     "from": "catch_heavy__8.mp3",
-     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
-    }
-   ]
-  },
-  "grunt": {
-   "prompt": "A small cartoon frog creature making one short sharp martial arts effort grunt, 'hup', froggy and throaty, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "grunt.1.ddbcb24a63.mp3",
-     "seconds": 0.264,
-     "from": "grunt__1.mp3"
-    },
-    {
-     "file": "grunt.2.ab15cd50e7.mp3",
-     "seconds": 0.303,
-     "from": "grunt__2.mp3"
-    },
-    {
-     "file": "grunt.3.ce5a00c109.mp3",
-     "seconds": 0.259,
-     "from": "grunt__4.mp3"
-    },
-    {
-     "file": "grunt.4.8ca89514d1.mp3",
-     "seconds": 0.284,
-     "from": "grunt__5.mp3"
-    },
-    {
-     "file": "grunt.5.a788d2497a.mp3",
-     "seconds": 0.423,
-     "from": "grunt__7.mp3"
-    },
-    {
-     "file": "grunt.6.9beb69da1b.mp3",
-     "seconds": 0.214,
-     "from": "grunt__8.mp3"
-    },
-    {
-     "file": "grunt.7.96bca8dfe6.mp3",
-     "seconds": 0.299,
-     "from": "grunt__11.mp3",
-     "prompt": "A small cartoon frog warrior giving one short punchy 'hyup!' as it strikes, throaty and cute, close-mic, dry studio"
-    },
-    {
-     "file": "grunt.8.01abdd5aaa.mp3",
-     "seconds": 0.279,
-     "from": "grunt__12.mp3",
-     "prompt": "A small cartoon frog warrior giving one short punchy 'hyup!' as it strikes, throaty and cute, close-mic, dry studio"
-    }
-   ]
-  },
-  "pant": {
-   "prompt": "A small cartoon frog creature out of breath, two quick tired wheezy pants, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "pant.1.2b10273e21.mp3",
-     "seconds": 1.5,
-     "from": "pant__1.mp3"
-    },
-    {
-     "file": "pant.2.76126e5c30.mp3",
-     "seconds": 1.5,
-     "from": "pant__2.mp3"
-    },
-    {
-     "file": "pant.3.172b24d191.mp3",
-     "seconds": 1.5,
-     "from": "pant__3.mp3"
-    },
-    {
-     "file": "pant.4.98d73df515.mp3",
-     "seconds": 1.5,
-     "from": "pant__4.mp3"
-    },
-    {
-     "file": "pant.5.76b9e49d2d.mp3",
-     "seconds": 1.5,
-     "from": "pant__5.mp3",
-     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
-    },
-    {
-     "file": "pant.6.f63bdee007.mp3",
-     "seconds": 1.5,
-     "from": "pant__6.mp3",
-     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
-    },
-    {
-     "file": "pant.7.5ed4ff5c25.mp3",
-     "seconds": 1.5,
-     "from": "pant__7.mp3",
-     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
-    },
-    {
-     "file": "pant.8.41dac709ad.mp3",
-     "seconds": 1.5,
-     "from": "pant__8.mp3",
-     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
-    }
-   ]
-  },
-  "groan": {
-   "prompt": "A small cartoon frog creature groaning dizzily after a bump on the head, one wobbly dazed 'ooogh', close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "groan.1.ec3619ef4a.mp3",
-     "seconds": 1.6,
-     "from": "groan__1.mp3"
-    },
-    {
-     "file": "groan.2.351abdcd24.mp3",
-     "seconds": 1.526,
-     "from": "groan__2.mp3"
-    },
-    {
-     "file": "groan.3.d4032061f1.mp3",
-     "seconds": 1.496,
-     "from": "groan__3.mp3"
-    },
-    {
-     "file": "groan.4.18cad37981.mp3",
-     "seconds": 1.271,
-     "from": "groan__4.mp3"
-    }
-   ]
-  },
-  "hiccup": {
-   "prompt": "A small cartoon frog creature hiccuping once, one squeaky tipsy hiccup, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "hiccup.1.590d27f359.mp3",
-     "seconds": 0.7,
-     "from": "hiccup__1.mp3"
-    },
-    {
-     "file": "hiccup.2.cd03c8f85c.mp3",
-     "seconds": 0.155,
-     "from": "hiccup__2.mp3"
-    },
-    {
-     "file": "hiccup.3.8942ace006.mp3",
-     "seconds": 0.438,
-     "from": "hiccup__2.mp3"
-    },
-    {
-     "file": "hiccup.4.b4f58ec264.mp3",
-     "seconds": 0.688,
-     "from": "hiccup__3.mp3"
-    },
-    {
-     "file": "hiccup.5.8194e767fe.mp3",
-     "seconds": 0.508,
-     "from": "hiccup__3.mp3"
-    },
-    {
-     "file": "hiccup.6.d4978a1cee.mp3",
-     "seconds": 0.368,
-     "from": "hiccup__4.mp3"
-    }
-   ]
-  },
-  "gulp": {
-   "prompt": "One loud cartoon swallow gulp, wet and throaty, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "gulp.1.1b16263f2e.mp3",
-     "seconds": 0.546,
-     "from": "gulp__1.mp3"
-    },
-    {
-     "file": "gulp.2.cf76684d47.mp3",
-     "seconds": 0.543,
-     "from": "gulp__2.mp3"
-    },
-    {
-     "file": "gulp.3.76c3180b99.mp3",
-     "seconds": 0.571,
-     "from": "gulp__3.mp3"
-    },
-    {
-     "file": "gulp.4.b0e2240a6c.mp3",
-     "seconds": 0.721,
-     "from": "gulp__4.mp3"
-    },
-    {
-     "file": "gulp.5.f30f883047.mp3",
-     "seconds": 0.742,
-     "from": "gulp__5.mp3",
-     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
-    },
-    {
-     "file": "gulp.6.52e4374fec.mp3",
-     "seconds": 0.728,
-     "from": "gulp__6.mp3",
-     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
-    },
-    {
-     "file": "gulp.7.e859bb484d.mp3",
-     "seconds": 0.498,
-     "from": "gulp__7.mp3",
-     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
-    },
-    {
-     "file": "gulp.8.1f7b5f042e.mp3",
-     "seconds": 0.578,
-     "from": "gulp__8.mp3",
-     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
     }
    ]
   },
@@ -2165,32 +1883,6 @@
      "file": "croak_happy.4.c091bcfb1d.mp3",
      "seconds": 1.5,
      "from": "croak_happy__4.mp3"
-    }
-   ]
-  },
-  "sigh": {
-   "prompt": "A small cartoon creature letting out one relieved sobering 'phew' breath, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "sigh.1.381f5ab289.mp3",
-     "seconds": 1.5,
-     "from": "sigh__1.mp3"
-    },
-    {
-     "file": "sigh.2.a2bf1a30c9.mp3",
-     "seconds": 1.5,
-     "from": "sigh__2.mp3"
-    },
-    {
-     "file": "sigh.3.9a66ced9df.mp3",
-     "seconds": 1.5,
-     "from": "sigh__3.mp3"
-    },
-    {
-     "file": "sigh.4.b30ec9b8f3.mp3",
-     "seconds": 1.5,
-     "from": "sigh__4.mp3"
     }
    ]
   },
@@ -2547,27 +2239,27 @@
    ]
   },
   "resume": {
-   "prompt": "A tape machine spinning back up to speed, one rising whirr and rush of air, dry",
+   "prompt": "A tape reel spinning back up to speed, one short rising mechanical whirr, close-mic, dry studio, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "resume.1.55c7c4cb00.mp3",
-     "seconds": 1.685,
+     "file": "resume.1.8f03b2dc69.mp3",
+     "seconds": 1.434,
      "from": "resume__1.mp3"
     },
     {
-     "file": "resume.2.f0d4b77978.mp3",
-     "seconds": 1.7,
+     "file": "resume.2.af6c90c530.mp3",
+     "seconds": 1.195,
      "from": "resume__2.mp3"
     },
     {
-     "file": "resume.3.1841e396c7.mp3",
-     "seconds": 1.7,
+     "file": "resume.3.8b100c32f8.mp3",
+     "seconds": 1.344,
      "from": "resume__3.mp3"
     },
     {
-     "file": "resume.4.d2a448197e.mp3",
-     "seconds": 1.7,
+     "file": "resume.4.a6c0447f32.mp3",
+     "seconds": 1.185,
      "from": "resume__4.mp3"
     }
    ]
@@ -3045,27 +2737,27 @@
    ]
   },
   "summon": {
-   "prompt": "A computer start-up chime, one warm bright rising chord, then a small crowd of cartoon animals cheering a battle cry",
+   "prompt": "A laptop computer start-up chime, one warm bright rising chord, short and clean, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "summon.1.a70480b393.mp3",
-     "seconds": 2.9,
+     "file": "summon.1.589c76babb.mp3",
+     "seconds": 1.606,
      "from": "summon__1.mp3"
     },
     {
-     "file": "summon.2.6479435b6d.mp3",
-     "seconds": 2.9,
+     "file": "summon.2.393c631abd.mp3",
+     "seconds": 1.557,
      "from": "summon__2.mp3"
     },
     {
-     "file": "summon.3.4875ba0e2b.mp3",
-     "seconds": 2.578,
+     "file": "summon.3.c93bef5caf.mp3",
+     "seconds": 1.536,
      "from": "summon__3.mp3"
     },
     {
-     "file": "summon.4.764e4118f0.mp3",
-     "seconds": 2.633,
+     "file": "summon.4.d2e0fe5f3d.mp3",
+     "seconds": 1.625,
      "from": "summon__4.mp3"
     }
    ]
@@ -3432,237 +3124,29 @@
     }
    ]
   },
-  "team_kiai": {
-   "prompt": "Three small cartoon animal ninjas shouting one short sharp martial arts battle cry together, hyah, playful and punchy, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "team_kiai.1.abf37f776e.mp3",
-     "seconds": 0.847,
-     "from": "team_kiai__1.mp3"
-    },
-    {
-     "file": "team_kiai.2.6c52be9fa1.mp3",
-     "seconds": 1.032,
-     "from": "team_kiai__2.mp3"
-    },
-    {
-     "file": "team_kiai.3.2913bba8fd.mp3",
-     "seconds": 0.872,
-     "from": "team_kiai__3.mp3"
-    },
-    {
-     "file": "team_kiai.4.1e9ed77687.mp3",
-     "seconds": 1.027,
-     "from": "team_kiai__4.mp3"
-    }
-   ]
-  },
-  "frog_hup": {
-   "prompt": "A small cartoon frog going 'mlep!' as it flicks its tongue out, one tiny cheeky throaty chirp, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_hup.1.d3abe88f83.mp3",
-     "seconds": 0.9,
-     "from": "frog_hup__1.mp3"
-    },
-    {
-     "file": "frog_hup.2.b688c79474.mp3",
-     "seconds": 0.259,
-     "from": "frog_hup__2.mp3"
-    },
-    {
-     "file": "frog_hup.3.15d99b208d.mp3",
-     "seconds": 0.117,
-     "from": "frog_hup__3.mp3"
-    },
-    {
-     "file": "frog_hup.4.de86de9102.mp3",
-     "seconds": 0.264,
-     "from": "frog_hup__4.mp3"
-    }
-   ]
-  },
-  "slurp": {
-   "prompt": "A quick wet slurp, a long sticky tongue reeling something back into a mouth, one fast juicy suck, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "slurp.1.b3397c94a6.mp3",
-     "seconds": 1.155,
-     "from": "slurp__1.mp3"
-    },
-    {
-     "file": "slurp.2.b4bdf83fd4.mp3",
-     "seconds": 1.299,
-     "from": "slurp__2.mp3"
-    },
-    {
-     "file": "slurp.3.ee1c94c571.mp3",
-     "seconds": 1.3,
-     "from": "slurp__3.mp3"
-    },
-    {
-     "file": "slurp.4.466dd811e6.mp3",
-     "seconds": 1.3,
-     "from": "slurp__4.mp3"
-    }
-   ]
-  },
   "tongue_miss": {
-   "prompt": "A sticky rubbery tongue snapping back empty, a dry elastic thwip, then a tiny disappointed froggy 'bleh', close-mic, dry studio",
+   "prompt": "A stretched rubber cord snapping back empty, one quick dry elastic snap, close-mic, dry studio",
    "kind": "shot",
    "files": [
     {
-     "file": "tongue_miss.1.7039080212.mp3",
-     "seconds": 0.683,
+     "file": "tongue_miss.1.10af74ddb7.mp3",
+     "seconds": 0.678,
      "from": "tongue_miss__1.mp3"
     },
     {
-     "file": "tongue_miss.2.2c9542a5e1.mp3",
-     "seconds": 1.226,
+     "file": "tongue_miss.2.c6e1cca1f6.mp3",
+     "seconds": 0.154,
      "from": "tongue_miss__2.mp3"
     },
     {
-     "file": "tongue_miss.3.b4d97969ca.mp3",
-     "seconds": 1.284,
+     "file": "tongue_miss.3.858137b6b9.mp3",
+     "seconds": 0.189,
      "from": "tongue_miss__3.mp3"
     },
     {
-     "file": "tongue_miss.4.3bec779251.mp3",
-     "seconds": 1.142,
+     "file": "tongue_miss.4.9efeec7761.mp3",
+     "seconds": 0.164,
      "from": "tongue_miss__4.mp3"
-    }
-   ]
-  },
-  "frog_yum": {
-   "prompt": "A small cartoon frog humming one short happy satisfied 'mmm' after eating, throaty and cute, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_yum.1.3ee5683955.mp3",
-     "seconds": 1.201,
-     "from": "frog_yum__1.mp3"
-    },
-    {
-     "file": "frog_yum.2.6026c338e7.mp3",
-     "seconds": 1.271,
-     "from": "frog_yum__2.mp3"
-    },
-    {
-     "file": "frog_yum.3.45c4c6894f.mp3",
-     "seconds": 1.366,
-     "from": "frog_yum__3.mp3"
-    },
-    {
-     "file": "frog_yum.4.1fd477386c.mp3",
-     "seconds": 1.291,
-     "from": "frog_yum__4.mp3"
-    }
-   ]
-  },
-  "frog_burp": {
-   "prompt": "A tiny cartoon frog burp, one short cute throaty croak-burp, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_burp.1.637c206e08.mp3",
-     "seconds": 0.807,
-     "from": "frog_burp__1.mp3"
-    },
-    {
-     "file": "frog_burp.2.b70ffcde2d.mp3",
-     "seconds": 1.06,
-     "from": "frog_burp__2.mp3"
-    },
-    {
-     "file": "frog_burp.3.7459b6c7c4.mp3",
-     "seconds": 0.832,
-     "from": "frog_burp__3.mp3"
-    },
-    {
-     "file": "frog_burp.4.e94171c57e.mp3",
-     "seconds": 0.698,
-     "from": "frog_burp__4.mp3"
-    }
-   ]
-  },
-  "frog_strain": {
-   "prompt": "A small cartoon frog straining hard to pull something heavy with its tongue, a short squeezed throaty grunt 'nnngh', close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_strain.1.e5b65458e0.mp3",
-     "seconds": 0.353,
-     "from": "frog_strain__1.mp3"
-    },
-    {
-     "file": "frog_strain.2.93a930309d.mp3",
-     "seconds": 1.072,
-     "from": "frog_strain__2.mp3"
-    },
-    {
-     "file": "frog_strain.3.71ad14e574.mp3",
-     "seconds": 1.097,
-     "from": "frog_strain__3.mp3"
-    },
-    {
-     "file": "frog_strain.4.e16b34f062.mp3",
-     "seconds": 1.157,
-     "from": "frog_strain__4.mp3"
-    }
-   ]
-  },
-  "frog_lick": {
-   "prompt": "A wet tongue licking something off with one big sloppy lick, then a tiny froggy 'pah!', close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_lick.1.12217ba35d.mp3",
-     "seconds": 1.286,
-     "from": "frog_lick__1.mp3"
-    },
-    {
-     "file": "frog_lick.2.1a2ebc7393.mp3",
-     "seconds": 1.172,
-     "from": "frog_lick__2.mp3"
-    },
-    {
-     "file": "frog_lick.3.51999c8dbb.mp3",
-     "seconds": 1.157,
-     "from": "frog_lick__3.mp3"
-    },
-    {
-     "file": "frog_lick.4.771969cc21.mp3",
-     "seconds": 1.226,
-     "from": "frog_lick__4.mp3"
-    }
-   ]
-  },
-  "frog_ribbit": {
-   "prompt": "A small frog giving one short proud double ribbit, bright and cheeky, close-mic, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "frog_ribbit.1.ecea4f896a.mp3",
-     "seconds": 1.12,
-     "from": "frog_ribbit__1.mp3"
-    },
-    {
-     "file": "frog_ribbit.2.74018b496e.mp3",
-     "seconds": 0.922,
-     "from": "frog_ribbit__2.mp3"
-    },
-    {
-     "file": "frog_ribbit.3.3728b2bd0a.mp3",
-     "seconds": 1.165,
-     "from": "frog_ribbit__3.mp3"
-    },
-    {
-     "file": "frog_ribbit.4.54e935c44c.mp3",
-     "seconds": 0.947,
-     "from": "frog_ribbit__4.mp3"
     }
    ]
   },
@@ -3719,314 +3203,106 @@
    ]
   },
   "monkey_arrive": {
-   "prompt": "A cheeky monkey hooting as it leaps in, an excited ooh-ooh-ah-ah, close, dry",
+   "prompt": "Two bamboo sticks clacked together quickly three times, bright hollow wooden clicks, short, close-mic, dry studio, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "monkey_arrive.1.339253064c.mp3",
-     "seconds": 1.8,
+     "file": "monkey_arrive.1.18f487447c.mp3",
+     "seconds": 0.224,
      "from": "monkey_arrive__1.mp3"
     },
     {
-     "file": "monkey_arrive.2.fd5101d9c9.mp3",
-     "seconds": 1.8,
+     "file": "monkey_arrive.2.d2ea2efb6c.mp3",
+     "seconds": 0.678,
      "from": "monkey_arrive__2.mp3"
     },
     {
-     "file": "monkey_arrive.3.3f4be1e847.mp3",
-     "seconds": 1.591,
+     "file": "monkey_arrive.3.c128275a0e.mp3",
+     "seconds": 0.244,
      "from": "monkey_arrive__3.mp3"
     },
     {
-     "file": "monkey_arrive.4.f64cd72d57.mp3",
-     "seconds": 1.8,
+     "file": "monkey_arrive.4.9c1b3864a2.mp3",
+     "seconds": 1.157,
      "from": "monkey_arrive__4.mp3"
     }
    ]
   },
-  "monkey_kiai": {
-   "prompt": "A small monkey ninja screeching one sharp fierce battle cry, high and punchy, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "monkey_kiai.1.78adf0ef4d.mp3",
-     "seconds": 1.152,
-     "from": "monkey_kiai__1.mp3"
-    },
-    {
-     "file": "monkey_kiai.2.42e4c6094a.mp3",
-     "seconds": 0.972,
-     "from": "monkey_kiai__2.mp3"
-    },
-    {
-     "file": "monkey_kiai.3.be138d2b84.mp3",
-     "seconds": 1.142,
-     "from": "monkey_kiai__3.mp3"
-    },
-    {
-     "file": "monkey_kiai.4.4b90ac54cc.mp3",
-     "seconds": 1.152,
-     "from": "monkey_kiai__4.mp3"
-    }
-   ]
-  },
-  "monkey_cheer": {
-   "prompt": "A happy monkey chattering and giggling, a short excited chatter, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "monkey_cheer.1.7857c6212e.mp3",
-     "seconds": 1.795,
-     "from": "monkey_cheer__1.mp3"
-    },
-    {
-     "file": "monkey_cheer.2.c561dc3fc3.mp3",
-     "seconds": 1.745,
-     "from": "monkey_cheer__2.mp3"
-    },
-    {
-     "file": "monkey_cheer.3.8a90bc7dea.mp3",
-     "seconds": 1.74,
-     "from": "monkey_cheer__3.mp3"
-    },
-    {
-     "file": "monkey_cheer.4.faf972c756.mp3",
-     "seconds": 1.775,
-     "from": "monkey_cheer__4.mp3"
-    }
-   ]
-  },
   "llama_arrive": {
-   "prompt": "A llama giving one curious nasal humming bleat as it trots in, close, dry",
+   "prompt": "A small wooden animal bell clonking twice, warm hollow knock, short, close-mic, dry studio, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "llama_arrive.1.133014e69f.mp3",
-     "seconds": 0.887,
+     "file": "llama_arrive.1.3d611ee696.mp3",
+     "seconds": 0.254,
      "from": "llama_arrive__1.mp3"
     },
     {
-     "file": "llama_arrive.2.071ae48dc2.mp3",
-     "seconds": 1.147,
+     "file": "llama_arrive.2.e6ae1c01cf.mp3",
+     "seconds": 0.364,
      "from": "llama_arrive__2.mp3"
     },
     {
-     "file": "llama_arrive.3.66b1eb7b16.mp3",
-     "seconds": 0.932,
+     "file": "llama_arrive.3.f057032c2c.mp3",
+     "seconds": 0.318,
      "from": "llama_arrive__3.mp3"
     },
     {
-     "file": "llama_arrive.4.6bf72bd61b.mp3",
-     "seconds": 1.171,
+     "file": "llama_arrive.4.bc3caf9ebd.mp3",
+     "seconds": 0.269,
      "from": "llama_arrive__4.mp3"
     }
    ]
   },
-  "llama_kiai": {
-   "prompt": "A llama letting out one sharp angry bleating war cry with a spitting ptoo, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "llama_kiai.1.5023fa22b1.mp3",
-     "seconds": 1.105,
-     "from": "llama_kiai__1.mp3"
-    },
-    {
-     "file": "llama_kiai.2.d27d4e2f1e.mp3",
-     "seconds": 0.638,
-     "from": "llama_kiai__2.mp3"
-    },
-    {
-     "file": "llama_kiai.3.01b66668cc.mp3",
-     "seconds": 1.042,
-     "from": "llama_kiai__3.mp3"
-    },
-    {
-     "file": "llama_kiai.4.e30f40a708.mp3",
-     "seconds": 0.887,
-     "from": "llama_kiai__4.mp3"
-    }
-   ]
-  },
-  "llama_cheer": {
-   "prompt": "A content llama humming a short happy hum, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "llama_cheer.1.1dc0168516.mp3",
-     "seconds": 1.8,
-     "from": "llama_cheer__1.mp3"
-    },
-    {
-     "file": "llama_cheer.2.9fe2d8995a.mp3",
-     "seconds": 1.62,
-     "from": "llama_cheer__2.mp3"
-    },
-    {
-     "file": "llama_cheer.3.d6524fdad4.mp3",
-     "seconds": 1.645,
-     "from": "llama_cheer__3.mp3"
-    },
-    {
-     "file": "llama_cheer.4.9ba19f8419.mp3",
-     "seconds": 1.8,
-     "from": "llama_cheer__4.mp3"
-    }
-   ]
-  },
   "platypus_arrive": {
-   "prompt": "A platypus making a soft chirping purr-growl as it waddles in, small and odd, close, dry",
+   "prompt": "A small quick water plip, a pebble dropped into a puddle twice, light and wet, short, close-mic, dry studio, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "platypus_arrive.1.d0dc42c0bb.mp3",
-     "seconds": 1.755,
+     "file": "platypus_arrive.1.12deab605a.mp3",
+     "seconds": 0.438,
      "from": "platypus_arrive__1.mp3"
     },
     {
-     "file": "platypus_arrive.2.3e93bb19bc.mp3",
-     "seconds": 1.789,
+     "file": "platypus_arrive.2.826e21bfed.mp3",
+     "seconds": 0.543,
      "from": "platypus_arrive__2.mp3"
     },
     {
-     "file": "platypus_arrive.3.a95fc9ddb2.mp3",
-     "seconds": 1.794,
+     "file": "platypus_arrive.3.d190b3ad2a.mp3",
+     "seconds": 0.917,
      "from": "platypus_arrive__3.mp3"
     },
     {
-     "file": "platypus_arrive.4.756b1664db.mp3",
-     "seconds": 1.8,
+     "file": "platypus_arrive.4.66d25726e7.mp3",
+     "seconds": 0.568,
      "from": "platypus_arrive__4.mp3"
     }
    ]
   },
-  "platypus_kiai": {
-   "prompt": "A small platypus ninja letting out one fierce little growling squeak, a battle cry, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "platypus_kiai.1.ecd0cfe467.mp3",
-     "seconds": 1.2,
-     "from": "platypus_kiai__1.mp3"
-    },
-    {
-     "file": "platypus_kiai.2.be96283ac8.mp3",
-     "seconds": 1.2,
-     "from": "platypus_kiai__2.mp3"
-    },
-    {
-     "file": "platypus_kiai.3.b6b043c185.mp3",
-     "seconds": 1.162,
-     "from": "platypus_kiai__3.mp3"
-    },
-    {
-     "file": "platypus_kiai.4.bbec0b656b.mp3",
-     "seconds": 0.887,
-     "from": "platypus_kiai__4.mp3"
-    }
-   ]
-  },
-  "platypus_cheer": {
-   "prompt": "A platypus chirping happily, a short series of cute chirps and clicks, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "platypus_cheer.1.3d06e0932b.mp3",
-     "seconds": 1.286,
-     "from": "platypus_cheer__1.mp3"
-    },
-    {
-     "file": "platypus_cheer.2.e01bd55312.mp3",
-     "seconds": 1.581,
-     "from": "platypus_cheer__2.mp3"
-    },
-    {
-     "file": "platypus_cheer.3.d728e82d73.mp3",
-     "seconds": 1.511,
-     "from": "platypus_cheer__3.mp3"
-    },
-    {
-     "file": "platypus_cheer.4.dc4c81963c.mp3",
-     "seconds": 1.416,
-     "from": "platypus_cheer__4.mp3"
-    }
-   ]
-  },
   "corgi_arrive": {
-   "prompt": "A corgi dog yipping excitedly as it runs in, two quick happy yips with paws pattering, close, dry",
+   "prompt": "A metal dog collar tag jingling briefly as a small dog runs, a quick bright jingle, short, close-mic, dry studio, no voices",
    "kind": "shot",
    "files": [
     {
-     "file": "corgi_arrive.1.0df8617801.mp3",
-     "seconds": 0.284,
+     "file": "corgi_arrive.1.0155a391f2.mp3",
+     "seconds": 1.236,
      "from": "corgi_arrive__1.mp3"
     },
     {
-     "file": "corgi_arrive.2.98125807f2.mp3",
-     "seconds": 1.8,
+     "file": "corgi_arrive.2.e522164103.mp3",
+     "seconds": 1.364,
      "from": "corgi_arrive__2.mp3"
     },
     {
-     "file": "corgi_arrive.3.855561cc31.mp3",
-     "seconds": 0.942,
+     "file": "corgi_arrive.3.761145f6c9.mp3",
+     "seconds": 1.261,
      "from": "corgi_arrive__3.mp3"
     },
     {
-     "file": "corgi_arrive.4.1dda378030.mp3",
-     "seconds": 1.8,
+     "file": "corgi_arrive.4.c3f07868c7.mp3",
+     "seconds": 1.221,
      "from": "corgi_arrive__4.mp3"
-    }
-   ]
-  },
-  "corgi_kiai": {
-   "prompt": "A small corgi dog barking one fierce sharp bark, a battle cry, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "corgi_kiai.1.d6f0e51d19.mp3",
-     "seconds": 0.917,
-     "from": "corgi_kiai__1.mp3"
-    },
-    {
-     "file": "corgi_kiai.2.a924a6e487.mp3",
-     "seconds": 1.2,
-     "from": "corgi_kiai__2.mp3"
-    },
-    {
-     "file": "corgi_kiai.3.b10f2682eb.mp3",
-     "seconds": 1.162,
-     "from": "corgi_kiai__3.mp3"
-    },
-    {
-     "file": "corgi_kiai.4.c41329a3aa.mp3",
-     "seconds": 1.2,
-     "from": "corgi_kiai__4.mp3"
-    }
-   ]
-  },
-  "corgi_cheer": {
-   "prompt": "A happy corgi panting and giving one little proud woof, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "corgi_cheer.1.b38b01a3f6.mp3",
-     "seconds": 1.441,
-     "from": "corgi_cheer__1.mp3"
-    },
-    {
-     "file": "corgi_cheer.2.822e7fa928.mp3",
-     "seconds": 1.8,
-     "from": "corgi_cheer__2.mp3"
-    },
-    {
-     "file": "corgi_cheer.3.910057de6e.mp3",
-     "seconds": 1.71,
-     "from": "corgi_cheer__3.mp3"
-    },
-    {
-     "file": "corgi_cheer.4.a19b7615dc.mp3",
-     "seconds": 1.64,
-     "from": "corgi_cheer__4.mp3"
     }
    ]
   },
@@ -4105,32 +3381,6 @@
      "file": "shakuhachi.4.2d97c62335.mp3",
      "seconds": 1.725,
      "from": "shakuhachi__4.mp3"
-    }
-   ]
-  },
-  "kotsuzumi": {
-   "prompt": "A Japanese kotsuzumi shoulder drum struck once, one hollow ringing pon, close, dry",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "kotsuzumi.1.dcca95b9bd.mp3",
-     "seconds": 1.252,
-     "from": "kotsuzumi__1.mp3"
-    },
-    {
-     "file": "kotsuzumi.2.9c0423fbb8.mp3",
-     "seconds": 1.4,
-     "from": "kotsuzumi__2.mp3"
-    },
-    {
-     "file": "kotsuzumi.3.cc44cc46bb.mp3",
-     "seconds": 1.4,
-     "from": "kotsuzumi__3.mp3"
-    },
-    {
-     "file": "kotsuzumi.4.5523e81504.mp3",
-     "seconds": 1.162,
-     "from": "kotsuzumi__4.mp3"
     }
    ]
   },
@@ -4691,32 +3941,6 @@
      "file": "amb_crickets.4.5fb56fb4b9.mp3",
      "seconds": 3.781,
      "from": "amb_crickets__4.mp3"
-    }
-   ]
-  },
-  "amb_cheer_far": {
-   "prompt": "A small beach party far away, a faint short burst of happy cheering and laughter carried on the wind, very distant, no music",
-   "kind": "detail",
-   "files": [
-    {
-     "file": "amb_cheer_far.1.c481bfa67e.mp3",
-     "seconds": 2.479,
-     "from": "amb_cheer_far__1.mp3"
-    },
-    {
-     "file": "amb_cheer_far.2.a8233f156a.mp3",
-     "seconds": 2.59,
-     "from": "amb_cheer_far__2.mp3"
-    },
-    {
-     "file": "amb_cheer_far.3.74a587bdf3.mp3",
-     "seconds": 2.533,
-     "from": "amb_cheer_far__3.mp3"
-    },
-    {
-     "file": "amb_cheer_far.4.b166e3065f.mp3",
-     "seconds": 2.469,
-     "from": "amb_cheer_far__4.mp3"
     }
    ]
   }

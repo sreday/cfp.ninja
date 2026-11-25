@@ -34,6 +34,7 @@ try:
         const bad = [], used = new Set(); const opts = {OPTS};
         for (const id in A.RECORDED) for (const o of opts) for (const L of A.RECORDED[id](o)) {{ used.add(L.p); if (!B[L.p]) bad.push(id + ':' + L.p); }}
         return {{ bad: [...new Set(bad)], ids: Object.keys(A.RECORDED).length, pools: Object.keys(B).length, unused: Object.keys(B).filter(p => !used.has(p) && !/^amb_|_loop$/.test(p)) }};""")
+    if 'bad' not in r: print('page said:', r)
     check('every recipe names a pool that exists', not r['bad'], r['bad'])
     check('no pool is left unused', not r['unused'], r['unused'])
     print(f"      {r['ids']} sound ids, {r['pools']} pools")

@@ -1683,6 +1683,7 @@ export function mountFrogGame(stage, opts = {}) {
         <button type="button" class="fg-pill fg-debug-pill">Debug</button>
         <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button></div>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" data-snd="none" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
+        <div class="fg-vol" data-snd="none"><input type="range" min="0" max="100" step="1" aria-label="Volume" title="Volume"></div>
         <div class="fg-debug" hidden>
             <div class="fg-debug-title">DEBUG MODE</div>
             <button type="button" class="fg-pill fg-debug-fold">Hide items</button>
@@ -6024,6 +6025,17 @@ export function mountFrogGame(stage, opts = {}) {
             store.set(SOUND_KEY, on ? 1 : 0); show(on);
             if (on) snd('ui_switch');
         });
+        // the volume: a slider under the pill, shown on hover (desktop only, see the CSS). Moving it up turns the sound on.
+        const vol = $('.fg-vol input');
+        if (vol) {
+            vol.value = Math.round(audio.volume() * 100);
+            let tapAt = 0;
+            vol.addEventListener('input', () => {
+                audio.setVolume(vol.value / 100);
+                if (!audio.isOn() && +vol.value > 0) { const on = audio.setOn(true); store.set(SOUND_KEY, on ? 1 : 0); show(on); }
+                const t = performance.now(); if (t - tapAt > 140) { tapAt = t; snd('ui'); }       // a tap at the new level, to hear it
+            });
+        }
         // A phone only lets sound start from a finished touch or a click, not from the finger
         // going down: so the sound is woken on those (and on the press, for desktops).
         const ACT = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
