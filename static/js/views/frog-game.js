@@ -355,12 +355,12 @@ const WHEEL_LIFT = 1260;               // rig units above the body's middle: it 
 const WHEEL_VY = 0.45, WHEEL_HOP = 50; // up-and-down: the share of the vertical nudge and travel kept, and the hop's height in rig units (it was 1 and 120: too bouncy)
 const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rigTop);   // rig y of the body's middle (where it spins)
 // The time freeze, painted (Marek's pick 2026-11-25, 'levitate g upright 4': the game's planning pose repainted as the picked frog): it sits
-// cross-legged in the air, eyes shut, katanas on its back, and its raised arm points at what is being marked. Three layers, one canvas:
-// the katana behind that shoulder, the arm, the body. The arm is ONE rigid piece that only turns about the shoulder (pivot), inside
-// `turn` degrees of the picked pose, in held 15-degree steps (Marek: 'make sure as you animate the arm and hand to not make it bend in
-// weird ways'); its root goes in under the body's rounded shoulder. Built by design/frog/tools/art_build_plan.py.
+// cross-legged in the air, eyes shut, katanas on its back, and its arm points at what is being marked. Four whole painted pictures, one per
+// arm position (up, up and out, out level, out and down); it jump-cuts to the one pointing nearest the cursor, mirrored for the other
+// side, like every held pose. The arm is never turned or bent in code (Marek: 'make sure as you animate the arm and hand to not make it
+// bend in weird ways'). Built by design/frog/tools/art_build_plan.py.
 // PLAN_ART:begin (written by design/frog/tools/art_build_plan.py: do not edit by hand)
-const PLAN_ART = { url: '/img/game/frog/plan.34bb0c0d6d.webp', arm: '/img/game/frog/plan-arm.a23cc3d7f4.webp', kat: '/img/game/frog/plan-kat.63015ffdee.webp', size: [763, 743], mid: 444, feet: 736, headW: 388, pivot: [278, 442], aim: -126, turn: [-75, 10] };
+const PLAN_ART = { size: [842, 750], mid: 521, feet: 743, headW: 400, poses: { up: { url: '/img/game/frog/plan-up.4f6df45b45.webp', aim: -100 }, upleft: { url: '/img/game/frog/plan-upleft.c4e111e919.webp', aim: -125 }, side: { url: '/img/game/frog/plan-side.fff34af969.webp', aim: 180 }, low: { url: '/img/game/frog/plan-low.e6d4c1dff6.webp', aim: 140 } } };
 // PLAN_ART:end
 const PLAN_LIFT = 330, PLAN_HOVER = 16;      // rig units: how far it floats above the post, and its slow hover (in steps, like the rest of the frog)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
@@ -1964,10 +1964,10 @@ export function mountFrogGame(stage, opts = {}) {
         Promise.all(Object.values(WHEEL_ART).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artWheel.ready = true; });
     }
     if (ART.frog && PLAN_ART) {
-        const root = $('#fg-art-plan'), Q = PLAN_ART, im = u => `<image href="${u}" width="${Q.size[0]}" height="${Q.size[1]}"/>`;
-        root.innerHTML = `${im(Q.kat)}<g class="fg-plan-arm">${im(Q.arm)}</g>${im(Q.url)}`;      // (back to front: the katana, the arm, the body)
-        artPlan = { root, arm: root.querySelector('.fg-plan-arm'), on: false, ready: false, step: null };
-        Promise.all([Q.kat, Q.arm, Q.url].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artPlan.ready = true; });
+        const root = $('#fg-art-plan'), Q = PLAN_ART;
+        root.innerHTML = Object.entries(Q.poses).map(([k, P]) => `<image data-pose="${k}" href="${P.url}" width="${Q.size[0]}" height="${Q.size[1]}" display="none"/>`).join('');
+        artPlan = { root, imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])), on: false, ready: false, shown: '', pick: '', since: 0 };
+        Promise.all(Object.values(Q.poses).map(P => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = P.url; }))).then(() => { artPlan.ready = true; });
     }
     if (ART.frog) (async () => {
         try {
@@ -2496,16 +2496,23 @@ export function mountFrogGame(stage, opts = {}) {
     function artPlanPose() {
         const C = artPlan; if (!C) return;
         const on = artPlanOn();
-        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-plan-on', on); if (!on) C.step = null; }
+        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-plan-on', on); if (!on) { C.pick = ''; if (C.shown) { setA(C.imgs[C.shown], 'display', 'none'); C.shown = ''; } } }
         if (!on) return;
-        const { Q, k, x, y } = planAt();
-        setA(C.root, 'transform', `translate(${n2(x)} ${n2(y)}) scale(${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
-        // the arm: turned toward what is being marked (the cursor), never past its reach, in held steps; no target: the picked pose
-        const sx = fbox.x + (x + k * (Q.pivot[0] - Q.mid)) * fbox.w / 1986, sy = fbox.y + (y + k * (Q.pivot[1] - Q.feet)) * fbox.h / 1876;
-        let d = 0;
-        if (aim) { d = Math.atan2(aim.y - sy, aim.x - sx) * 180 / Math.PI - Q.aim; d = ((d + 540) % 360) - 180; }
-        d = clamp(Math.round(clamp(d, Q.turn[0], Q.turn[1]) / 15) * 15, Q.turn[0], Q.turn[1]);
-        if (d !== C.step) { if (C.step !== null && phase === 'play') snd('cloth', { kind: 'rustle' }); C.step = d; setA(C.arm, 'transform', `rotate(${d} ${Q.pivot[0]} ${Q.pivot[1]})`); }
+        const { Q, k, x, y } = planAt(), now = performance.now();
+        // which picture: the one whose finger points nearest the cursor, seen from the shoulder; the arm is on the frog's right (our
+        // left), so a cursor on our right shows the picture mirrored. No cursor: the picked pose. A new picture holds at least 0.15 s.
+        const shX = fbox.x + fbox.w * 0.5, shY = fbox.y + (y - k * Q.feet * 0.55) * fbox.h / 1876;
+        let f = 1, want = 'upleft';
+        if (aim) {
+            const dx = aim.x - shX, dy = aim.y - shY; f = dx > fbox.w * 0.05 ? -1 : 1;
+            const a = Math.atan2(dy, f * dx) * 180 / Math.PI, gap = q => Math.abs(((a - q + 540) % 360) - 180);
+            want = Object.keys(Q.poses).reduce((m, p) => gap(Q.poses[p].aim) < gap(Q.poses[m].aim) ? p : m);
+        }
+        const key = want + f;
+        if (key !== C.pick && (!C.pick || now - C.since > 150)) { if (C.pick && phase === 'play') snd('cloth', { kind: 'rustle' }); C.pick = key; C.since = now; }
+        const [p, fl] = [C.pick.replace(/-?1$/, ''), C.pick.endsWith('-1') ? -1 : 1];
+        if (C.shown !== p) { if (C.shown) setA(C.imgs[C.shown], 'display', 'none'); setA(C.imgs[p], 'display', 'inline'); C.shown = p; }
+        setA(C.root, 'transform', `translate(${n2(x)} ${n2(y)}) scale(${n2(fl * k)} ${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
     }
     function artWheelPose() {
         const C = artWheel; if (!C) return;
@@ -6317,6 +6324,8 @@ export function mountFrogGame(stage, opts = {}) {
         planAt('clock: planning, points left and down', () => ({ x: W / 2 - fw() * 1.6, y: head().y + fw() * 0.9 }));
         planAt('clock: planning, points straight up', () => ({ x: W / 2, y: head().y - fw() * 1.5 }));
         planAt('clock: planning, points up-right', () => ({ x: W / 2 + fw() * 1.5, y: head().y - fw() * 0.6 }));
+        planAt('clock: planning, points left, level', () => ({ x: W / 2 - fw() * 2, y: head().y + fw() * 0.35 }));
+        planAt('clock: planning, points right and down', () => ({ x: W / 2 + fw() * 1.6, y: head().y + fw() * 1.1 }));
         out.push({ name: 'under five seconds (losing its footing, going over backward)', low: true, dur: 0.9, tick() { timeLeft = 3; }, end() { timeLeft = START_SECONDS; hud(); } });
         out.push({ name: 'laptop: the team is called', dur: 5, start() { startSummon(); } });
         const gull = (name, setup, dur = 1.2) => out.push({ name, dur, start() { gulls = []; gullOn = null; setup(); }, end() { gulls = []; gullOn = null; stunT = 0; mirrorT = 0; gullCool = 0; } });
