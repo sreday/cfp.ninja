@@ -308,11 +308,12 @@ const FALL_ART = { url: '/img/game/frog/fall.99b86249a9.webp', size: [528, 707],
 const TONGUE_ART = {
     'up': { url: '/img/game/frog/tongue-up.f386ea1479.webp', size: [811, 713], mid: 412, feet: 704, headW: 249, front: true, root: [398, 180], w: 35, dir: [0, -1] },
     'down': { url: '/img/game/frog/tongue-down.3440835897.webp', size: [811, 610], mid: 412, feet: 592, headW: 249, front: true, root: [396, 578], w: 34, dir: [0, 1] },
-    'down-left': { url: '/img/game/frog/tongue-down-left.cdde8902bc.webp', size: [806, 590], mid: 410, feet: 583, headW: 249, front: true, root: [406, 264], w: 35, dir: [-0.707, 0.707] },
+    'down-left': { url: '/img/game/frog/tongue-down-left.fbbcc6113c.webp', size: [806, 590], mid: 410, feet: 583, headW: 249, front: true, root: [352, 264], w: 35, dir: [-0.707, 0.707] },
+    'up-left': { url: '/img/game/frog/tongue-up-left.83ca64de94.webp', size: [806, 564], mid: 410, feet: 557, headW: 249, front: true, root: [371, 190], w: 35, dir: [-0.707, -0.707] },
 };
 // TONGUE_ART:end
-// (the down-left picture looks left; for down-right the same picture, mirrored: faces -1)
-const CUT_POSES = { 'tongue-up': TONGUE_ART.up, 'tongue-down': TONGUE_ART.down, 'tongue-dl': TONGUE_ART['down-left'], 'tongue-dr': { ...TONGUE_ART['down-left'], faces: -1 }, cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
+// (the down-left and up-left pictures look left; for the right, the same picture, mirrored: faces -1)
+const CUT_POSES = { 'tongue-up': TONGUE_ART.up, 'tongue-down': TONGUE_ART.down, 'tongue-dl': TONGUE_ART['down-left'], 'tongue-dr': { ...TONGUE_ART['down-left'], faces: -1 }, 'tongue-ul': TONGUE_ART['up-left'], 'tongue-ur': { ...TONGUE_ART['up-left'], faces: -1 }, cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
 // The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
 // for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
@@ -2435,7 +2436,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         // a change of pose starts the in-between (only with ?morph=): from the picture last drawn (none: it was standing) to this one
         if (key !== C.key && C.key !== undefined && phase === 'play') { if (key === 'teeter') snd('teeter'); else if (key !== 'fall') snd('cloth', { kind: !key || key === 'rise' ? 'rustle' : key === 'duck' ? 'crouch' : key === 'hop' ? 'hop' : 'snap' }); }
-        if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && !reduced && C.key !== undefined) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
+        if (key !== C.key) { if (MORPH && MORPH_FX[MORPH] && !reduced && C.key !== undefined && !/^tongue-/.test(key) && !/^tongue-/.test(C.key || '')) C.m = { t0: now, from: C.prev || null, to: key }; C.key = key; }
         C.prev = cur;
         let m = C.m; if (m && now - m.t0 >= MORPH_MS) m = C.m = null;
         if (m && !on && (artWheelOn() || artBreathOn() || pose.fallY || pose.chop || pose.up <= 0.5)) m = C.m = null;      // (not back to standing but into a cartwheel, a breath, a fall: those are their own pictures, no blend)
@@ -5055,9 +5056,9 @@ export function mountFrogGame(stage, opts = {}) {
         if (poked) gullHit(poked, 'plain');
         snd('tongue');
         // straight up or straight down (within 22.5 degrees): the painted frog for it, the tongue out of its stub; down and to a side
-        // (the next 45 degrees): the frog looking down that way, the tongue out of its open mouth
+        // or up and to a side (the next 45 degrees): the frog looking that way, the tongue out of its open mouth
         const ang = Math.atan2(y - m.y, x - m.x) * 180 / Math.PI;
-        const pic = Math.abs(ang + 90) < 22.5 ? 'tongue-up' : Math.abs(ang - 90) < 22.5 ? 'tongue-down' : Math.abs(ang - 135) <= 22.5 ? 'tongue-dl' : Math.abs(ang - 45) <= 22.5 ? 'tongue-dr' : '';
+        const pic = Math.abs(ang + 90) < 22.5 ? 'tongue-up' : Math.abs(ang - 90) < 22.5 ? 'tongue-down' : Math.abs(ang - 135) <= 22.5 ? 'tongue-dl' : Math.abs(ang - 45) <= 22.5 ? 'tongue-dr' : Math.abs(ang + 135) <= 22.5 ? 'tongue-ul' : Math.abs(ang + 45) <= 22.5 ? 'tongue-ur' : '';
         tongue = { tx: x, ty: y, t: 0, out: 0.04 + d / 5200, back: 0.08, caught: null, hit: false, pic };
     }
     function tongueGrab(x, y) {
@@ -5604,7 +5605,8 @@ export function mountFrogGame(stage, opts = {}) {
         const Q = tongue && tongue.pic && pose.artCut === tongue.pic && artCutOn() ? CUT_POSES[tongue.pic] : null;
         if (!Q) return { x: frogPoint(993, MOUTH_Y).x, y: frogPoint(993, MOUTH_Y).y, w: 0 };
         const k = poseK(Q), X = 993 + (Q.faces || 1) * k * (Q.root[0] - Q.mid), Y = BREATH_ART.rigFeet - k * (Q.feet - Q.root[1]);
-        return { x: fbox.x + fbox.w * X / 1986, y: fbox.y + fbox.h * Y / 1876, w: Q.w * k * fbox.h / 1876 };
+        // bend: up and to a side the eyes are right above the mouth, so the tongue leaves level, sideways, and turns up to its target
+        return { x: fbox.x + fbox.w * X / 1986, y: fbox.y + fbox.h * Y / 1876, w: Q.w * k * fbox.h / 1876, bend: Q.dir[1] < 0 && Q.dir[0] !== 0 };
     }
     function tongueTip() {
         const m = tongueRoot();
@@ -6242,6 +6244,8 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'tongue straight up', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x, h.y - fw() * 1.6); } });      // (tongue = null: a tongue still out from the shot before would block it)
         out.push({ name: 'tongue straight down', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x, h.y + fw() * 0.9); } });
         out.push({ name: 'tongue down left', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x - fw() * 0.8, h.y + fw() * 0.8); } });
+        out.push({ name: 'tongue up left', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x - fw() * 0.8, h.y - fw() * 0.8); } });
+        out.push({ name: 'tongue up right', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x + fw() * 0.8, h.y - fw() * 0.8); } });
         out.push({ name: 'tongue down right', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x + fw() * 0.8, h.y + fw() * 0.8); } });
         out.push({ name: 'stunned', dur: 0.9, start() { stunT = stunFor = 0.9; headFx = null; } });
         [['watermelon', 'stuck on its head'], ['pineapple', 'stuck on its head'], ['grapes', 'splattered over its face'], ['orange', 'splattered over its face'], ['apple', 'a bump comes up'], ['banana', 'worn as a hat'], ['kiwi', 'eating it'], ['plum', 'eating it']].forEach(([kind, what]) =>
@@ -7199,8 +7203,9 @@ export function mountFrogGame(stage, opts = {}) {
             const { m, x, y } = tongueTip();
             const w = m.w ? Math.max(4, m.w) : clamp(S() * 0.018, 6, 12);      // (out of a painted stub: as wide as the stub)
             ctx.save(); ctx.lineCap = 'round';
-            ctx.strokeStyle = '#0e0e10'; ctx.lineWidth = w + lw * 2; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(x, y); ctx.stroke();
-            ctx.strokeStyle = '#e9808a'; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(x, y); ctx.stroke();      // (the palette's tongue)
+            const path = () => { ctx.beginPath(); ctx.moveTo(m.x, m.y); if (m.bend) ctx.quadraticCurveTo(x, m.y, x, y); else ctx.lineTo(x, y); };
+            ctx.strokeStyle = '#0e0e10'; ctx.lineWidth = w + lw * 2; path(); ctx.stroke();
+            ctx.strokeStyle = '#e9808a'; ctx.lineWidth = w; path(); ctx.stroke();      // (the palette's tongue)
             ctx.fillStyle = '#ef9a9a'; ctx.strokeStyle = '#000'; ctx.lineWidth = lw;
             ctx.beginPath(); ctx.arc(x, y, w * 0.95, 0, 7); ctx.fill(); ctx.stroke();
             ctx.restore();
@@ -7398,6 +7403,8 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'tongue down', anim: 'tongue straight down', at: 0.1 },
             { name: 'tongue down left', anim: 'tongue down left', at: 0.1 },
             { name: 'tongue down right', anim: 'tongue down right', at: 0.1 },
+            { name: 'tongue up left', anim: 'tongue up left', at: 0.1 },
+            { name: 'tongue up right', anim: 'tongue up right', at: 0.1 },
             { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },
             { name: 'eating a plum', anim: 'stunned by plum: eating it', at: 0.45 },
             { name: 'drunk', anim: 'drunk (sake)', at: 0.45 },

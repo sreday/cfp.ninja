@@ -13,7 +13,9 @@ Writes static/img/game/frog/tongue-<dir>.<hash>.webp and the TONGUE_ART table in
 
 Directions so far: up (head thrown back, only the throat seen), down (chin tucked, tongue down in front of the chest),
 down-left (Marek's pick 'tongue bottom-left B', 2026-11-25: the standing pick's head edited as a 2x close-up, glued back on its
-headless body at 0.85 ("smaller head"), its mouth open; drawn looking left, mirrored for down-right).
+headless body at 0.85 ("smaller head"), moved 54 px left so it sits over the body like the standing frog's head ("too much to
+the side"); drawn looking left, mirrored for down-right), up-left ('tongue top-left A', the bottom-left head turned to look up-left,
+its headband's eyebrows taken out; mirrored for up-right).
 """
 import hashlib, io, os, re
 import numpy as np
@@ -26,7 +28,8 @@ TONGUE = (0xe9, 0x80, 0x8a)                  # palette.json skins.frog.tongue
 SOLES, MID, HEAD_W = 704, 624, 249          # in the source pictures (the standing pick's: its soles, middle, face width)
 # dir: (the tongue's way, as a unit vector; the source row where the game's tongue starts, or (x, y, w): a set root, for a pose
 # with no stub, only the tongue's root in the open mouth)
-DIRS = {'up': ((0, -1), 180), 'down': ((0, 1), 690), 'down-left': ((-0.707, 0.707), (620, 385, 35))}
+DIRS = {'up': ((0, -1), 180), 'down': ((0, 1), 690), 'down-left': ((-0.707, 0.707), (566, 385, 35)),
+        'up-left': ((-0.707, -0.707), (585, 337, 35))}
 
 
 def main():
