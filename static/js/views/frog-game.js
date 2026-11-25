@@ -11,7 +11,7 @@ const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.s
 // ?perf=1: the frames a second stay on screen, and the game-over panel says how smooth the run was (the time between frames,
 // measured while playing): for trying the game on a slower phone or tablet (2026-11-25)
 // the game's version, shown with its address in the bottom right corner (design/frog/tools/ship.py adds one at each ship)
-const GAME_VERSION = 'v304';
+const GAME_VERSION = 'v305';
 const PERF = typeof location !== 'undefined' && /[?&]perf\b/.test(location.search);
 const VCLOCK = { t: 0 };
 if (CURATE) {
