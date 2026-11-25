@@ -1830,3 +1830,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog #fg-art-wheel { display: none; }
 .fg-frog.fg-art-wheel-on #fg-art-wheel { display: inline; }
 .fg-frog.fg-art-wheel-on #fg-all > :not(#fg-art-wheel), .fg-frog.fg-art-wheel-on #fg-side, .fg-frog.fg-art-wheel-on #fg-stand, .fg-frog.fg-art-wheel-on #fg-shadow { visibility: hidden; }
+/* the time freeze, painted (PLAN_ART): in place of the whole drawn frog */
+.fg-frog #fg-art-plan { display: none; }
+.fg-frog.fg-art-plan-on #fg-art-plan { display: inline; }
+.fg-frog.fg-art-plan-on #fg-all > :not(#fg-art-plan), .fg-frog.fg-art-plan-on #fg-side, .fg-frog.fg-art-plan-on #fg-stand, .fg-frog.fg-art-plan-on #fg-shadow { visibility: hidden; }

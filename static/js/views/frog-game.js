@@ -354,6 +354,15 @@ const WHEEL_SIZE = 1;                  // the spinning frog against the standing
 const WHEEL_LIFT = 1260;               // rig units above the body's middle: it spins in the air, clear of the post, blades included (Marek, 2026-11-22)
 const WHEEL_VY = 0.45, WHEEL_HOP = 50; // up-and-down: the share of the vertical nudge and travel kept, and the hop's height in rig units (it was 1 and 120: too bouncy)
 const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rigTop);   // rig y of the body's middle (where it spins)
+// The time freeze, painted (Marek's pick 2026-11-25, 'levitate g upright 4': the game's planning pose repainted as the picked frog): it sits
+// cross-legged in the air, eyes shut, katanas on its back, and its raised arm points at what is being marked. Three layers, one canvas:
+// the katana behind that shoulder, the arm, the body. The arm is ONE rigid piece that only turns about the shoulder (pivot), inside
+// `turn` degrees of the picked pose, in held 15-degree steps (Marek: 'make sure as you animate the arm and hand to not make it bend in
+// weird ways'); its root goes in under the body's rounded shoulder. Built by design/frog/tools/art_build_plan.py.
+// PLAN_ART:begin (written by design/frog/tools/art_build_plan.py: do not edit by hand)
+const PLAN_ART = { url: '/img/game/frog/plan.34bb0c0d6d.webp', arm: '/img/game/frog/plan-arm.908cfbd1fc.webp', kat: '/img/game/frog/plan-kat.63015ffdee.webp', size: [763, 743], mid: 444, feet: 736, headW: 388, pivot: [278, 442], aim: -126, turn: [-75, 10] };
+// PLAN_ART:end
+const PLAN_LIFT = 330, PLAN_HOVER = 16;      // rig units: how far it floats above the post, and its slow hover (in steps, like the rest of the frog)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
 // The backdrop: a dark, cloudy beach at night, kept plain so the fruit stands out.
 // It fills the stage from the bottom up (the shore stays put on any screen shape).
@@ -615,6 +624,7 @@ const frogSvg = pal => { P = pal; const svg = `
         <g id="fg-art-breath"></g>
         <g id="fg-art-cut"></g>
         <g id="fg-art-wheel"></g>
+        <g id="fg-art-plan"></g>
         <g id="fg-laptop">
             <path d="M525 935 L1461 935 L1411 1386 L575 1386 Z" fill="${C.laptop}" stroke="#000" stroke-width="26"/>
             <path d="M556 962 L1430 962 L1386 1360 L600 1360 Z" fill="none" stroke="${C.laptopHi}" stroke-width="12"/>
@@ -1917,6 +1927,7 @@ export function mountFrogGame(stage, opts = {}) {
     let artBreath = null;                                      // the breath frog (see artBreathPose)
     let artCut = null;                                         // the side cut frog (see artCutPose)
     let artWheel = null, wheel = null, wheels = 0;             // the cartwheel sprites, the one running, how many so far
+    let artPlan = null;                                        // the time freeze's painted frog (PLAN_ART)
     const ART_WAIT_MS = 8000;
     let artLeft = [ART.bg, ART.frog, ART.intro].filter(Boolean).length;
     const artShow = () => { artLeft = 0; stage.classList.remove('fg-art-wait'); };
@@ -1951,6 +1962,12 @@ export function mountFrogGame(stage, opts = {}) {
         root.innerHTML = Object.entries(WHEEL_ART).map(([k, Q]) => `<image data-pose="${k}" href="${Q.url}" width="${Q.size[0]}" height="${Q.size[1]}"/>`).join('');
         artWheel = { root, on: false, ready: false, shown: '', imgs: Object.fromEntries([...root.querySelectorAll('image')].map(e => [e.dataset.pose, e])) };
         Promise.all(Object.values(WHEEL_ART).map(Q => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = Q.url; }))).then(() => { artWheel.ready = true; });
+    }
+    if (ART.frog && PLAN_ART) {
+        const root = $('#fg-art-plan'), Q = PLAN_ART, im = u => `<image href="${u}" width="${Q.size[0]}" height="${Q.size[1]}"/>`;
+        root.innerHTML = `${im(Q.kat)}<g class="fg-plan-arm">${im(Q.arm)}</g>${im(Q.url)}`;      // (back to front: the katana, the arm, the body)
+        artPlan = { root, arm: root.querySelector('.fg-plan-arm'), on: false, ready: false, step: null };
+        Promise.all([Q.kat, Q.arm, Q.url].map(u => new Promise(ok => { const i = new Image(); i.onload = i.onerror = ok; i.src = u; }))).then(() => { artPlan.ready = true; });
     }
     if (ART.frog) (async () => {
         try {
@@ -2377,6 +2394,7 @@ export function mountFrogGame(stage, opts = {}) {
         artBreathPose();
         artCutPose();
         artWheelPose();
+        artPlanPose();
         if (artFrog) artPose(upNow, sideOn, jumping, drunk, hx, loll);
     }
     // The intro, drawn: while the frog sits (before the first run, or with the laptop to call its
@@ -2468,6 +2486,26 @@ export function mountFrogGame(stage, opts = {}) {
         const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
         const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y - WHEEL_LIFT + Math.min(0, (wheel.oy + wheel.gy * WHEEL_GO * e) * WHEEL_VY) - Math.sin(p * Math.PI) * WHEEL_HOP;   // (never down toward the post)
         return { Q, k, p, e, x, y, r: wheel.rot0 + wheel.dir * WHEEL_SPIN * e };
+    }
+    function artPlanOn() { return !!(artPlan && artPlan.ready && pose.plan && !artWheelOn() && !artBreathOn() && !pose.fallY); }
+    // where the time-freeze frog is (rig units) and how it is scaled
+    function planAt() {
+        const Q = PLAN_ART, k = poseK(Q), hover = Math.round(Math.sin(idleT * 1.4) * 2) / 2 * PLAN_HOVER;
+        return { Q, k, x: 993, y: BREATH_ART.rigFeet - PLAN_LIFT + hover };
+    }
+    function artPlanPose() {
+        const C = artPlan; if (!C) return;
+        const on = artPlanOn();
+        if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-plan-on', on); if (!on) C.step = null; }
+        if (!on) return;
+        const { Q, k, x, y } = planAt();
+        setA(C.root, 'transform', `translate(${n2(x)} ${n2(y)}) scale(${n2(k)}) translate(${-Q.mid} ${-Q.feet})`);
+        // the arm: turned toward what is being marked (the cursor), never past its reach, in held steps; no target: the picked pose
+        const sx = fbox.x + (x + k * (Q.pivot[0] - Q.mid)) * fbox.w / 1986, sy = fbox.y + (y + k * (Q.pivot[1] - Q.feet)) * fbox.h / 1876;
+        let d = 0;
+        if (aim) { d = Math.atan2(aim.y - sy, aim.x - sx) * 180 / Math.PI - Q.aim; d = ((d + 540) % 360) - 180; }
+        d = clamp(Math.round(clamp(d, Q.turn[0], Q.turn[1]) / 15) * 15, Q.turn[0], Q.turn[1]);
+        if (d !== C.step) { if (C.step !== null && phase === 'play') snd('cloth', { kind: 'rustle' }); C.step = d; setA(C.arm, 'transform', `rotate(${d} ${Q.pivot[0]} ${Q.pivot[1]})`); }
     }
     function artWheelPose() {
         const C = artWheel; if (!C) return;
@@ -6303,7 +6341,7 @@ export function mountFrogGame(stage, opts = {}) {
             const cb = canvas.getBoundingClientRect(), at = o => ({ x: Math.round(o.x + cb.left), y: Math.round(o.y + cb.top) });
             return {
                 halves: bits.filter(q => q.half).map(q => [Math.round(q.x), Math.round(q.y)]),      // (the halves of a cut laptop, still up for a second cut)
-                arms: artFrog && artFrog.on && !svg.classList.contains('fg-art-cut-on') ? (artFrog.standNow || 'rig ' + Math.round(pose.lRot) + '/' + Math.round(pose.rRot) + (pose.held && !pose.noBlades && !pose.stuck ? '' : ' unarmed')) : '',      // (which arms the standing frog shows: a painted stand, or the jointed rig at these angles)
+                arms: artFrog && artFrog.on && !svg.classList.contains('fg-art-cut-on') && !svg.classList.contains('fg-art-plan-on') ? (artFrog.standNow || 'rig ' + Math.round(pose.lRot) + '/' + Math.round(pose.rRot) + (pose.held && !pose.noBlades && !pose.stuck ? '' : ' unarmed')) : '',      // (which arms the standing frog shows: a painted stand, or the jointed rig at these angles)
                 cell: swing && swing.cell ? swing.cell.zone + ':' + swing.cell.dir : '',      // (the stroke's cell of the slash grid: slash_grid_test.py)
                 pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
                 vr: VR_RAY, press: press ? [Math.round(press.x), Math.round(press.y), press.drag || 0] : null, down,      // (the pointer, for the controller-ray checks)
