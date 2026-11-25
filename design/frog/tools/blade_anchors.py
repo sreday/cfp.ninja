@@ -28,12 +28,17 @@ SEEDS = {
     'duck':  ('DUCK_ART',      [((305, 92), (774, 16)), ((470, 108), (12, 16))]),      # (crossed: each guard's blade runs to the far side)
     'rise':  ('RISE_ART',      [((676, 130), (872, 22)), ((205, 310), (6, 432))]),
     'hop':   ('HOP_ART',       [((892, 155), (1276, 112)), ((388, 155), (6, 118))]),
+    # the cartwheel's two pictures (the circular cut): entries inside WHEEL_ART
+    'wheelFront': ('WHEEL_ART.front', [((722, 588), (862, 305)), ((105, 292), (20, 600))]),
+    'wheelBack':  ('WHEEL_ART.back',  [((805, 505), (942, 205)), ((155, 505), (12, 208))]),
 }
 
 
 def art_file(entry):
     src = open(GAME, encoding='utf-8').read()
-    m = re.search(r"const %s = \{ url: '([^']+)'" % entry, src)
+    if '.' in entry:      # 'TABLE.key': one picture of a table of them
+        table, key = entry.split('.'); src = src[src.index('const %s = {' % table):]; m = re.search(r"[ ,{]%s: [{] url: '([^']+)'" % key, src)
+    else: m = re.search(r"const %s = \{ url: '([^']+)'" % entry, src)
     if not m: sys.exit(f'{entry}: not found in frog-game.js')
     return os.path.join(REPO, 'static', m.group(1).lstrip('/').replace('/', os.sep))
 

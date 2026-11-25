@@ -62,6 +62,8 @@ export const BLADES = {
     duck: [{hilt: [305, 92], tip: [778, 24]}, {hilt: [470, 108], tip: [0, 27]}],
     rise: [{hilt: [676, 130], tip: [876, 18]}, {hilt: [205, 310], tip: [1, 435]}],
     hop: [{hilt: [892, 155], tip: [1279, 108]}, {hilt: [388, 155], tip: [1, 118]}],
+    wheelFront: [{hilt: [722, 588], tip: [861, 300]}, {hilt: [105, 292], tip: [24, 608]}],
+    wheelBack: [{hilt: [805, 505], tip: [943, 199]}, {hilt: [155, 505], tip: [12, 199]}],
 };
 // BLADES:end
 
@@ -94,6 +96,19 @@ export function tracePoly(b, tr, k) {
     for (let i = N; i >= 0; i--) { const a = phi - tr.sense * sweep * i / N; pts.push([hx + Math.cos(a) * r, hy + Math.sin(a) * r]); }
     return pts;
 }
+// The circular cut (the cartwheel): the whole picture turns about its pivot, so a blade's trace is the band it has just passed
+// through: between the path of its tip and the path of its guard, back round the pivot by `deg` degrees. As wide as the blade
+// all the way, like every trace. In the picture's own pixels (the game turns and mirrors it with the picture).
+export function spinPoly(b, pivot, deg) {
+    const N = 18, th = deg * Math.PI / 180, pts = [];
+    const turn = (q, a) => { const x = q[0] - pivot[0], y = q[1] - pivot[1], c = Math.cos(a), s = Math.sin(a); return [pivot[0] + x * c - y * s, pivot[1] + x * s + y * c]; };
+    for (let i = 0; i <= N; i++) pts.push(turn(b.tip, -th * i / N));
+    for (let i = N; i >= 0; i--) pts.push(turn(b.hilt, -th * i / N));
+    return pts;
+}
+// how far back the cartwheel's trace reaches (degrees): it grows with the turn, then closes up as the spin slows. p: 0..1 of the
+// cartwheel's time, turned: degrees turned so far
+export const spinTrail = (p, turned) => Math.max(0, Math.min(turned, 110 * (1 - p)));
 // how long a trace is on screen (seconds): held whole, then its far end closes up on the blade
 export const TRACE_HOLD = 0.06, TRACE_THIN = 0.13;
 export const traceLife = t => clampN((t - TRACE_HOLD) / TRACE_THIN, 0, 1);

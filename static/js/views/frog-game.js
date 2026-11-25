@@ -1,5 +1,5 @@
 import { createAudio } from './frog-audio.js';
-import { SLASH_DIRS, slashCell, slashPick, slashTraces, tracePoly, traceLife, BLADES, TRACE_HOLD, TRACE_THIN, TRACE_ALPHA, TRAIL_MS, TRAIL_HALF, trailTaper } from './frog-slash.js';
+import { SLASH_DIRS, slashCell, slashPick, slashTraces, tracePoly, traceLife, spinPoly, spinTrail, BLADES, TRACE_HOLD, TRACE_THIN, TRACE_ALPHA, TRAIL_MS, TRAIL_HALF, trailTaper } from './frog-slash.js';
 // Frog Ninja engine: the CFP.ninja frog tosses its laptop, draws its katanas and slices fruit.
 // mountFrogGame(stage, { onGameOver }) -> { destroy }. Survival: time is the only currency.
 // The clock runs down; every sliced fruit buys time back (small fruit more). The score
@@ -2462,16 +2462,20 @@ export function mountFrogGame(stage, opts = {}) {
     }
     // The cartwheel (WHEEL_ART): on for WHEEL_MS after a circular slash; drawn in place of the frog, wherever it springs to
     function artWheelOn() { return !!(artWheel && artWheel.ready && wheel && performance.now() - wheel.t0 < WHEEL_MS && !artBreathOn() && !pose.fallY); }
+    // where the cartwheel's picture is right now (rig units; r: degrees turned to; e: how far through its turn, eased)
+    function wheelAt() {
+        const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW * WHEEL_SIZE;
+        const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
+        const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y - WHEEL_LIFT + Math.min(0, (wheel.oy + wheel.gy * WHEEL_GO * e) * WHEEL_VY) - Math.sin(p * Math.PI) * WHEEL_HOP;   // (never down toward the post)
+        return { Q, k, p, e, x, y, r: wheel.rot0 + wheel.dir * WHEEL_SPIN * e };
+    }
     function artWheelPose() {
         const C = artWheel; if (!C) return;
         const on = artWheelOn();
         if (on !== C.on) { C.on = on; svg.classList.toggle('fg-art-wheel-on', on); }
         if (!on) return;
         if (C.shown !== wheel.key) { for (const k in C.imgs) setA(C.imgs[k], 'display', k === wheel.key ? 'inline' : 'none'); C.shown = wheel.key; }
-        const Q = WHEEL_ART[wheel.key], k = breathK() * BREATH_HEAD_W / Q.headW * WHEEL_SIZE;
-        const p = clamp((performance.now() - wheel.t0) / WHEEL_MS, 0, 1), e = 1 - (1 - p) * (1 - p);
-        const x = 993 + wheel.ox + wheel.gx * WHEEL_GO * e, y = WHEEL_Y - WHEEL_LIFT + Math.min(0, (wheel.oy + wheel.gy * WHEEL_GO * e) * WHEEL_VY) - Math.sin(p * Math.PI) * WHEEL_HOP;   // (never down toward the post)
-        const r = wheel.rot0 + wheel.dir * WHEEL_SPIN * e;
+        const { Q, k, x, y, r } = wheelAt();
         setA(C.root, 'transform', `translate(0 ${n2(pose.up * RISE)}) translate(${n2(x)} ${n2(y)}) rotate(${n2(r)}) scale(${n2(wheel.flip * k)} ${n2(k)}) translate(${-Q.pivot[0]} ${-Q.pivot[1]})`);
     }
     function artBreathPose() {
@@ -7284,6 +7288,21 @@ export function mountFrogGame(stage, opts = {}) {
         // The slash trace: what the katanas leave in the air, drawn at the blades of the picture that is up (frog-slash.js: which
         // blades, how far they swept and which way come from the stroke's cell of the grid). White, a thin line of the blade's
         // colour round it, see-through, as wide as the blade; held for a moment, then its far end closes up on the blade. (No picture up, or one without measured blades: the old crescent.)
+        // the circular cut: both katanas leave the band they have just turned through, round the spinning frog (frog-slash.js: spinPoly)
+        if (artWheelOn()) {
+            const { Q, k, p, e, x, y, r } = wheelAt(), bl = BLADES[wheel.key === 'front' ? 'wheelFront' : 'wheelBack'], back = spinTrail(p, WHEEL_SPIN * e);
+            if (bl && back > 1) {
+                const ux = fbox.w / 1986, uy = fbox.h / 1876, cs = Math.cos(r * Math.PI / 180), sn = Math.sin(r * Math.PI / 180);
+                const at = q => { const lx = wheel.flip * k * (q[0] - Q.pivot[0]), ly = k * (q[1] - Q.pivot[1]); return [fbox.x + (x + lx * cs - ly * sn) * ux, fbox.y + (y + lx * sn + ly * cs) * uy]; };
+                ctx.save(); ctx.lineJoin = 'round'; ctx.fillStyle = '#fff'; ctx.lineWidth = Math.max(2, lw * 0.8);
+                ctx.strokeStyle = sakeLeft > 0 ? '#f5c542' : bladeFx.fire && fxOn() ? '#ff6d00' : bladeFx.frost && fxOn() ? '#4fc3f7' : elder ? '#cfd8dc' : '#98b74b';
+                for (const b of bl) {
+                    const pts = spinPoly(b, Q.pivot, back).map(at);
+                    ctx.beginPath(); pts.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](q[0], q[1])); ctx.closePath(); ctx.globalAlpha = TRACE_ALPHA; ctx.fill(); ctx.globalAlpha = Math.min(1, TRACE_ALPHA * 1.5); ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
         const trQ = swing && swing.cell && pose.held && artCutOn() && BLADES[pose.artCut] ? CUT_POSES[pose.artCut] : null;
         if (trQ && (swing.t < TRACE_HOLD + TRACE_THIN || SLASH_GRID)) {
             const key = pose.artCut, Q = trQ, bl = BLADES[key], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
