@@ -1927,7 +1927,11 @@ export function mountFrogGame(stage, opts = {}) {
 
     // a second canvas behind the frog and its post: fruit on its way down into the sea is drawn there
     const backCv = $('.fg-canvas-back'), bctx = backCv.getContext('2d');
-    let W = 0, H = 0, dpr = 1, dprCap = 2;
+    // Sharpness (canvas pixels per CSS pixel): the governor steps down this ladder while the device can't keep up, below 1x
+    // too (Marek, 2026-11-25: "even giving up some of the resolution to get more fps on weaker devices"). Phones and tablets
+    // start a step down: at 1.5x a tablet's field has 44% fewer pixels to fill than at 2x, and the eye barely tells.
+    const DPR_STEPS = [2, 1.5, 1.25, 1, 0.75];
+    let W = 0, H = 0, dpr = 1, dprCap = touch ? 1.5 : 2;
     // Core truth: the same play area on a phone held upright and on a wide desktop window.
     // Everything is sized from S, a length taken from the AREA of the stage (not its width or
     // its height), so the field measures the same number of fruit across-times-down on both:
@@ -1974,7 +1978,9 @@ export function mountFrogGame(stage, opts = {}) {
         dpr = Math.min(window.devicePixelRatio || 1, dprCap);
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
-        backCv.width = canvas.width; backCv.height = canvas.height; bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // (behind the frog: fruit falling behind it, planks on the water, the splash; three quarters of the field's sharpness)
+        const bk = Math.max(Math.min(dpr, 0.75), dpr * 0.75);
+        backCv.width = Math.round(W * bk); backCv.height = Math.round(H * bk); bctx.setTransform(bk, 0, 0, bk, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         glowCv.width = canvas.width; glowCv.height = canvas.height;
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
@@ -1982,7 +1988,7 @@ export function mountFrogGame(stage, opts = {}) {
         measureFrog();
         layoutHud();
         if (artBg) {
-            const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; artBg.box = '';
+            const k = Math.min(dpr, touch ? 1.25 : 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; artBg.box = '';
             if (artBg.ringEl) {
                 // the ring sits where the post's wet band starts, centred on it, twice its width
                 const pe = artBg.postEl, sb = stage.getBoundingClientRect(), pb = pe.getBoundingClientRect();
@@ -3015,10 +3021,12 @@ export function mountFrogGame(stage, opts = {}) {
         slowSeconds = frames < 50 && !(frames >= 27 && frames <= 33) ? slowSeconds + 1 : 0;
         if (slowSeconds < 2) return;
         slowSeconds = 0;
-        if (dprCap > 1 && (window.devicePixelRatio || 1) > 1) {
-            dprCap = dprCap > 1.5 ? 1.5 : 1; wholeSprites.clear();
+        const next = DPR_STEPS.find(v => v < Math.min(dprCap, window.devicePixelRatio || 1));
+        if (next) {
+            dprCap = next; wholeSprites.clear();
             log('q', dprCap); resize();
-        } else if (!fxLow) { fxLow = true; log('q', 'fx'); }
+        }
+        if (dprCap <= 1 && !fxLow) { fxLow = true; log('q', 'fx'); }
     }
     // the loose bits, thinned on a slow device (the oldest first: they are about to go anyway)
     const thin = (a, n) => { if (a.length > n) a.splice(0, a.length - n); };
@@ -7487,7 +7495,7 @@ export function mountFrogGame(stage, opts = {}) {
         });
         // The slash trace: what the katanas leave in the air, drawn at the blades of the picture that is up (frog-slash.js: which
         // blades, how far they swept and which way come from the stroke's cell of the grid). White, a thin line of the blade's
-        // colour round it, see-through, as wide as the blade; held for a moment, then its far end closes up on the blade. (No picture up, or one without measured blades: the old crescent.)
+        // colour round it, see-through, as wide as the blade; held for a moment, then its far end closes up on the blade.
         // the circular cut: both katanas leave the band they have just turned through, round the spinning frog (frog-slash.js: spinPoly)
         if (artWheelOn()) {
             const { Q, k, p, e, x, y, r } = wheelAt(), bl = BLADES[wheel.key === 'front' ? 'wheelFront' : 'wheelBack'], back = spinTrail(p, WHEEL_SPIN * e);
@@ -7524,16 +7532,9 @@ export function mountFrogGame(stage, opts = {}) {
                 ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(h[0], h[1], 4, 0, 7); ctx.fill(); ctx.fillStyle = '#ffe600'; ctx.beginPath(); ctx.arc(t[0], t[1], 4, 0, 7); ctx.fill();
             }
             ctx.restore();
-        } else if (!trQ && swing && swing.t < SMEAR + 0.03 && pose.held) {
-            const c0 = frogPoint(993, 1000), R = fbox.w * 0.62, k = swing.t / (SMEAR + 0.03);
-            ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(swing.a);
-            ctx.globalAlpha = 1 - k * 0.6;
-            // a crescent: thick in the middle, pointed at both ends, sweeping across the heading
-            ctx.beginPath(); ctx.arc(0, 0, R, -1.05, 1.05); ctx.arc(-R * 0.22, 0, R * 0.95, 0.95, -0.95, true); ctx.closePath();
-            ctx.fillStyle = '#fff'; ctx.fill();
-            ctx.lineWidth = Math.max(2, lw * 0.8); ctx.strokeStyle = sakeLeft > 0 ? '#f5c542' : bladeFx.fire && fxOn() ? '#ff6d00' : bladeFx.frost && fxOn() ? '#4fc3f7' : '#98b74b'; ctx.stroke();
-            ctx.restore();
         }
+        // (no picture with measured blades up, as when drunk, breathing fire or about to fall: no trace. The old white crescent that
+        //  stood in for it went on 2026-11-25, Marek: "I saw some leftover old slash sprites, let's get rid of them")
         if (summon) drawSummon(lw);
         drawFireworksFx();
         if (warps.length) {   // the chronoblade's traces: blue rips that shimmer and thin out
