@@ -1,0 +1,6 @@
+{
+ "ship": "python design/frog/tools/ship.py",
+ "regen": {
+  "design/frog/palette-ok.json": "python design/frog/tools/color_guardian.py check"
+ }
+}

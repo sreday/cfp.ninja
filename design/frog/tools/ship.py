@@ -11,8 +11,12 @@
    Too many rounds (the same finding twice, or 2 STOPs on this branch): it stops and prints the
    eyeball request for Marek instead (the board, each open item). His "looks fine" goes into the
    verdict's "accepted"; that item then counts as cleared.
-4. fast-forward main to the judged commit, push it, git push heroku main, check the live
-   files are the ones in the repo.
+4. push the judged commit as main (a fast-forward of GitHub's main only; no checkout of main, so this runs from any
+   worktree while other sessions hold theirs), git push heroku, check the live files are the ones in the repo.
+
+Lanes (Marek, 2026-11-25: several sessions on the game at once; ~/.claude/tools/lanes/lane.py): one ship at a time
+(the lanes ship lock; `lane.py land` takes it and runs this), and a GO survives a rebase: a verdict counts for a commit
+whose change (git patch-id against its base on main) is the judged one's, on a newer main.
 """
 import glob, json, os, subprocess, sys, tempfile
 
@@ -35,9 +39,54 @@ def verdicts(branch):
         ix, vd = os.path.join(d, 'index.json'), os.path.join(d, 'verdict.json')
         if not (os.path.exists(ix) and os.path.exists(vd)): continue
         i = json.load(open(ix))
-        if i.get('branch') != branch: continue
+        if branch and i.get('branch') != branch: continue
         out.append((d, i, json.load(open(vd))))
     return out
+
+
+def patch_id(c):
+    """the change a commit makes since it left main (all its lane's commits together), as a stable id: the same after a rebase"""
+    base = sh('git', 'merge-base', 'origin/main', c, quiet=True, check=False).stdout.strip()
+    if not base: return ''
+    d = subprocess.run(['git', 'diff', base, c], cwd=REPO, capture_output=True).stdout
+    if not d.strip(): return ''
+    r = subprocess.run(['git', 'patch-id', '--stable'], cwd=REPO, input=d, capture_output=True)
+    return r.stdout.decode().split(' ')[0].strip()
+
+
+LOCK = None
+
+
+def ship_lock():
+    """the lanes ship lock (<git common dir>/lanes/ship.lock): two sessions never deploy at once; lane.py land already holds it"""
+    global LOCK
+    if os.environ.get('LANE_LOCK_HELD'): return
+    import time
+    common = sh('git', 'rev-parse', '--path-format=absolute', '--git-common-dir', quiet=True).stdout.strip()
+    d = os.path.join(common, 'lanes', 'ship.lock'); os.makedirs(os.path.dirname(d), exist_ok=True); t0 = time.time(); said = False
+    while True:
+        try:
+            os.mkdir(d); json.dump({'lane': 'ship.py ' + os.path.basename(REPO), 't': time.time(), 'pid': os.getpid()}, open(os.path.join(d, 'owner.json'), 'w')); LOCK = d; return
+        except FileExistsError:
+            try: o = json.load(open(os.path.join(d, 'owner.json')))
+            except Exception: o = {}
+            if time.time() - o.get('t', time.time()) > 45 * 60:
+                try: os.remove(os.path.join(d, 'owner.json'))
+                except OSError: pass
+                try: os.rmdir(d)
+                except OSError: pass
+                continue
+            if not said: print('   waiting in lane: ' + str(o.get('lane', 'another session')) + ' is shipping', flush=True); said = True
+            if time.time() - t0 > 30 * 60: sys.exit('stopped: waited 30 min for the ship lock')
+            time.sleep(10)
+
+
+def ship_unlock():
+    if not LOCK: return
+    try: os.remove(os.path.join(LOCK, 'owner.json'))
+    except OSError: pass
+    try: os.rmdir(LOCK)
+    except OSError: pass
 
 
 def main():
@@ -48,12 +97,16 @@ def main():
 
     # 3 first (cheap to check): is there a GO for this commit?
     vs = verdicts(branch)
-    # a verdict counts for this commit if nothing on screen changed since the commit it judged (docs, tools: no rerun)
+    sh('git', 'fetch', '-q', 'origin', 'main', quiet=True, check=False)
+    my_pid = patch_id(head)
+    # a verdict counts for this commit if nothing on screen changed since the commit it judged (docs, tools: no rerun),
+    # or if it is the same change rebased onto a newer main (same patch-id; from any branch: a lane may be renamed)
     def same_screen(sha):
         if sha == head: return True
         r = sh('git', 'diff', '--quiet', sha, head, '--', 'static', quiet=True, check=False)
-        return r.returncode == 0 and sh('git', 'merge-base', '--is-ancestor', sha, head, quiet=True, check=False).returncode == 0
-    mine = [v for v in vs if v[1].get('after') and not v[1].get('after_dirty') and same_screen(v[1]['after'])]
+        if r.returncode == 0 and sh('git', 'merge-base', '--is-ancestor', sha, head, quiet=True, check=False).returncode == 0: return True
+        return bool(my_pid) and sh('git', 'cat-file', '-e', sha, quiet=True, check=False).returncode == 0 and patch_id(sha) == my_pid
+    mine = [v for v in verdicts(None) if v[1].get('after') and not v[1].get('after_dirty') and same_screen(v[1]['after'])]
     # the rounds of the item being shipped: STOPs since the last GO on this branch (a new item starts the count again)
     last_go = max([k for k, v in enumerate(vs) if v[2].get('verdict') == 'GO'], default=-1)
     stops = [v for v in vs[last_go + 1:] if v[2].get('verdict') == 'STOP']
@@ -119,17 +172,24 @@ def main():
         ci(branch, head)
     else: print('2/4 CI runs on GitHub, not waited for (no Go code changed)')
     print('3/4 curator: GO')
-    print('4/4 deploy'); sh('git', 'checkout', '-q', 'main'); sh('git', 'pull', '-q', '--rebase', '--autostash')
-    sh('git', 'merge', '-q', '--ff-only', head)     # the judged commit only, never what the branch moved on to since
-    sh('git', 'push', '-q', 'origin', 'main')        # (main's CI runs the same commit the branch's CI passed: not waited for)
-    r = sh('git', 'push', 'heroku', 'main', quiet=True); print([l for l in (r.stdout + r.stderr).splitlines() if 'Released' in l])
-    changed = sh('git', 'diff', '--name-only', 'HEAD@{1}', 'HEAD', '--', 'static', quiet=True, check=False).stdout.split()
+    # (no checkout of main: other sessions may hold it in their worktrees. The judged commit goes up as main, only as a
+    #  fast-forward of GitHub's main: if main moved, lane.py land rebases once and the GO carries over by patch-id)
+    print('4/4 deploy'); ship_lock()
+    try:
+        sh('git', 'fetch', '-q', 'origin', 'main'); base = sh('git', 'rev-parse', 'origin/main', quiet=True).stdout.strip()
+        if sh('git', 'merge-base', '--is-ancestor', base, head, quiet=True, check=False).returncode != 0:
+            sys.exit('stopped: main moved on (another session shipped). From a lane: lane.py land (rebases once, the GO carries over); '
+                     'by hand: git rebase origin/main, then ship again')
+        sh('git', 'push', '-q', 'origin', f'{head}:refs/heads/main')     # (main's CI runs the same commit the branch's CI passed: not waited for)
+        r = sh('git', 'push', 'heroku', f'{head}:refs/heads/main', quiet=True); print([l for l in (r.stdout + r.stderr).splitlines() if 'Released' in l])
+    finally:
+        ship_unlock()
+    changed = sh('git', 'diff', '--name-only', base, head, '--', 'static', quiet=True, check=False).stdout.split()
     for f in [c for c in changed if os.path.exists(os.path.join(REPO, c))][:12]:
         live = subprocess.run(['curl', '-s', 'https://cfp.ninja/' + f[len('static/'):]], capture_output=True).stdout
         # (against the committed bytes: on Windows the working copy may have CRLF line ends that Heroku never sees)
-        mine = subprocess.run(['git', 'show', 'HEAD:' + f], cwd=REPO, capture_output=True).stdout
+        mine = subprocess.run(['git', 'show', head + ':' + f], cwd=REPO, capture_output=True).stdout
         print(('live ok   ' if live == mine else 'LIVE DIFF ') + f)
-    sh('git', 'checkout', '-q', branch)
     print(f'live in {time.time() - t0:.0f} s')
 
 
