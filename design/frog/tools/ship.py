@@ -185,6 +185,16 @@ def main():
         if sh('git', 'merge-base', '--is-ancestor', base, head, quiet=True, check=False).returncode != 0:
             sys.exit('stopped: main moved on (another session shipped). From a lane: lane.py land (rebases once, the GO carries over); '
                      'by hand: git rebase origin/main, then ship again')
+        # the game's version, shown in the bottom right corner of the game ("cfp.ninja/game · v303"; Marek, 2026-11-25): one up
+        # per ship, stamped as its own commit on top of the judged one (a version line is not something the curator looks at)
+        import re as _re
+        js = os.path.join(REPO, 'static', 'js', 'views', 'frog-game.js'); src = open(js, encoding='utf-8').read()
+        m = _re.search(r"const GAME_VERSION = 'v(\d+)';", src)
+        if m:
+            ver = f'v{int(m.group(1)) + 1}'
+            open(js, 'w', encoding='utf-8', newline='').write(src.replace(m.group(0), f"const GAME_VERSION = '{ver}';"))
+            sh('git', 'commit', '-q', '-m', f'Frog Ninja {ver}', '--', js); head = sh('git', 'rev-parse', 'HEAD', quiet=True).stdout.strip()
+            print(f'   version {ver}')
         sh('git', 'push', '-q', 'origin', f'{head}:refs/heads/main')     # (main's CI runs the same commit the branch's CI passed: not waited for)
         r = sh('git', 'push', 'heroku', f'{head}:refs/heads/main', quiet=True); print([l for l in (r.stdout + r.stderr).splitlines() if 'Released' in l])
     finally:

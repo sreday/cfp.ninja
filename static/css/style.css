@@ -1831,3 +1831,43 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog #fg-art-plan { display: none; }
 .fg-frog.fg-art-plan-on #fg-art-plan { display: inline; }
 .fg-frog.fg-art-plan-on #fg-all > :not(#fg-art-plan), .fg-frog.fg-art-plan-on #fg-side, .fg-frog.fg-art-plan-on #fg-stand, .fg-frog.fg-art-plan-on #fg-shadow { visibility: hidden; }
+
+/* ---------- the top bar arranges itself (layoutHud in frog-game.js, 2026-11-25): one row, or time / stamina / combo in a second */
+.fg-stage[data-lay="one"] .fg-center { top: 10px; }
+.fg-stage[data-lay="two"] .fg-center { top: 58px; }
+/* ---------- the menu: Numbers, Debug, Full screen in one drop-down */
+.fg-menu { position: absolute; top: 12px; right: 12px; z-index: 7; }
+.fg-stage .fg-menu-pill { width: 116px; height: 38px; padding: 0 12px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease; }
+.fg-stage .fg-menu-pill:hover, .fg-stage .fg-menu-pill[aria-expanded="true"] { background: #24555f; }
+.fg-menu-list { position: absolute; top: 46px; right: 0; display: flex; flex-direction: column; gap: 8px; min-width: 150px; }
+.fg-menu-list[hidden] { display: none; }
+.fg-stage .fg-menu-list .fg-pill { position: static; display: flex; width: 100%; height: 38px; margin: 0; padding: 0 14px; top: auto; right: auto; bottom: auto; left: auto; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; }
+.fg-stage .fg-menu-list .fg-pill[hidden] { display: none; }
+.fg-stage .fg-menu-list .fg-pill:hover { background: #24555f; }
+@media (max-width: 575px) {
+    .fg-menu { top: auto; bottom: 8px; right: 8px; }
+    .fg-stage .fg-menu-pill { width: auto; height: 30px; font-size: .7rem; }
+    .fg-menu-list { top: auto; bottom: 40px; }
+}
+/* ---------- the address and version, bottom right */
+.fg-url { position: absolute; right: 14px; bottom: 10px; z-index: 4; pointer-events: none; color: #fff; font: 600 .78rem/1 var(--fg-font), sans-serif; letter-spacing: .02em; text-shadow: 0 1px 3px rgba(0, 0, 0, .8); }
+@media (max-width: 575px) { .fg-url { right: auto; left: 50%; transform: translateX(-50%); bottom: 16px; font-size: .66rem; } }
+.fg-curate .fg-url { display: none; }
+/* ---------- party mode: an on-device scoreboard for a conference stand */
+.fg-party { margin: 10px auto 0; }
+.fg-party-toggle { display: block; margin: 0 auto; }
+.fg-party-toggle[aria-pressed="true"] { border-color: #98b74b; color: #b6d36a; }
+.fg-party-ask, .fg-party-board { margin: 12px auto 0; max-width: 340px; text-align: left; }
+.fg-party-ask[hidden], .fg-party-board[hidden] { display: none; }
+.fg-party-ask label { display: block; margin-bottom: 6px; font-size: .85rem; text-align: center; }
+.fg-party-row { display: flex; gap: 6px; }
+.fg-party-row input { flex: 1; min-width: 0; user-select: text; -webkit-user-select: text; }
+.fg-party-board h3 { margin: 0 0 6px; font-size: .95rem; font-weight: 700; text-align: center; }
+.fg-party-board ol { list-style: none; margin: 0; padding: 0; max-height: 30vh; overflow-y: auto; }
+.fg-party-board li { display: flex; gap: 8px; padding: 3px 8px; border-radius: 8px; font-size: .9rem; }
+.fg-party-board li i { width: 2.2em; font-style: normal; color: var(--text-secondary); }
+.fg-party-board li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fg-party-board li.fg-party-me { background: rgba(152, 183, 75, .28); }
+.fg-party-board li.fg-party-empty { justify-content: center; color: var(--text-secondary); }
+.fg-party-clear { display: block; margin: 4px auto 0; font-size: .75rem; }
+.fg-paused .fg-party { display: none; }

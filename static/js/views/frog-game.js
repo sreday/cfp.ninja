@@ -10,6 +10,8 @@ import { SLASH_DIRS, slashCell, slashPick, slashTraces, tracePoly, traceLife, sp
 const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.search);
 // ?perf=1: the frames a second stay on screen, and the game-over panel says how smooth the run was (the time between frames,
 // measured while playing): for trying the game on a slower phone or tablet (2026-11-25)
+// the game's version, shown with its address in the bottom right corner (design/frog/tools/ship.py adds one at each ship)
+const GAME_VERSION = 'v302';
 const PERF = typeof location !== 'undefined' && /[?&]perf\b/.test(location.search);
 const VCLOCK = { t: 0 };
 if (CURATE) {
@@ -1748,8 +1750,9 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-fps" aria-hidden="true"></div>
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
-        <button type="button" class="fg-pill fg-debug-pill">Debug</button>
-        <div class="fg-top-pills"><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button></div>
+        <div class="fg-menu"><button type="button" class="fg-pill fg-menu-pill" aria-haspopup="true" aria-expanded="false" data-snd="open">Menu</button>
+            <div class="fg-menu-list" hidden><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button><button type="button" class="fg-pill fg-debug-pill">Debug</button></div></div>
+        <div class="fg-url" aria-hidden="true">cfp.ninja/game · ${GAME_VERSION}</div>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" data-snd="none" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-vol" data-snd="none"><input type="range" min="0" max="100" step="1" aria-label="Volume" title="Volume"></div>
         <div class="fg-debug" hidden>
@@ -1815,6 +1818,15 @@ export function mountFrogGame(stage, opts = {}) {
                 <p class="fg-anykey" hidden>or press any key</p>
                 <button type="button" class="btn btn-primary btn-sm fg-skip" data-snd="page">Show tips</button>
                 ${opts.onScoreboard ? '<button type="button" class="btn btn-outline-secondary btn-sm fg-board-link" data-snd="open">Scoreboard</button>' : ''}
+                <div class="fg-party">
+                    <button type="button" class="btn btn-outline-secondary btn-sm fg-party-toggle" aria-pressed="false" title="A scoreboard on this device only: after each run players put their name in">Party mode</button>
+                    <form class="fg-party-ask" hidden>
+                        <label for="fg-party-name">Your name for the party scoreboard</label>
+                        <div class="fg-party-row"><input id="fg-party-name" class="form-control form-control-sm fg-party-name" maxlength="20" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="done" placeholder="Name">
+                        <button type="submit" class="btn btn-primary btn-sm" data-snd="open">Save</button><button type="button" class="btn btn-outline-secondary btn-sm fg-party-skip" data-snd="close">Don't save</button></div>
+                    </form>
+                    <div class="fg-party-board" hidden><h3>Party scoreboard</h3><ol></ol><button type="button" class="btn btn-link btn-sm fg-party-clear">Clear the board</button></div>
+                </div>
                 <div class="fg-replay">
                     <button type="button" class="btn btn-outline-secondary btn-sm fg-rec" hidden>Record my next run</button>
                     <button type="button" class="btn btn-primary btn-sm fg-rec-save" hidden>Save replay</button>
@@ -1942,6 +1954,22 @@ export function mountFrogGame(stage, opts = {}) {
         const dy = pb.top + pb.width * POST_CAP - (f.top + f.height * 1700 / 1876);
         svg.style.translate = `0 ${Math.round(dy * 10) / 10}px`;
     }
+    // The top bar (2026-11-25, Marek's iPad: the time pill sat on the best pill; it also did at 1280 wide, and the grade ran
+    // into Numbers / Full screen on tablets held upright): fixed breakpoints could not know every screen, so the bar is
+    // measured and the first arrangement in which nothing overlaps is kept. one: all in one row; two: time, stamina and
+    // combo in a second row (Numbers, Debug and Full screen are in the Menu). Phones (under 576 px) keep their own layout.
+    const HUD_SEL = '.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-menu-pill, .fg-sound-pill';
+    function layoutHud() {
+        if (W < 576) { delete stage.dataset.lay; return; }
+        const notch = document.querySelector('.game-notch'), els = [...stage.querySelectorAll(HUD_SEL)].concat(notch ? [notch] : []);
+        const clash = () => {
+            const R = els.map(n => { const r = n.getBoundingClientRect(); return n.classList.contains('fg-grade') ? { l: r.left, t: r.top, r: Math.max(r.right, r.left + 190), b: r.bottom } : { l: r.left, t: r.top, r: r.right, b: r.bottom }; })
+                .filter(r => r.r > r.l);
+            const sb = stage.getBoundingClientRect();
+            return R.some((a, i) => a.l < sb.left - 1 || a.r > sb.right + 1 || R.some((b, j) => j > i && a.l < b.r + 6 && b.l < a.r + 6 && a.t < b.b + 4 && b.t < a.b + 4));
+        };
+        for (const lay of ['one', 'two']) { stage.dataset.lay = lay; if (!clash()) return; }
+    }
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, dprCap);
         W = stage.clientWidth; H = stage.clientHeight;
@@ -1952,6 +1980,7 @@ export function mountFrogGame(stage, opts = {}) {
         stage.style.setProperty('--fg-s', Math.round(S()) + 'px');     // the frog and its post are sized from S too
         snapToPost();
         measureFrog();
+        layoutHud();
         if (artBg) {
             const k = Math.min(dpr, 1.5); artCv.width = Math.round(W * k); artCv.height = Math.round(H * k); artBg.k = k; artBg.at = 0; artBg.box = '';
             if (artBg.ringEl) {
@@ -5944,7 +5973,7 @@ export function mountFrogGame(stage, opts = {}) {
     }
     function start() {
         warmUp();
-        el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = '';
+        el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = ''; party.pending = 0; partyShow();
         stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
         dbg = false; dbgFrozen = false; dbgWake = 0; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
@@ -6015,6 +6044,7 @@ export function mountFrogGame(stage, opts = {}) {
             el.count.hidden = true; el.count.classList.remove('fg-final');
             overAt = performance.now() - 400;                    // any key works almost at once now: the wait is done
             el.overlay.hidden = false;
+            if (party.pending && !touch) $('.fg-party-name').focus({ preventScroll: true });
             setTimeout(recStop, 600);                            // the replay ends on the result
         }
     }
@@ -6028,6 +6058,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
         el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (PERF ? perfNote() : '');
         if (PERF) log('perf', el.sub.textContent);
+        partyOver(elder || dbg ? 0 : ms);
         el.start.textContent = 'Play again';
         showTips(-1); el.sub.hidden = false;
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
@@ -6094,6 +6125,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (phase === 'over' && performance.now() - overAt < 700) return;
         if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab' || e.key === 'Escape' || e.repeat) return;
         if (opts.busy && opts.busy()) return;                  // the scoreboard is open
+        if (e.target && e.target.closest && e.target.closest('input, textarea')) return;      // (a name being typed in: party mode)
         // Enter or Space on a focused button other than Play is that button's own business
         const b = e.target && e.target.closest && e.target.closest('button, a');
         if (b && b !== el.start && (e.key === 'Enter' || e.key === ' ')) return;
@@ -6101,6 +6133,61 @@ export function mountFrogGame(stage, opts = {}) {
         showTips(-1); start();
     }
     window.addEventListener('keydown', onKey);
+
+    // ---------- party mode ----------
+    // For a stand at a conference (Marek, 2026-11-25): a scoreboard kept on this device only. Switched on from the start or
+    // game-over panel; after each run the player is asked for a name (or doesn't save). It works with no network at all and
+    // stays on the device (localStorage) until it is cleared; each name shows with its best run.
+    const PARTY_ON = 'fg-party', PARTY_LIST = 'fg-party-board', PARTY_TOP = 10;
+    const party = { on: false, list: [], pending: 0, me: '' };
+    try {
+        party.on = localStorage.getItem(PARTY_ON) === '1';
+        party.list = (JSON.parse(localStorage.getItem(PARTY_LIST) || '[]') || []).filter(e => e && typeof e.name === 'string' && isFinite(e.ms));
+    } catch (e) { /* private mode: it lives as long as the page */ }
+    const partyKeep = () => { try { localStorage.setItem(PARTY_ON, party.on ? '1' : '0'); localStorage.setItem(PARTY_LIST, JSON.stringify(party.list.slice(-1000))); } catch (e) { /* full or private */ } };
+    function partyShow() {
+        const tg = $('.fg-party-toggle'), bd = $('.fg-party-board'), ask = $('.fg-party-ask');
+        tg.setAttribute('aria-pressed', String(party.on)); tg.textContent = party.on ? 'Party mode: on' : 'Party mode';
+        stage.classList.toggle('fg-party-on', party.on);
+        bd.hidden = !party.on; ask.hidden = !(party.on && party.pending);
+        if (!party.on) return;
+        const best = new Map();
+        party.list.forEach(e => { const k = e.name.toLowerCase(); if (!best.has(k) || best.get(k).ms < e.ms) best.set(k, e); });
+        const rows = [...best.values()].sort((a, b) => b.ms - a.ms), ol = bd.querySelector('ol'); ol.textContent = '';
+        const row = (e, n) => {
+            const li = document.createElement('li'), r = document.createElement('i'), nm = document.createElement('span'), t = document.createElement('b');
+            r.textContent = n + '.'; nm.textContent = e.name; t.textContent = formatSurvival(e.ms / 1000) + ' s';
+            if (party.me && e.name.toLowerCase() === party.me) li.className = 'fg-party-me';
+            li.append(r, nm, t); ol.appendChild(li);
+        };
+        if (!rows.length) { const li = document.createElement('li'); li.className = 'fg-party-empty'; li.textContent = 'No runs yet. Play, then put your name in.'; ol.appendChild(li); }
+        rows.slice(0, PARTY_TOP).forEach((e, i) => row(e, i + 1));
+        const mine = party.me ? rows.findIndex(e => e.name.toLowerCase() === party.me) : -1;
+        if (mine >= PARTY_TOP) row(rows[mine], mine + 1);          // (the player's own place, under the top ten)
+    }
+    function partyOver(ms) { party.pending = party.on && ms > 0 ? ms : 0; party.me = ''; $('.fg-party-name').value = ''; partyShow(); }
+    $('.fg-party-toggle').addEventListener('click', () => {
+        party.on = !party.on; partyKeep();
+        // switched on right after a run: that run can go on the board too
+        if (party.on && phase === 'over' && !elder && clockT > 0) party.pending = Math.round(clockT * 1000);
+        partyShow(); log('party', party.on ? 'on' : 'off');
+    });
+    $('.fg-party-ask').addEventListener('submit', e => {
+        e.preventDefault();
+        const inp = $('.fg-party-name'), name = inp.value.replace(/\s+/g, ' ').trim().slice(0, 20);
+        if (!name) { inp.focus(); return; }
+        party.list.push({ name, ms: party.pending, at: Date.now() }); party.pending = 0; party.me = name.toLowerCase();
+        partyKeep(); inp.blur(); partyShow(); log('party', 'saved');
+    });
+    $('.fg-party-skip').addEventListener('click', () => { party.pending = 0; partyShow(); });
+    // clearing takes two taps (no browser dialog: it would freeze a kiosk)
+    let clearAt = 0;
+    $('.fg-party-clear').addEventListener('click', e => {
+        const b = e.currentTarget;
+        if (performance.now() - clearAt > 3000) { clearAt = performance.now(); b.textContent = 'Tap again to clear everything'; setTimeout(() => { b.textContent = 'Clear the board'; }, 3000); return; }
+        clearAt = 0; party.list = []; party.me = ''; partyKeep(); b.textContent = 'Clear the board'; partyShow(); log('party', 'cleared');
+    });
+    partyShow();
     if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
 
     // ---------- sound toggle ----------
@@ -6162,6 +6249,19 @@ export function mountFrogGame(stage, opts = {}) {
         }
     })();
 
+    // ---------- the menu ----------
+    // Numbers, Debug and Full screen sit in one drop-down (Marek, 2026-11-25: "to make the UI less heavy"). It closes on a
+    // choice, on a tap anywhere else, and on Escape.
+    (function menu() {
+        const btn = $('.fg-menu-pill'), list = $('.fg-menu-list');
+        const open = on => { list.hidden = !on; btn.setAttribute('aria-expanded', String(on)); };
+        btn.addEventListener('click', () => open(list.hidden));
+        list.addEventListener('click', e => { if (e.target.closest('button')) open(false); });
+        document.addEventListener('pointerdown', e => { if (!list.hidden && !e.target.closest('.fg-menu')) open(false); }, true);
+        window.addEventListener('keydown', e => { if (e.key === 'Escape' && !list.hidden) open(false); });
+    })();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (W) layoutHud(); });     // (the pills' lettering changes their widths)
+
     // ---------- numbers on or off ----------
     (function numbersToggle() {
         const pill = $('.fg-num-pill');
@@ -6177,8 +6277,11 @@ export function mountFrogGame(stage, opts = {}) {
         // An iPhone has no full screen for web pages at all (only for videos), whatever the browser:
         // there the button is not shown. iPads and Android phones have it.
         const allowed = document.fullscreenEnabled || document.webkitFullscreenEnabled;
-        const iPhone = /iPhone|iPod/.test(navigator.userAgent);
-        if (!can || !allowed || iPhone) return;
+        // iPads too (2026-11-25): WebKit's full screen there throws a full-screen "phishing" warning over the game as soon as a
+        // key is pressed, and "stay in full screen" does not clear it. The page already fills the window; for a stand, add it
+        // to the home screen (it then opens without the browser's bars). iPadOS says it is a Mac: a Mac with a touch screen is an iPad.
+        const apple = /iPhone|iPod|iPad/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+        if (!can || !allowed || apple) return;
         pill.hidden = false;
         const isOn = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
         const show = () => { pill.textContent = isOn() ? 'Exit full screen' : 'Full screen'; };
