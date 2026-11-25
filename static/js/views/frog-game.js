@@ -360,7 +360,7 @@ const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rig
 // `turn` degrees of the picked pose, in held 15-degree steps (Marek: 'make sure as you animate the arm and hand to not make it bend in
 // weird ways'); its root goes in under the body's rounded shoulder. Built by design/frog/tools/art_build_plan.py.
 // PLAN_ART:begin (written by design/frog/tools/art_build_plan.py: do not edit by hand)
-const PLAN_ART = { url: '/img/game/frog/plan.34bb0c0d6d.webp', arm: '/img/game/frog/plan-arm.908cfbd1fc.webp', kat: '/img/game/frog/plan-kat.63015ffdee.webp', size: [763, 743], mid: 444, feet: 736, headW: 388, pivot: [278, 442], aim: -126, turn: [-75, 10] };
+const PLAN_ART = { url: '/img/game/frog/plan.34bb0c0d6d.webp', arm: '/img/game/frog/plan-arm.a23cc3d7f4.webp', kat: '/img/game/frog/plan-kat.63015ffdee.webp', size: [763, 743], mid: 444, feet: 736, headW: 388, pivot: [278, 442], aim: -126, turn: [-75, 10] };
 // PLAN_ART:end
 const PLAN_LIFT = 330, PLAN_HOVER = 16;      // rig units: how far it floats above the post, and its slow hover (in steps, like the rest of the frog)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
