@@ -10,7 +10,7 @@ measurement (none silent, none clipped, each starts on time), not by ear: Marek'
 ## How the recordings work
 
 - **The bank.** `design/frog/sounds/bank.json` lists every sound as a pool: its prompt, its length, how many
-  takes (4, the frog's grunt 8, loops 2). 107 pools, about 420 files, about 10 MB, fetched only once the
+  takes (4, the frog's grunt 8, loops 2). 115 pools, about 455 files, about 10 MB, fetched only once the
   player turns the sound on.
 - **The build.** `python design/frog/tools/sound_build.py` cuts each sound out of its raw take (a few ms
   before the attack to where it has died away; a take with several hits gives several variants), levels the
@@ -192,7 +192,7 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 | `spawn` (clock) | a clock is thrown in, once | tick, tock, tick, tock | an alarm clock ticking |
 | `spawn` (fireworks) | a bundle is thrown in, once | a fizzing hiss | a fuse burning |
 | `spawn` (crate) | a crate is thrown in, once | a creak | a wooden creak |
-| `wreck` (fly) | a firefly is slashed | a squish | a squelch |
+| `wreck` (fly) | a firefly is slashed (its wings come off, its light goes out) | a squish | a crisp snip with wings fluttering off, then a small ember fizzling out (`fly_snip` + `fly_fizzle`, 2026-11-25) |
 | `wreck` (sake) | a sake bottle is slashed | breaking glass with three tinkles | a bottle smashing |
 | `wreck` (clock) | a clock is slashed | a spring boing and gears ticking away | a clock falling apart |
 | `hack` | a fruit is hacked by a clock-fed breath | three quick digital blips | a digital glitch |
@@ -225,6 +225,7 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 | id | Plays when | Layers now | A real recording would be |
 |---|---|---|---|
 | `summon` | the laptop is caught | a rising four-note chime and a thump | a laptop start-up chime, then the team's battle cry |
+| `team_slash` | the team slashes together (twice; a crate only if one broke) | the frog's hardest swing | three katanas at once (`team_slash`), with a cartoon "hyah!" from the team on the first blow (`team_kiai`, 2026-11-25) |
 | `plop` | a far fruit lands in the sea | a falling blip and a small wash | a plop |
 | `splash` | the frog falls in at time-up | a crack, a thump, a wash and falling drops | a big splash |
 

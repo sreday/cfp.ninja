@@ -5452,9 +5452,10 @@ export function mountFrogGame(stage, opts = {}) {
         // through and bursts, paying again as a burn (so fruit cut with fire is worth more than fruit
         // cut plain). Two or three helpers carrying fire: that much more.
         if (summonFire) pieces.forEach(q => { if (!before.has(q) && q.poly) { q.burn = Math.max(q.burn || 0, 0.001); q.lit = LAPTOP_PAY * count('fire'); } });     // set alight: roasted in a moment
+        let broke = 0;
         if (!turn) crates.slice().forEach(c => {
             if (c.y > H || c.x < 0 || c.x > W) return;
-            crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY);
+            crates.splice(crates.indexOf(c), 1); breakCrate(c, 0, 1, c.x, c.y, LAPTOP_PAY); broke++;
         });
         // what was just cut can be cut again by the next slash, whatever its count
         pieces.forEach(q => { q.live = true; });
@@ -5464,7 +5465,7 @@ export function mountFrogGame(stage, opts = {}) {
         // (each helper's own stroke: near the angle of the cut, never parallel to the others, through its own part of the field)
         summon.friends.forEach(fr => slashes.push({ x: W * rand(0.2, 0.8), y: fieldY(rand(0.2, 0.75)), a: cutA + rand(-0.4, 0.4), r: Math.max(W, H) * rand(0.45, 0.6), t: 0,
             c: turn && fr.el ? BLADE_FX[fr.el].glow : FRIEND[fr.n].hi, w: turn && fr.el === 'fire' ? 3 : 2 }));
-        snd('slash', { power: 1 }); snd('crate');
+        snd('team_slash', { first: !turn }); if (broke) snd('crate');      // three blades at once (a battle cry on the first), a crate only if one broke
     }
     function stepSummon(dt) {
         if (!summon) return;

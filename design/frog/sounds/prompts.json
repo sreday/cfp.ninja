@@ -1592,32 +1592,6 @@
     }
    ]
   },
-  "fly_squish": {
-   "prompt": "A bug being squashed, one small wet crunchy squelch, close-mic, dry studio",
-   "kind": "shot",
-   "files": [
-    {
-     "file": "fly_squish.1.26aef0f13a.mp3",
-     "seconds": 0.6,
-     "from": "fly_squish__1.mp3"
-    },
-    {
-     "file": "fly_squish.2.6761049bbd.mp3",
-     "seconds": 0.568,
-     "from": "fly_squish__2.mp3"
-    },
-    {
-     "file": "fly_squish.3.63395f4217.mp3",
-     "seconds": 0.6,
-     "from": "fly_squish__3.mp3"
-    },
-    {
-     "file": "fly_squish.4.0ea7a6e767.mp3",
-     "seconds": 0.6,
-     "from": "fly_squish__4.mp3"
-    }
-   ]
-  },
   "clock_tick": {
    "prompt": "A wind-up alarm clock ticking, four clear mechanical tick tock beats, close-mic, dry studio",
    "kind": "shot",
@@ -2432,6 +2406,110 @@
      "file": "ui_play.4.964c88a4f3.mp3",
      "seconds": 0.23,
      "from": "ui_play__4.mp3"
+    }
+   ]
+  },
+  "fly_snip": {
+   "prompt": "A tiny insect cut in mid-air by a sharp blade, one quick crisp snip, then two thin papery wings fluttering away, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "fly_snip.1.c9a2a4c420.mp3",
+     "seconds": 0.865,
+     "from": "fly_snip__1.mp3"
+    },
+    {
+     "file": "fly_snip.2.d90ac70239.mp3",
+     "seconds": 0.598,
+     "from": "fly_snip__2.mp3"
+    },
+    {
+     "file": "fly_snip.3.96a0307050.mp3",
+     "seconds": 0.269,
+     "from": "fly_snip__3.mp3"
+    },
+    {
+     "file": "fly_snip.4.b3855181b7.mp3",
+     "seconds": 0.678,
+     "from": "fly_snip__4.mp3"
+    }
+   ]
+  },
+  "fly_fizzle": {
+   "prompt": "A tiny glowing ember going out, one soft short sizzle and a faint falling electric fizz, quiet, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "fly_fizzle.1.7bc3f50383.mp3",
+     "seconds": 0.857,
+     "from": "fly_fizzle__1.mp3"
+    },
+    {
+     "file": "fly_fizzle.2.17a0b1b471.mp3",
+     "seconds": 0.797,
+     "from": "fly_fizzle__2.mp3"
+    },
+    {
+     "file": "fly_fizzle.3.03703b31b1.mp3",
+     "seconds": 1.002,
+     "from": "fly_fizzle__3.mp3"
+    },
+    {
+     "file": "fly_fizzle.4.79437cd263.mp3",
+     "seconds": 0.802,
+     "from": "fly_fizzle__4.mp3"
+    }
+   ]
+  },
+  "team_slash": {
+   "prompt": "Three katana swords swung at the same moment, three sharp overlapping whooshes slicing the air with a bright steel ring, one burst, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "team_slash.1.358229a415.mp3",
+     "seconds": 1.008,
+     "from": "team_slash__1.mp3"
+    },
+    {
+     "file": "team_slash.2.8e29f248ef.mp3",
+     "seconds": 0.623,
+     "from": "team_slash__2.mp3"
+    },
+    {
+     "file": "team_slash.3.1883bf1ffa.mp3",
+     "seconds": 0.498,
+     "from": "team_slash__3.mp3"
+    },
+    {
+     "file": "team_slash.4.a598750d99.mp3",
+     "seconds": 0.952,
+     "from": "team_slash__4.mp3"
+    }
+   ]
+  },
+  "team_kiai": {
+   "prompt": "Three small cartoon animal ninjas shouting one short sharp martial arts battle cry together, hyah, playful and punchy, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "team_kiai.1.abf37f776e.mp3",
+     "seconds": 0.847,
+     "from": "team_kiai__1.mp3"
+    },
+    {
+     "file": "team_kiai.2.6c52be9fa1.mp3",
+     "seconds": 1.032,
+     "from": "team_kiai__2.mp3"
+    },
+    {
+     "file": "team_kiai.3.2913bba8fd.mp3",
+     "seconds": 0.872,
+     "from": "team_kiai__3.mp3"
+    },
+    {
+     "file": "team_kiai.4.1e9ed77687.mp3",
+     "seconds": 1.027,
+     "from": "team_kiai__4.mp3"
     }
    ]
   },

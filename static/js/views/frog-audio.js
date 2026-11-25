@@ -261,6 +261,7 @@ export const SYNTH = {
 };
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
 ['ui_switch', 'ui_page', 'ui_open', 'ui_close'].forEach(id => { SYNTH[id] = SYNTH.ui; });      // (their stand-in: the plain click)
+SYNTH.team_slash = (c, o, t) => SYNTH.slash(c, o, t, { power: 1 });                         // (its stand-in: the frog's hardest swing)
 const MIN_GAP = { ui_hover: 0.07, cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
@@ -406,7 +407,7 @@ const SKIN = { watermelon: 'skin_thick', pineapple: 'skin_thick', orange: 'skin_
 const DRY = { banana: 1, chicken: 1, apple: 1 };            // little juice in these
 const one = (p, g = 1, more) => [Object.assign({ p, g }, more)];
 const SPAWN = { fly: 'fly_buzz', sake: 'sake_slosh', clock: 'clock_tick', fireworks: 'fuse' };
-const WRECK = { fly: 'fly_squish', clock: 'clock_wreck', laptop: 'laptop_smash' };
+const WRECK = { clock: 'clock_wreck', laptop: 'laptop_smash' };
 const CLOTH = { snap: ['cloth_snap', 0.5], rustle: ['cloth_rustle', 0.4], crouch: ['cloth_crouch', 0.45], hop: ['cloth_hop', 0.5], flutter: ['cloth_flutter', 0.45] };
 export const RECORDED = {
     // ----- the blade -----
@@ -465,7 +466,11 @@ export const RECORDED = {
     gull_faint: () => one('gull_faint', 0.6),
     summon: () => one('summon', 0.75),
     spawn: ({ kind = '' } = {}) => one(SPAWN[kind] || 'crate_creak', 0.45),
-    wreck: ({ kind = '' } = {}) => one(WRECK[kind] || 'glass_smash', 0.7),
+    // a cut firefly: a snip, its wings flutter off, its light goes out (2026-11-25)
+    wreck: ({ kind = '' } = {}) => kind === 'fly' ? [{ p: 'fly_snip', g: 0.6, j: 0.06 }, { p: 'fly_fizzle', g: 0.4, at: 0.08, j: 0.08 }]
+        : one(WRECK[kind] || 'glass_smash', 0.7),
+    // the team's slash: three blades at once, and the battle cry on the first blow
+    team_slash: ({ first = false } = {}) => [{ p: 'team_slash', g: 0.8, j: 0.05 }, { p: 'team_kiai', g: 0.55, at: 0.02, chance: first ? 1 : 0, j: 0.05 }],
     hack: () => one('hack', 0.35, { j: 0.1 }),
     // ----- the run -----
     combo: ({ step = 1 } = {}) => one('combo', 0.6, { r: Math.pow(2, Math.min(step, 10) / 14), j: 0.005 }),

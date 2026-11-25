@@ -64,7 +64,6 @@
     {"id": "fire_feed", "slice": "C", "dur": 2, "infl": 0.6, "prompt": "A fire flaring up suddenly as fuel is thrown on it, one rising surge of flame, close"},
     {"id": "burn", "slice": "C", "dur": 1.5, "infl": 0.6, "prompt": "A piece of wet fruit hitting a very hot pan, one sharp sizzle with a small pop, close-mic"},
     {"id": "fire_end", "slice": "C", "dur": 2, "infl": 0.6, "prompt": "A large flame snuffed out, one last falling puff of fire dying with a faint hiss, close"},
-    {"id": "fly_squish", "slice": "C", "dur": 1.5, "infl": 0.6, "prompt": "A bug being squashed, one small wet crunchy squelch, close-mic, dry studio"},
     {"id": "clock_tick", "slice": "C", "dur": 2, "infl": 0.6, "prompt": "A wind-up alarm clock ticking, four clear mechanical tick tock beats, close-mic, dry studio"},
     {"id": "clock_winddown", "slice": "C", "dur": 3, "infl": 0.6, "prompt": "A clockwork mechanism slowing down to a stop, ticks getting slower and lower with a deep falling tone, dry"},
     {"id": "freeze_loop", "slice": "C", "dur": 8, "infl": 0.6, "loop": true, "takes": 2, "prompt": "Time standing still, a low hollow muffled drone with a faint icy shimmer, steady and continuous"},
@@ -99,6 +98,10 @@
     {"id": "ui", "slice": "D", "dur": 1.5, "infl": 0.7, "prompt": "One very soft small wooden tap, like a fingertip on bamboo, close-mic, dry studio"},
     {"id": "ui_play", "slice": "D", "dur": 1.5, "infl": 0.7, "prompt": "A wooden temple block struck twice quickly, low then high, bright and inviting, close-mic, dry studio"},
 
+    {"id": "fly_snip", "slice": "G", "dur": 1.5, "infl": 0.6, "prompt": "A tiny insect cut in mid-air by a sharp blade, one quick crisp snip, then two thin papery wings fluttering away, close-mic, dry studio"},
+    {"id": "fly_fizzle", "slice": "G", "dur": 1.5, "infl": 0.6, "prompt": "A tiny glowing ember going out, one soft short sizzle and a faint falling electric fizz, quiet, close-mic, dry studio"},
+    {"id": "team_slash", "slice": "G", "dur": 2, "infl": 0.6, "prompt": "Three katana swords swung at the same moment, three sharp overlapping whooshes slicing the air with a bright steel ring, one burst, close, dry"},
+    {"id": "team_kiai", "slice": "G", "dur": 1.5, "infl": 0.6, "prompt": "Three small cartoon animal ninjas shouting one short sharp martial arts battle cry together, hyah, playful and punchy, close, dry"},
     {"id": "ui_hover", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "One extremely soft tiny bamboo tick, very quiet and very short, close-mic, dry studio"},
     {"id": "ui_switch", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A small wooden toggle switch clicked once, one soft low tock, close-mic, dry studio"},
     {"id": "ui_page", "slice": "F", "dur": 1.5, "infl": 0.7, "prompt": "A single sheet of rice paper turned over quickly, one soft crisp page flick, close-mic, dry studio"},
