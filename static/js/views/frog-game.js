@@ -306,7 +306,7 @@ const FALL_ART = { url: '/img/game/frog/fall.99b86249a9.webp', size: [528, 707],
 // tongue's way, a stub of tongue painted; the game's tongue goes on from root (w wide). up: only the throat seen.
 // TONGUE_ART:begin (written by design/frog/tools/art_build_tongue.py: do not edit by hand)
 const TONGUE_ART = {
-    'up': { url: '/img/game/frog/tongue-up.f386ea1479.webp', size: [811, 713], mid: 412, feet: 704, headW: 249, front: true, root: [398, 180], w: 35, dir: [0, -1] },
+    'up': { url: '/img/game/frog/tongue-up.89dbf60c4e.webp', size: [816, 719], mid: 411, feet: 704, headW: 249, front: true, root: [401, 180], w: 37, dir: [0, -1] },
     'down': { url: '/img/game/frog/tongue-down.3440835897.webp', size: [811, 610], mid: 412, feet: 592, headW: 249, front: true, root: [396, 578], w: 34, dir: [0, 1] },
     'down-left': { url: '/img/game/frog/tongue-down-left.fbbcc6113c.webp', size: [806, 590], mid: 410, feet: 583, headW: 249, front: true, root: [352, 264], w: 35, dir: [-0.707, 0.707] },
     'up-left': { url: '/img/game/frog/tongue-up-left.83ca64de94.webp', size: [806, 564], mid: 410, feet: 557, headW: 249, front: true, root: [371, 190], w: 35, dir: [-0.707, -0.707] },

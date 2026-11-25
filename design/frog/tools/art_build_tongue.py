@@ -11,7 +11,8 @@ the logo's colours (color_guardian.fix_image), cropped. root: where the game's t
 picture's px (a little inside the stub's end, so the drawn tongue covers its tip); w: the stub's width there.
 Writes static/img/game/frog/tongue-<dir>.<hash>.webp and the TONGUE_ART table in frog-game.js.
 
-Directions so far: up (head thrown back, only the throat seen), down (chin tucked, tongue down in front of the chest),
+Directions so far: up (head thrown back, seen from below with its mouth wide open, the tongue rising out of it: Marek 2026-11-25
+"fix the tongue origin"; the second tongue lying in the mouth painted out), down (chin tucked, tongue down in front of the chest),
 down-left (Marek's pick 'tongue bottom-left B', 2026-11-25: the standing pick's head edited as a 2x close-up, glued back on its
 headless body at 0.85 ("smaller head"), moved 54 px left so it sits over the body like the standing frog's head ("too much to
 the side"); drawn looking left, mirrored for down-right), up-left ('tongue top-left A', the bottom-left head turned to look up-left,
