@@ -16,7 +16,7 @@ the picture when the cursor is on the other side. `aim`: the direction the finge
 """
 import argparse, hashlib, io, os, re
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 from scipy import ndimage
 from art_build_gull import FROG, REPO, JS
 from art_build_gang import keyed
@@ -24,12 +24,17 @@ from color_guardian import fix_image
 
 SRC = os.path.join(FROG, 'art', 'sources', 'plan'); OUT = os.path.join(REPO, 'static', 'img', 'game', 'frog')
 POSES = {'up': -100, 'upleft': -125, 'side': 180, 'low': 140}      # name -> where its finger points (degrees, read off the pictures)
+GROW = 1.1                          # its head was 10% smaller than the standing frog's on screen (the curator, 2026-11-25): one frog, one size
 DESK = os.path.join(os.path.expanduser('~'), 'Desktop')
 
 
 def clean(path):
     """keyed off its magenta, the colours put on the palette, magenta left in shut-in pockets and loose specks taken out"""
-    A = np.asarray(fix_image(keyed(path, 'frog', pocket=60))).astype(np.float32)
+    k = keyed(path, 'frog', pocket=60)
+    # a light sharpening of the colour (not the edge's alpha), before the colours are put on the palette: the generator's lines came out
+    # a touch softer than the standing frog's (the curator, 2026-11-25)
+    sh = k.convert('RGB').filter(ImageFilter.UnsharpMask(radius=2, percent=70, threshold=2)); sh.putalpha(k.getchannel('A'))
+    A = np.asarray(fix_image(sh)).astype(np.float32)
     R, G, B = A[..., 0], A[..., 1], A[..., 2]
     A[..., 3] *= ~ndimage.binary_dilation((np.minimum(R, B) - G > 40) & (B > 80), iterations=1)
     lab, n = ndimage.label(A[..., 3] > 128)
@@ -78,10 +83,10 @@ def main():
     ims = build(); w, h = next(iter(ims.values())).size
     print('sheet:', sheet(ims, os.path.join(DESK, 'time freeze frog - parts.png')))
     if a.sheet_only: return
-    base = ims['low']                                   # (its hand is low: the head measure sees only the face)
+    base = ims['low']                                   # (its hand is low: the head measure sees only the face; measured unsharpened, sharpening widens it)
     al = np.asarray(base)[..., 3] > 128; ys, xs = np.nonzero(al); feet = int(ys.max()); mid = int(np.median(xs[ys > feet - 40]))
     poses = ', '.join(f"{k}: {{ url: '{save(im, 'plan-' + k)}', aim: {POSES[k]} }}" for k, im in ims.items())
-    line = f"const PLAN_ART = {{ size: [{w}, {h}], mid: {mid}, feet: {feet}, headW: {head_w(base)}, poses: {{ {poses} }} }};"
+    line = f"const PLAN_ART = {{ size: [{w}, {h}], mid: {mid}, feet: {feet}, headW: {head_w(fix_image(keyed(os.path.join(SRC, 'plan-low.png'), 'frog', pocket=60)))}, grow: {GROW}, poses: {{ {poses} }} }};"
     src = open(JS, encoding='utf-8').read()
     new = re.sub(r'(// PLAN_ART:begin[^\n]*\n).*?(\n// PLAN_ART:end)', lambda m: m.group(1) + line + m.group(2), src, flags=re.S)
     if new == src: print('PLAN_ART markers not found in frog-game.js; the entry:')

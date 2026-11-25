@@ -360,7 +360,7 @@ const WHEEL_Y = BREATH_ART.rigFeet - 0.45 * (BREATH_ART.rigFeet - BREATH_ART.rig
 // side, like every held pose. The arm is never turned or bent in code (Marek: 'make sure as you animate the arm and hand to not make it
 // bend in weird ways'). Built by design/frog/tools/art_build_plan.py.
 // PLAN_ART:begin (written by design/frog/tools/art_build_plan.py: do not edit by hand)
-const PLAN_ART = { size: [842, 750], mid: 521, feet: 743, headW: 400, poses: { up: { url: '/img/game/frog/plan-up.4f6df45b45.webp', aim: -100 }, upleft: { url: '/img/game/frog/plan-upleft.c4e111e919.webp', aim: -125 }, side: { url: '/img/game/frog/plan-side.fff34af969.webp', aim: 180 }, low: { url: '/img/game/frog/plan-low.e6d4c1dff6.webp', aim: 140 } } };
+const PLAN_ART = { size: [842, 750], mid: 521, feet: 743, headW: 400, grow: 1.1, poses: { up: { url: '/img/game/frog/plan-up.d7501ca9c1.webp', aim: -100 }, upleft: { url: '/img/game/frog/plan-upleft.73ede6850e.webp', aim: -125 }, side: { url: '/img/game/frog/plan-side.abd1b3b306.webp', aim: 180 }, low: { url: '/img/game/frog/plan-low.a490d9d90f.webp', aim: 140 } } };
 // PLAN_ART:end
 const PLAN_LIFT = 330, PLAN_HOVER = 16;      // rig units: how far it floats above the post, and its slow hover (in steps, like the rest of the frog)
 const ART_BG_START = 6, ART_BG_JOIN = 15;        // dancers at the start, then one more every 15 s of a run
