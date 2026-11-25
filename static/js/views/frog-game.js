@@ -1751,7 +1751,7 @@ export function mountFrogGame(stage, opts = {}) {
         <div class="fg-count" hidden></div>
         <div class="fg-load" hidden><span>Loading</span><i><b></b></i></div>
         <div class="fg-menu"><button type="button" class="fg-pill fg-menu-pill" aria-haspopup="true" aria-expanded="false" data-snd="open">Menu</button>
-            <div class="fg-menu-list" hidden><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button><button type="button" class="fg-pill fg-debug-pill">Debug</button></div></div>
+            <div class="fg-menu-list" hidden><button type="button" class="fg-pill fg-num-pill" aria-pressed="true">Numbers</button><button type="button" class="fg-pill fg-full-pill" data-snd="switch" hidden>Full screen</button><button type="button" class="fg-pill fg-potato-pill" aria-pressed="false" title="For slow devices: plainer looks, smoother play">Potato mode</button><button type="button" class="fg-pill fg-debug-pill">Debug</button></div></div>
         <div class="fg-url" aria-hidden="true">cfp.ninja/game · ${GAME_VERSION}</div>
         <button type="button" class="fg-pill fg-sound-pill fg-sound-off" data-snd="none" aria-pressed="false" aria-label="Sound" title="Sound">\u{1F4E2}</button>
         <div class="fg-vol" data-snd="none"><input type="range" min="0" max="100" step="1" aria-label="Volume" title="Volume"></div>
@@ -1931,6 +1931,9 @@ export function mountFrogGame(stage, opts = {}) {
     // too (Marek, 2026-11-25: "even giving up some of the resolution to get more fps on weaker devices"). Phones and tablets
     // start a step down: at 1.5x a tablet's field has 44% fewer pixels to fill than at 2x, and the eye barely tells.
     const DPR_STEPS = [2, 1.5, 1.25, 1, 0.75];
+    const POTATO_KEY = 'fg-potato';
+    let potato = false, potatoPinned = false;          // (potato mode: see setPotato)
+    try { potatoPinned = localStorage.getItem(POTATO_KEY) === '1'; } catch (e) { /* private mode */ }
     let W = 0, H = 0, dpr = 1, dprCap = touch ? 1.5 : 2;
     // Core truth: the same play area on a phone held upright and on a wide desktop window.
     // Everything is sized from S, a length taken from the AREA of the stage (not its width or
@@ -2007,7 +2010,7 @@ export function mountFrogGame(stage, opts = {}) {
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
         // (behind the frog: fruit falling behind it, planks on the water, the splash; three quarters of the field's sharpness)
-        const bk = Math.max(Math.min(dpr, 0.75), dpr * 0.75);
+        const bk = potato ? 0.5 : Math.max(Math.min(dpr, 0.75), dpr * 0.75);
         backCv.width = Math.round(W * bk); backCv.height = Math.round(H * bk); bctx.setTransform(bk, 0, 0, bk, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         glowCv.width = canvas.width; glowCv.height = canvas.height;
@@ -3042,6 +3045,21 @@ export function mountFrogGame(stage, opts = {}) {
     // still slow it thins the loose bits (juice drops, flames, sparks, debris: the oldest go first). How the
     // game plays never changes. What it settles on is kept for the rest of the visit (2026-11-25: every run
     // used to start at full sharpness again, so a slow phone stuttered at the start of every run).
+    // Potato mode (Marek, 2026-11-25: "the old tablet struggles to keep 60fps, cut further for 'potato mode' if required"): the
+    // last step, taken by the governor when the device is still slow at the lowest sharpness with fewer effects, or switched on
+    // in the Menu (kept on this device). It costs looks only, never gameplay: the field stays at 0.75x and the layer behind the
+    // frog at 0.5x, the party on the beach moves 4 times a second instead of 14, the foam in front of the post is redrawn every
+    // other frame, the blade's glow is drawn straight on the field (no full-screen layer in between), far fewer loose bits, and
+    // the pulsing glows of the pills stop.
+    // (its state, potato / potatoPinned, is declared with the sharpness ladder: resize() reads it during mounting)
+    function setPotato(on, why) {
+        if (on === potato) return;
+        potato = on; stage.classList.toggle('fg-potato', on);
+        if (on) { fxLow = true; if (dprCap > 0.75) dprCap = 0.75; }
+        else if (dprCap < 1) dprCap = touch ? 1.5 : 2;
+        wholeSprites.clear(); resize(); log('q', on ? 'potato' : 'potato off', why || '');
+        const b = stage.querySelector('.fg-potato-pill'); if (b) { b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Potato mode: on' : 'Potato mode'; }
+    }
     let slowSeconds = 0, fxLow = false;
     function govern(frames) {
         if (document.hidden) return;
@@ -3054,11 +3072,16 @@ export function mountFrogGame(stage, opts = {}) {
             dprCap = next; wholeSprites.clear();
             log('q', dprCap); resize();
         }
+        else if (fxLow && !potato) { setPotato(true, 'auto'); return; }      // (nothing left to step down: the potato)
         if (dprCap <= 1 && !fxLow) { fxLow = true; log('q', 'fx'); }
     }
     // the loose bits, thinned on a slow device (the oldest first: they are about to go anyway)
     const thin = (a, n) => { if (a.length > n) a.splice(0, a.length - n); };
-    function thinFx() { if (!fxLow) return; thin(drops, 60); thin(flames, 36); thin(sparks, 80); thin(bits, 40); thin(seaDrops, 24); }
+    function thinFx() {
+        if (!fxLow) return;
+        if (potato) { thin(drops, 24); thin(flames, 16); thin(sparks, 32); thin(bits, 16); thin(seaDrops, 8); return; }
+        thin(drops, 60); thin(flames, 36); thin(sparks, 80); thin(bits, 40); thin(seaDrops, 24);
+    }
     // where the sea is on screen (the backdrop is anchored to the bottom and scaled to cover)
     const seaY = () => H - 190 * Math.max(W / 1600, H / 900);
     let ripples = [], seaDrops = [];
@@ -6297,6 +6320,11 @@ export function mountFrogGame(stage, opts = {}) {
         window.addEventListener('keydown', e => { if (e.key === 'Escape' && !list.hidden) open(false); });
     })();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (W) layoutHud(); });     // (the pills' lettering changes their widths)
+    $('.fg-potato-pill').addEventListener('click', () => {
+        potatoPinned = !potato; try { localStorage.setItem(POTATO_KEY, potatoPinned ? '1' : '0'); } catch (e) { /* private mode */ }
+        setPotato(potatoPinned, 'menu');
+    });
+    if (potatoPinned) setPotato(true, 'kept');
 
     // ---------- numbers on or off ----------
     (function numbersToggle() {
@@ -6696,13 +6724,13 @@ export function mountFrogGame(stage, opts = {}) {
     })();
 
     // ---------- loop ----------
-    let raf = 0, last = performance.now(), idleT = 0, dead = false;
+    let raf = 0, last = performance.now(), idleT = 0, dead = false, potatoN = 0;
     // every frame runs inside a net: an error is reported (crashed) and the next frame still comes
     function frame(now) {
         if (warmQ.length) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }     // one piece of warm-up a frame
         if (dead) return;
-        if (artBg && now - artBg.at > 70) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
-        if (artBg && artBg.waveEl && !reduced) { try { drawWaterFront(now); } catch (e) { crashed(e); artBg.waveEl = null; } }
+        if (artBg && now - artBg.at > (potato ? 250 : 70)) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
+        if (artBg && artBg.waveEl && !reduced && !(potato && (++potatoN & 1))) { try { drawWaterFront(now); } catch (e) { crashed(e); artBg.waveEl = null; } }
         const t0 = performance.now();
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         // debug: frames a second, big, top left; green at 60, red at 30 and under
@@ -7636,10 +7664,14 @@ export function mountFrogGame(stage, opts = {}) {
                 if (m) c2.restore();
                 }
             };
-            gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
-            gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            gctx.strokeStyle = fx ? fx.glow : elder ? '#cfd8dc' : '#98b74b'; strokeAll(gctx, true);
-            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fx ? fx.alpha : 0.9; ctx.drawImage(glowCv, 0, 0); ctx.restore();
+            if (potato) {      // (straight on the field: where two segments overlap the glow is a touch denser, and a full-screen layer is saved)
+                ctx.save(); ctx.globalAlpha = (fx ? fx.alpha : 0.9) * 0.85; ctx.strokeStyle = fx ? fx.glow : elder ? '#cfd8dc' : '#98b74b'; strokeAll(ctx, true); ctx.restore();
+            } else {
+                gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
+                gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                gctx.strokeStyle = fx ? fx.glow : elder ? '#cfd8dc' : '#98b74b'; strokeAll(gctx, true);
+                ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fx ? fx.alpha : 0.9; ctx.drawImage(glowCv, 0, 0); ctx.restore();
+            }
             ctx.save(); ctx.strokeStyle = fx ? fx.core : '#fff'; strokeAll(ctx, false);
             // out of stamina: a thin dark-red trace that cuts nothing
             ctx.strokeStyle = '#b71c1c'; ctx.lineWidth = 2;

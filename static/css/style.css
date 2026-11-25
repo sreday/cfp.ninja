@@ -1888,3 +1888,7 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-party-board li.fg-party-empty { justify-content: center; color: var(--text-secondary); }
 .fg-party-clear { display: block; margin: 4px auto 0; font-size: .75rem; }
 .fg-paused .fg-party { display: none; }
+/* ---------- potato mode (frog-game.js setPotato): the pulsing and swelling glows stop */
+.fg-potato .fg-play, .fg-potato .fg-stamina, .fg-potato .fg-stamina b, .fg-potato .fg-post-ring, .fg-potato .fg-waves, .fg-potato .fg-shore { animation: none !important; }
+.fg-potato .fg-pill.fg-low, .fg-potato .fg-stamina, .fg-potato .fg-grade { box-shadow: none !important; }
+.fg-stage .fg-potato-pill[aria-pressed="true"] { border-color: #98b74b; color: #b6d36a; }
