@@ -7297,7 +7297,7 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.strokeStyle = sakeLeft > 0 ? '#f5c542' : bladeFx.fire && fxOn() ? '#ff6d00' : bladeFx.frost && fxOn() ? '#4fc3f7' : elder ? '#cfd8dc' : '#98b74b';
             if (swing.t < TRACE_HOLD + TRACE_THIN) for (const tr of swing.tr.list) {
                 const pts = tracePoly(bl[tr.blade], tr, life).map(at);
-                ctx.beginPath(); pts.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](q[0], q[1])); ctx.closePath(); ctx.globalAlpha = TRACE_ALPHA; ctx.fill(); ctx.globalAlpha = Math.min(1, TRACE_ALPHA + 0.25); ctx.stroke();
+                ctx.beginPath(); pts.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](q[0], q[1])); ctx.closePath(); ctx.globalAlpha = TRACE_ALPHA; ctx.fill(); ctx.globalAlpha = Math.min(1, TRACE_ALPHA * 1.5); ctx.stroke();
             }
             ctx.globalAlpha = 1;
             if (SLASH_GRID) for (const b of bl) {      // (?grid=1: where the game thinks the hilts and the tips are)

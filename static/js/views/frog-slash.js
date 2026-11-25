@@ -35,7 +35,7 @@ const MAP = {}; for (const z in SLASH_MAP) MAP[z] = SLASH_MAP[z].split(' ');
 // (sweep: degrees the blade is drawn to have turned through). The trace is always as wide as the blade is long, from the
 // guard to the tip, and see-through (Marek, 2026-11-25: 'less opacity, but blade-wide always').
 export const TRACE_ROW = [{ sweep: 115 }, { sweep: 85 }, { sweep: 60 }];
-export const TRACE_ALPHA = 0.5, TRACE_INNER = 0.06;
+export const TRACE_ALPHA = 0.35, TRACE_INNER = 0.06;      // (0.5 at first; Marek, same day: 'reduce the opacity of the traces by 30%')
 // One cell tuned by hand goes here: 'zone:dir' -> { pic, sweep, inner, blades: [0] | [0, 1] }
 export const SLASH_CELL = {};
 
