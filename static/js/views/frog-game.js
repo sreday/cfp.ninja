@@ -7497,7 +7497,7 @@ export function mountFrogGame(stage, opts = {}) {
                 if (A && A.side && A.side.on) out.push({ kind: 'joint', part: 'profile hip', ...rect(A.side.root.getBoundingClientRect()) });
                 if (artBg && artBg.postEl) {
                     const pb = artBg.postEl.getBoundingClientRect(), top = pb.top + pb.width * POST_CAP;
-                    out.push({ kind: 'contact', part: 'feet on the post', air: pose.sHop > 60 || pose.jump > 1, x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
+                    out.push({ kind: 'contact', part: 'feet on the post', air: pose.sHop > 60 || pose.jump > 1 || (artCutOn() && (CUT_POSES[pose.artCut].lift || 0) > 200),      /* (a cut picture drawn floating above the post: in the air on purpose, whichever cell of the slash grid called it up) */ x: Math.round(Math.min(fr.left, pb.left) - fw * 0.05), y: Math.round(top - fw * 0.22), w: Math.round(Math.max(fr.right, pb.right) - Math.min(fr.left, pb.left) + fw * 0.1), h: Math.round(fw * 0.3),
                         // the post's cut face: from its back rim to its front rim (the soles belong between them)
                         frog: { x0: Math.round(u.l), x1: Math.round(u.r) }, post: { top: Math.round(top), back: Math.round(pb.top + pb.width * 0.02), front: Math.round(pb.top + pb.width * 0.34), x0: Math.round(pb.left), x1: Math.round(pb.right) } });
                     out.push({ kind: 'seam', part: 'post', ...rect(pb) });
