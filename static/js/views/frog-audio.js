@@ -262,6 +262,7 @@ export const SYNTH = {
 // the least time between two plays of the same sound (seconds), so fast action doesn't smear
 ['ui_switch', 'ui_page', 'ui_open', 'ui_close'].forEach(id => { SYNTH[id] = SYNTH.ui; });      // (their stand-in: the plain click)
 SYNTH.team_slash = (c, o, t) => SYNTH.slash(c, o, t, { power: 1 });                         // (its stand-in: the frog's hardest swing)
+SYNTH.tongue_miss = SYNTH.tongue; SYNTH.lick = SYNTH.tongue; SYNTH.team_cheer = () => {};        // (stand-ins until the recordings load)
 const MIN_GAP = { ui_hover: 0.07, cloth: 0.14, flick: 0.06, land: 0.1, plop: 0.08, slash: 0.07, cut: 0.03, burn: 0.06, boom: 0.06, mark: 0.03, hack: 0.1, bounce: 0.05, wreck: 0.05, catch: 0.05, spawn: 0.1, power_fireworks: 0.08 };
 
 // ---------- sounds that last as long as a state does: id -> (ctx, out) -> stop() ----------
@@ -422,7 +423,9 @@ export const RECORDED = {
         const L = [{ p: SKIN[kind] || 'skin_thin', g: 0.38 * small, r: 1 + 0.05 * re },
             { p: flesh, g: 0.95 * small, r: 1 + 0.04 * re, j: 0.05 }];
         if (re < 3) L.push({ p: size > 0.66 ? 'juice_l' : size > 0.3 ? 'juice_m' : 'juice_s', g: (DRY[kind] ? 0.16 : 0.4) * small, at: 0.03, j: 0.08 });
-        if (clean) L.push({ p: 'shing', g: 0.2, r: Math.pow(1.06, Math.min(chain, 12)), at: 0.01, j: 0.01 });       // the ring of a perfect cut, climbing with a chain
+        // a perfect cut: a juicy pop, a touch higher with a chain (Marek 2026-11-25: juicy, not mini gongs)
+        if (clean) L.push({ p: 'juice_pop', g: (DRY[kind] ? 0.3 : 0.5) * small, r: Math.pow(1.025, Math.min(chain, 12)), at: 0.01, j: 0.05 });
+        if (re < 2 && !DRY[kind]) L.push({ p: 'squelch', g: 0.35 * small, at: 0.02, chance: 0.6, j: 0.07 });
         if (hacked) L.push({ p: 'hack', g: 0.25 });
         return L;
     },
@@ -438,25 +441,28 @@ export const RECORDED = {
     unsheathe: () => one('unsheathe', 0.65),
     glint: () => one('glint', 0.3),
     // ----- the tongue and the mouth -----
-    tongue: () => one('tongue_out', 0.55, { j: 0.07 }),
-    catch: ({ heavy = false } = {}) => one(heavy ? 'catch_heavy' : 'catch', 0.6),
-    gulp: () => one('gulp', 0.6, { j: 0.07 }),
+    tongue: () => [{ p: 'tongue_out', g: 0.55, j: 0.07 }, { p: 'frog_hup', g: 0.45, chance: 0.5, every: 1.2, j: 0.06 }],
+    tongue_miss: () => one('tongue_miss', 0.5, { j: 0.06 }),
+    lick: () => one('frog_lick', 0.6, { j: 0.05 }),
+    catch: ({ heavy = false } = {}) => [{ p: heavy ? 'catch_heavy' : 'catch', g: 0.6, j: 0.05 }, { p: 'kotsuzumi', g: 0.28, at: 0.01, chance: 0.5, j: 0.04 },
+        { p: 'slurp', g: 0.42, at: 0.07, j: 0.06 }, { p: 'frog_strain', g: 0.5, at: 0.05, chance: heavy ? 1 : 0, j: 0.05 }],
+    gulp: () => [{ p: 'gulp', g: 0.6, j: 0.07 }, { p: 'frog_yum', g: 0.42, at: 0.25, chance: 0.35, every: 3, j: 0.05 }, { p: 'frog_burp', g: 0.4, at: 0.35, chance: 0.08, every: 8, j: 0.05 }],
     stun: () => [{ p: 'bonk', g: 0.75 }, { p: 'groan', g: 0.5, at: 0.18 }],
     stun_end: () => one('shake', 0.45),
     // ----- fire -----
-    power_fire: () => one('fire_ignite', 0.85),
+    power_fire: () => [{ p: 'fire_ignite', g: 0.85 }, { p: 'shamisen', g: 0.35, j: 0.04 }],
     burn: () => one('burn', 0.5, { j: 0.08 }),
     fire_end: () => one('fire_end', 0.6),
     fire_feed: () => one('fire_feed', 0.65),
     // ----- sake -----
-    power_sake: () => [{ p: 'sake_pour', g: 0.65 }, { p: 'hiccup', g: 0.55, at: 0.5 }],
+    power_sake: () => [{ p: 'sake_pour', g: 0.65 }, { p: 'shamisen', g: 0.3, r: 1.12, j: 0.04 }, { p: 'hiccup', g: 0.55, at: 0.5 }],
     sake_end: () => one('sigh', 0.5),
     // ----- the clock -----
-    power_clock: () => one('clock_winddown', 0.7),
+    power_clock: () => [{ p: 'clock_winddown', g: 0.7 }, { p: 'shakuhachi', g: 0.4, at: 0.05, j: 0.03 }],
     mark: ({ n = 1 } = {}) => one('mark', 0.4, { r: Math.pow(1.05, Math.min(n, 14)), j: 0.005 }),
     resume: () => one('resume', 0.6),
     // ----- fireworks, crates, the gull, the laptop -----
-    power_fireworks: () => one('rocket', 0.5, { j: 0.08 }),
+    power_fireworks: () => [{ p: 'rocket', g: 0.5, j: 0.08 }, { p: 'shamisen', g: 0.3, r: 1.33, j: 0.04 }],
     spit: () => one('spit', 0.6),
     boom: ({ big = false } = {}) => one(big ? 'boom_big' : 'boom_small', big ? 1 : 0.8),
     crate: () => one('crate_break', 0.8),
@@ -464,21 +470,26 @@ export const RECORDED = {
     gull: () => one('gull', 0.55),
     gull_peck: () => one('gull_peck', 0.5),
     gull_faint: () => one('gull_faint', 0.6),
-    summon: () => one('summon', 0.75),
+    summon: ({ who = [] } = {}) => [{ p: 'summon', g: 0.75 }, { p: 'suzu', g: 0.4, at: 0.05, j: 0.05 }]
+        .concat(who.map((n, i) => ({ p: n + '_arrive', g: 0.55, at: 0.25 + 0.14 * i, j: 0.05 }))),
+    team_cheer: ({ who = [] } = {}) => who.map((n, i) => ({ p: n + '_cheer', g: 0.45, at: 0.1 * i, j: 0.05 })),
     spawn: ({ kind = '' } = {}) => one(SPAWN[kind] || 'crate_creak', 0.45),
     // a cut firefly: a snip, its wings flutter off, its light goes out (2026-11-25)
     wreck: ({ kind = '' } = {}) => kind === 'fly' ? [{ p: 'fly_snip', g: 0.6, j: 0.06 }, { p: 'fly_fizzle', g: 0.4, at: 0.08, j: 0.08 }]
         : one(WRECK[kind] || 'glass_smash', 0.7),
     // the team's slash: three blades at once, and the battle cry on the first blow
-    team_slash: ({ first = false } = {}) => [{ p: 'team_slash', g: 0.8, j: 0.05 }, { p: 'team_kiai', g: 0.55, at: 0.02, chance: first ? 1 : 0, j: 0.05 }],
+    team_slash: ({ first = false, who = [] } = {}) => [{ p: 'team_slash', g: 0.8, j: 0.05 }, { p: 'shing', g: 0.15, at: 0.03, j: 0.02 }]
+        .concat(first ? [{ p: 'taiko_don', g: 0.5, j: 0.03 }].concat(who.length ? who.map((n, i) => ({ p: n + '_kiai', g: 0.5, at: 0.015 * i, j: 0.05 })) : [{ p: 'team_kiai', g: 0.55, at: 0.02, j: 0.05 }]) : []),
     hack: () => one('hack', 0.35, { j: 0.1 }),
     // ----- the run -----
-    combo: ({ step = 1 } = {}) => one('combo', 0.6, { r: Math.pow(2, Math.min(step, 10) / 14), j: 0.005 }),
+    combo: ({ step = 1 } = {}) => [{ p: 'combo', g: 0.6, r: Math.pow(2, Math.min(step, 10) / 14), j: 0.005 },
+        { p: 'koto_pluck', g: 0.45, r: [1, 1, 9 / 8, 4 / 3, 3 / 2, 16 / 9, 2][Math.min(step, 6)], at: 0.04, j: 0.003 },
+        { p: 'frog_ribbit', g: 0.45, at: 0.3, chance: 0.5, j: 0.05 }, { p: 'taiko_don', g: 0.5, chance: step >= 3 ? 1 : 0, j: 0.02 }],
     combo_lost: () => one('combo_lost', 0.4),
     lowtime: () => one('heartbeat', 0.8, { j: 0.01 }),
     count: ({ go = false } = {}) => one(go ? 'count_go' : 'count', go ? 0.9 : 0.6, { j: 0.01 }),
     over: () => one('gong', 0.8, { j: 0.01 }),
-    best: () => [{ p: 'best', g: 0.7, j: 0.005 }, { p: 'croak_happy', g: 0.5, at: 0.9 }],
+    best: () => [{ p: 'best', g: 0.7, j: 0.005 }, { p: 'rin', g: 0.45, at: 0.15, j: 0.005 }, { p: 'croak_happy', g: 0.5, at: 0.9 }],
     splash: () => one('splash', 0.9),
     plop: () => one('plop', 0.45, { j: 0.08 }),
     // ----- interface -----
@@ -519,7 +530,7 @@ export function createAudio() {
         let files = SOUND_BANK[p];
         const long = files[0] && files[0][1] > 5;                                    // a loop or a bed: one take is enough for a visit
         if (long) files = [files[Math.floor(Math.random() * files.length)]];
-        else if (LITE) files = files.slice(0, 3);
+        else if (LITE) { const k = Math.ceil(files.length / 3); files = files.filter((_, i) => i % k === 0); }   // three, spread over both wordings
         bank[p] = { files, ready: [], state: 0, bag: [], last: -1, at: 0, long };
     });
     const stopLoops = () => Object.keys(loops).forEach(id => { loops[id](); delete loops[id]; });

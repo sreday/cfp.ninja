@@ -7,24 +7,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flesh_watermelon.1.d62eabb1b0.mp3",
+     "file": "flesh_watermelon.1.a854e8db21.mp3",
      "seconds": 0.817,
      "from": "flesh_watermelon__1.mp3"
     },
     {
-     "file": "flesh_watermelon.2.5e5ddc342b.mp3",
+     "file": "flesh_watermelon.2.9df9b3c8cc.mp3",
      "seconds": 0.742,
      "from": "flesh_watermelon__2.mp3"
     },
     {
-     "file": "flesh_watermelon.3.b52cb21cb4.mp3",
+     "file": "flesh_watermelon.3.0b1311ea29.mp3",
      "seconds": 1.171,
      "from": "flesh_watermelon__3.mp3"
     },
     {
-     "file": "flesh_watermelon.4.c535ad1e3f.mp3",
+     "file": "flesh_watermelon.4.e0efdeee9e.mp3",
      "seconds": 0.862,
      "from": "flesh_watermelon__4.mp3"
+    },
+    {
+     "file": "flesh_watermelon.5.87950c660b.mp3",
+     "seconds": 1.3,
+     "from": "flesh_watermelon__5.mp3",
+     "prompt": "A sword slicing clean through a big ripe watermelon, a hollow thunk, the flesh tearing wet and crunchy, juice gushing out, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_watermelon.6.dee2273084.mp3",
+     "seconds": 1.3,
+     "from": "flesh_watermelon__6.mp3",
+     "prompt": "A sword slicing clean through a big ripe watermelon, a hollow thunk, the flesh tearing wet and crunchy, juice gushing out, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_watermelon.7.dedd579025.mp3",
+     "seconds": 1.3,
+     "from": "flesh_watermelon__7.mp3",
+     "prompt": "A sword slicing clean through a big ripe watermelon, a hollow thunk, the flesh tearing wet and crunchy, juice gushing out, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_watermelon.8.760dd954ef.mp3",
+     "seconds": 0.528,
+     "from": "flesh_watermelon__8.mp3",
+     "prompt": "A sword slicing clean through a big ripe watermelon, a hollow thunk, the flesh tearing wet and crunchy, juice gushing out, close-mic, dry studio"
     }
    ]
   },
@@ -33,24 +57,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flesh_pineapple.1.cb5f7b486c.mp3",
+     "file": "flesh_pineapple.1.06083e20aa.mp3",
      "seconds": 1.3,
      "from": "flesh_pineapple__1.mp3"
     },
     {
-     "file": "flesh_pineapple.2.9d21d3af5d.mp3",
+     "file": "flesh_pineapple.2.15958c43c5.mp3",
      "seconds": 1.246,
      "from": "flesh_pineapple__2.mp3"
     },
     {
-     "file": "flesh_pineapple.3.ceb9693284.mp3",
+     "file": "flesh_pineapple.3.9d1d3be8b5.mp3",
      "seconds": 1.3,
      "from": "flesh_pineapple__3.mp3"
     },
     {
-     "file": "flesh_pineapple.4.c56794a334.mp3",
+     "file": "flesh_pineapple.4.919ccf722f.mp3",
      "seconds": 1.126,
      "from": "flesh_pineapple__4.mp3"
+    },
+    {
+     "file": "flesh_pineapple.5.b9c24c419e.mp3",
+     "seconds": 1.3,
+     "from": "flesh_pineapple__5.mp3",
+     "prompt": "A sword hacking a ripe pineapple in two, a crunchy fibrous rip and a wet juicy spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_pineapple.6.090eac5bf1.mp3",
+     "seconds": 1.3,
+     "from": "flesh_pineapple__6.mp3",
+     "prompt": "A sword hacking a ripe pineapple in two, a crunchy fibrous rip and a wet juicy spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_pineapple.7.a33d6cdae5.mp3",
+     "seconds": 0.847,
+     "from": "flesh_pineapple__7.mp3",
+     "prompt": "A sword hacking a ripe pineapple in two, a crunchy fibrous rip and a wet juicy spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_pineapple.8.1fc9eda5bf.mp3",
+     "seconds": 1.226,
+     "from": "flesh_pineapple__8.mp3",
+     "prompt": "A sword hacking a ripe pineapple in two, a crunchy fibrous rip and a wet juicy spray, close-mic, dry studio"
     }
    ]
   },
@@ -64,7 +112,7 @@
      "from": "flesh_orange__1.mp3"
     },
     {
-     "file": "flesh_orange.2.d5c4d4f3a1.mp3",
+     "file": "flesh_orange.2.8a30f0818e.mp3",
      "seconds": 1.3,
      "from": "flesh_orange__2.mp3"
     },
@@ -74,9 +122,33 @@
      "from": "flesh_orange__3.mp3"
     },
     {
-     "file": "flesh_orange.4.ba53232af1.mp3",
+     "file": "flesh_orange.4.4bca16d2b2.mp3",
      "seconds": 1.171,
      "from": "flesh_orange__4.mp3"
+    },
+    {
+     "file": "flesh_orange.5.f12af0af52.mp3",
+     "seconds": 1.017,
+     "from": "flesh_orange__5.mp3",
+     "prompt": "A juicy orange split by a fast blade, a soft rip then a wet squirt of citrus juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_orange.6.0f538ed2b2.mp3",
+     "seconds": 1.117,
+     "from": "flesh_orange__6.mp3",
+     "prompt": "A juicy orange split by a fast blade, a soft rip then a wet squirt of citrus juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_orange.7.f1a946c933.mp3",
+     "seconds": 1.047,
+     "from": "flesh_orange__7.mp3",
+     "prompt": "A juicy orange split by a fast blade, a soft rip then a wet squirt of citrus juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_orange.8.ef004c4e8e.mp3",
+     "seconds": 1.236,
+     "from": "flesh_orange__8.mp3",
+     "prompt": "A juicy orange split by a fast blade, a soft rip then a wet squirt of citrus juice, close-mic, dry studio"
     }
    ]
   },
@@ -103,6 +175,30 @@
      "file": "flesh_apple.4.ee01078ec5.mp3",
      "seconds": 0.149,
      "from": "flesh_apple__4.mp3"
+    },
+    {
+     "file": "flesh_apple.5.7845281ff4.mp3",
+     "seconds": 1.3,
+     "from": "flesh_apple__5.mp3",
+     "prompt": "A sword cutting a juicy apple in half in one stroke, a crisp wet crunch with a spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_apple.6.a9832f6fa8.mp3",
+     "seconds": 1.3,
+     "from": "flesh_apple__6.mp3",
+     "prompt": "A sword cutting a juicy apple in half in one stroke, a crisp wet crunch with a spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_apple.7.269bb56196.mp3",
+     "seconds": 0.937,
+     "from": "flesh_apple__7.mp3",
+     "prompt": "A sword cutting a juicy apple in half in one stroke, a crisp wet crunch with a spray, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_apple.8.fb51a295f4.mp3",
+     "seconds": 1.132,
+     "from": "flesh_apple__8.mp3",
+     "prompt": "A sword cutting a juicy apple in half in one stroke, a crisp wet crunch with a spray, close-mic, dry studio"
     }
    ]
   },
@@ -111,24 +207,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flesh_banana.1.cee617b361.mp3",
+     "file": "flesh_banana.1.d2329b7c95.mp3",
      "seconds": 1.001,
      "from": "flesh_banana__1.mp3"
     },
     {
-     "file": "flesh_banana.2.a6f219bc47.mp3",
+     "file": "flesh_banana.2.5dba2d4503.mp3",
      "seconds": 1.266,
      "from": "flesh_banana__2.mp3"
     },
     {
-     "file": "flesh_banana.3.35394fa9bd.mp3",
+     "file": "flesh_banana.3.370a0711bc.mp3",
      "seconds": 1.081,
      "from": "flesh_banana__3.mp3"
     },
     {
-     "file": "flesh_banana.4.28d3fe6e9f.mp3",
+     "file": "flesh_banana.4.101f444259.mp3",
      "seconds": 1.211,
      "from": "flesh_banana__4.mp3"
+    },
+    {
+     "file": "flesh_banana.5.5a7831813b.mp3",
+     "seconds": 1.3,
+     "from": "flesh_banana__5.mp3",
+     "prompt": "A blade slicing through a ripe banana, a soft wet mushy squelch, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_banana.6.ab7583d15a.mp3",
+     "seconds": 1.3,
+     "from": "flesh_banana__6.mp3",
+     "prompt": "A blade slicing through a ripe banana, a soft wet mushy squelch, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_banana.7.15f29b5df1.mp3",
+     "seconds": 0.742,
+     "from": "flesh_banana__7.mp3",
+     "prompt": "A blade slicing through a ripe banana, a soft wet mushy squelch, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_banana.8.c224d45d3f.mp3",
+     "seconds": 1.3,
+     "from": "flesh_banana__8.mp3",
+     "prompt": "A blade slicing through a ripe banana, a soft wet mushy squelch, close-mic, dry studio"
     }
    ]
   },
@@ -137,7 +257,7 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flesh_kiwi.1.383b775127.mp3",
+     "file": "flesh_kiwi.1.b4feee6367.mp3",
      "seconds": 0.478,
      "from": "flesh_kiwi__1.mp3"
     },
@@ -155,6 +275,30 @@
      "file": "flesh_kiwi.4.9ef06e5fbd.mp3",
      "seconds": 1.131,
      "from": "flesh_kiwi__4.mp3"
+    },
+    {
+     "file": "flesh_kiwi.5.388e546eea.mp3",
+     "seconds": 1.3,
+     "from": "flesh_kiwi__5.mp3",
+     "prompt": "A blade cutting through a ripe juicy kiwi, a soft fuzzy skin tear and a wet squish, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_kiwi.6.d1a3c73657.mp3",
+     "seconds": 1.3,
+     "from": "flesh_kiwi__6.mp3",
+     "prompt": "A blade cutting through a ripe juicy kiwi, a soft fuzzy skin tear and a wet squish, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_kiwi.7.da60787779.mp3",
+     "seconds": 1.3,
+     "from": "flesh_kiwi__7.mp3",
+     "prompt": "A blade cutting through a ripe juicy kiwi, a soft fuzzy skin tear and a wet squish, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_kiwi.8.3c2be02009.mp3",
+     "seconds": 1.3,
+     "from": "flesh_kiwi__8.mp3",
+     "prompt": "A blade cutting through a ripe juicy kiwi, a soft fuzzy skin tear and a wet squish, close-mic, dry studio"
     }
    ]
   },
@@ -181,6 +325,30 @@
      "file": "flesh_plum.4.9b09be0078.mp3",
      "seconds": 0.643,
      "from": "flesh_plum__4.mp3"
+    },
+    {
+     "file": "flesh_plum.5.adf92d951b.mp3",
+     "seconds": 1.3,
+     "from": "flesh_plum__5.mp3",
+     "prompt": "A blade splitting a ripe juicy plum, a wet pop of skin and a squirt of juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_plum.6.50326dd196.mp3",
+     "seconds": 1.281,
+     "from": "flesh_plum__6.mp3",
+     "prompt": "A blade splitting a ripe juicy plum, a wet pop of skin and a squirt of juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_plum.7.373a7b50d0.mp3",
+     "seconds": 1.3,
+     "from": "flesh_plum__7.mp3",
+     "prompt": "A blade splitting a ripe juicy plum, a wet pop of skin and a squirt of juice, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_plum.8.04e326c37d.mp3",
+     "seconds": 1.3,
+     "from": "flesh_plum__8.mp3",
+     "prompt": "A blade splitting a ripe juicy plum, a wet pop of skin and a squirt of juice, close-mic, dry studio"
     }
    ]
   },
@@ -189,12 +357,12 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flesh_grapes.1.74407ad276.mp3",
+     "file": "flesh_grapes.1.4697ceb98f.mp3",
      "seconds": 1.2,
      "from": "flesh_grapes__1.mp3"
     },
     {
-     "file": "flesh_grapes.2.8725e91386.mp3",
+     "file": "flesh_grapes.2.453927d304.mp3",
      "seconds": 0.204,
      "from": "flesh_grapes__2.mp3"
     },
@@ -204,9 +372,33 @@
      "from": "flesh_grapes__3.mp3"
     },
     {
-     "file": "flesh_grapes.4.be2c9eefb3.mp3",
+     "file": "flesh_grapes.4.4fbf7e93b5.mp3",
      "seconds": 0.703,
      "from": "flesh_grapes__4.mp3"
+    },
+    {
+     "file": "flesh_grapes.5.3e4d7cbf15.mp3",
+     "seconds": 1.092,
+     "from": "flesh_grapes__5.mp3",
+     "prompt": "A sword slicing a bunch of ripe grapes, a quick burst of juicy squelching pops, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_grapes.6.03a54edf59.mp3",
+     "seconds": 0.548,
+     "from": "flesh_grapes__6.mp3",
+     "prompt": "A sword slicing a bunch of ripe grapes, a quick burst of juicy squelching pops, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_grapes.7.24c7319f26.mp3",
+     "seconds": 0.698,
+     "from": "flesh_grapes__7.mp3",
+     "prompt": "A sword slicing a bunch of ripe grapes, a quick burst of juicy squelching pops, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_grapes.8.6988d33407.mp3",
+     "seconds": 0.254,
+     "from": "flesh_grapes__8.mp3",
+     "prompt": "A sword slicing a bunch of ripe grapes, a quick burst of juicy squelching pops, close-mic, dry studio"
     }
    ]
   },
@@ -220,19 +412,43 @@
      "from": "flesh_chicken__1.mp3"
     },
     {
-     "file": "flesh_chicken.2.efa179e3da.mp3",
+     "file": "flesh_chicken.2.2ddc161f4f.mp3",
      "seconds": 0.323,
      "from": "flesh_chicken__2.mp3"
     },
     {
-     "file": "flesh_chicken.3.a1cd9f0b11.mp3",
+     "file": "flesh_chicken.3.fdc54ed151.mp3",
      "seconds": 0.458,
      "from": "flesh_chicken__3.mp3"
     },
     {
-     "file": "flesh_chicken.4.b67f86a630.mp3",
+     "file": "flesh_chicken.4.973715dceb.mp3",
      "seconds": 1.116,
      "from": "flesh_chicken__4.mp3"
+    },
+    {
+     "file": "flesh_chicken.5.de332ae766.mp3",
+     "seconds": 1.3,
+     "from": "flesh_chicken__5.mp3",
+     "prompt": "A sword cutting a crispy fried chicken leg, a crackling crunch of batter and a juicy tear, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_chicken.6.452806a60d.mp3",
+     "seconds": 1.3,
+     "from": "flesh_chicken__6.mp3",
+     "prompt": "A sword cutting a crispy fried chicken leg, a crackling crunch of batter and a juicy tear, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_chicken.7.5ff2b4ef4c.mp3",
+     "seconds": 1.3,
+     "from": "flesh_chicken__7.mp3",
+     "prompt": "A sword cutting a crispy fried chicken leg, a crackling crunch of batter and a juicy tear, close-mic, dry studio"
+    },
+    {
+     "file": "flesh_chicken.8.320f535591.mp3",
+     "seconds": 1.3,
+     "from": "flesh_chicken__8.mp3",
+     "prompt": "A sword cutting a crispy fried chicken leg, a crackling crunch of batter and a juicy tear, close-mic, dry studio"
     }
    ]
   },
@@ -241,24 +457,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "skin_thick.1.34e21d72e8.mp3",
+     "file": "skin_thick.1.7d9d593942.mp3",
      "seconds": 0.45,
      "from": "skin_thick__1.mp3"
     },
     {
-     "file": "skin_thick.2.063bdcb2c6.mp3",
+     "file": "skin_thick.2.7cef550a4d.mp3",
      "seconds": 0.423,
      "from": "skin_thick__2.mp3"
     },
     {
-     "file": "skin_thick.3.718a8e87b1.mp3",
+     "file": "skin_thick.3.4d31790b43.mp3",
      "seconds": 0.433,
      "from": "skin_thick__3.mp3"
     },
     {
-     "file": "skin_thick.4.701ac6b0b4.mp3",
+     "file": "skin_thick.4.0d1cbbf7bb.mp3",
      "seconds": 0.373,
      "from": "skin_thick__4.mp3"
+    },
+    {
+     "file": "skin_thick.5.75652e292c.mp3",
+     "seconds": 0.209,
+     "from": "skin_thick__5.mp3",
+     "prompt": "A blade cracking into a hard fruit rind, one short woody crunch, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thick.6.652b0812dc.mp3",
+     "seconds": 0.274,
+     "from": "skin_thick__6.mp3",
+     "prompt": "A blade cracking into a hard fruit rind, one short woody crunch, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thick.7.44718a6a0f.mp3",
+     "seconds": 0.45,
+     "from": "skin_thick__7.mp3",
+     "prompt": "A blade cracking into a hard fruit rind, one short woody crunch, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thick.8.7a76f15d0a.mp3",
+     "seconds": 0.388,
+     "from": "skin_thick__8.mp3",
+     "prompt": "A blade cracking into a hard fruit rind, one short woody crunch, close-mic, dry studio"
     }
    ]
   },
@@ -285,6 +525,30 @@
      "file": "skin_thin.4.47ceb14f1f.mp3",
      "seconds": 0.35,
      "from": "skin_thin__4.mp3"
+    },
+    {
+     "file": "skin_thin.5.9c25ba6cda.mp3",
+     "seconds": 0.224,
+     "from": "skin_thin__5.mp3",
+     "prompt": "A blade nicking taut fruit skin, one tiny crisp snick, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thin.6.aef5edcaf8.mp3",
+     "seconds": 0.259,
+     "from": "skin_thin__6.mp3",
+     "prompt": "A blade nicking taut fruit skin, one tiny crisp snick, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thin.7.4e0f0260da.mp3",
+     "seconds": 0.35,
+     "from": "skin_thin__7.mp3",
+     "prompt": "A blade nicking taut fruit skin, one tiny crisp snick, close-mic, dry studio"
+    },
+    {
+     "file": "skin_thin.8.112e3ad3e8.mp3",
+     "seconds": 0.313,
+     "from": "skin_thin__8.mp3",
+     "prompt": "A blade nicking taut fruit skin, one tiny crisp snick, close-mic, dry studio"
     }
    ]
   },
@@ -293,24 +557,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "skin_soft.1.9581af0d24.mp3",
+     "file": "skin_soft.1.ecb433ad06.mp3",
      "seconds": 0.287,
      "from": "skin_soft__1.mp3"
     },
     {
-     "file": "skin_soft.2.324a6c4234.mp3",
+     "file": "skin_soft.2.0585625083.mp3",
      "seconds": 0.277,
      "from": "skin_soft__2.mp3"
     },
     {
-     "file": "skin_soft.3.0b872ae6ea.mp3",
+     "file": "skin_soft.3.05f1ef9c75.mp3",
      "seconds": 0.45,
      "from": "skin_soft__3.mp3"
     },
     {
-     "file": "skin_soft.4.6ad32f027e.mp3",
+     "file": "skin_soft.4.3469cf9740.mp3",
      "seconds": 0.448,
      "from": "skin_soft__4.mp3"
+    },
+    {
+     "file": "skin_soft.5.7e0f19af21.mp3",
+     "seconds": 0.45,
+     "from": "skin_soft__5.mp3",
+     "prompt": "A blade tearing into a soft fruit peel, one short wet rip, close-mic, dry studio"
+    },
+    {
+     "file": "skin_soft.6.2b58d4c2f6.mp3",
+     "seconds": 0.45,
+     "from": "skin_soft__6.mp3",
+     "prompt": "A blade tearing into a soft fruit peel, one short wet rip, close-mic, dry studio"
+    },
+    {
+     "file": "skin_soft.7.61de4a22a7.mp3",
+     "seconds": 0.441,
+     "from": "skin_soft__7.mp3",
+     "prompt": "A blade tearing into a soft fruit peel, one short wet rip, close-mic, dry studio"
+    },
+    {
+     "file": "skin_soft.8.c2bd0c4375.mp3",
+     "seconds": 0.294,
+     "from": "skin_soft__8.mp3",
+     "prompt": "A blade tearing into a soft fruit peel, one short wet rip, close-mic, dry studio"
     }
    ]
   },
@@ -319,7 +607,7 @@
    "kind": "shot",
    "files": [
     {
-     "file": "juice_s.1.3f7a2ff20d.mp3",
+     "file": "juice_s.1.9392b398b3.mp3",
      "seconds": 0.678,
      "from": "juice_s__1.mp3"
     },
@@ -329,7 +617,7 @@
      "from": "juice_s__2.mp3"
     },
     {
-     "file": "juice_s.3.6de00dfc2f.mp3",
+     "file": "juice_s.3.e0df7e97bb.mp3",
      "seconds": 0.358,
      "from": "juice_s__3.mp3"
     },
@@ -337,6 +625,30 @@
      "file": "juice_s.4.612347f722.mp3",
      "seconds": 0.294,
      "from": "juice_s__4.mp3"
+    },
+    {
+     "file": "juice_s.5.a34610c903.mp3",
+     "seconds": 0.508,
+     "from": "juice_s__5.mp3",
+     "prompt": "A few drops of fruit juice splattering on wood, a tiny wet patter, close-mic, dry studio"
+    },
+    {
+     "file": "juice_s.6.351f0b771d.mp3",
+     "seconds": 0.558,
+     "from": "juice_s__6.mp3",
+     "prompt": "A few drops of fruit juice splattering on wood, a tiny wet patter, close-mic, dry studio"
+    },
+    {
+     "file": "juice_s.7.573f484dcd.mp3",
+     "seconds": 0.518,
+     "from": "juice_s__7.mp3",
+     "prompt": "A few drops of fruit juice splattering on wood, a tiny wet patter, close-mic, dry studio"
+    },
+    {
+     "file": "juice_s.8.b60c3301f2.mp3",
+     "seconds": 0.413,
+     "from": "juice_s__8.mp3",
+     "prompt": "A few drops of fruit juice splattering on wood, a tiny wet patter, close-mic, dry studio"
     }
    ]
   },
@@ -360,9 +672,33 @@
      "from": "juice_m__3.mp3"
     },
     {
-     "file": "juice_m.4.27ccdd1822.mp3",
+     "file": "juice_m.4.4d0f602824.mp3",
      "seconds": 1.286,
      "from": "juice_m__4.mp3"
+    },
+    {
+     "file": "juice_m.5.263ed9beb2.mp3",
+     "seconds": 0.837,
+     "from": "juice_m__5.mp3",
+     "prompt": "A handful of wet fruit pulp splatting on a wooden deck, a juicy squelchy splash, close-mic, dry studio"
+    },
+    {
+     "file": "juice_m.6.662752aa6e.mp3",
+     "seconds": 0.938,
+     "from": "juice_m__6.mp3",
+     "prompt": "A handful of wet fruit pulp splatting on a wooden deck, a juicy squelchy splash, close-mic, dry studio"
+    },
+    {
+     "file": "juice_m.7.40aa5d5978.mp3",
+     "seconds": 1.226,
+     "from": "juice_m__7.mp3",
+     "prompt": "A handful of wet fruit pulp splatting on a wooden deck, a juicy squelchy splash, close-mic, dry studio"
+    },
+    {
+     "file": "juice_m.8.b0eeb2b963.mp3",
+     "seconds": 1.093,
+     "from": "juice_m__8.mp3",
+     "prompt": "A handful of wet fruit pulp splatting on a wooden deck, a juicy squelchy splash, close-mic, dry studio"
     }
    ]
   },
@@ -371,7 +707,7 @@
    "kind": "shot",
    "files": [
     {
-     "file": "juice_l.1.c52121bec9.mp3",
+     "file": "juice_l.1.cdcf63abca.mp3",
      "seconds": 1.556,
      "from": "juice_l__1.mp3"
     },
@@ -389,6 +725,30 @@
      "file": "juice_l.4.4adf5681b4.mp3",
      "seconds": 1.6,
      "from": "juice_l__4.mp3"
+    },
+    {
+     "file": "juice_l.5.f6f6c764a1.mp3",
+     "seconds": 1.6,
+     "from": "juice_l__5.mp3",
+     "prompt": "A burst of juice and pulp from a big fruit splashing down, a heavy wet slop with dripping, close-mic, dry studio"
+    },
+    {
+     "file": "juice_l.6.6186b460b2.mp3",
+     "seconds": 1.6,
+     "from": "juice_l__6.mp3",
+     "prompt": "A burst of juice and pulp from a big fruit splashing down, a heavy wet slop with dripping, close-mic, dry studio"
+    },
+    {
+     "file": "juice_l.7.8956024706.mp3",
+     "seconds": 1.6,
+     "from": "juice_l__7.mp3",
+     "prompt": "A burst of juice and pulp from a big fruit splashing down, a heavy wet slop with dripping, close-mic, dry studio"
+    },
+    {
+     "file": "juice_l.8.4cb69bb8ed.mp3",
+     "seconds": 1.6,
+     "from": "juice_l__8.mp3",
+     "prompt": "A burst of juice and pulp from a big fruit splashing down, a heavy wet slop with dripping, close-mic, dry studio"
     }
    ]
   },
@@ -428,7 +788,7 @@
      "from": "hack__1.mp3"
     },
     {
-     "file": "hack.2.3f9c1f93cd.mp3",
+     "file": "hack.2.06068d02af.mp3",
      "seconds": 0.6,
      "from": "hack__2.mp3"
     },
@@ -438,9 +798,33 @@
      "from": "hack__3.mp3"
     },
     {
-     "file": "hack.4.434679dca1.mp3",
+     "file": "hack.4.a7f1034006.mp3",
      "seconds": 0.6,
      "from": "hack__4.mp3"
+    },
+    {
+     "file": "hack.5.f28a2ce44b.mp3",
+     "seconds": 0.6,
+     "from": "hack__5.mp3",
+     "prompt": "A short electronic glitch, a quick scrambled digital chirp, dry"
+    },
+    {
+     "file": "hack.6.d22adf239f.mp3",
+     "seconds": 0.6,
+     "from": "hack__6.mp3",
+     "prompt": "A short electronic glitch, a quick scrambled digital chirp, dry"
+    },
+    {
+     "file": "hack.7.ededc16a26.mp3",
+     "seconds": 0.6,
+     "from": "hack__7.mp3",
+     "prompt": "A short electronic glitch, a quick scrambled digital chirp, dry"
+    },
+    {
+     "file": "hack.8.380141069b.mp3",
+     "seconds": 0.6,
+     "from": "hack__8.mp3",
+     "prompt": "A short electronic glitch, a quick scrambled digital chirp, dry"
     }
    ]
   },
@@ -467,6 +851,30 @@
      "file": "bounce.4.e64b0f7210.mp3",
      "seconds": 0.269,
      "from": "bounce__4.mp3"
+    },
+    {
+     "file": "bounce.5.89c6b529e4.mp3",
+     "seconds": 0.6,
+     "from": "bounce__5.mp3",
+     "prompt": "A fruit bouncing off the flat of a blade, one springy hollow bonk, close-mic, dry studio"
+    },
+    {
+     "file": "bounce.6.89a7992355.mp3",
+     "seconds": 0.6,
+     "from": "bounce__6.mp3",
+     "prompt": "A fruit bouncing off the flat of a blade, one springy hollow bonk, close-mic, dry studio"
+    },
+    {
+     "file": "bounce.7.b6326492f4.mp3",
+     "seconds": 0.6,
+     "from": "bounce__7.mp3",
+     "prompt": "A fruit bouncing off the flat of a blade, one springy hollow bonk, close-mic, dry studio"
+    },
+    {
+     "file": "bounce.8.9d027ed8e9.mp3",
+     "seconds": 0.6,
+     "from": "bounce__8.mp3",
+     "prompt": "A fruit bouncing off the flat of a blade, one springy hollow bonk, close-mic, dry studio"
     }
    ]
   },
@@ -475,24 +883,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "plop.1.87632aace6.mp3",
+     "file": "plop.1.d6774677cb.mp3",
      "seconds": 0.683,
      "from": "plop__1.mp3"
     },
     {
-     "file": "plop.2.08746a4dd8.mp3",
+     "file": "plop.2.b124fd9e26.mp3",
      "seconds": 0.588,
      "from": "plop__2.mp3"
     },
     {
-     "file": "plop.3.83a287d3c6.mp3",
+     "file": "plop.3.b026ef3f24.mp3",
      "seconds": 0.747,
      "from": "plop__3.mp3"
     },
     {
-     "file": "plop.4.aa09f0c97c.mp3",
+     "file": "plop.4.5fb05dc5ce.mp3",
      "seconds": 0.338,
      "from": "plop__4.mp3"
+    },
+    {
+     "file": "plop.5.f9fc753fc1.mp3",
+     "seconds": 0.9,
+     "from": "plop__5.mp3",
+     "prompt": "A small fruit falling into the sea some distance away, one light watery bloop, outdoors"
+    },
+    {
+     "file": "plop.6.87fb3ae0ef.mp3",
+     "seconds": 0.9,
+     "from": "plop__6.mp3",
+     "prompt": "A small fruit falling into the sea some distance away, one light watery bloop, outdoors"
+    },
+    {
+     "file": "plop.7.b172507a8d.mp3",
+     "seconds": 0.9,
+     "from": "plop__7.mp3",
+     "prompt": "A small fruit falling into the sea some distance away, one light watery bloop, outdoors"
+    },
+    {
+     "file": "plop.8.37b2a93c4b.mp3",
+     "seconds": 0.9,
+     "from": "plop__8.mp3",
+     "prompt": "A small fruit falling into the sea some distance away, one light watery bloop, outdoors"
     }
    ]
   },
@@ -545,6 +977,30 @@
      "file": "stick.4.a619ddafbb.mp3",
      "seconds": 1.2,
      "from": "stick__4.mp3"
+    },
+    {
+     "file": "stick.5.5b0b72667a.mp3",
+     "seconds": 0.649,
+     "from": "stick__5.mp3",
+     "prompt": "A katana stabbing into a wooden post, one solid wooden thunk and a short metal hum, close-mic"
+    },
+    {
+     "file": "stick.6.90d9384082.mp3",
+     "seconds": 0.857,
+     "from": "stick__6.mp3",
+     "prompt": "A katana stabbing into a wooden post, one solid wooden thunk and a short metal hum, close-mic"
+    },
+    {
+     "file": "stick.7.edaf99141d.mp3",
+     "seconds": 0.684,
+     "from": "stick__7.mp3",
+     "prompt": "A katana stabbing into a wooden post, one solid wooden thunk and a short metal hum, close-mic"
+    },
+    {
+     "file": "stick.8.e74c665f51.mp3",
+     "seconds": 0.898,
+     "from": "stick__8.mp3",
+     "prompt": "A katana stabbing into a wooden post, one solid wooden thunk and a short metal hum, close-mic"
     }
    ]
   },
@@ -553,17 +1009,17 @@
    "kind": "shot",
    "files": [
     {
-     "file": "swing_light.1.899efc3ded.mp3",
+     "file": "swing_light.1.0a9dc3920f.mp3",
      "seconds": 0.398,
      "from": "swing_light__1.mp3"
     },
     {
-     "file": "swing_light.2.11480e1e39.mp3",
+     "file": "swing_light.2.fa9081868b.mp3",
      "seconds": 0.8,
      "from": "swing_light__2.mp3"
     },
     {
-     "file": "swing_light.3.c3f7c97b9d.mp3",
+     "file": "swing_light.3.b8b48bbeca.mp3",
      "seconds": 0.284,
      "from": "swing_light__3.mp3"
     },
@@ -571,6 +1027,30 @@
      "file": "swing_light.4.0b06466544.mp3",
      "seconds": 0.568,
      "from": "swing_light__4.mp3"
+    },
+    {
+     "file": "swing_light.5.8819a46638.mp3",
+     "seconds": 0.184,
+     "from": "swing_light__5.mp3",
+     "prompt": "A thin blade whipped through the air, one soft fast airy swish, close-mic, dry studio"
+    },
+    {
+     "file": "swing_light.6.c9d5450267.mp3",
+     "seconds": 0.174,
+     "from": "swing_light__6.mp3",
+     "prompt": "A thin blade whipped through the air, one soft fast airy swish, close-mic, dry studio"
+    },
+    {
+     "file": "swing_light.7.7e988842da.mp3",
+     "seconds": 0.194,
+     "from": "swing_light__7.mp3",
+     "prompt": "A thin blade whipped through the air, one soft fast airy swish, close-mic, dry studio"
+    },
+    {
+     "file": "swing_light.8.1ee57eeb82.mp3",
+     "seconds": 0.174,
+     "from": "swing_light__8.mp3",
+     "prompt": "A thin blade whipped through the air, one soft fast airy swish, close-mic, dry studio"
     }
    ]
   },
@@ -597,6 +1077,30 @@
      "file": "swing_med.4.d51866b13d.mp3",
      "seconds": 0.413,
      "from": "swing_med__4.mp3"
+    },
+    {
+     "file": "swing_med.5.7bb1fae10a.mp3",
+     "seconds": 0.483,
+     "from": "swing_med__5.mp3",
+     "prompt": "A sword cutting through the air in one quick stroke, a crisp swoosh with a light metallic edge, close-mic, dry studio"
+    },
+    {
+     "file": "swing_med.6.0561476b00.mp3",
+     "seconds": 0.568,
+     "from": "swing_med__6.mp3",
+     "prompt": "A sword cutting through the air in one quick stroke, a crisp swoosh with a light metallic edge, close-mic, dry studio"
+    },
+    {
+     "file": "swing_med.7.e430756ac4.mp3",
+     "seconds": 0.443,
+     "from": "swing_med__7.mp3",
+     "prompt": "A sword cutting through the air in one quick stroke, a crisp swoosh with a light metallic edge, close-mic, dry studio"
+    },
+    {
+     "file": "swing_med.8.1efb50ded1.mp3",
+     "seconds": 0.624,
+     "from": "swing_med__8.mp3",
+     "prompt": "A sword cutting through the air in one quick stroke, a crisp swoosh with a light metallic edge, close-mic, dry studio"
     }
    ]
   },
@@ -623,6 +1127,30 @@
      "file": "swing_hard.4.54c4196998.mp3",
      "seconds": 0.438,
      "from": "swing_hard__4.mp3"
+    },
+    {
+     "file": "swing_hard.5.3f4d21faf5.mp3",
+     "seconds": 0.952,
+     "from": "swing_hard__5.mp3",
+     "prompt": "A heavy steel blade slashed through the air with full force, a deep ripping whoosh and a sharp metallic zing, close-mic, dry studio"
+    },
+    {
+     "file": "swing_hard.6.beb124272f.mp3",
+     "seconds": 0.762,
+     "from": "swing_hard__6.mp3",
+     "prompt": "A heavy steel blade slashed through the air with full force, a deep ripping whoosh and a sharp metallic zing, close-mic, dry studio"
+    },
+    {
+     "file": "swing_hard.7.417b1e5dd9.mp3",
+     "seconds": 0.882,
+     "from": "swing_hard__7.mp3",
+     "prompt": "A heavy steel blade slashed through the air with full force, a deep ripping whoosh and a sharp metallic zing, close-mic, dry studio"
+    },
+    {
+     "file": "swing_hard.8.b852bb5ae9.mp3",
+     "seconds": 0.817,
+     "from": "swing_hard__8.mp3",
+     "prompt": "A heavy steel blade slashed through the air with full force, a deep ripping whoosh and a sharp metallic zing, close-mic, dry studio"
     }
    ]
   },
@@ -631,24 +1159,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "flick.1.89f700d546.mp3",
+     "file": "flick.1.ce75cd2fcb.mp3",
      "seconds": 0.373,
      "from": "flick__1.mp3"
     },
     {
-     "file": "flick.2.0b9b851809.mp3",
+     "file": "flick.2.2f900a57f2.mp3",
      "seconds": 0.342,
      "from": "flick__2.mp3"
     },
     {
-     "file": "flick.3.15670d216d.mp3",
+     "file": "flick.3.3cf5ddff3a.mp3",
      "seconds": 0.259,
      "from": "flick__3.mp3"
     },
     {
-     "file": "flick.4.f1d1be8227.mp3",
+     "file": "flick.4.21d5be910a.mp3",
      "seconds": 0.219,
      "from": "flick__4.mp3"
+    },
+    {
+     "file": "flick.5.6a9058a648.mp3",
+     "seconds": 0.5,
+     "from": "flick__5.mp3",
+     "prompt": "A thin cane snapped through the air with a quick wrist turn, one tiny sharp whip, close-mic, dry studio"
+    },
+    {
+     "file": "flick.6.1fbad5b012.mp3",
+     "seconds": 0.259,
+     "from": "flick__6.mp3",
+     "prompt": "A thin cane snapped through the air with a quick wrist turn, one tiny sharp whip, close-mic, dry studio"
+    },
+    {
+     "file": "flick.7.7b3ed1301a.mp3",
+     "seconds": 0.5,
+     "from": "flick__7.mp3",
+     "prompt": "A thin cane snapped through the air with a quick wrist turn, one tiny sharp whip, close-mic, dry studio"
+    },
+    {
+     "file": "flick.8.4571f7b624.mp3",
+     "seconds": 0.5,
+     "from": "flick__8.mp3",
+     "prompt": "A thin cane snapped through the air with a quick wrist turn, one tiny sharp whip, close-mic, dry studio"
     }
    ]
   },
@@ -657,24 +1209,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "empty.1.cd658adc28.mp3",
+     "file": "empty.1.f4c410adcf.mp3",
      "seconds": 0.658,
      "from": "empty__1.mp3"
     },
     {
-     "file": "empty.2.f338022d38.mp3",
+     "file": "empty.2.98fd843030.mp3",
      "seconds": 0.9,
      "from": "empty__2.mp3"
     },
     {
-     "file": "empty.3.ee05372e81.mp3",
+     "file": "empty.3.5879c08484.mp3",
      "seconds": 0.787,
      "from": "empty__3.mp3"
     },
     {
-     "file": "empty.4.bc9a3e88d4.mp3",
+     "file": "empty.4.02d692f347.mp3",
      "seconds": 0.303,
      "from": "empty__4.mp3"
+    },
+    {
+     "file": "empty.5.69e541de79.mp3",
+     "seconds": 0.578,
+     "from": "empty__5.mp3",
+     "prompt": "An exhausted weak swing of a blunt sword, one slow sagging whoosh fading out, close-mic, dry studio"
+    },
+    {
+     "file": "empty.6.82a1ecd3b9.mp3",
+     "seconds": 0.872,
+     "from": "empty__6.mp3",
+     "prompt": "An exhausted weak swing of a blunt sword, one slow sagging whoosh fading out, close-mic, dry studio"
+    },
+    {
+     "file": "empty.7.32b6f8c6c6.mp3",
+     "seconds": 0.738,
+     "from": "empty__7.mp3",
+     "prompt": "An exhausted weak swing of a blunt sword, one slow sagging whoosh fading out, close-mic, dry studio"
+    },
+    {
+     "file": "empty.8.1b7c2c6928.mp3",
+     "seconds": 0.9,
+     "from": "empty__8.mp3",
+     "prompt": "An exhausted weak swing of a blunt sword, one slow sagging whoosh fading out, close-mic, dry studio"
     }
    ]
   },
@@ -787,24 +1363,42 @@
    "kind": "shot",
    "files": [
     {
-     "file": "cloth_snap.1.ffb4ae79df.mp3",
+     "file": "cloth_snap.1.3caf470884.mp3",
      "seconds": 0.174,
      "from": "cloth_snap__1.mp3"
     },
     {
-     "file": "cloth_snap.2.a5090ca045.mp3",
+     "file": "cloth_snap.2.7164ca0ce1.mp3",
      "seconds": 0.169,
      "from": "cloth_snap__2.mp3"
     },
     {
-     "file": "cloth_snap.3.4602c58483.mp3",
+     "file": "cloth_snap.3.d69ad74e7d.mp3",
      "seconds": 0.6,
      "from": "cloth_snap__3.mp3"
     },
     {
-     "file": "cloth_snap.4.c90a6cf54e.mp3",
+     "file": "cloth_snap.4.460d4667fa.mp3",
      "seconds": 0.6,
      "from": "cloth_snap__4.mp3"
+    },
+    {
+     "file": "cloth_snap.5.98ec63616a.mp3",
+     "seconds": 0.6,
+     "from": "cloth_snap__5.mp3",
+     "prompt": "A cotton gi sleeve whipping with a fast punch, one sharp crack of fabric, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_snap.6.b983de840e.mp3",
+     "seconds": 0.6,
+     "from": "cloth_snap__6.mp3",
+     "prompt": "A cotton gi sleeve whipping with a fast punch, one sharp crack of fabric, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_snap.7.af8674bc18.mp3",
+     "seconds": 0.6,
+     "from": "cloth_snap__8.mp3",
+     "prompt": "A cotton gi sleeve whipping with a fast punch, one sharp crack of fabric, close-mic, dry studio"
     }
    ]
   },
@@ -818,7 +1412,7 @@
      "from": "cloth_rustle__1.mp3"
     },
     {
-     "file": "cloth_rustle.2.2c93c34207.mp3",
+     "file": "cloth_rustle.2.945b97e664.mp3",
      "seconds": 0.825,
      "from": "cloth_rustle__2.mp3"
     },
@@ -831,6 +1425,30 @@
      "file": "cloth_rustle.4.3120a7d55b.mp3",
      "seconds": 0.498,
      "from": "cloth_rustle__4.mp3"
+    },
+    {
+     "file": "cloth_rustle.5.30de1eec96.mp3",
+     "seconds": 0.451,
+     "from": "cloth_rustle__5.mp3",
+     "prompt": "A light linen robe brushing as someone shifts their weight, one quiet soft rustle, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_rustle.6.801fa57bdc.mp3",
+     "seconds": 0.493,
+     "from": "cloth_rustle__6.mp3",
+     "prompt": "A light linen robe brushing as someone shifts their weight, one quiet soft rustle, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_rustle.7.d29012c992.mp3",
+     "seconds": 0.84,
+     "from": "cloth_rustle__6.mp3",
+     "prompt": "A light linen robe brushing as someone shifts their weight, one quiet soft rustle, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_rustle.8.6c785f5c43.mp3",
+     "seconds": 0.9,
+     "from": "cloth_rustle__7.mp3",
+     "prompt": "A light linen robe brushing as someone shifts their weight, one quiet soft rustle, close-mic, dry studio"
     }
    ]
   },
@@ -839,24 +1457,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "cloth_crouch.1.e33034a794.mp3",
+     "file": "cloth_crouch.1.5e222d6b56.mp3",
      "seconds": 0.9,
      "from": "cloth_crouch__1.mp3"
     },
     {
-     "file": "cloth_crouch.2.2a48e734c7.mp3",
+     "file": "cloth_crouch.2.d606e788e8.mp3",
      "seconds": 0.9,
      "from": "cloth_crouch__2.mp3"
     },
     {
-     "file": "cloth_crouch.3.ec75c34fc7.mp3",
+     "file": "cloth_crouch.3.53a0775214.mp3",
      "seconds": 0.9,
      "from": "cloth_crouch__3.mp3"
     },
     {
-     "file": "cloth_crouch.4.feafded903.mp3",
+     "file": "cloth_crouch.4.e8e2bba44a.mp3",
      "seconds": 0.9,
      "from": "cloth_crouch__4.mp3"
+    },
+    {
+     "file": "cloth_crouch.5.b654c14d12.mp3",
+     "seconds": 0.9,
+     "from": "cloth_crouch__5.mp3",
+     "prompt": "A thick fabric jacket bunching up as someone ducks low, one muffled soft swish, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_crouch.6.c8caf263f6.mp3",
+     "seconds": 0.857,
+     "from": "cloth_crouch__6.mp3",
+     "prompt": "A thick fabric jacket bunching up as someone ducks low, one muffled soft swish, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_crouch.7.ea32415620.mp3",
+     "seconds": 0.9,
+     "from": "cloth_crouch__7.mp3",
+     "prompt": "A thick fabric jacket bunching up as someone ducks low, one muffled soft swish, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_crouch.8.8ed516e183.mp3",
+     "seconds": 0.88,
+     "from": "cloth_crouch__8.mp3",
+     "prompt": "A thick fabric jacket bunching up as someone ducks low, one muffled soft swish, close-mic, dry studio"
     }
    ]
   },
@@ -883,6 +1525,30 @@
      "file": "cloth_hop.4.cdbcb2900a.mp3",
      "seconds": 0.628,
      "from": "cloth_hop__4.mp3"
+    },
+    {
+     "file": "cloth_hop.5.1132aa3789.mp3",
+     "seconds": 0.782,
+     "from": "cloth_hop__5.mp3",
+     "prompt": "A small figure in a loose robe springing upward, one quick whoosh of fabric, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_hop.6.57e98b7db3.mp3",
+     "seconds": 0.713,
+     "from": "cloth_hop__6.mp3",
+     "prompt": "A small figure in a loose robe springing upward, one quick whoosh of fabric, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_hop.7.9d7ea23219.mp3",
+     "seconds": 0.8,
+     "from": "cloth_hop__7.mp3",
+     "prompt": "A small figure in a loose robe springing upward, one quick whoosh of fabric, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_hop.8.aeee1ec3c4.mp3",
+     "seconds": 0.8,
+     "from": "cloth_hop__8.mp3",
+     "prompt": "A small figure in a loose robe springing upward, one quick whoosh of fabric, close-mic, dry studio"
     }
    ]
   },
@@ -891,24 +1557,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "land.1.f2f3d7664a.mp3",
+     "file": "land.1.44acab36f9.mp3",
      "seconds": 0.558,
      "from": "land__1.mp3"
     },
     {
-     "file": "land.2.145d2f68e8.mp3",
+     "file": "land.2.677c033fc8.mp3",
      "seconds": 0.618,
      "from": "land__2.mp3"
     },
     {
-     "file": "land.3.79e226e362.mp3",
+     "file": "land.3.e712f4e889.mp3",
      "seconds": 0.7,
      "from": "land__3.mp3"
     },
     {
-     "file": "land.4.6119964309.mp3",
+     "file": "land.4.77a7399c6f.mp3",
      "seconds": 0.7,
      "from": "land__4.mp3"
+    },
+    {
+     "file": "land.5.0eb61c0a5b.mp3",
+     "seconds": 0.254,
+     "from": "land__5.mp3",
+     "prompt": "Small webbed feet landing on a wooden post, one soft damp pat, close-mic, dry studio"
+    },
+    {
+     "file": "land.6.3b3ed24d29.mp3",
+     "seconds": 0.308,
+     "from": "land__6.mp3",
+     "prompt": "Small webbed feet landing on a wooden post, one soft damp pat, close-mic, dry studio"
+    },
+    {
+     "file": "land.7.b37872afaa.mp3",
+     "seconds": 0.7,
+     "from": "land__7.mp3",
+     "prompt": "Small webbed feet landing on a wooden post, one soft damp pat, close-mic, dry studio"
+    },
+    {
+     "file": "land.8.e225c93b27.mp3",
+     "seconds": 0.308,
+     "from": "land__8.mp3",
+     "prompt": "Small webbed feet landing on a wooden post, one soft damp pat, close-mic, dry studio"
     }
    ]
   },
@@ -917,24 +1607,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "cloth_flutter.1.2550516f62.mp3",
+     "file": "cloth_flutter.1.7b91acab40.mp3",
      "seconds": 1.3,
      "from": "cloth_flutter__1.mp3"
     },
     {
-     "file": "cloth_flutter.2.feb841708f.mp3",
+     "file": "cloth_flutter.2.5cbc164d24.mp3",
      "seconds": 1.3,
      "from": "cloth_flutter__2.mp3"
     },
     {
-     "file": "cloth_flutter.3.4e444e87d6.mp3",
+     "file": "cloth_flutter.3.3f40594f97.mp3",
      "seconds": 1.002,
      "from": "cloth_flutter__3.mp3"
     },
     {
-     "file": "cloth_flutter.4.c1978e9e04.mp3",
+     "file": "cloth_flutter.4.8ec212555e.mp3",
      "seconds": 1.142,
      "from": "cloth_flutter__4.mp3"
+    },
+    {
+     "file": "cloth_flutter.5.f1f482b626.mp3",
+     "seconds": 1.3,
+     "from": "cloth_flutter__5.mp3",
+     "prompt": "Silk ribbons and a loose robe whipping around in a fast twirl, a short fluttering flap, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_flutter.6.baab31c51b.mp3",
+     "seconds": 1.3,
+     "from": "cloth_flutter__6.mp3",
+     "prompt": "Silk ribbons and a loose robe whipping around in a fast twirl, a short fluttering flap, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_flutter.7.5cfe3dc0e2.mp3",
+     "seconds": 0.259,
+     "from": "cloth_flutter__7.mp3",
+     "prompt": "Silk ribbons and a loose robe whipping around in a fast twirl, a short fluttering flap, close-mic, dry studio"
+    },
+    {
+     "file": "cloth_flutter.8.bab8b5e592.mp3",
+     "seconds": 1.296,
+     "from": "cloth_flutter__8.mp3",
+     "prompt": "Silk ribbons and a loose robe whipping around in a fast twirl, a short fluttering flap, close-mic, dry studio"
     }
    ]
   },
@@ -1047,12 +1761,12 @@
    "kind": "shot",
    "files": [
     {
-     "file": "tongue_out.1.e8bebf2dd0.mp3",
+     "file": "tongue_out.1.66ac3352d8.mp3",
      "seconds": 0.219,
      "from": "tongue_out__1.mp3"
     },
     {
-     "file": "tongue_out.2.8108ae5079.mp3",
+     "file": "tongue_out.2.8c8cb2cd98.mp3",
      "seconds": 0.264,
      "from": "tongue_out__2.mp3"
     },
@@ -1062,9 +1776,33 @@
      "from": "tongue_out__3.mp3"
     },
     {
-     "file": "tongue_out.4.658d4df50d.mp3",
+     "file": "tongue_out.4.62be805e5a.mp3",
      "seconds": 0.239,
      "from": "tongue_out__4.mp3"
+    },
+    {
+     "file": "tongue_out.5.11ef8c699f.mp3",
+     "seconds": 0.6,
+     "from": "tongue_out__5.mp3",
+     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
+    },
+    {
+     "file": "tongue_out.6.167a44f8bc.mp3",
+     "seconds": 0.6,
+     "from": "tongue_out__6.mp3",
+     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
+    },
+    {
+     "file": "tongue_out.7.a0a2e629a8.mp3",
+     "seconds": 0.6,
+     "from": "tongue_out__7.mp3",
+     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
+    },
+    {
+     "file": "tongue_out.8.bc6e1a1074.mp3",
+     "seconds": 0.476,
+     "from": "tongue_out__7.mp3",
+     "prompt": "A cartoon frog's long sticky tongue shooting out, one fast wet elastic thwip, close-mic, dry studio"
     }
    ]
   },
@@ -1073,24 +1811,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "catch.1.b849731c48.mp3",
+     "file": "catch.1.0ab911870d.mp3",
      "seconds": 0.6,
      "from": "catch__1.mp3"
     },
     {
-     "file": "catch.2.91c630d123.mp3",
+     "file": "catch.2.92597d770a.mp3",
      "seconds": 0.393,
      "from": "catch__2.mp3"
     },
     {
-     "file": "catch.3.bc55a11a2a.mp3",
+     "file": "catch.3.ba802fd3f9.mp3",
      "seconds": 0.6,
      "from": "catch__3.mp3"
     },
     {
-     "file": "catch.4.6f62959c04.mp3",
+     "file": "catch.4.f95a337362.mp3",
      "seconds": 0.347,
      "from": "catch__4.mp3"
+    },
+    {
+     "file": "catch.5.332f777c56.mp3",
+     "seconds": 0.28,
+     "from": "catch__6.mp3",
+     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
+    },
+    {
+     "file": "catch.6.fa8dfdd928.mp3",
+     "seconds": 0.302,
+     "from": "catch__6.mp3",
+     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
+    },
+    {
+     "file": "catch.7.7d82aa58da.mp3",
+     "seconds": 0.6,
+     "from": "catch__7.mp3",
+     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
+    },
+    {
+     "file": "catch.8.5a1a4ded85.mp3",
+     "seconds": 0.439,
+     "from": "catch__8.mp3",
+     "prompt": "A sticky tongue grabbing a small object, one wet sucking smack, close-mic, dry studio"
     }
    ]
   },
@@ -1104,7 +1866,7 @@
      "from": "catch_heavy__1.mp3"
     },
     {
-     "file": "catch_heavy.2.8d7f87c5a4.mp3",
+     "file": "catch_heavy.2.e93a22fd81.mp3",
      "seconds": 0.224,
      "from": "catch_heavy__2.mp3"
     },
@@ -1117,6 +1879,30 @@
      "file": "catch_heavy.4.c5dedfebbb.mp3",
      "seconds": 0.204,
      "from": "catch_heavy__4.mp3"
+    },
+    {
+     "file": "catch_heavy.5.ace6b59ff1.mp3",
+     "seconds": 0.638,
+     "from": "catch_heavy__5.mp3",
+     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
+    },
+    {
+     "file": "catch_heavy.6.cda1b1568b.mp3",
+     "seconds": 0.7,
+     "from": "catch_heavy__6.mp3",
+     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
+    },
+    {
+     "file": "catch_heavy.7.17d4c277f5.mp3",
+     "seconds": 0.7,
+     "from": "catch_heavy__7.mp3",
+     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
+    },
+    {
+     "file": "catch_heavy.8.bb4798e7ed.mp3",
+     "seconds": 0.7,
+     "from": "catch_heavy__8.mp3",
+     "prompt": "A sticky tongue slapping onto something heavy, a dull wet thud with a stretchy creak, close-mic, dry studio"
     }
    ]
   },
@@ -1135,34 +1921,36 @@
      "from": "grunt__2.mp3"
     },
     {
-     "file": "grunt.3.5914ae3fff.mp3",
-     "seconds": 0.219,
-     "from": "grunt__3.mp3"
-    },
-    {
-     "file": "grunt.4.ce5a00c109.mp3",
+     "file": "grunt.3.ce5a00c109.mp3",
      "seconds": 0.259,
      "from": "grunt__4.mp3"
     },
     {
-     "file": "grunt.5.8ca89514d1.mp3",
+     "file": "grunt.4.8ca89514d1.mp3",
      "seconds": 0.284,
      "from": "grunt__5.mp3"
     },
     {
-     "file": "grunt.6.ae62093a66.mp3",
-     "seconds": 0.299,
-     "from": "grunt__6.mp3"
-    },
-    {
-     "file": "grunt.7.a788d2497a.mp3",
+     "file": "grunt.5.a788d2497a.mp3",
      "seconds": 0.423,
      "from": "grunt__7.mp3"
     },
     {
-     "file": "grunt.8.9beb69da1b.mp3",
+     "file": "grunt.6.9beb69da1b.mp3",
      "seconds": 0.214,
      "from": "grunt__8.mp3"
+    },
+    {
+     "file": "grunt.7.96bca8dfe6.mp3",
+     "seconds": 0.299,
+     "from": "grunt__11.mp3",
+     "prompt": "A small cartoon frog warrior giving one short punchy 'hyup!' as it strikes, throaty and cute, close-mic, dry studio"
+    },
+    {
+     "file": "grunt.8.01abdd5aaa.mp3",
+     "seconds": 0.279,
+     "from": "grunt__12.mp3",
+     "prompt": "A small cartoon frog warrior giving one short punchy 'hyup!' as it strikes, throaty and cute, close-mic, dry studio"
     }
    ]
   },
@@ -1171,24 +1959,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "pant.1.89fe756725.mp3",
+     "file": "pant.1.2b10273e21.mp3",
      "seconds": 1.5,
      "from": "pant__1.mp3"
     },
     {
-     "file": "pant.2.08ce009545.mp3",
+     "file": "pant.2.76126e5c30.mp3",
      "seconds": 1.5,
      "from": "pant__2.mp3"
     },
     {
-     "file": "pant.3.5c9c4a6cb3.mp3",
+     "file": "pant.3.172b24d191.mp3",
      "seconds": 1.5,
      "from": "pant__3.mp3"
     },
     {
-     "file": "pant.4.266958dd41.mp3",
+     "file": "pant.4.98d73df515.mp3",
      "seconds": 1.5,
      "from": "pant__4.mp3"
+    },
+    {
+     "file": "pant.5.76b9e49d2d.mp3",
+     "seconds": 1.5,
+     "from": "pant__5.mp3",
+     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
+    },
+    {
+     "file": "pant.6.f63bdee007.mp3",
+     "seconds": 1.5,
+     "from": "pant__6.mp3",
+     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
+    },
+    {
+     "file": "pant.7.5ed4ff5c25.mp3",
+     "seconds": 1.5,
+     "from": "pant__7.mp3",
+     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
+    },
+    {
+     "file": "pant.8.41dac709ad.mp3",
+     "seconds": 1.5,
+     "from": "pant__8.mp3",
+     "prompt": "A small cartoon frog panting from exhaustion, two short huffy breaths, close-mic, dry studio"
     }
    ]
   },
@@ -1259,24 +2071,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "gulp.1.7de4e2e663.mp3",
+     "file": "gulp.1.1b16263f2e.mp3",
      "seconds": 0.546,
      "from": "gulp__1.mp3"
     },
     {
-     "file": "gulp.2.4131c68e1d.mp3",
+     "file": "gulp.2.cf76684d47.mp3",
      "seconds": 0.543,
      "from": "gulp__2.mp3"
     },
     {
-     "file": "gulp.3.134a33061f.mp3",
+     "file": "gulp.3.76c3180b99.mp3",
      "seconds": 0.571,
      "from": "gulp__3.mp3"
     },
     {
-     "file": "gulp.4.8b63ee7660.mp3",
+     "file": "gulp.4.b0e2240a6c.mp3",
      "seconds": 0.721,
      "from": "gulp__4.mp3"
+    },
+    {
+     "file": "gulp.5.f30f883047.mp3",
+     "seconds": 0.742,
+     "from": "gulp__5.mp3",
+     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
+    },
+    {
+     "file": "gulp.6.52e4374fec.mp3",
+     "seconds": 0.728,
+     "from": "gulp__6.mp3",
+     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
+    },
+    {
+     "file": "gulp.7.e859bb484d.mp3",
+     "seconds": 0.498,
+     "from": "gulp__7.mp3",
+     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
+    },
+    {
+     "file": "gulp.8.1f7b5f042e.mp3",
+     "seconds": 0.578,
+     "from": "gulp__8.mp3",
+     "prompt": "A small cartoon frog swallowing something whole, one big bubbly throaty gulp, close-mic, dry studio"
     }
    ]
   },
@@ -1545,24 +2381,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "burn.1.d7c1e773e8.mp3",
+     "file": "burn.1.76c8d28152.mp3",
      "seconds": 1.0,
      "from": "burn__1.mp3"
     },
     {
-     "file": "burn.2.9eb49af0e4.mp3",
+     "file": "burn.2.22100f6312.mp3",
      "seconds": 1.0,
      "from": "burn__2.mp3"
     },
     {
-     "file": "burn.3.b4896b8f04.mp3",
+     "file": "burn.3.df405952d0.mp3",
      "seconds": 1.0,
      "from": "burn__3.mp3"
     },
     {
-     "file": "burn.4.fb9eaac50f.mp3",
+     "file": "burn.4.f92487f231.mp3",
      "seconds": 1.0,
      "from": "burn__4.mp3"
+    },
+    {
+     "file": "burn.5.5c409007c0.mp3",
+     "seconds": 1.0,
+     "from": "burn__5.mp3",
+     "prompt": "A slice of juicy fruit dropped onto a hot grill, a quick sharp hiss and crackle, close-mic"
+    },
+    {
+     "file": "burn.6.e8f948cdf0.mp3",
+     "seconds": 1.0,
+     "from": "burn__6.mp3",
+     "prompt": "A slice of juicy fruit dropped onto a hot grill, a quick sharp hiss and crackle, close-mic"
+    },
+    {
+     "file": "burn.7.ca4f5a42db.mp3",
+     "seconds": 1.0,
+     "from": "burn__7.mp3",
+     "prompt": "A slice of juicy fruit dropped onto a hot grill, a quick sharp hiss and crackle, close-mic"
+    },
+    {
+     "file": "burn.8.aa23292334.mp3",
+     "seconds": 1.0,
+     "from": "burn__8.mp3",
+     "prompt": "A slice of juicy fruit dropped onto a hot grill, a quick sharp hiss and crackle, close-mic"
     }
    ]
   },
@@ -1920,19 +2780,37 @@
      "from": "boom_small__1.mp3"
     },
     {
-     "file": "boom_small.2.7c06d4d3ff.mp3",
+     "file": "boom_small.2.69946b3e30.mp3",
      "seconds": 1.496,
      "from": "boom_small__2.mp3"
     },
     {
-     "file": "boom_small.3.266ae32291.mp3",
+     "file": "boom_small.3.db158a2275.mp3",
      "seconds": 1.427,
      "from": "boom_small__3.mp3"
     },
     {
-     "file": "boom_small.4.814c9427bb.mp3",
+     "file": "boom_small.4.952d5853cd.mp3",
      "seconds": 2.016,
      "from": "boom_small__4.mp3"
+    },
+    {
+     "file": "boom_small.5.13cf5f96b4.mp3",
+     "seconds": 2.2,
+     "from": "boom_small__5.mp3",
+     "prompt": "A small firework rocket bursting overhead, one crisp crack and a fizzing sparkle, outdoors"
+    },
+    {
+     "file": "boom_small.6.a7ca285906.mp3",
+     "seconds": 2.2,
+     "from": "boom_small__7.mp3",
+     "prompt": "A small firework rocket bursting overhead, one crisp crack and a fizzing sparkle, outdoors"
+    },
+    {
+     "file": "boom_small.7.c1c106c096.mp3",
+     "seconds": 2.2,
+     "from": "boom_small__8.mp3",
+     "prompt": "A small firework rocket bursting overhead, one crisp crack and a fizzing sparkle, outdoors"
     }
    ]
   },
@@ -1985,6 +2863,30 @@
      "file": "crate_break.4.d3b88360f4.mp3",
      "seconds": 1.446,
      "from": "crate_break__4.mp3"
+    },
+    {
+     "file": "crate_break.5.2e337246ff.mp3",
+     "seconds": 0.548,
+     "from": "crate_break__5.mp3",
+     "prompt": "A wooden fruit crate bursting apart, a sharp crack of planks and fruit thudding out, close-mic, dry"
+    },
+    {
+     "file": "crate_break.6.e737bc28f3.mp3",
+     "seconds": 0.318,
+     "from": "crate_break__6.mp3",
+     "prompt": "A wooden fruit crate bursting apart, a sharp crack of planks and fruit thudding out, close-mic, dry"
+    },
+    {
+     "file": "crate_break.7.7cab5c5f01.mp3",
+     "seconds": 0.937,
+     "from": "crate_break__7.mp3",
+     "prompt": "A wooden fruit crate bursting apart, a sharp crack of planks and fruit thudding out, close-mic, dry"
+    },
+    {
+     "file": "crate_break.8.ae812342d9.mp3",
+     "seconds": 0.249,
+     "from": "crate_break__8.mp3",
+     "prompt": "A wooden fruit crate bursting apart, a sharp crack of planks and fruit thudding out, close-mic, dry"
     }
    ]
   },
@@ -2045,12 +2947,12 @@
    "kind": "shot",
    "files": [
     {
-     "file": "gull.1.dd484feb72.mp3",
+     "file": "gull.1.5fbbf5984f.mp3",
      "seconds": 1.7,
      "from": "gull__1.mp3"
     },
     {
-     "file": "gull.2.5fb07e3506.mp3",
+     "file": "gull.2.473305f5b8.mp3",
      "seconds": 1.7,
      "from": "gull__2.mp3"
     },
@@ -2060,9 +2962,33 @@
      "from": "gull__3.mp3"
     },
     {
-     "file": "gull.4.e832c6c58c.mp3",
+     "file": "gull.4.406c8a8cc3.mp3",
      "seconds": 1.7,
      "from": "gull__4.mp3"
+    },
+    {
+     "file": "gull.5.d6b79ec35d.mp3",
+     "seconds": 0.563,
+     "from": "gull__5.mp3",
+     "prompt": "A seagull squawking angrily up close, one harsh scolding call, outdoors"
+    },
+    {
+     "file": "gull.6.e6e1a733ce.mp3",
+     "seconds": 1.7,
+     "from": "gull__6.mp3",
+     "prompt": "A seagull squawking angrily up close, one harsh scolding call, outdoors"
+    },
+    {
+     "file": "gull.7.68449c9758.mp3",
+     "seconds": 1.69,
+     "from": "gull__7.mp3",
+     "prompt": "A seagull squawking angrily up close, one harsh scolding call, outdoors"
+    },
+    {
+     "file": "gull.8.7c3f007c0a.mp3",
+     "seconds": 1.516,
+     "from": "gull__8.mp3",
+     "prompt": "A seagull squawking angrily up close, one harsh scolding call, outdoors"
     }
    ]
   },
@@ -2357,29 +3283,48 @@
    "kind": "shot",
    "files": [
     {
-     "file": "ui.1.d3bf02df35.mp3",
-     "seconds": 0.35,
-     "from": "ui__1.mp3"
-    },
-    {
-     "file": "ui.2.0db722decc.mp3",
+     "file": "ui.1.a12dd101ee.mp3",
      "seconds": 0.35,
      "from": "ui__2.mp3"
     },
     {
-     "file": "ui.3.a1b54f3da7.mp3",
+     "file": "ui.2.3ee0e9d8fe.mp3",
      "seconds": 0.35,
      "from": "ui__3.mp3"
     },
     {
-     "file": "ui.4.e8b231640c.mp3",
+     "file": "ui.3.059df03a75.mp3",
      "seconds": 0.35,
      "from": "ui__4.mp3"
     },
     {
-     "file": "ui.5.0bc518cbde.mp3",
+     "file": "ui.4.f8acad8059.mp3",
      "seconds": 0.35,
      "from": "ui__4.mp3"
+    },
+    {
+     "file": "ui.5.d9ed9f67dd.mp3",
+     "seconds": 0.279,
+     "from": "ui__5.mp3",
+     "prompt": "One soft dry tap of a fingertip on a small wooden box, very short, close-mic, dry studio"
+    },
+    {
+     "file": "ui.6.0da678f9b4.mp3",
+     "seconds": 0.343,
+     "from": "ui__6.mp3",
+     "prompt": "One soft dry tap of a fingertip on a small wooden box, very short, close-mic, dry studio"
+    },
+    {
+     "file": "ui.7.e16ac7174f.mp3",
+     "seconds": 0.149,
+     "from": "ui__7.mp3",
+     "prompt": "One soft dry tap of a fingertip on a small wooden box, very short, close-mic, dry studio"
+    },
+    {
+     "file": "ui.8.0f95368735.mp3",
+     "seconds": 0.159,
+     "from": "ui__8.mp3",
+     "prompt": "One soft dry tap of a fingertip on a small wooden box, very short, close-mic, dry studio"
     }
    ]
   },
@@ -2513,6 +3458,760 @@
     }
    ]
   },
+  "frog_hup": {
+   "prompt": "A small cartoon frog going 'mlep!' as it flicks its tongue out, one tiny cheeky throaty chirp, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_hup.1.d3abe88f83.mp3",
+     "seconds": 0.9,
+     "from": "frog_hup__1.mp3"
+    },
+    {
+     "file": "frog_hup.2.b688c79474.mp3",
+     "seconds": 0.259,
+     "from": "frog_hup__2.mp3"
+    },
+    {
+     "file": "frog_hup.3.15d99b208d.mp3",
+     "seconds": 0.117,
+     "from": "frog_hup__3.mp3"
+    },
+    {
+     "file": "frog_hup.4.de86de9102.mp3",
+     "seconds": 0.264,
+     "from": "frog_hup__4.mp3"
+    }
+   ]
+  },
+  "slurp": {
+   "prompt": "A quick wet slurp, a long sticky tongue reeling something back into a mouth, one fast juicy suck, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "slurp.1.b3397c94a6.mp3",
+     "seconds": 1.155,
+     "from": "slurp__1.mp3"
+    },
+    {
+     "file": "slurp.2.b4bdf83fd4.mp3",
+     "seconds": 1.299,
+     "from": "slurp__2.mp3"
+    },
+    {
+     "file": "slurp.3.ee1c94c571.mp3",
+     "seconds": 1.3,
+     "from": "slurp__3.mp3"
+    },
+    {
+     "file": "slurp.4.466dd811e6.mp3",
+     "seconds": 1.3,
+     "from": "slurp__4.mp3"
+    }
+   ]
+  },
+  "tongue_miss": {
+   "prompt": "A sticky rubbery tongue snapping back empty, a dry elastic thwip, then a tiny disappointed froggy 'bleh', close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "tongue_miss.1.7039080212.mp3",
+     "seconds": 0.683,
+     "from": "tongue_miss__1.mp3"
+    },
+    {
+     "file": "tongue_miss.2.2c9542a5e1.mp3",
+     "seconds": 1.226,
+     "from": "tongue_miss__2.mp3"
+    },
+    {
+     "file": "tongue_miss.3.b4d97969ca.mp3",
+     "seconds": 1.284,
+     "from": "tongue_miss__3.mp3"
+    },
+    {
+     "file": "tongue_miss.4.3bec779251.mp3",
+     "seconds": 1.142,
+     "from": "tongue_miss__4.mp3"
+    }
+   ]
+  },
+  "frog_yum": {
+   "prompt": "A small cartoon frog humming one short happy satisfied 'mmm' after eating, throaty and cute, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_yum.1.3ee5683955.mp3",
+     "seconds": 1.201,
+     "from": "frog_yum__1.mp3"
+    },
+    {
+     "file": "frog_yum.2.6026c338e7.mp3",
+     "seconds": 1.271,
+     "from": "frog_yum__2.mp3"
+    },
+    {
+     "file": "frog_yum.3.45c4c6894f.mp3",
+     "seconds": 1.366,
+     "from": "frog_yum__3.mp3"
+    },
+    {
+     "file": "frog_yum.4.1fd477386c.mp3",
+     "seconds": 1.291,
+     "from": "frog_yum__4.mp3"
+    }
+   ]
+  },
+  "frog_burp": {
+   "prompt": "A tiny cartoon frog burp, one short cute throaty croak-burp, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_burp.1.637c206e08.mp3",
+     "seconds": 0.807,
+     "from": "frog_burp__1.mp3"
+    },
+    {
+     "file": "frog_burp.2.b70ffcde2d.mp3",
+     "seconds": 1.06,
+     "from": "frog_burp__2.mp3"
+    },
+    {
+     "file": "frog_burp.3.7459b6c7c4.mp3",
+     "seconds": 0.832,
+     "from": "frog_burp__3.mp3"
+    },
+    {
+     "file": "frog_burp.4.e94171c57e.mp3",
+     "seconds": 0.698,
+     "from": "frog_burp__4.mp3"
+    }
+   ]
+  },
+  "frog_strain": {
+   "prompt": "A small cartoon frog straining hard to pull something heavy with its tongue, a short squeezed throaty grunt 'nnngh', close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_strain.1.e5b65458e0.mp3",
+     "seconds": 0.353,
+     "from": "frog_strain__1.mp3"
+    },
+    {
+     "file": "frog_strain.2.93a930309d.mp3",
+     "seconds": 1.072,
+     "from": "frog_strain__2.mp3"
+    },
+    {
+     "file": "frog_strain.3.71ad14e574.mp3",
+     "seconds": 1.097,
+     "from": "frog_strain__3.mp3"
+    },
+    {
+     "file": "frog_strain.4.e16b34f062.mp3",
+     "seconds": 1.157,
+     "from": "frog_strain__4.mp3"
+    }
+   ]
+  },
+  "frog_lick": {
+   "prompt": "A wet tongue licking something off with one big sloppy lick, then a tiny froggy 'pah!', close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_lick.1.12217ba35d.mp3",
+     "seconds": 1.286,
+     "from": "frog_lick__1.mp3"
+    },
+    {
+     "file": "frog_lick.2.1a2ebc7393.mp3",
+     "seconds": 1.172,
+     "from": "frog_lick__2.mp3"
+    },
+    {
+     "file": "frog_lick.3.51999c8dbb.mp3",
+     "seconds": 1.157,
+     "from": "frog_lick__3.mp3"
+    },
+    {
+     "file": "frog_lick.4.771969cc21.mp3",
+     "seconds": 1.226,
+     "from": "frog_lick__4.mp3"
+    }
+   ]
+  },
+  "frog_ribbit": {
+   "prompt": "A small frog giving one short proud double ribbit, bright and cheeky, close-mic, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "frog_ribbit.1.ecea4f896a.mp3",
+     "seconds": 1.12,
+     "from": "frog_ribbit__1.mp3"
+    },
+    {
+     "file": "frog_ribbit.2.74018b496e.mp3",
+     "seconds": 0.922,
+     "from": "frog_ribbit__2.mp3"
+    },
+    {
+     "file": "frog_ribbit.3.3728b2bd0a.mp3",
+     "seconds": 1.165,
+     "from": "frog_ribbit__3.mp3"
+    },
+    {
+     "file": "frog_ribbit.4.54e935c44c.mp3",
+     "seconds": 0.947,
+     "from": "frog_ribbit__4.mp3"
+    }
+   ]
+  },
+  "juice_pop": {
+   "prompt": "A ripe juicy grape bursting under a blade, one wet squelchy pop with a spray of juice, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "juice_pop.1.988e606224.mp3",
+     "seconds": 0.858,
+     "from": "juice_pop__1.mp3"
+    },
+    {
+     "file": "juice_pop.2.02eb74688a.mp3",
+     "seconds": 0.977,
+     "from": "juice_pop__2.mp3"
+    },
+    {
+     "file": "juice_pop.3.1d4a741534.mp3",
+     "seconds": 1.073,
+     "from": "juice_pop__3.mp3"
+    },
+    {
+     "file": "juice_pop.4.288c7d529a.mp3",
+     "seconds": 1.186,
+     "from": "juice_pop__4.mp3"
+    }
+   ]
+  },
+  "squelch": {
+   "prompt": "Wet fruit pulp squelching apart, one short juicy squish with a fine spray, close-mic, dry studio",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "squelch.1.ee86c156fe.mp3",
+     "seconds": 1.261,
+     "from": "squelch__1.mp3"
+    },
+    {
+     "file": "squelch.2.81e59570a7.mp3",
+     "seconds": 1.142,
+     "from": "squelch__2.mp3"
+    },
+    {
+     "file": "squelch.3.50158c0601.mp3",
+     "seconds": 0.992,
+     "from": "squelch__3.mp3"
+    },
+    {
+     "file": "squelch.4.e7b8da7412.mp3",
+     "seconds": 1.276,
+     "from": "squelch__4.mp3"
+    }
+   ]
+  },
+  "monkey_arrive": {
+   "prompt": "A cheeky monkey hooting as it leaps in, an excited ooh-ooh-ah-ah, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "monkey_arrive.1.339253064c.mp3",
+     "seconds": 1.8,
+     "from": "monkey_arrive__1.mp3"
+    },
+    {
+     "file": "monkey_arrive.2.fd5101d9c9.mp3",
+     "seconds": 1.8,
+     "from": "monkey_arrive__2.mp3"
+    },
+    {
+     "file": "monkey_arrive.3.3f4be1e847.mp3",
+     "seconds": 1.591,
+     "from": "monkey_arrive__3.mp3"
+    },
+    {
+     "file": "monkey_arrive.4.f64cd72d57.mp3",
+     "seconds": 1.8,
+     "from": "monkey_arrive__4.mp3"
+    }
+   ]
+  },
+  "monkey_kiai": {
+   "prompt": "A small monkey ninja screeching one sharp fierce battle cry, high and punchy, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "monkey_kiai.1.78adf0ef4d.mp3",
+     "seconds": 1.152,
+     "from": "monkey_kiai__1.mp3"
+    },
+    {
+     "file": "monkey_kiai.2.42e4c6094a.mp3",
+     "seconds": 0.972,
+     "from": "monkey_kiai__2.mp3"
+    },
+    {
+     "file": "monkey_kiai.3.be138d2b84.mp3",
+     "seconds": 1.142,
+     "from": "monkey_kiai__3.mp3"
+    },
+    {
+     "file": "monkey_kiai.4.4b90ac54cc.mp3",
+     "seconds": 1.152,
+     "from": "monkey_kiai__4.mp3"
+    }
+   ]
+  },
+  "monkey_cheer": {
+   "prompt": "A happy monkey chattering and giggling, a short excited chatter, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "monkey_cheer.1.7857c6212e.mp3",
+     "seconds": 1.795,
+     "from": "monkey_cheer__1.mp3"
+    },
+    {
+     "file": "monkey_cheer.2.c561dc3fc3.mp3",
+     "seconds": 1.745,
+     "from": "monkey_cheer__2.mp3"
+    },
+    {
+     "file": "monkey_cheer.3.8a90bc7dea.mp3",
+     "seconds": 1.74,
+     "from": "monkey_cheer__3.mp3"
+    },
+    {
+     "file": "monkey_cheer.4.faf972c756.mp3",
+     "seconds": 1.775,
+     "from": "monkey_cheer__4.mp3"
+    }
+   ]
+  },
+  "llama_arrive": {
+   "prompt": "A llama giving one curious nasal humming bleat as it trots in, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "llama_arrive.1.133014e69f.mp3",
+     "seconds": 0.887,
+     "from": "llama_arrive__1.mp3"
+    },
+    {
+     "file": "llama_arrive.2.071ae48dc2.mp3",
+     "seconds": 1.147,
+     "from": "llama_arrive__2.mp3"
+    },
+    {
+     "file": "llama_arrive.3.66b1eb7b16.mp3",
+     "seconds": 0.932,
+     "from": "llama_arrive__3.mp3"
+    },
+    {
+     "file": "llama_arrive.4.6bf72bd61b.mp3",
+     "seconds": 1.171,
+     "from": "llama_arrive__4.mp3"
+    }
+   ]
+  },
+  "llama_kiai": {
+   "prompt": "A llama letting out one sharp angry bleating war cry with a spitting ptoo, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "llama_kiai.1.5023fa22b1.mp3",
+     "seconds": 1.105,
+     "from": "llama_kiai__1.mp3"
+    },
+    {
+     "file": "llama_kiai.2.d27d4e2f1e.mp3",
+     "seconds": 0.638,
+     "from": "llama_kiai__2.mp3"
+    },
+    {
+     "file": "llama_kiai.3.01b66668cc.mp3",
+     "seconds": 1.042,
+     "from": "llama_kiai__3.mp3"
+    },
+    {
+     "file": "llama_kiai.4.e30f40a708.mp3",
+     "seconds": 0.887,
+     "from": "llama_kiai__4.mp3"
+    }
+   ]
+  },
+  "llama_cheer": {
+   "prompt": "A content llama humming a short happy hum, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "llama_cheer.1.1dc0168516.mp3",
+     "seconds": 1.8,
+     "from": "llama_cheer__1.mp3"
+    },
+    {
+     "file": "llama_cheer.2.9fe2d8995a.mp3",
+     "seconds": 1.62,
+     "from": "llama_cheer__2.mp3"
+    },
+    {
+     "file": "llama_cheer.3.d6524fdad4.mp3",
+     "seconds": 1.645,
+     "from": "llama_cheer__3.mp3"
+    },
+    {
+     "file": "llama_cheer.4.9ba19f8419.mp3",
+     "seconds": 1.8,
+     "from": "llama_cheer__4.mp3"
+    }
+   ]
+  },
+  "platypus_arrive": {
+   "prompt": "A platypus making a soft chirping purr-growl as it waddles in, small and odd, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "platypus_arrive.1.d0dc42c0bb.mp3",
+     "seconds": 1.755,
+     "from": "platypus_arrive__1.mp3"
+    },
+    {
+     "file": "platypus_arrive.2.3e93bb19bc.mp3",
+     "seconds": 1.789,
+     "from": "platypus_arrive__2.mp3"
+    },
+    {
+     "file": "platypus_arrive.3.a95fc9ddb2.mp3",
+     "seconds": 1.794,
+     "from": "platypus_arrive__3.mp3"
+    },
+    {
+     "file": "platypus_arrive.4.756b1664db.mp3",
+     "seconds": 1.8,
+     "from": "platypus_arrive__4.mp3"
+    }
+   ]
+  },
+  "platypus_kiai": {
+   "prompt": "A small platypus ninja letting out one fierce little growling squeak, a battle cry, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "platypus_kiai.1.ecd0cfe467.mp3",
+     "seconds": 1.2,
+     "from": "platypus_kiai__1.mp3"
+    },
+    {
+     "file": "platypus_kiai.2.be96283ac8.mp3",
+     "seconds": 1.2,
+     "from": "platypus_kiai__2.mp3"
+    },
+    {
+     "file": "platypus_kiai.3.b6b043c185.mp3",
+     "seconds": 1.162,
+     "from": "platypus_kiai__3.mp3"
+    },
+    {
+     "file": "platypus_kiai.4.bbec0b656b.mp3",
+     "seconds": 0.887,
+     "from": "platypus_kiai__4.mp3"
+    }
+   ]
+  },
+  "platypus_cheer": {
+   "prompt": "A platypus chirping happily, a short series of cute chirps and clicks, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "platypus_cheer.1.3d06e0932b.mp3",
+     "seconds": 1.286,
+     "from": "platypus_cheer__1.mp3"
+    },
+    {
+     "file": "platypus_cheer.2.e01bd55312.mp3",
+     "seconds": 1.581,
+     "from": "platypus_cheer__2.mp3"
+    },
+    {
+     "file": "platypus_cheer.3.d728e82d73.mp3",
+     "seconds": 1.511,
+     "from": "platypus_cheer__3.mp3"
+    },
+    {
+     "file": "platypus_cheer.4.dc4c81963c.mp3",
+     "seconds": 1.416,
+     "from": "platypus_cheer__4.mp3"
+    }
+   ]
+  },
+  "corgi_arrive": {
+   "prompt": "A corgi dog yipping excitedly as it runs in, two quick happy yips with paws pattering, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "corgi_arrive.1.0df8617801.mp3",
+     "seconds": 0.284,
+     "from": "corgi_arrive__1.mp3"
+    },
+    {
+     "file": "corgi_arrive.2.98125807f2.mp3",
+     "seconds": 1.8,
+     "from": "corgi_arrive__2.mp3"
+    },
+    {
+     "file": "corgi_arrive.3.855561cc31.mp3",
+     "seconds": 0.942,
+     "from": "corgi_arrive__3.mp3"
+    },
+    {
+     "file": "corgi_arrive.4.1dda378030.mp3",
+     "seconds": 1.8,
+     "from": "corgi_arrive__4.mp3"
+    }
+   ]
+  },
+  "corgi_kiai": {
+   "prompt": "A small corgi dog barking one fierce sharp bark, a battle cry, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "corgi_kiai.1.d6f0e51d19.mp3",
+     "seconds": 0.917,
+     "from": "corgi_kiai__1.mp3"
+    },
+    {
+     "file": "corgi_kiai.2.a924a6e487.mp3",
+     "seconds": 1.2,
+     "from": "corgi_kiai__2.mp3"
+    },
+    {
+     "file": "corgi_kiai.3.b10f2682eb.mp3",
+     "seconds": 1.162,
+     "from": "corgi_kiai__3.mp3"
+    },
+    {
+     "file": "corgi_kiai.4.c41329a3aa.mp3",
+     "seconds": 1.2,
+     "from": "corgi_kiai__4.mp3"
+    }
+   ]
+  },
+  "corgi_cheer": {
+   "prompt": "A happy corgi panting and giving one little proud woof, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "corgi_cheer.1.b38b01a3f6.mp3",
+     "seconds": 1.441,
+     "from": "corgi_cheer__1.mp3"
+    },
+    {
+     "file": "corgi_cheer.2.822e7fa928.mp3",
+     "seconds": 1.8,
+     "from": "corgi_cheer__2.mp3"
+    },
+    {
+     "file": "corgi_cheer.3.910057de6e.mp3",
+     "seconds": 1.71,
+     "from": "corgi_cheer__3.mp3"
+    },
+    {
+     "file": "corgi_cheer.4.a19b7615dc.mp3",
+     "seconds": 1.64,
+     "from": "corgi_cheer__4.mp3"
+    }
+   ]
+  },
+  "koto_pluck": {
+   "prompt": "A single koto string plucked once, one clear bright Japanese zither note with a short ring, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "koto_pluck.1.5d56e3fe0d.mp3",
+     "seconds": 1.8,
+     "from": "koto_pluck__1.mp3"
+    },
+    {
+     "file": "koto_pluck.2.dc1e44cb0d.mp3",
+     "seconds": 1.8,
+     "from": "koto_pluck__2.mp3"
+    },
+    {
+     "file": "koto_pluck.3.935e41cd7e.mp3",
+     "seconds": 1.8,
+     "from": "koto_pluck__3.mp3"
+    },
+    {
+     "file": "koto_pluck.4.003d7197ca.mp3",
+     "seconds": 1.8,
+     "from": "koto_pluck__4.mp3"
+    }
+   ]
+  },
+  "shamisen": {
+   "prompt": "A shamisen plucked once with a sharp bachi stroke, one snappy twangy Japanese lute note, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "shamisen.1.c7dc9c0511.mp3",
+     "seconds": 1.143,
+     "from": "shamisen__1.mp3"
+    },
+    {
+     "file": "shamisen.2.635f469176.mp3",
+     "seconds": 1.158,
+     "from": "shamisen__2.mp3"
+    },
+    {
+     "file": "shamisen.3.46945f9465.mp3",
+     "seconds": 1.093,
+     "from": "shamisen__3.mp3"
+    },
+    {
+     "file": "shamisen.4.9fcacf9b2f.mp3",
+     "seconds": 1.267,
+     "from": "shamisen__4.mp3"
+    }
+   ]
+  },
+  "shakuhachi": {
+   "prompt": "A shakuhachi bamboo flute, one short breathy falling note with a soft breath attack, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "shakuhachi.1.02b6d4a6e6.mp3",
+     "seconds": 2.084,
+     "from": "shakuhachi__1.mp3"
+    },
+    {
+     "file": "shakuhachi.2.05d103d55e.mp3",
+     "seconds": 1.875,
+     "from": "shakuhachi__2.mp3"
+    },
+    {
+     "file": "shakuhachi.3.bbd180c182.mp3",
+     "seconds": 1.521,
+     "from": "shakuhachi__3.mp3"
+    },
+    {
+     "file": "shakuhachi.4.2d97c62335.mp3",
+     "seconds": 1.725,
+     "from": "shakuhachi__4.mp3"
+    }
+   ]
+  },
+  "kotsuzumi": {
+   "prompt": "A Japanese kotsuzumi shoulder drum struck once, one hollow ringing pon, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "kotsuzumi.1.dcca95b9bd.mp3",
+     "seconds": 1.252,
+     "from": "kotsuzumi__1.mp3"
+    },
+    {
+     "file": "kotsuzumi.2.9c0423fbb8.mp3",
+     "seconds": 1.4,
+     "from": "kotsuzumi__2.mp3"
+    },
+    {
+     "file": "kotsuzumi.3.cc44cc46bb.mp3",
+     "seconds": 1.4,
+     "from": "kotsuzumi__3.mp3"
+    },
+    {
+     "file": "kotsuzumi.4.5523e81504.mp3",
+     "seconds": 1.162,
+     "from": "kotsuzumi__4.mp3"
+    }
+   ]
+  },
+  "suzu": {
+   "prompt": "A bunch of small Japanese suzu bells shaken once, a short bright jingle, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "suzu.1.515afdf14b.mp3",
+     "seconds": 1.321,
+     "from": "suzu__1.mp3"
+    },
+    {
+     "file": "suzu.2.5f2053dd26.mp3",
+     "seconds": 1.226,
+     "from": "suzu__2.mp3"
+    },
+    {
+     "file": "suzu.3.6141c3a865.mp3",
+     "seconds": 1.236,
+     "from": "suzu__3.mp3"
+    },
+    {
+     "file": "suzu.4.f9649d693e.mp3",
+     "seconds": 1.181,
+     "from": "suzu__4.mp3"
+    }
+   ]
+  },
+  "rin": {
+   "prompt": "A Japanese rin singing bowl struck once softly, a pure ringing tone, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "rin.1.0d969b0acc.mp3",
+     "seconds": 2.8,
+     "from": "rin__1.mp3"
+    },
+    {
+     "file": "rin.2.955b47c568.mp3",
+     "seconds": 2.8,
+     "from": "rin__2.mp3"
+    },
+    {
+     "file": "rin.3.37100e87ab.mp3",
+     "seconds": 2.8,
+     "from": "rin__3.mp3"
+    },
+    {
+     "file": "rin.4.3341512ee6.mp3",
+     "seconds": 2.8,
+     "from": "rin__4.mp3"
+    }
+   ]
+  },
+  "taiko_don": {
+   "prompt": "A medium taiko drum struck once, one deep tight don, close, dry",
+   "kind": "shot",
+   "files": [
+    {
+     "file": "taiko_don.1.b31d1331f7.mp3",
+     "seconds": 1.48,
+     "from": "taiko_don__1.mp3"
+    },
+    {
+     "file": "taiko_don.2.c395432878.mp3",
+     "seconds": 1.48,
+     "from": "taiko_don__2.mp3"
+    },
+    {
+     "file": "taiko_don.3.a5353999b5.mp3",
+     "seconds": 1.48,
+     "from": "taiko_don__3.mp3"
+    },
+    {
+     "file": "taiko_don.4.3f4c8470f7.mp3",
+     "seconds": 1.48,
+     "from": "taiko_don__4.mp3"
+    }
+   ]
+  },
   "ui_hover": {
    "prompt": "One extremely soft tiny bamboo tick, very quiet and very short, close-mic, dry studio",
    "kind": "shot",
@@ -2528,7 +4227,7 @@
      "from": "ui_hover__2.mp3"
     },
     {
-     "file": "ui_hover.3.b62b5cc129.mp3",
+     "file": "ui_hover.3.714c7aaca9.mp3",
      "seconds": 0.2,
      "from": "ui_hover__3.mp3"
     },
@@ -2536,6 +4235,12 @@
      "file": "ui_hover.4.19ed23cffe.mp3",
      "seconds": 0.2,
      "from": "ui_hover__4.mp3"
+    },
+    {
+     "file": "ui_hover.5.6fa3f7e22b.mp3",
+     "seconds": 0.2,
+     "from": "ui_hover__7.mp3",
+     "prompt": "One faint tiny tick of a fingernail on bamboo, barely there, close-mic, dry studio"
     }
    ]
   },
@@ -2544,19 +4249,43 @@
    "kind": "shot",
    "files": [
     {
-     "file": "ui_switch.1.1ec717c138.mp3",
+     "file": "ui_switch.1.93c03dea4f.mp3",
      "seconds": 0.35,
      "from": "ui_switch__1.mp3"
     },
     {
-     "file": "ui_switch.2.d58ffef5d5.mp3",
+     "file": "ui_switch.2.26938a1eae.mp3",
      "seconds": 0.35,
      "from": "ui_switch__2.mp3"
     },
     {
-     "file": "ui_switch.3.b834332bed.mp3",
+     "file": "ui_switch.3.247a8b7d98.mp3",
      "seconds": 0.35,
      "from": "ui_switch__4.mp3"
+    },
+    {
+     "file": "ui_switch.4.6c7771eaef.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__5.mp3",
+     "prompt": "A small wooden latch flipped once, one soft dry click, close-mic, dry studio"
+    },
+    {
+     "file": "ui_switch.5.7ca7cdfff3.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__6.mp3",
+     "prompt": "A small wooden latch flipped once, one soft dry click, close-mic, dry studio"
+    },
+    {
+     "file": "ui_switch.6.12cf588b6f.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__7.mp3",
+     "prompt": "A small wooden latch flipped once, one soft dry click, close-mic, dry studio"
+    },
+    {
+     "file": "ui_switch.7.24a439cdae.mp3",
+     "seconds": 0.35,
+     "from": "ui_switch__8.mp3",
+     "prompt": "A small wooden latch flipped once, one soft dry click, close-mic, dry studio"
     }
    ]
   },
@@ -2604,6 +4333,30 @@
      "file": "ui_open.3.c4f3955b57.mp3",
      "seconds": 0.7,
      "from": "ui_open__3.mp3"
+    },
+    {
+     "file": "ui_open.4.58d778fca0.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__5.mp3",
+     "prompt": "A light rice-paper sliding door gliding open, one soft quick swish, close-mic, dry studio"
+    },
+    {
+     "file": "ui_open.5.c7f41f006f.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__6.mp3",
+     "prompt": "A light rice-paper sliding door gliding open, one soft quick swish, close-mic, dry studio"
+    },
+    {
+     "file": "ui_open.6.4ba5c995d9.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__7.mp3",
+     "prompt": "A light rice-paper sliding door gliding open, one soft quick swish, close-mic, dry studio"
+    },
+    {
+     "file": "ui_open.7.a50dd726a4.mp3",
+     "seconds": 0.7,
+     "from": "ui_open__8.mp3",
+     "prompt": "A light rice-paper sliding door gliding open, one soft quick swish, close-mic, dry studio"
     }
    ]
   },

@@ -26,7 +26,7 @@ def run(g, expr, wait=60):
 OPTS = """[{}, {kind:'watermelon',size:1,clean:true,chain:3}, {kind:'orange',size:.4}, {kind:'pineapple',size:.8}, {kind:'grapes',size:.6}, {kind:'banana',size:.2},
  {kind:'kiwi',size:.1}, {kind:'apple',size:.3,n:3}, {kind:'plum',size:0,hacked:true}, {kind:'chicken',size:.3}, {kind:'fire',power:1}, {kind:'frost',power:.5}, {kind:'sake',power:.1},
  {power:.9}, {power:.5}, {power:.1}, {kind:'fly'}, {kind:'clock'}, {kind:'fireworks'}, {kind:'crate'}, {kind:'laptop'}, {kind:'snap'}, {kind:'rustle'}, {kind:'crouch'}, {kind:'hop'}, {kind:'flutter'},
- {heavy:true}, {big:true}, {go:true}, {step:7}, {n:9}]"""
+ {heavy:true}, {big:true}, {go:true}, {step:7}, {n:9}, {first:true}, {first:true, who:['monkey','llama','platypus','corgi']}]"""
 
 g = Game(1280, 800)
 try:

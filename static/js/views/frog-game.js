@@ -5173,7 +5173,7 @@ export function mountFrogGame(stage, opts = {}) {
     // be cut off the head)
     function lickClean() {
         const h = frogPoint(993, 300), type = headFx.type;
-        stunT = 0; headFx = null; snd('tongue'); log('stun', type.kind, 'licked');
+        stunT = 0; headFx = null; snd('lick'); log('stun', type.kind, 'licked');
         for (let i = 0; i < 10; i++) { const a = rand(3.4, 6.0), v = rand(0.1, 0.3) * H; drops.push({ x: h.x + rand(-30, 30), y: h.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, c: type.juice, t: 0, s: rand(2, 5) }); }
         floats.push({ x: h.x, y: h.y - fbox.w * 0.4, text: 'Licked clean!', t: 0, hot: true, word: true });
     }
@@ -5290,7 +5290,7 @@ export function mountFrogGame(stage, opts = {}) {
                 flies.forEach(f => { const d = Math.hypot(f.x - tongue.tx, f.y - tongue.ty) - (reach * 1.5 + f.s * 1.5); if (d < by) { by = d; near = 'fly'; } });
                 if (near && by < reach * 2) letdown('tongue', near, Math.round(by));
             }
-            if (tongue.caught) snd('catch', { heavy: tongue.caught.kind === 'crate' });
+            if (tongue.caught) snd('catch', { heavy: tongue.caught.kind === 'crate' }); else snd('tongue_miss');
             if (tongue.caught && tongue.caught.kind === 'crate') tongue.back = 0.22;   // a crate is heavy: a slower haul
         }
         if (tongue.t >= tongue.out + tongue.back) {
@@ -5387,7 +5387,7 @@ export function mountFrogGame(stage, opts = {}) {
         const mid = fieldY(0.45), gap = Math.min(S() * 0.34, W * 0.3);
         const spots = [{ x: W / 2 - gap, y: mid, fx: -1, fy: 0 }, { x: W / 2, y: mid - S() * 0.2, fx: 0, fy: -1 }, { x: W / 2 + gap, y: mid, fx: 1, fy: 0 }].sort(() => Math.random() - 0.5);
         summon = { t: 0, done: 0, friends: who.map((n, i) => Object.assign({ n, jit: rand(-28, 28), late: rand(0, 0.07), face: Math.random() < 0.5 ? -1 : 1 }, spots[i])), cutId: { id: ++cutId, hits: 0 } };
-        use('laptop'); snd('summon'); log('summon', who.join('+'));
+        use('laptop'); snd('summon', { who }); log('summon', who.join('+'));
         down = false; cut = null; press = null; autoCut = false; swing = null;
         floats.push({ x: W / 2, y: H * 0.3, text: 'Calling the team!', t: 0, hot: true });
     }
@@ -5464,7 +5464,7 @@ export function mountFrogGame(stage, opts = {}) {
         // (each helper's own stroke: near the angle of the cut, never parallel to the others, through its own part of the field)
         summon.friends.forEach(fr => slashes.push({ x: W * rand(0.2, 0.8), y: fieldY(rand(0.2, 0.75)), a: cutA + rand(-0.4, 0.4), r: Math.max(W, H) * rand(0.45, 0.6), t: 0,
             c: turn && fr.el ? BLADE_FX[fr.el].glow : FRIEND[fr.n].hi, w: turn && fr.el === 'fire' ? 3 : 2 }));
-        snd('team_slash', { first: !turn }); if (broke) snd('crate');      // three blades at once (a battle cry on the first), a crate only if one broke
+        snd('team_slash', { first: !turn, who: summon.friends.map(fr => fr.n) }); if (broke) snd('crate');      // three blades at once (a battle cry on the first), a crate only if one broke
     }
     function stepSummon(dt) {
         if (!summon) return;
@@ -5473,6 +5473,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (summon.done < 2 && summon.t >= SUMMON.slash2) { summon.done = 2; summonSlash(true); }
         // a chronoblade's cut hangs in the air and cuts again: one more slash for each helper carrying one
         if (summon.done === 2 && summon.echoed < (summon.echoes || 0) && summon.t >= SUMMON.slash2 + 0.15 * (summon.echoed + 1)) { summon.echoed++; summonSlash(true, summon.echoed); }
+        if (!summon.cheered && summon.t >= SUMMON.leave) { summon.cheered = true; snd('team_cheer', { who: summon.friends.map(fr => fr.n) }); }      // each helper's own happy sound as they go
         if (summon.t >= SUMMON.end) { pieces.forEach(q => { q.live = q.fam.cuts < MAX_CUTS; }); summon = null; readyPose(); }
     }
     function drawSummon(lw) {

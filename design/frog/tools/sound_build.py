@@ -34,6 +34,12 @@ SR = 44100
 # min = the shortest thing that counts as a hit (s, default 0.03: a tick is shorter);
 # peak = level of the loudest sample (dB).  Anything not listed is a plain one-shot, 1.3 s at most.
 TREAT = {
+    # 2026-11-25: instruments ring out, voices keep their two syllables together
+    'rin': {'max': 2.8, 'gap': 0.8}, 'koto_pluck': {'max': 1.8, 'gap': 0.6}, 'shakuhachi': {'max': 2.2, 'gap': 0.6},
+    'taiko_don': {'max': 1.5, 'gap': 0.5}, 'kotsuzumi': {'max': 1.4, 'gap': 0.5}, 'suzu': {'max': 1.4, 'gap': 0.4}, 'shamisen': {'max': 1.5, 'gap': 0.5},
+    'frog_hup': {'max': 0.9, 'gap': 0.35}, 'frog_yum': {'max': 1.5, 'gap': 0.4}, 'frog_ribbit': {'max': 1.3, 'gap': 0.4}, 'tongue_miss': {'max': 1.4, 'gap': 0.4},
+    'frog_lick': {'max': 1.4, 'gap': 0.4}, 'frog_strain': {'max': 1.3, 'gap': 0.4},
+    **{f'{a}_{k}': {'max': 1.2 if k == 'kiai' else 1.8, 'gap': 0.45} for a in ('monkey', 'llama', 'platypus', 'corgi') for k in ('arrive', 'kiai', 'cheer')},
     'splash': {'max': 2.6}, 'juice_l': {'max': 1.6}, 'gong': {'max': 4.6, 'gap': 1.0}, 'best': {'max': 3.2, 'gap': 0.6},
     'boom_small': {'max': 2.2, 'gap': 0.5}, 'boom_big': {'max': 2.8, 'gap': 0.6}, 'crate_break': {'max': 2.0, 'gap': 0.4},
     'summon': {'max': 2.9, 'gap': 0.8}, 'clock_winddown': {'max': 2.6, 'gap': 0.6}, 'clock_tick': {'max': 1.8, 'gap': 0.5},
@@ -238,6 +244,9 @@ def main():
         for f in os.listdir(OUT):                                           # earlier builds of this pool
             if f.startswith(pid + '.') and re.match(r'^' + re.escape(pid) + r'\.\d+\.[0-9a-f]{10}\.mp3$', f) and f not in {x['file'] for x in files}:
                 os.unlink(os.path.join(OUT, f))
+        for x in files:                                                     # takes 5-8 of a pool with a second wording came from it
+            if pool.get('prompt2') and int(re.match(r'^.+__(\d+)\.mp3$', x['from']).group(1)) > pool.get('takes', 4):
+                x['prompt'] = pool['prompt2']
         shipped[pid] = {'prompt': pool['prompt'], 'kind': kind, 'files': files}
         report.append(f'{pid:18s} {kind:6s} {len(files)} variant(s) from {len(takes.get(pid, []))} take(s): '
                       + ', '.join(f"{x['seconds']:.2f}s" for x in files) + (f'   [{"; ".join(notes)}]' if notes else ''))

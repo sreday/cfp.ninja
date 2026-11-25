@@ -124,7 +124,7 @@ because it sits on the effects bus, not in each sound.
 | `plop` | the sooty gull that dropped its fried chicken reaches the sea | as `plop` | a plop |
 | `gull_faint` | it is knocked out and falls | a cut-off squawk, then a long whistle down | a strangled squawk and a slide whistle |
 | `cut` | a fruit or piece is cut | four layers: the blade biting the skin (a tick), the thock of the flesh (deeper and longer for bigger fruit), a wet squelch, a drip. Lower for each re-cut of the same fruit | a juicy slice per fruit kind: watermelon crunch, pineapple crackle, citrus spray, apple snap, soft kiwi, small plum pop, a run of grape pops, a soft banana thud |
-| `cut` (clean) | the cut went through the middle | adds a steel ring, climbing in pitch with each fruit in the same slash | a bright "shing" |
+| `cut` (clean) | the cut went through the middle | adds a juicy pop (`juice_pop`), a touch higher with each fruit in the same slash; juicy fruit also gets a wet `squelch` now and then. The steel ring (`shing`) is gone from cuts (Marek 2026-11-25: "juicy, not mini gongs"); it stays only under the team's slash | a wet pop |
 | `cut` (hacked) | a hacked fruit is cut | adds two digital blips | a glitchy slice |
 | `bounce` | a fruit is only clipped and flies off | a rubbery knock | a boing or thump |
 
@@ -228,6 +228,33 @@ The cuts made on release use `cut` (clean), so the chain is heard climbing.
 | `team_slash` | the team slashes together (twice; a crate only if one broke) | the frog's hardest swing | three katanas at once (`team_slash`), with a cartoon "hyah!" from the team on the first blow (`team_kiai`, 2026-11-25) |
 | `plop` | a far fruit lands in the sea | a falling blip and a small wash | a plop |
 | `splash` | the frog falls in at time-up | a crack, a thump, a wash and falling drops | a big splash |
+
+### 2026-11-25: the frog's voice, the team's voices, Japanese accents, more variety
+
+Marek: more character for the frog (above all on the tongue), juicier cuts, a voice per helper,
+Japanese instruments on actions, and enough variety not to be dizzy after 10 minutes.
+
+- **The frog.** `tongue` adds a cheeky "mlep!" half the time (`frog_hup`); a tongue that catches nothing
+  snaps back with a "bleh" (`tongue_miss`, new id); `catch` adds a slurp on the haul back, a strained
+  "nnngh" for a crate (`frog_strain`) and, half the time, a kotsuzumi "pon"; `gulp` adds a happy "mmm"
+  now and then (`frog_yum`) and, rarely, a small burp (`frog_burp`); licking a stuck thing off the head is
+  `lick` (`frog_lick`); a grade up adds a proud ribbit half the time (`frog_ribbit`).
+- **The team.** Each helper has its own three sounds, `<monkey|llama|platypus|corgi>_arrive`, `_kiai`, `_cheer`:
+  the arrival call as they run in (`summon` with `who`, one after the other, with suzu bells), each one's
+  battle cry on the first blow (`team_slash` with `who`, plus a taiko), and each one's happy sound as
+  they leave (`team_cheer`, new id, at `SUMMON.leave`).
+- **Japanese instruments, short accents only:** koto (`koto_pluck`, a grade up, one note higher up the yo
+  scale per grade), taiko (`taiko_don`, grades S and SS and the team's first blow), shamisen (`shamisen`,
+  a firefly, sake or fireworks swallowed, pitched per power), shakuhachi (`shakuhachi`, the clock),
+  kotsuzumi (the tongue's catch), suzu bells (the laptop), rin bowl (`rin`, a new best). The hyoshigi
+  countdown and the gong at game over were already there.
+- **Variety.** The 44 most-heard pools (blade, every fruit's flesh and skin, juice, tongue, mouth, cloth,
+  landing, UI taps and more) got a second wording in `bank.json` (`prompt2`, slices K and L): takes 1-4
+  are the first wording, 5-8 the second, so each of those sounds has up to 8 variants from two different
+  "recordings", on top of the pitch and level jitter. `prompts.json` names the wording per file. A phone
+  keeps three takes spread over both wordings (not the first three).
+- Raw takes: slices H (frog + juice), I (team), J (instruments), K and L (second wordings), in the
+  ElevenLabs flows of the same names and in `Documentsrog-ninja-sound-raw`.
 
 ### Still silent, on purpose or not yet
 
