@@ -306,11 +306,13 @@ const FALL_ART = { url: '/img/game/frog/fall.99b86249a9.webp', size: [528, 707],
 // tongue's way, a stub of tongue painted; the game's tongue goes on from root (w wide). up: only the throat seen.
 // TONGUE_ART:begin (written by design/frog/tools/art_build_tongue.py: do not edit by hand)
 const TONGUE_ART = {
-    up: { url: '/img/game/frog/tongue-up.f386ea1479.webp', size: [811, 713], mid: 412, feet: 704, headW: 249, front: true, root: [398, 180], w: 35, dir: [0, -1] },
-    down: { url: '/img/game/frog/tongue-down.3440835897.webp', size: [811, 610], mid: 412, feet: 592, headW: 249, front: true, root: [396, 578], w: 34, dir: [0, 1] },
+    'up': { url: '/img/game/frog/tongue-up.f386ea1479.webp', size: [811, 713], mid: 412, feet: 704, headW: 249, front: true, root: [398, 180], w: 35, dir: [0, -1] },
+    'down': { url: '/img/game/frog/tongue-down.3440835897.webp', size: [811, 610], mid: 412, feet: 592, headW: 249, front: true, root: [396, 578], w: 34, dir: [0, 1] },
+    'down-left': { url: '/img/game/frog/tongue-down-left.cdde8902bc.webp', size: [806, 590], mid: 410, feet: 583, headW: 249, front: true, root: [406, 264], w: 35, dir: [-0.707, 0.707] },
 };
 // TONGUE_ART:end
-const CUT_POSES = { 'tongue-up': TONGUE_ART.up, 'tongue-down': TONGUE_ART.down, cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
+// (the down-left picture looks left; for down-right the same picture, mirrored: faces -1)
+const CUT_POSES = { 'tongue-up': TONGUE_ART.up, 'tongue-down': TONGUE_ART.down, 'tongue-dl': TONGUE_ART['down-left'], 'tongue-dr': { ...TONGUE_ART['down-left'], faces: -1 }, cut: CUT_ART, down: SIDESLASH_ART, over: OVER_ART, under: UNDER_ART, duck: DUCK_ART, rise: RISE_ART, hop: HOP_ART, teeter: TEETER_ART, fall: FALL_ART };
 // The twitch (Marek, 2026-11-22: 'a slight directional twitch that currently exists for the upward slash, across all animations'): the overhead slash
 // jumps a little further up for the first two frames and settles (its squash); every other cut pose now does the same along its cut: TWITCH rig units
 // for the smear, TWITCH_HOLD after. tw on a pose: its own direction when that is not the stroke's (down for the dive, up for the hop, none for the duck).
@@ -5052,9 +5054,10 @@ export function mountFrogGame(stage, opts = {}) {
         const poked = gulls.find(g => g.state === 'fly' && !g.hacked && Math.hypot(g.x - x, g.y - y) < Math.max(18, S() * 0.035) * 1.2 + g.r);
         if (poked) gullHit(poked, 'plain');
         snd('tongue');
-        // straight up or straight down (within 22.5 degrees): the painted frog for it, the tongue out of its stub
+        // straight up or straight down (within 22.5 degrees): the painted frog for it, the tongue out of its stub; down and to a side
+        // (the next 45 degrees): the frog looking down that way, the tongue out of its open mouth
         const ang = Math.atan2(y - m.y, x - m.x) * 180 / Math.PI;
-        const pic = Math.abs(ang + 90) < 22.5 ? 'tongue-up' : Math.abs(ang - 90) < 22.5 ? 'tongue-down' : '';
+        const pic = Math.abs(ang + 90) < 22.5 ? 'tongue-up' : Math.abs(ang - 90) < 22.5 ? 'tongue-down' : Math.abs(ang - 135) <= 22.5 ? 'tongue-dl' : Math.abs(ang - 45) <= 22.5 ? 'tongue-dr' : '';
         tongue = { tx: x, ty: y, t: 0, out: 0.04 + d / 5200, back: 0.08, caught: null, hit: false, pic };
     }
     function tongueGrab(x, y) {
@@ -5600,7 +5603,7 @@ export function mountFrogGame(stage, opts = {}) {
     function tongueRoot() {
         const Q = tongue && tongue.pic && pose.artCut === tongue.pic && artCutOn() ? CUT_POSES[tongue.pic] : null;
         if (!Q) return { x: frogPoint(993, MOUTH_Y).x, y: frogPoint(993, MOUTH_Y).y, w: 0 };
-        const k = poseK(Q), X = 993 + k * (Q.root[0] - Q.mid), Y = BREATH_ART.rigFeet - k * (Q.feet - Q.root[1]);
+        const k = poseK(Q), X = 993 + (Q.faces || 1) * k * (Q.root[0] - Q.mid), Y = BREATH_ART.rigFeet - k * (Q.feet - Q.root[1]);
         return { x: fbox.x + fbox.w * X / 1986, y: fbox.y + fbox.h * Y / 1876, w: Q.w * k * fbox.h / 1876 };
     }
     function tongueTip() {
@@ -6238,6 +6241,8 @@ export function mountFrogGame(stage, opts = {}) {
         out.push({ name: 'tongue', dur: 0.5, start() { const h = head(); shootTongue(h.x + fw() * 1.2, h.y - fw() * 0.5); } });
         out.push({ name: 'tongue straight up', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x, h.y - fw() * 1.6); } });      // (tongue = null: a tongue still out from the shot before would block it)
         out.push({ name: 'tongue straight down', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x, h.y + fw() * 0.9); } });
+        out.push({ name: 'tongue down left', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x - fw() * 0.8, h.y + fw() * 0.8); } });
+        out.push({ name: 'tongue down right', dur: 0.5, start() { tongue = null; const h = head(); shootTongue(h.x + fw() * 0.8, h.y + fw() * 0.8); } });
         out.push({ name: 'stunned', dur: 0.9, start() { stunT = stunFor = 0.9; headFx = null; } });
         [['watermelon', 'stuck on its head'], ['pineapple', 'stuck on its head'], ['grapes', 'splattered over its face'], ['orange', 'splattered over its face'], ['apple', 'a bump comes up'], ['banana', 'worn as a hat'], ['kiwi', 'eating it'], ['plum', 'eating it']].forEach(([kind, what]) =>
             out.push({ name: 'stunned by ' + kind + ': ' + what, dur: 0.9, start() { const t = FRUITS.find(f => f.kind === kind); stunT = stunFor = 0.9; stunWith(t, clamp(S() * 0.05, 18, 44) * t.r, frogPoint(993, 300)); }, end() { headFx = null; bumps = null; stunT = 0; halves = []; } }));
@@ -7391,6 +7396,8 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'tongue', anim: 'tongue', at: 0.2 },
             { name: 'tongue up', anim: 'tongue straight up', at: 0.1 },
             { name: 'tongue down', anim: 'tongue straight down', at: 0.1 },
+            { name: 'tongue down left', anim: 'tongue down left', at: 0.1 },
+            { name: 'tongue down right', anim: 'tongue down right', at: 0.1 },
             { name: 'stunned by apple', anim: 'stunned by apple: a bump comes up', at: 0.45 },
             { name: 'eating a plum', anim: 'stunned by plum: eating it', at: 0.45 },
             { name: 'drunk', anim: 'drunk (sake)', at: 0.45 },
