@@ -198,7 +198,138 @@
    "name": "firefly wings",
    "from": "firefly E, Marek's pick 2026-11-24",
    "family": "grey"
+  },
+  "crateWood": {
+   "hex": "#e2b472",
+   "name": "crate: slat wood",
+   "from": "crate-pick.png 2026-11-25"
+  },
+  "crateWoodLight": {
+   "hex": "#fcd491",
+   "name": "crate: slat wood, lit",
+   "from": "crate-pick.png 2026-11-25"
+  },
+  "cratePost": {
+   "hex": "#855834",
+   "name": "crate: corner post",
+   "from": "crate-pick.png 2026-11-25"
+  },
+  "crateGrain": {
+   "hex": "#a56f42",
+   "name": "crate: wood grain",
+   "from": "crate-pick.png 2026-11-25"
+  },
+  "crateShade": {
+   "hex": "#754e2e",
+   "name": "crate: post shade",
+   "from": "crate-pick.png 2026-11-25"
+  },
+  "crateGap": {
+   "hex": "#543923",
+   "name": "crate: gap between slats",
+   "from": "crate-pick.png 2026-11-25"
   }
  },
- "extras": {}
+ "extras": {
+  "rocketBlue": {
+   "hex": "#1177ca",
+   "name": "fireworks: blue rocket",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketBlueDark": {
+   "hex": "#0a5ca1",
+   "name": "fireworks: blue rocket, shade",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketBlueLight": {
+   "hex": "#6dabe1",
+   "name": "fireworks: blue rocket, light",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketRed": {
+   "hex": "#e72824",
+   "name": "fireworks: red rocket",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketGreenLight": {
+   "hex": "#a1e685",
+   "name": "fireworks: green rocket, light",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "charWood": {
+   "hex": "#624024",
+   "name": "burnt crate: charred wood",
+   "from": "crate-burnt.png 2026-11-25"
+  },
+  "charcoal": {
+   "hex": "#3f2b1a",
+   "name": "burnt crate: charcoal",
+   "from": "crate-burnt.png 2026-11-25"
+  },
+  "charWoodDark": {
+   "hex": "#50351f",
+   "name": "burnt crate: charred wood, shade",
+   "from": "crate-burnt.png 2026-11-25"
+  },
+  "charWoodLight": {
+   "hex": "#7d5334",
+   "name": "burnt crate: charred wood, light",
+   "from": "crate-burnt.png 2026-11-25"
+  },
+  "rocketYellow": {
+   "hex": "#feda02",
+   "name": "fireworks: yellow rocket",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketYellowDark": {
+   "hex": "#daa207",
+   "name": "fireworks: yellow rocket, shade",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketYellowLight": {
+   "hex": "#fde978",
+   "name": "fireworks: yellow rocket, lit",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketOrange": {
+   "hex": "#fb8211",
+   "name": "fireworks: orange rocket",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketOrangeDark": {
+   "hex": "#e86709",
+   "name": "fireworks: orange rocket, shade",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketOrangeLight": {
+   "hex": "#fbba57",
+   "name": "fireworks: orange rocket, lit",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketGreen": {
+   "hex": "#55cb41",
+   "name": "fireworks: green rocket",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketGreenDark": {
+   "hex": "#3aa82f",
+   "name": "fireworks: green rocket, shade",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketRedDark": {
+   "hex": "#bd1a17",
+   "name": "fireworks: red rocket, shade",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketRedLight": {
+   "hex": "#f96c5e",
+   "name": "fireworks: red rocket, lit",
+   "from": "fireworks-pick.png 2026-11-25"
+  },
+  "rocketString": {
+   "hex": "#ae773a",
+   "name": "fireworks: the string",
+   "from": "fireworks-pick.png 2026-11-25"
+  }
+ }
 }

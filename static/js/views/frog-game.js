@@ -1079,6 +1079,10 @@ function drawPlank(ctx, w, h, col, lw, ember) {
 // The crate's planks, in its own frame (hw = half its width): the open back first, then the
 // front slats and the two corner posts. The same list is what flies apart when it is cut.
 function cratePlanks(hw) {
+    if (propArt.ready) {       // the painted crate: its two posts and its slats, cut from the picture (pic = which piece)
+        const P = PROP_ART.crate, [x0, y0, x1, y1] = P.box, k = hw * 2 / (x1 - x0), cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+        return P.pieces.map(([x, y, w, h], i) => ({ x: (x + w / 2 - cx) * k, y: (y + h / 2 - cy) * k, w: w * k, h: h * k, col: i < 2 ? WOOD.dark : WOOD.face, pic: i }));
+    }
     const hh = hw * CRATE_TALL, slat = hh * 2 / 4.6, post = hw * 0.2, out = [];
     out.push({ x: 0, y: 0, w: hw * 1.9, h: hh * 1.9, col: WOOD.inside, back: true });                // the dark inside
     [-1, 1].forEach(s => out.push({ x: 0, y: s * hh * 0.5, w: hw * 1.9, h: slat * 0.9, col: WOOD.back, back: true }));
@@ -1088,6 +1092,12 @@ function cratePlanks(hw) {
 }
 // char = 0 fresh wood .. 1 burnt black, with embers showing in the slats once it is well alight
 function drawCrate(ctx, hw, lw, char = 0) {
+    if (propArt.ready) {       // the painted crate, the charred one laid over it as it burns
+        const P = PROP_ART.crate, [x0, y0, x1, y1] = P.box, k = hw * 2 / (x1 - x0), x = -(x0 + x1) / 2 * k, y = -(y0 + y1) / 2 * k, w = P.size[0] * k, h = P.size[1] * k;
+        if (char < 1) ctx.drawImage(propArt.img.crate, x, y, w, h);
+        if (char > 0) { const was = ctx.globalAlpha; ctx.globalAlpha = was * Math.min(1, char * 1.25); ctx.drawImage(propArt.img.burnt, x, y, w, h); ctx.globalAlpha = was; }
+        return;
+    }
     cratePlanks(hw).forEach((pl, i) => { ctx.save(); ctx.translate(pl.x, pl.y); drawPlank(ctx, pl.w, pl.h, charCol(pl.col, char * (0.75 + (i % 3) * 0.125)), lw, char > 0.55 && !pl.back ? char : 0); ctx.restore(); });
 }
 
@@ -1196,6 +1206,17 @@ function drawClock(ctx, b, lw) {
     const r = b.r;
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
     glow(ctx, 0, 0, r * 2.1, '41,121,255', 0.85 + Math.sin(b.t * 8) * 0.1);   // a strong blue glow
+    if (propArt.ready) {
+        // the painted clock, ringing (a small shiver), and its hands turning in code
+        const P = PROP_ART.clock, k = r * CLOCK_BODY / P.body, f = P.face * k;
+        ctx.rotate(Math.sin(b.t * 30) * 0.025);
+        ctx.drawImage(propArt.img.clock, -P.c[0] * k, -P.c[1] * k, P.size[0] * k, P.size[1] * k);
+        ctx.fillStyle = C.ink;
+        const hand = (a, len, w) => { ctx.save(); ctx.rotate(a); ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(0, -len); ctx.lineTo(w, 0); ctx.lineTo(0, w * 1.6); ctx.closePath(); ctx.fill(); ctx.restore(); };
+        hand(b.t * 0.5, f * 0.5, Math.max(1.2, f * 0.06)); hand(b.t * 6, f * 0.74, Math.max(1, f * 0.045));
+        ctx.beginPath(); ctx.arc(0, 0, Math.max(1.5, f * 0.075), 0, 7); ctx.fill();
+        ctx.restore(); return;
+    }
     ctx.lineWidth = lw; ctx.strokeStyle = '#000'; ctx.lineCap = 'round';
     ctx.beginPath(); ctx.moveTo(-r * 0.55, r * 0.7); ctx.lineTo(-r * 0.8, r * 1.1); ctx.moveTo(r * 0.55, r * 0.7); ctx.lineTo(r * 0.8, r * 1.1); ctx.stroke();
     [-1, 1].forEach(sd => {
@@ -1220,6 +1241,14 @@ const RAINBOW = ['#ff5252', '#ff9800', '#ffeb3b', '#66bb6a', '#42a5f5', '#ab47bc
 function drawFireworks(ctx, b, lw) {
     const r = b.r;
     ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.rot);
+    if (propArt.ready) {
+        // the painted bundle (as tall as the drawn one, its fuse at the bottom), the fuse's spark flickering in code
+        const P = PROP_ART.fireworks, k = r * 2.3 / P.size[1], x0 = -P.size[0] * k / 2, y0 = -r * 1.1;
+        ctx.drawImage(propArt.img.fireworks, x0, y0, P.size[0] * k, P.size[1] * k);
+        const sp = 0.6 + 0.4 * Math.sin((b.t || 0) * 30);
+        glow(ctx, x0 + P.fuse[0] * k, y0 + P.fuse[1] * k, r * (0.35 + 0.2 * sp), '255,214,64', 0.9);
+        ctx.restore(); return;
+    }
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     [-2, 2, -1, 1, 0].forEach(i => {
         ctx.save(); ctx.rotate(i * 0.3);
@@ -1243,13 +1272,38 @@ const LAPTOP_ART = { url: '/img/game/frog/laptop.2b28d644d0.webp', size: [642, 3
 // LAPTOP_ART:end
 const laptopArt = { img: null };
 if (typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search)) { const i = new Image(); i.onload = () => { laptopArt.img = i; }; i.src = LAPTOP_ART.url; }
+// The painted alarm clock, fruit crate (fresh and burnt) and fireworks bundle (Marek's picks 2026-11-25), in their pictures' px:
+// clock.c = the centre of its round body, body/face = their radii; crate.box = the crate's outline, pieces = what it breaks into
+// [x, y, w, h] (2 posts, then the slats); fireworks.fuse = the spark. The glows, the clock's hands, the fuse's light and the
+// burst stay drawn in code. ?art=old: the drawings.
+// PROP_ART:begin (written by design/frog/tools/art_build_props.py: do not edit by hand)
+const PROP_ART = {
+    clock: { url: '/img/game/frog/prop-clock.05c4d1a94d.webp', size: [360, 491], c: [179.6, 293.7], body: 175.4, face: 143.5 },
+    crate: { url: '/img/game/frog/prop-crate.e256154c07.webp', burnt: '/img/game/frog/prop-crate-burnt.54a634f7cf.webp', size: [400, 391], box: [3.7, 3.7, 396.3, 387.8],
+        pieces: [[3.7, 3.7, 60.9, 384.2], [334.9, 3.7, 61.5, 384.2], [56.0, 11.6, 287.4, 67.0], [56.0, 80.4, 287.4, 73.7], [56.0, 157.7, 287.4, 74.3], [56.0, 232.6, 287.4, 74.3], [56.0, 309.9, 287.4, 70.6]] },
+    fireworks: { url: '/img/game/frog/prop-fireworks.1ad40a93a6.webp', size: [420, 393], fuse: [208.9, 359.6] },
+};
+// PROP_ART:end
+const propArt = { ready: false, img: {} };
+const PROP_ON = !!PROP_ART && typeof Image !== 'undefined' && !/[?&]art=old/.test(typeof location === 'undefined' ? '' : location.search);
+if (PROP_ON) {
+    const all = [['clock', PROP_ART.clock.url], ['crate', PROP_ART.crate.url], ['burnt', PROP_ART.crate.burnt], ['fireworks', PROP_ART.fireworks.url]];
+    Promise.all(all.map(([k, u]) => new Promise(ok => { const i = new Image(); i.onload = () => { propArt.img[k] = i; ok(); }; i.onerror = ok; i.src = u; })))
+        .then(() => { propArt.ready = all.every(([k]) => propArt.img[k]); });
+}
+const CLOCK_BODY = 0.85;     // the painted clock's round body against its r: its handle stands tall, so the whole clock is as tall as the drawn one
+// one piece of the painted crate (pieces[i]) in a w x h box, fresh or charred
+function drawCratePiece(ctx, i, w, h, burnt) {
+    const [sx, sy, sw, sh] = PROP_ART.crate.pieces[i];
+    ctx.drawImage(burnt ? propArt.img.burnt : propArt.img.crate, sx, sy, sw, sh, -w / 2, -h / 2, w, h);
+}
 // An icon of the seagull, the laptop or the firefly is painted before their pictures have loaded: paint it again once they are in
 // (Marek, 2026-11-24: the debug tray still showed the old seagull). paint(x) draws the icon on a fresh context.
 function iconWhenArt(c, k, paint) {
     const x0 = c.getContext('2d'); x0.save(); paint(x0); x0.restore();
-    if ((gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON)) return;
+    if ((gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON) && (propArt.ready || !PROP_ON)) return;
     let n = 0; const t = setInterval(() => {
-        const done = (gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON);
+        const done = (gullArt.ready || !ART.frog) && laptopArt.img && (flyArt.ready || !FLY_ON) && (propArt.ready || !PROP_ON);
         if (done || ++n > 60) { clearInterval(t); if (!done) return; const x = c.getContext('2d'); x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height); x.scale(k, k); paint(x); x.restore(); }
     }, 250);
 }
@@ -1799,11 +1853,11 @@ export function mountFrogGame(stage, opts = {}) {
         stage.querySelectorAll('canvas[data-icon]').forEach(c => {
             const x = prep(c), kind = c.dataset.icon;
             if (kind === 'fly') iconWhenArt(c, k, g => drawFly(g, { x: S / 2 + 2, y: S / 2, dir: 1, phase: 0 }, 8, 0.26));
-            else if (kind === 'crate') { x.translate(S / 2, S / 2 + 1); drawCrate(x, 17, 1.6); }
-            else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
+            else if (kind === 'crate') iconWhenArt(c, k, g => { g.translate(S / 2, S / 2 + 1); drawCrate(g, 17, 1.6); });
+            else if (kind === 'fireworks') iconWhenArt(c, k, g => drawFireworks(g, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6));
             else if (kind === 'laptop') iconWhenArt(c, k, g => drawLaptop(g, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6));
             else if (kind === 'gull') iconWhenArt(c, k, g => { g.translate(S / 2 - 2, S / 2 + 2); drawGull(g, 13, 1.6, { flap: -0.5 }); });
-            else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
+            else if (kind === 'clock') iconWhenArt(c, k, g => drawClock(g, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2));
             else drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
         });
         // the start screen's pictures: a katana mid-slash, the tongue on a firefly, a heap of fruit and power-ups
@@ -3818,7 +3872,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (pl.col === WOOD.inside) return;
             const a = rand(0, 6.28), v = rand(0.25, 0.75) * H * (c.ash ? 1.5 : 1);
             planks.push({
-                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: c.ash ? pick(COAL) : pl.col, log: !!c.ash,     // (burnt through: it bursts into charcoal logs)
+                x: c.x + pl.x * cs - pl.y * sn, y: c.y + pl.x * sn + pl.y * cs, w: pl.w, h: pl.h, col: c.ash ? pick(COAL) : pl.col, log: !!c.ash, pic: pl.pic,     // (burnt through: it bursts into charcoal logs)
                 vx: c.vx * 0.4 + Math.cos(a) * v + (c.ash ? 0 : dx * drag), vy: c.vy * 0.4 + Math.sin(a) * v - H * 0.25 + (c.ash ? 0 : dy * drag),
                 g: G(), rot: c.rot, spin: rand(-9, 9), t: 0, sea: rand(0.08, 0.6), ph: rand(0, 6)
             });
@@ -4245,7 +4299,7 @@ export function mountFrogGame(stage, opts = {}) {
                 drawClock(ctx, { x: 0, y: 0, r, rot: 0, t: 0.3 }, lw);
                 // the inside of the case, along the cut
                 ctx.rotate(ang - b.rot);
-                ctx.strokeStyle = '#3e2723'; ctx.lineWidth = lw * 1.6; ctx.beginPath(); ctx.moveTo(-r * 0.92, 0); ctx.lineTo(r * 0.92, 0); ctx.stroke();
+                const rc = propArt.ready ? r * CLOCK_BODY : r; ctx.strokeStyle = '#3e2723'; ctx.lineWidth = lw * 1.6; ctx.beginPath(); ctx.moveTo(-rc * 0.92, 0); ctx.lineTo(rc * 0.92, 0); ctx.stroke();
             }, { vx: nx * H * 0.2 * sd + Math.cos(ang) * H * 0.08, vy: ny * H * 0.2 * sd - H * 0.18, rot: b.rot, spin: sd * rand(2, 5), life: 1.8 }));
             // gears, big and small
             for (let i = 0; i < 6; i++) { const gr = r * rand(0.14, 0.34); bit(b.x, b.y, (ctx, lw) => drawGear(ctx, gr, lw), { life: 1.8 }); }
@@ -6447,12 +6501,12 @@ export function mountFrogGame(stage, opts = {}) {
             const [kind, name] = c.dataset.spawn.split(':');
             if (kind === 'fruit') { const t = FRUITS.find(f => f.kind === name); x.translate(S / 2, S / 2 + 3); drawWhole(x, { type: t }, lerp(7, 15, sizeK(t)) * ICON_K(name), 2); }
             else if (kind === 'fly') iconWhenArt(c, k, g => drawFly(g, { x: S / 2 + 2, y: S / 2, dir: 1, phase: 0 }, 8, 0.26));
-            else if (kind === 'clock') drawClock(x, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2);
+            else if (kind === 'clock') iconWhenArt(c, k, g => drawClock(g, { x: S / 2, y: S / 2 + 2, r: 14, rot: 0, t: 0.3 }, 2));
             else if (kind === 'sake') drawSake(x, { x: S / 2, y: S / 2 + 3, r: 14, rot: 0, t: 0 }, 2);
-            else if (kind === 'fireworks') drawFireworks(x, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6);
+            else if (kind === 'fireworks') iconWhenArt(c, k, g => drawFireworks(g, { x: S / 2, y: S / 2 - 2, r: 13, rot: 0, t: 0 }, 1.6));
             else if (kind === 'laptop') iconWhenArt(c, k, g => drawLaptop(g, { x: S / 2, y: S / 2, r: 14, rot: 0 }, 1.6));
             else if (kind === 'gull') iconWhenArt(c, k, g => { g.translate(S / 2 - 2, S / 2 + 2); drawGull(g, 13, 1.6, { flap: -0.5 }); });
-            else { x.translate(S / 2, S / 2 + 1); drawCrate(x, 15, 1.6); }
+            else iconWhenArt(c, k, g => { g.translate(S / 2, S / 2 + 1); drawCrate(g, 15, 1.6); });
             // drag it out of the tray: a ghost follows the pointer, and it lands where you let go
             c.addEventListener('pointerdown', e => {
                 e.preventDefault();
@@ -7084,7 +7138,8 @@ export function mountFrogGame(stage, opts = {}) {
             bctx.save(); bctx.globalAlpha = 1 - sink;
             bctx.translate(q.x, q.y + Math.sin(q.afloat * 3 + q.ph) * 2 + sink * thin * 1.2);
             bctx.beginPath(); bctx.rect(-flat, -thin * 2, flat * 2, thin * 2.2 - sink * thin * 0.5); bctx.clip();      // the waterline hides what is under
-            drawPlank(bctx, flat, thin, q.col, clamp(W / 260, 2.5, 4), q.log ? 0.4 : 0);
+            if (q.pic !== undefined && propArt.ready) { if (q.h > q.w) bctx.rotate(Math.PI / 2); drawCratePiece(bctx, q.pic, q.w, q.h, q.log); }
+            else drawPlank(bctx, flat, thin, q.col, clamp(W / 260, 2.5, 4), q.log ? 0.4 : 0);
             bctx.strokeStyle = '#9fc3d3'; bctx.lineWidth = 1.5; bctx.globalAlpha = 0.6 * (1 - sink); bctx.beginPath(); bctx.ellipse(0, thin * 0.2, flat * 0.62, thin * 0.22, 0, 0, 7); bctx.stroke();
             bctx.restore();
         });
@@ -7133,7 +7188,7 @@ export function mountFrogGame(stage, opts = {}) {
         }
         ctx.globalAlpha = 1;
         // the crate and its broken planks sit behind all the fruit
-        planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); drawPlank(ctx, q.w, q.h, q.col, lw, q.log ? 1 : 0); ctx.restore(); });
+        planks.forEach(q => { if (q.afloat !== undefined) return; ctx.save(); ctx.translate(q.x, q.y); ctx.rotate(q.rot); if (q.pic !== undefined && propArt.ready) drawCratePiece(ctx, q.pic, q.w, q.h, q.log); else drawPlank(ctx, q.w, q.h, q.col, lw, q.log ? 1 : 0); ctx.restore(); });
         drawClouds(tn);
         crates.forEach(c => {
             if (c.mark) glow(ctx, c.x, c.y, c.hw * 2.2, '129,212,250', 0.75);        // marked during a time freeze, like fruit
@@ -7523,6 +7578,13 @@ export function mountFrogGame(stage, opts = {}) {
             { name: 'fall', anim: 'time up: slips off one foot', at: 0.6, air: true },
             { name: 'team called', anim: 'laptop: the team is called', at: 2.5, seated: true },
             { name: 'seagull pecks', anim: 'seagull pecks the head', at: 0.8 },
+            // the painted props, held still: the clock and the fireworks, a fresh and a burning crate, and the pieces a crate breaks into
+            { name: 'props', anim: 'ready (idle)', at: 0.3, setup() {
+                const r = clamp(S() * 0.05, 20, 38), hw = clamp(S() * 0.055, 16, 60) * CRATE_SIZE, still = () => ({ vx: 0, vy: 0, g: 0, spin: 0, rot: 0, t: 0 });
+                pickups.push({ kind: 'clock', x: W * 0.2, y: H * 0.28, r: r * PICK_SIZE.clock, ...still() }, { kind: 'fireworks', x: W * 0.8, y: H * 0.28, r: r * PICK_SIZE.fireworks, ...still() });
+                crates.push({ x: W * 0.2, y: H * 0.62, hw, ...still() }, { x: W * 0.8, y: H * 0.62, hw, burn: burnTime() * 0.8, ...still() });
+                cratePlanks(hw).forEach((pl, i) => { if (pl.col !== WOOD.inside) planks.push({ x: W * 0.5 + pl.x * 1.5, y: H * 0.2 + pl.y * 1.5, w: pl.w, h: pl.h, col: pl.col, pic: pl.pic, log: i % 2 === 1, ...still(), rot: (i - 3) * 0.25, sea: 0.5, ph: 0 }); });
+            } },
         ];
         const step = sec => { for (let i = 0, n = Math.round(sec * 60); i < n; i++) { VCLOCK.t += 1000 / 60; frame(VCLOCK.t); } };
         const rect = r => ({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
@@ -7541,7 +7603,9 @@ export function mountFrogGame(stage, opts = {}) {
                 if (demo && demo.a.end) demo.a.end(); demo = null;
                 [fruits, halves, pieces, drops, floats, slashes, flies, pickups, gulls, crates, planks, bits, flames, clouds].forEach(a => { a.length = 0; });
                 fireLeft = 0; freezeLeft = 0; sakeLeft = 0; stunT = 0; headFx = null; bumps = null; swing = null; gullOn = null;
-                if (q.anim) { playAnim(q.anim); step(q.at); } else step(0.2);
+                if (q.anim) playAnim(q.anim);
+                if (q.setup) q.setup();
+                if (q.anim || q.setup) step(q.at); else step(0.2);
                 if (artCut && artCut.m) { artCut.m = null; applyPose(); }      // (a shot is of the pose itself: the cut shots are taken 0.12 s in, right at the end of the in-between, and caught its last stretched frame)
                 return true;
             },

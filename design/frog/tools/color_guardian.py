@@ -61,8 +61,8 @@ def unhex(h): h = h.lstrip('#'); return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
 def palette(skin='frog'):
     P = json.load(open(PALETTE, encoding='utf-8'))
     out = {}
-    for group in (P['skins'][skin], P.get('props', {}), P.get('extras', {})):
-        for k, v in group.items(): out[k] = dict(v, lab=to_lab(unhex(v['hex'])))
+    for g, group in (('skin', P['skins'][skin]), ('props', P.get('props', {})), ('extras', P.get('extras', {}))):
+        for k, v in group.items(): out[k] = dict(v, lab=to_lab(unhex(v['hex'])), group=g)
     return out
 
 
@@ -96,15 +96,22 @@ def roles(cl, pal):
     nearest to (its base role favoured: a picture that drifted as a whole is still read right); the family's other
     colours are placed by where they sit from that one (darker, lighter), not by their drifted values."""
     fam = [family(c) for c, _ in cl]; ids = [None] * len(cl)
+    # a prop's own colour (a yellow rocket, a green one) is not the frog's belly or skin: a colour sitting on a props/extras
+    # entry is that entry, before the frog's families are placed (2026-11-25, the painted fireworks)
+    own = [k for k, v in pal.items() if v.get('group') in ('props', 'extras') and v.get('family') != 'grey']
+    for i, (c, _) in enumerate(cl):
+        if (fam[i] in RANKED or fam[i] == 'pink') and own:
+            n = min(own, key=lambda k: np.linalg.norm(pal[k]['lab'] - c))
+            if np.linalg.norm(pal[n]['lab'] - c) < 0.03: ids[i] = n
     for f, rs in RANKED.items():
-        rs = [r for r in rs if r in pal]; k = [i for i in range(len(cl)) if fam[i] == f]
+        rs = [r for r in rs if r in pal]; k = [i for i in range(len(cl)) if fam[i] == f and ids[i] is None]
         if not k or not rs: continue
         b = max(k, key=lambda i: cl[i][1]); cb = cl[b][0]
         r0 = min(rs, key=lambda r: np.linalg.norm(cb - pal[r]['lab']) * (1 if r == rs[0] else 1.5))
         for i in k: ids[i] = min(rs, key=lambda r: np.linalg.norm(cl[i][0] - cb + pal[r0]['lab'] - pal[r]['lab']))
     for i, (c, s) in enumerate(cl):
         f = fam[i]
-        if f in RANKED: continue
+        if f in RANKED or ids[i] is not None: continue
         if f == 'ink': ids[i] = 'ink'
         elif f == 'white': ids[i] = 'white'
         elif f == 'pink': ids[i] = 'tongue' if 'tongue' in pal else None
