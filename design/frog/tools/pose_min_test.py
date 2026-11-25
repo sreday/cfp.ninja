@@ -11,7 +11,7 @@ from playtest import Game  # noqa: E402
 
 # which cut drawing is on screen and which way it faces ('cut-R', 'down-L', ...), or 'none'
 PROBE = r"""(()=>{const s=document.querySelector('.fg-frog'); const on=s&&s.classList.contains('fg-art-cut-on');
- const r=document.querySelector('#fg-art-cut'); const im=[...r.querySelectorAll('image')].find(e=>e.getAttribute('display')==='inline');
+ const r=document.querySelector('#fg-art-cut'); const im=[...r.querySelectorAll('.fg-cut-pose image')].find(e=>e.getAttribute('display')==='inline');
  const f=(r.getAttribute('transform')||'').match(/scale\((-?)/); return on?(im?im.dataset.pose:'?')+(f&&f[1]?'-L':'-R'):'none';})()"""
 MIN_SEEN = 0.25
 
@@ -46,7 +46,7 @@ def main():
                 cur, start = v, t
         segs.append((cur, round(log[-1][0] - start, 3)))
         print(segs)
-        short = [s for s in segs[:-1] if s[0] != 'none' and not s[0].startswith('undefined') and s[1] < MIN_SEEN]      # ('undefined': the in-between of two poses, 60 ms, not a pose)
+        short = [s for s in segs[:-1] if s[0] != 'none' and not s[0].startswith(('undefined', '?')) and s[1] < MIN_SEEN]      # ('undefined': the in-between of two poses, 60 ms, not a pose)
         print(f'poses shown under {MIN_SEEN} s:', short)
         return 1 if short or not any(s[0] != 'none' for s in segs) else 0
     finally:

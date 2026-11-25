@@ -1,4 +1,5 @@
 import { createAudio } from './frog-audio.js';
+import { SLASH_DIRS, slashCell, slashPick, slashTraces, tracePoly, traceLife, BLADES, TRACE_HOLD, TRACE_THIN, TRACE_ALPHA, TRAIL_MS, TRAIL_HALF, trailTaper } from './frog-slash.js';
 // Frog Ninja engine: the CFP.ninja frog tosses its laptop, draws its katanas and slices fruit.
 // mountFrogGame(stage, { onGameOver }) -> { destroy }. Survival: time is the only currency.
 // The clock runs down; every sliced fruit buys time back (small fruit more). The score
@@ -3395,30 +3396,16 @@ export function mountFrogGame(stage, opts = {}) {
         // (a cut from standing: the frog as it stands right now, kept for the blend into the cut and back out of it)
         if (MORPH && artCut && artCut.ready && !swing && !artCut.on && pose.up > 0.5 && !pose.fallY && !pose.chop && !pose.low && !(fireLeft > 0)) snapStand(artCut, performance.now());
         const a = Math.round(Math.atan2(dy, dx) / (Math.PI * 2 / DIRS)) * (Math.PI * 2 / DIRS);
-        // the arm on the side the blade is working does the cutting
-        const side = x < W / 2 ? 'L' : 'R';
-        const near = Math.abs(x - W / 2) < fbox.w * 0.5;       // close to the frog: a three-quarter turn
-        const high = y !== undefined && y < frogPoint(993, 60).y;                  // above its head: it has to jump for it
-        const over = high && Math.sin(a) <= 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42;                 // straight over its head: both blades go up
-        // a stroke straight down, right in front of it: both blades come down together
-        // ... and so does any cut made low down right under it (below its knees, within its own width),
-        // whichever way the blade is travelling: the frog bends over it, katanas crossed underneath
-        const low = y !== undefined && y > frogPoint(993, 1380).y && Math.abs(x - W / 2) < fbox.w * 0.6;
-        const under = !over && ((Math.sin(a) > 0.9 && Math.abs(x - W / 2) < fbox.w * 0.42) || low);
-        // a level stroke right through the frog itself (between its head and its knees): it gets out of the blade's
-        // way, and stays out for the rest of that stroke. Head height: it ducks under. Lower: it hops over.
-        const top = frogPoint(993, 60).y, mid = frogPoint(993, 820).y;
-        const through = over || under || y === undefined || Math.abs(Math.sin(a)) > 0.4 || Math.abs(x - W / 2) > fbox.w * 0.45 || y < top || y > frogPoint(993, 1380).y ? '' : y < mid ? 'duck' : 'hop';
-        if (swing && swing.live && swing.through && swing.a === a) return;
-        if (swing && swing.live && swing.a === a && swing.side === side && !!swing.under === under && !through) { swing.near = near; swing.high = swing.high || high; swing.over = swing.over || over; return; }      // still the same stroke
-        // a stroke straight down, right in front of it: both blades come down together
-        // far out toward a corner (well to the side, and well above the head or down by the feet):
-        // a thrust, the whole frog thrown at it, blade first
-        const h0 = frogPoint(993, 300), wide = Math.abs(x - W / 2) > fbox.w * 1.6;
-        const thrust = y === undefined || !wide ? '' : y < h0.y - fbox.w * 0.9 ? 'up' : y > h0.y + fbox.w * 0.95 ? 'down' : '';
-        if (swing && swing.live && swing.thrust && swing.thrust === thrust && swing.side === side) { swing.tx = x; swing.ty = y; return; }     // the same thrust, followed
+        // The slash grid (Marek, 2026-11-25; frog-slash.js): the screen in 9 equal rectangles, 8 directions in each. The cell the
+        // stroke is in picks the frog's picture and the trace its blades leave. One stroke keeps its cell from start to end.
+        if (y === undefined) y = frogPoint(993, 820).y;
+        const cell = slashPick(slashCell(x, y, Math.cos(a), Math.sin(a), W, H), { x, W, dx: Math.cos(a), upper: y < frogPoint(993, 820).y });
+        const id = cut ? cut.id : 0, pic = cell.pic;
+        if (swing && swing.live && !swing.demo && swing.cutId === id && swing.cell.dir === cell.dir) { swing.tx = x; swing.ty = y; return; }      // still the same stroke
         if (swing && swing.t < POSE_MIN && !swing.demo) { swingNext = [dx, dy, x, y]; return; }      // the current pose has not had its time yet
-        swing = { a, side, t: 0, live: true, near, high, over, under, thrust: through ? '' : thrust, through, tx: x, ty: y };
+        // (over, under, through: what the old drawn frog does with its arms until the picture has loaded)
+        swing = { a, side: cell.face < 0 ? 'L' : 'R', face: cell.face, t: 0, live: true, cell, pic, cutId: id, vx: Math.cos(a), vy: Math.sin(a),
+            near: false, high: false, over: pic === 'over', under: pic === 'under', thrust: '', through: pic === 'duck' || pic === 'hop' ? pic : '', tx: x, ty: y };
     }
     function stepSwing(dt) {
         if (!swing) { swingNext = null; return; }        // (a cleared swing drops a waiting stroke too: nothing stale fires later)
@@ -3510,7 +3497,7 @@ export function mountFrogGame(stage, opts = {}) {
         pose[off + 'K'] = lerp(READY[off + 'K'], deg - 90, k * 0.6);
         // the body rotates toward the cut: well over for a sideways stroke, bowing into a downward one,
         // arching back for an upward one
-        const facing = Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1;
+        const facing = s.face || (Math.abs(cx) > 0.3 ? Math.sign(cx) : s.side === 'L' ? -1 : 1);      // (the slash grid's facing: toward the side of the screen the stroke is on)
         // The cut is its own drawing: the frog in profile, turned to the side it is cutting on, with
         // the whole top half (head included) rotated to the stroke: arched back for an upward cut,
         // leaning in for a level one, bowed right over for a downward one. Legs: stretch, lunge, crouch.
@@ -3536,7 +3523,8 @@ export function mountFrogGame(stage, opts = {}) {
             if (pose.sHop > 60) { pose.sLegs = 'tuck'; pose.sDrop = 0; }       // off the ground: knees pulled up
             // feet on the post, no thrust: a level cut is the picked side cut drawing, a down cut the picked down cut (artCutPose)
             // (a thrust into a far corner: the floating side slash too. It was the last cut the old drawn frog still made: Marek, 2026-11-22)
-            pose.artCut = s.thrust ? 'down' : pose.sHop || cy < -0.3 ? 'rise' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '';
+            // (the slash grid names the picture for every cell: no stroke falls back to the old drawn frog any more)
+            pose.artCut = s.pic || (s.thrust ? 'down' : pose.sHop || cy < -0.3 ? 'rise' : pose.sLegs === 'level' ? 'cut' : pose.sLegs === 'down' && cy > 0.3 ? 'down' : '');
             // How a katana is held: never as an extension of the arm. The grip sets the blade across the
             // forearm, at about a right angle when it is cocked for the cut and never closer than 50
             // degrees to the arm's own line when the cut is finished (the wrist snaps it forward, it does
@@ -4791,6 +4779,7 @@ export function mountFrogGame(stage, opts = {}) {
     // There a press is judged as a finger's: a quick pull of the trigger that slid a little is still a tap (the tongue), and a
     // tongue-only power-up gets the finger's wider target. ?vr=1 turns it on by hand (a headset showing the PC's own browser,
     // as the Rift does, cannot be told from a mouse).
+    const SLASH_GRID = /[?&]grid=1(&|$)/.test(location.search);      // the slash grid drawn over the game, for tuning
     const VR_RAY = /OculusBrowser|Quest|Wolvic|Pico/i.test(navigator.userAgent || '') || /[?&]vr=1(&|$)/.test(location.search);
     let sawButtons = false;                     // this pointer has reported a held button on a move (see onMove)
     let touchDown = null;                       // the press in progress: where, when, how far it has strayed
@@ -6210,6 +6199,8 @@ export function mountFrogGame(stage, opts = {}) {
         const DIRN = ['right', 'down-right', 'down', 'down-left', 'left', 'up-left', 'up', 'up-right'];
         DIRN.forEach((n, i) => cutAnim('cut ' + n + ', far', i * Math.PI / 4, () => ({ x: W / 2 + (Math.cos(i * Math.PI / 4) < -0.3 ? -1 : 1) * fw() * 1.4, y: head().y + fw() * 0.5 })));
         DIRN.forEach((n, i) => cutAnim('cut ' + n + ', near', i * Math.PI / 4, () => ({ x: W / 2 + (Math.cos(i * Math.PI / 4) < -0.3 ? -1 : 1) * fw() * 0.3, y: head().y + fw() * 0.5 })));
+        // the slash grid: every cell, a stroke in the middle of its rectangle
+        for (let z = 0; z < 9; z++) DIRN.forEach((n, i) => cutAnim(`grid: zone ${z + 1}, ${n}`, i * Math.PI / 4, () => ({ x: W * (z % 3 + 0.5) / 3, y: H * (Math.floor(z / 3) + 0.5) / 3 })));
         cutAnim('cut level through itself, head height, to the right (ducks under)', 0, () => ({ x: W / 2, y: frogPoint(993, 400).y }));
         cutAnim('cut level through itself, head height, to the left (ducks under)', Math.PI, () => ({ x: W / 2, y: frogPoint(993, 400).y }));
         cutAnim('cut level through itself, body height, to the right (hops over)', 0, () => ({ x: W / 2, y: frogPoint(993, 1100).y }));
@@ -6309,6 +6300,7 @@ export function mountFrogGame(stage, opts = {}) {
             return {
                 halves: bits.filter(q => q.half).map(q => [Math.round(q.x), Math.round(q.y)]),      // (the halves of a cut laptop, still up for a second cut)
                 arms: artFrog && artFrog.on && !svg.classList.contains('fg-art-cut-on') ? (artFrog.standNow || 'rig ' + Math.round(pose.lRot) + '/' + Math.round(pose.rRot) + (pose.held && !pose.noBlades && !pose.stuck ? '' : ' unarmed')) : '',      // (which arms the standing frog shows: a painted stand, or the jointed rig at these angles)
+                cell: swing && swing.cell ? swing.cell.zone + ':' + swing.cell.dir : '',      // (the stroke's cell of the slash grid: slash_grid_test.py)
                 pic: swing && !(!swing.live && swing.t > holdUntil(swing)) ? pose.artCut + (pose.side < 0 ? " L" : pose.side > 0 ? " R" : "") : "",      // (the picture a stroke is showing: sound and repeat checks read it)
                 vr: VR_RAY, press: press ? [Math.round(press.x), Math.round(press.y), press.drag || 0] : null, down,      // (the pointer, for the controller-ray checks)
                 phase, paused: typeof paused !== 'undefined' && paused, debug: dbg, w: W, h: H, survived: r2(clockT), left: r2(timeLeft), stamina: r2(stamina),
@@ -6983,7 +6975,7 @@ export function mountFrogGame(stage, opts = {}) {
         floats.forEach(f => f.t += dt); floats = floats.filter(f => f.t < 0.9);
         slashes.forEach(s => s.t += dt); slashes = slashes.filter(s => s.t < 0.18);
         const tn = performance.now();
-        trail = trail.filter(p => tn - p.t < 140);
+        trail = trail.filter(p => tn - p.t < TRAIL_MS);
         // the style meter drains once you stop slashing; it only goes up during fire breath and slow motion
         // A power-up never costs the grade: while one runs the meter holds, and when it ends
         // the player gets the full STYLE_HOLD to start slashing again (fire allows no slashing,
@@ -7289,7 +7281,31 @@ export function mountFrogGame(stage, opts = {}) {
             ctx.fillStyle = C.steel; ctx.beginPath(); ctx.rect(-L * 0.05, -L * 0.94, L * 0.1, L * 0.28); ctx.fill(); ctx.stroke();
             ctx.restore();
         });
-        if (swing && swing.t < SMEAR + 0.03 && pose.held) {
+        // The slash trace: what the katanas leave in the air, drawn at the blades of the picture that is up (frog-slash.js: which
+        // blades, how far they swept and which way come from the stroke's cell of the grid). White, a thin line of the blade's
+        // colour round it, see-through, as wide as the blade; held for a moment, then its far end closes up on the blade. (No picture up, or one without measured blades: the old crescent.)
+        const trQ = swing && swing.cell && pose.held && artCutOn() && BLADES[pose.artCut] ? CUT_POSES[pose.artCut] : null;
+        if (trQ && (swing.t < TRACE_HOLD + TRACE_THIN || SLASH_GRID)) {
+            const key = pose.artCut, Q = trQ, bl = BLADES[key], k = poseK(Q), f = (pose.side < 0 && !Q.front ? -1 : 1) * (Q.faces || 1);
+            const tw = Q === OVER_ART || Q.rock ? [0, 0] : Q.tw || [Math.cos(swing.a), Math.sin(swing.a)], td = swing.t < SMEAR ? TWITCH : TWITCH_HOLD;
+            const ox = 993 + tw[0] * td, oy = BREATH_ART.rigFeet - (Q.lift || 0) + tw[1] * td, ux = fbox.w / 1986, uy = fbox.h / 1876;
+            const th = Q.spin ? Q.spin * (0.5 - clamp(swing.t / POSE_MIN, 0, 1)) * Math.PI / 180 : 0, cs = Math.cos(th), sn = Math.sin(th), my = Q.size[1] / 2;
+            const at = q => { const rx = q[0] - Q.mid, ry = q[1] - my, px = Q.mid + rx * cs - ry * sn, py = my + rx * sn + ry * cs; return [fbox.x + (ox + f * k * (px - Q.mid)) * ux, fbox.y + (oy + k * (py - Q.feet)) * uy]; };
+            if (!swing.tr || swing.tr.key !== key + f) swing.tr = { key: key + f, list: slashTraces(key, swing.cell, f * swing.vx, swing.vy) };
+            const life = traceLife(swing.t);
+            ctx.save(); ctx.lineJoin = 'round'; ctx.fillStyle = '#fff'; ctx.lineWidth = Math.max(2, lw * 0.8);
+            ctx.strokeStyle = sakeLeft > 0 ? '#f5c542' : bladeFx.fire && fxOn() ? '#ff6d00' : bladeFx.frost && fxOn() ? '#4fc3f7' : elder ? '#cfd8dc' : '#98b74b';
+            if (swing.t < TRACE_HOLD + TRACE_THIN) for (const tr of swing.tr.list) {
+                const pts = tracePoly(bl[tr.blade], tr, life).map(at);
+                ctx.beginPath(); pts.forEach((q, i) => ctx[i ? 'lineTo' : 'moveTo'](q[0], q[1])); ctx.closePath(); ctx.globalAlpha = TRACE_ALPHA; ctx.fill(); ctx.globalAlpha = Math.min(1, TRACE_ALPHA + 0.25); ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+            if (SLASH_GRID) for (const b of bl) {      // (?grid=1: where the game thinks the hilts and the tips are)
+                const h = at(b.hilt), t = at(b.tip);
+                ctx.fillStyle = '#ff3b30'; ctx.beginPath(); ctx.arc(h[0], h[1], 4, 0, 7); ctx.fill(); ctx.fillStyle = '#ffe600'; ctx.beginPath(); ctx.arc(t[0], t[1], 4, 0, 7); ctx.fill();
+            }
+            ctx.restore();
+        } else if (!trQ && swing && swing.t < SMEAR + 0.03 && pose.held) {
             const c0 = frogPoint(993, 1000), R = fbox.w * 0.62, k = swing.t / (SMEAR + 0.03);
             ctx.save(); ctx.translate(c0.x, c0.y); ctx.rotate(swing.a);
             ctx.globalAlpha = 1 - k * 0.6;
@@ -7321,16 +7337,29 @@ export function mountFrogGame(stage, opts = {}) {
             });
             ctx.restore();
         }
+        if (SLASH_GRID) {      // ?grid=1: the nine rectangles, and the cell of the stroke the frog is showing
+            ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,.55)'; ctx.lineWidth = 1; ctx.font = '600 13px system-ui, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.75)';
+            ctx.beginPath(); for (let i = 1; i < 3; i++) { ctx.moveTo(W * i / 3, 0); ctx.lineTo(W * i / 3, H); ctx.moveTo(0, H * i / 3); ctx.lineTo(W, H * i / 3); } ctx.stroke();
+            for (let z = 0; z < 9; z++) ctx.fillText(String(z + 1), W * (z % 3) / 3 + 8, H * Math.floor(z / 3) / 3 + 18);
+            if (swing && swing.cell) {
+                const c = swing.cell; ctx.fillStyle = 'rgba(255,230,0,.14)'; ctx.fillRect(W * c.col / 3, H * c.row / 3, W / 3, H / 3);
+                ctx.fillStyle = '#ffe600'; ctx.fillText(`zone ${c.zone}, ${SLASH_DIRS[c.dir]}: ${pose.artCut || c.pic}`, 8, H - 10);
+            }
+            ctx.restore();
+        }
         if (trail.length > 1) {
             // Each cut is a chain of round-capped strokes (a union of capsules: exact at any
             // speed, no spikes at hairpins). The blade is opaque white; the glow is drawn opaque
             // on its own layer and laid over once at 42%, so overlaps never bead up.
             const cm = cutMax();
+            // (2026-11-25: shaped like a blade along each cut's own length: a long thin tail, widest two thirds along, a sharp
+            //  point at the head; and still running thin as the cut nears the longest a cut may be)
+            const lens = new Map(); for (const p of trail) if (!(lens.get(p.cut) >= p.d)) lens.set(p.cut, p.d);
             const halfW = p => {
-                const age = clamp((tn - p.t) / 140, 0, 1);
+                const age = clamp((tn - p.t) / TRAIL_MS, 0, 1);
                 const taper = p.free ? 0.15 + 0.85 * clamp(p.d / (cm * 0.1), 0, 1)     // sake: full width after a short ramp
-                    : 0.15 + 0.85 * Math.pow(Math.sin(Math.PI * clamp(p.d / cm, 0, 1)), 0.6);
-                return (3.5 * (1 - age) + 0.5) * taper;          // fades by thinning, not by alpha
+                    : trailTaper(p.d / Math.max(lens.get(p.cut), 1)) * clamp((1 - p.d / cm) * 4, 0.15, 1);
+                return (TRAIL_HALF * (1 - age) + 0.5) * taper;          // fades by thinning, not by alpha
             };
             const fx = fxOn() && bladeFx.last ? BLADE_FX[bladeFx.last] : null;
             const fxWide = (bladeFx.fire && fxOn() ? BLADE_FX.fire.wide + 1.5 * (bladeFx.fire - 1) : 1) * (bladeFx.frost && fxOn() ? 1 + 0.5 * (bladeFx.frost - 1) : 1), fxSpread = fx ? fx.spread : 2.6;
@@ -7348,7 +7377,7 @@ export function mountFrogGame(stage, opts = {}) {
                     const c = i < trail.length - 1 && trail[i + 1].cut === b.cut ? trail[i + 1] : null;
                     if (!a && !c) continue;
                     const w = 2 * halfW(b) * (b.free || b.fx ? fxWide : 1);
-                    c2.lineWidth = glow ? w * (b.free || b.fx ? fxSpread : 2.6) + 4 : w;
+                    c2.lineWidth = glow ? (fx ? w * (b.free || b.fx ? fxSpread : 2.6) + 4 : w + 3.5) : w;      // (a plain blade: a thin line of its colour round the white, like the traces at the katanas)
                     c2.beginPath();
                     if (a) c2.moveTo((a.x + b.x) / 2, (a.y + b.y) / 2); else c2.moveTo(b.x, b.y);
                     if (a && c) c2.quadraticCurveTo(b.x, b.y, (b.x + c.x) / 2, (b.y + c.y) / 2);
@@ -7362,13 +7391,13 @@ export function mountFrogGame(stage, opts = {}) {
             gctx.setTransform(1, 0, 0, 1, 0, 0); gctx.clearRect(0, 0, glowCv.width, glowCv.height);
             gctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             gctx.strokeStyle = fx ? fx.glow : elder ? '#cfd8dc' : '#98b74b'; strokeAll(gctx, true);
-            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fx ? fx.alpha : 0.42; ctx.drawImage(glowCv, 0, 0); ctx.restore();
+            ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = fx ? fx.alpha : 0.9; ctx.drawImage(glowCv, 0, 0); ctx.restore();
             ctx.save(); ctx.strokeStyle = fx ? fx.core : '#fff'; strokeAll(ctx, false);
             // out of stamina: a thin dark-red trace that cuts nothing
             ctx.strokeStyle = '#b71c1c'; ctx.lineWidth = 2;
             for (let i = 1; i < trail.length; i++) {
                 const a = trail[i - 1], b = trail[i];
-                if (a.cut !== b.cut || !a.dull || tn - b.t > 140) continue;
+                if (a.cut !== b.cut || !a.dull || tn - b.t > TRAIL_MS) continue;
                 ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
             }
             ctx.restore();
