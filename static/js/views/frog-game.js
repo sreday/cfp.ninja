@@ -1958,21 +1958,49 @@ export function mountFrogGame(stage, opts = {}) {
         const dy = pb.top + pb.width * POST_CAP - (f.top + f.height * 1700 / 1876);
         svg.style.translate = `0 ${Math.round(dy * 10) / 10}px`;
     }
-    // The top bar (2026-11-25, Marek's iPad: the time pill sat on the best pill; it also did at 1280 wide, and the grade ran
-    // into Numbers / Full screen on tablets held upright): fixed breakpoints could not know every screen, so the bar is
-    // measured and the first arrangement in which nothing overlaps is kept. one: all in one row; two: time, stamina and
-    // combo in a second row (Numbers, Debug and Full screen are in the Menu). Phones (under 576 px) keep their own layout.
+    // The top bar, in ONE line on laptops and tablets (Marek, 2026-11-25: "make sure the UI fits in a single line all across the
+    // board"). Fixed breakpoints never knew every screen (on his iPad the time pill sat on the best pill, then the whole centre
+    // dropped to a second row), so the bar is measured: the largest scale (1 down to 0.7, --hud-k on the page) at which it fits,
+    // first as it is, then compact (narrower stamina bars and pills); 'one' keeps time / stamina / combo centred on the screen,
+    // 'packed' centres them in the room between the left and the right pills. Only if nothing fits: 'two' rows. Phones held
+    // upright (under 576 px) keep their own two-row layout.
     const HUD_SEL = '.fg-hud .fg-pill, .fg-time, .fg-stamina, .fg-grade, .fg-menu-pill, .fg-sound-pill';
+    const HUD_K = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7, 0.65];
     function layoutHud() {
-        if (W < 576) { delete stage.dataset.lay; return; }
-        const notch = document.querySelector('.game-notch'), els = [...stage.querySelectorAll(HUD_SEL)].concat(notch ? [notch] : []);
-        const clash = () => {
-            const R = els.map(n => { const r = n.getBoundingClientRect(); return n.classList.contains('fg-grade') ? { l: r.left, t: r.top, r: Math.max(r.right, r.left + 190), b: r.bottom } : { l: r.left, t: r.top, r: r.right, b: r.bottom }; })
+        const page = stage.closest('.game-page') || stage, center = $('.fg-center'), notch = document.querySelector('.game-notch');
+        const setK = k => page.style.setProperty('--hud-k', String(k));
+        const free = () => { center.style.left = center.style.right = ''; };
+        free();
+        if (W < 576) { delete stage.dataset.lay; stage.classList.remove('fg-hud-compact'); setK(1); return; }
+        const els = [...stage.querySelectorAll(HUD_SEL)].concat(notch ? [notch] : []), sb = stage.getBoundingClientRect();
+        const clash = k => {
+            const R = els.map(n => { const r = n.getBoundingClientRect(); return { l: r.left, t: r.top, b: r.bottom, r: r.right }; })
                 .filter(r => r.r > r.l);
-            const sb = stage.getBoundingClientRect();
-            return R.some((a, i) => a.l < sb.left - 1 || a.r > sb.right + 1 || R.some((b, j) => j > i && a.l < b.r + 6 && b.l < a.r + 6 && a.t < b.b + 4 && b.t < a.b + 4));
+            return R.some((a, i) => a.l < sb.left - 1 || a.r > sb.right + 1 || R.some((b, j) => j > i && a.l < b.r + 6 * k && b.l < a.r + 6 * k && a.t < b.b + 3 && b.t < a.b + 3));
         };
-        for (const lay of ['one', 'two']) { stage.dataset.lay = lay; if (!clash()) return; }
+        const pack = () => {
+            free();
+            const left = [...stage.querySelectorAll('.fg-hud .fg-pill')].concat(notch ? [notch] : []).reduce((m, n) => Math.max(m, n.getBoundingClientRect().right), sb.left);
+            const right = ['.fg-sound-pill', '.fg-menu-pill'].map(q => $(q)).filter(Boolean).reduce((m, n) => Math.min(m, n.getBoundingClientRect().left), sb.right);
+            center.style.left = Math.round(left - sb.left + 6) + 'px'; center.style.right = Math.round(sb.right - right + 6) + 'px';
+        };
+        // the combo meter is measured at its widest (its longest shout-out and bonus), so it never grows into its neighbours later
+        const gr = $('.fg-grade'), was = gr && { g: gr.dataset.g, n: $('.fg-grade-name').textContent, b: $('.fg-grade-bonus').textContent };
+        const widest = GRADES.reduce((a, q) => (q.name.length > a.name.length ? q : a), GRADES[0]);
+        if (gr) { gr.dataset.g = widest.g; $('.fg-grade-name').textContent = widest.name; $('.fg-grade-bonus').textContent = '+' + Math.round(GRADES[GRADES.length - 1].bonus * 100) + '%'; }
+        const done = () => { if (gr) { gr.dataset.g = was.g; $('.fg-grade-name').textContent = was.n; $('.fg-grade-bonus').textContent = was.b; } };
+        for (const k of HUD_K) {
+            setK(k);
+            for (const compact of [false, true]) {
+                stage.classList.toggle('fg-hud-compact', compact);
+                for (const lay of ['one', 'packed']) {
+                    stage.dataset.lay = lay;
+                    if (lay === 'packed') pack(); else free();
+                    if (!clash(k)) { done(); return; }
+                }
+            }
+        }
+        done(); free(); setK(1); stage.classList.remove('fg-hud-compact'); stage.dataset.lay = 'two';
     }
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, dprCap);

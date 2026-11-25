@@ -1476,7 +1476,6 @@ a:hover {
 .fg-grade.fg-grade-up .fg-grade-name { animation: fg-grade-pop .45s ease-out; transform-origin: left center; }
 @keyframes fg-grade-pop { 0% { transform: scale(1.7); } 100% { transform: scale(1); } }
 /* narrower screens: the centre row drops below the notch row */
-@media (max-width: 1100px) { .fg-center { top: 56px; } }
 @media (max-width: 575px) { .fg-center { gap: 6px; left: 8px; right: 8px; } .fg-time { padding: 5px 9px; } .fg-time b { font-size: 1rem; } .fg-grade { min-width: 0; width: 100%; max-width: 104px; padding: 4px 8px 5px; }
     .fg-grade-name { font-size: .8rem; } .fg-grade-bonus { display: none; } }
 .fg-overlay { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px;
@@ -1832,9 +1831,27 @@ button.game-notch-gh:hover, .game-notch-home:hover { background: var(--border-li
 .fg-frog.fg-art-plan-on #fg-art-plan { display: inline; }
 .fg-frog.fg-art-plan-on #fg-all > :not(#fg-art-plan), .fg-frog.fg-art-plan-on #fg-side, .fg-frog.fg-art-plan-on #fg-stand, .fg-frog.fg-art-plan-on #fg-shadow { visibility: hidden; }
 
-/* ---------- the top bar arranges itself (layoutHud in frog-game.js, 2026-11-25): one row, or time / stamina / combo in a second */
-.fg-stage[data-lay="one"] .fg-center { top: 10px; }
+/* ---------- the top bar in one line (layoutHud in frog-game.js, 2026-11-25): scaled by --hud-k, compact if need be;
+   one = time / stamina / combo centred on the screen, packed = centred between the left and right pills, two = a second row */
+.fg-stage[data-lay="one"] .fg-center, .fg-stage[data-lay="packed"] .fg-center { top: 10px; }
+.fg-stage[data-lay="packed"] .fg-center { grid-template-columns: auto auto auto; justify-content: center; }
 .fg-stage[data-lay="two"] .fg-center { top: 58px; }
+.fg-stage { --menu-w: 150px; }
+@media (min-width: 576px) {
+    .fg-stage .fg-hud, .game-page .game-notch { transform: scale(var(--hud-k, 1)); transform-origin: 0 0; }
+    .fg-stage .fg-center { transform: scale(var(--hud-k, 1)); transform-origin: 50% 0; }
+    .fg-stage .fg-menu, .fg-stage .fg-sound-pill, .fg-stage .fg-vol { transform-origin: 100% 0; }
+    .fg-stage .fg-menu { transform: scale(var(--hud-k, 1)); width: var(--menu-w); }
+    .fg-stage .fg-sound-pill { transform: scale(var(--hud-k, 1)); right: calc(12px + (var(--menu-w) + 8px) * var(--hud-k, 1)); }
+    .fg-stage .fg-vol { right: calc(12px + (var(--menu-w) + 8px) * var(--hud-k, 1)); top: calc(12px + 44px * var(--hud-k, 1)); }
+    .game-page .fg-hud { left: calc(12px + 124px * var(--hud-k, 1)); }
+    /* compact: the same bar, narrower */
+    .fg-stage.fg-hud-compact { --menu-w: 116px; }
+    .fg-hud-compact .fg-hud .fg-mini { width: 98px; padding: 0 10px; }
+    .fg-hud-compact .fg-stamina { gap: 5px; padding: 8px 10px; }
+    .fg-hud-compact .fg-stamina i { width: 34px; }
+    .fg-hud-compact .fg-grade { min-width: 112px; }
+}
 /* ---------- the menu: Numbers, Debug, Full screen in one drop-down */
 .fg-menu { position: absolute; top: 12px; right: 12px; z-index: 7; width: 150px; }      /* the Menu pill and its drop-down, one width */
 .fg-stage .fg-menu-pill { width: 100%; height: 38px; padding: 0 12px; align-items: center; justify-content: center; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s ease; }
