@@ -36,7 +36,7 @@ const MAP = {}; for (const z in SLASH_MAP) MAP[z] = SLASH_MAP[z].split(' ');
 // guard to the tip, and see-through (Marek, 2026-11-25: 'less opacity, but blade-wide always').
 export const TRACE_ROW = [{ sweep: 115 }, { sweep: 85 }, { sweep: 60 }];
 export const TRACE_ALPHA = 0.5, TRACE_INNER = 0.06;
-// One cell tuned by hand goes here: 'zone:dir' -> { pic, sweep, inner, blades: [0] | [0, 1], kind: 'arc' | 'streak' }
+// One cell tuned by hand goes here: 'zone:dir' -> { pic, sweep, inner, blades: [0] | [0, 1] }
 export const SLASH_CELL = {};
 
 // the picture and the facing for a cell. o: { x, W: where on the field; dx: the stroke's heading; upper: above the frog's middle }
@@ -66,8 +66,9 @@ export const BLADES = {
 // BLADES:end
 
 // The traces for one stroke: for each blade that shows one, which way it swept. (vx, vy): the stroke's heading in the picture's
-// own space (the caller turns it round for a mirrored picture). A blade swept across its length leaves an arc, turning the
-// way the stroke went; a blade driven along its own length (a thrust) leaves a streak.
+// own space (the caller turns it round for a mirrored picture). The blade leaves a fan, turning the way the stroke went. A
+// stroke along the blade's own length (a thrust) has no way to turn: its fan is half as long and comes down from above the blade.
+// (There was a thin streak for thrusts: it ran out past the tip, off the katana. The curator stopped it, 2026-11-25.)
 export function slashTraces(pic, cell, vx, vy) {
     const blades = BLADES[pic]; if (!blades) return [];
     const tuned = SLASH_CELL[cell.zone + ':' + cell.dir] || {}, row = TRACE_ROW[cell.row];
@@ -76,21 +77,18 @@ export function slashTraces(pic, cell, vx, vy) {
     return which.filter(i => blades[i]).map(i => {
         const b = blades[i], bx = b.tip[0] - b.hilt[0], by = b.tip[1] - b.hilt[1], L = Math.hypot(bx, by);
         const across = (-by * vx + bx * vy) / L;       // how much of the stroke goes across the blade (its sign: which way the blade turned)
-        const kind = tuned.kind || (Math.abs(across) < 0.35 ? 'streak' : 'arc');
-        return { blade: i, kind, sense: across < 0 ? -1 : 1, sweep: (tuned.sweep || row.sweep) * Math.PI / 180, inner: tuned.inner || TRACE_INNER };
+        const along = Math.abs(across) < 0.2, phi = Math.atan2(by, bx), sweep = (tuned.sweep || row.sweep) * Math.PI / 180 * (along ? 0.5 : 1);
+        const sense = along ? (Math.sin(phi - sweep / 2) < Math.sin(phi + sweep / 2) ? 1 : -1) : across < 0 ? -1 : 1;
+        return { blade: i, kind: 'arc', sense, sweep, inner: tuned.inner || TRACE_INNER };
     });
 }
 
 // The outline of one trace, in the picture's own pixels: a list of [x, y]. k: 0 fresh .. 1 gone (its far end catches up with the blade).
 // arc: the whole area the blade passed through: outside edge = the path of the tip, inside edge = the path of the guard, as
-// wide as the blade all the way. streak: a long thin wedge along the blade, past its tip.
+// wide as the blade all the way.
 export function tracePoly(b, tr, k) {
     const hx = b.hilt[0], hy = b.hilt[1], bx = b.tip[0] - hx, by = b.tip[1] - hy, L = Math.hypot(bx, by), phi = Math.atan2(by, bx), pts = [];
     k = clampN(k, 0, 1);
-    if (tr.kind === 'streak') {
-        const ux = bx / L, uy = by / L, w = L * 0.085 * (1 - k), a = 0.15 + 0.5 * k, far = 1.6 - 0.25 * k;
-        return [[hx + ux * L * a - uy * w, hy + uy * L * a + ux * w], [hx + ux * L * far, hy + uy * L * far], [hx + ux * L * a + uy * w, hy + uy * L * a - ux * w]];
-    }
     const sweep = tr.sweep * (1 - k), N = 16, R = L * 1.02, r = L * tr.inner;
     for (let i = 0; i <= N; i++) { const a = phi - tr.sense * sweep * i / N; pts.push([hx + Math.cos(a) * R, hy + Math.sin(a) * R]); }
     for (let i = N; i >= 0; i--) { const a = phi - tr.sense * sweep * i / N; pts.push([hx + Math.cos(a) * r, hy + Math.sin(a) * r]); }
