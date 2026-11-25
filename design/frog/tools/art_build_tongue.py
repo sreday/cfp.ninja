@@ -29,8 +29,8 @@ TONGUE = (0xe9, 0x80, 0x8a)                  # palette.json skins.frog.tongue
 SOLES, MID, HEAD_W = 704, 624, 249          # in the source pictures (the standing pick's: its soles, middle, face width)
 # dir: (the tongue's way, as a unit vector; the source row where the game's tongue starts, or (x, y, w): a set root, for a pose
 # with no stub, only the tongue's root in the open mouth)
-DIRS = {'up': ((0, -1), 180), 'down': ((0, 1), 690), 'down-left': ((-0.707, 0.707), (566, 385, 35)),
-        'up-left': ((-0.707, -0.707), (585, 337, 35))}
+DIRS = {'up': ((0, -1), (614, 312, 37)),      # (up: from the bottom of the open mouth, the throat: Marek 'normally it would go all the way from the throat')
+        'down': ((0, 1), 690), 'down-left': ((-0.707, 0.707), (566, 385, 35))}      # (one side picture for every direction that is not straight up or down: Marek 2026-11-25 'use the same sprite for all 4 corners ... and middle left + right')
 
 
 def main():
