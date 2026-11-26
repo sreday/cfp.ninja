@@ -85,9 +85,12 @@ cfp proposals -o json | jq ...  # Pipe to jq for filtering
 ```bash
 cfp events --tag go              # Filter by tag
 cfp events --country US          # Filter by country
-cfp events --cfp-open            # Only open CFPs (default)
-cfp events --all                 # Include closed CFPs
-cfp events --after 2026-03-01    # Events after date
+cfp events --status open         # Only open CFPs (default)
+cfp events --status all          # Include closed CFPs
+cfp events --status closed       # Show only closed CFPs
+cfp events --after 2026-03-01    # Events starting after date
+cfp events --before 2026-12-31   # Events starting before date
+cfp events --location Online     # Filter by location text
 ```
 
 ### Working with YAML Files
