@@ -127,6 +127,11 @@ type UserInfo struct {
 	Email      string `json:"email"`
 	Name       string `json:"name"`
 	PictureURL string `json:"picture_url"`
+	Bio        string `json:"bio"`
+	JobTitle   string `json:"job_title"`
+	Company    string `json:"company"`
+	LinkedIn   string `json:"linkedin"`
+	Timezone   string `json:"timezone"`
 }
 
 // GetMe returns the current user's information
