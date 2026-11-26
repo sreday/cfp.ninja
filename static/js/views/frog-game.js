@@ -11,7 +11,7 @@ const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.s
 // ?perf=1: the frames a second stay on screen, and the game-over panel says how smooth the run was (the time between frames,
 // measured while playing): for trying the game on a slower phone or tablet (2026-11-25)
 // the game's version, shown with its address in the bottom right corner (design/frog/tools/ship.py adds one at each ship)
-const GAME_VERSION = 'v306';
+const GAME_VERSION = 'v307';
 const PERF = typeof location !== 'undefined' && /[?&]perf\b/.test(location.search);
 const VCLOCK = { t: 0 };
 if (CURATE) {
@@ -6268,9 +6268,10 @@ export function mountFrogGame(stage, opts = {}) {
     // same hand as design/frog/tools/playtest.py, fed straight into the game's own pointer handlers. A big Play button pulses at
     // the bottom. Clicking it (or touching the field, or any key) freezes the demo behind the pause menu: Play there starts the
     // visitor's own run, Escape goes back to the demo, and a menu left alone for ATTRACT_IDLE s goes back to the demo too.
+    // A run left untouched for ATTRACT_RUN_IDLE s turns into the demo as well.
     // The demo never ends (no clock: see ATTRACT_FLOOR), so the Survived, Best and Time pills are hidden while it plays.
     // A demo run is never recorded or sent anywhere: no trace, no score, no best, no party board, no replay.
-    const ATTRACT_IDLE = 20, ATTRACT_NAME_WAIT = 60, ATTRACT_NEXT = 2.5, ATTRACT_FLOOR = 20;
+    const ATTRACT_IDLE = 15, ATTRACT_NAME_WAIT = 30, ATTRACT_RUN_IDLE = 10, ATTRACT_NEXT = 2.5, ATTRACT_FLOOR = 20;
     let attract = false, attractMenu = false, attractIdle = 0, botQ = [], botWait = 0, botDown = false;
     const attractEl = document.createElement('div');
     attractEl.className = 'fg-attract'; attractEl.hidden = true;
@@ -6386,6 +6387,12 @@ export function mountFrogGame(stage, opts = {}) {
             attractShow(); return;
         }
         if (!party.on) return;
+        // a run nobody touches (started and left, or a visitor who walked off) is taken over by the demo (Marek, 2026-11-26:
+        // he pressed Play and waited for the frog to play by itself). That run is never sent: it is a demo from here on.
+        if (phase === 'play' && !paused && !attract) {
+            if (attractIdle >= ATTRACT_RUN_IDLE) { attract = true; attractMenu = false; botQ = []; botWait = 0.3; botDown = false; attractIdle = 0; down = false; cut = null; press = null; log('attract', 'takeover'); attractShow(); }
+            return;
+        }
         const panel = !el.overlay.hidden && (phase === 'idle' || phase === 'over' || (paused && attract));
         if (!panel || (opts.busy && opts.busy())) { attractIdle = 0; return; }
         if (attractIdle < (party.pending ? ATTRACT_NAME_WAIT : ATTRACT_IDLE)) return;
