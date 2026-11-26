@@ -11,7 +11,7 @@ const CURATE = typeof location !== 'undefined' && /[?&]curate\b/.test(location.s
 // ?perf=1: the frames a second stay on screen, and the game-over panel says how smooth the run was (the time between frames,
 // measured while playing): for trying the game on a slower phone or tablet (2026-11-25)
 // the game's version, shown with its address in the bottom right corner (design/frog/tools/ship.py adds one at each ship)
-const GAME_VERSION = 'v305';
+const GAME_VERSION = 'v306';
 const PERF = typeof location !== 'undefined' && /[?&]perf\b/.test(location.search);
 const VCLOCK = { t: 0 };
 if (CURATE) {
@@ -1932,6 +1932,9 @@ export function mountFrogGame(stage, opts = {}) {
     // start a step down: at 1.5x a tablet's field has 44% fewer pixels to fill than at 2x, and the eye barely tells.
     const DPR_STEPS = [2, 1.5, 1.25, 1, 0.75];
     const POTATO_KEY = 'fg-potato';
+    // potato mode at half the pixels it used to have (Marek, 2026-11-26: "potato mode = 50% less quality"): the field
+    // 0.75x -> 0.53x, the layer behind the frog 0.5x -> 0.35x (each half the pixels), half the loose bits, the party half as often
+    const POTATO_DPR = 0.53, POTATO_BACK = 0.35, POTATO_BG_MS = 500;
     let potato = false, potatoPinned = false;          // (potato mode: see setPotato)
     try { potatoPinned = localStorage.getItem(POTATO_KEY) === '1'; } catch (e) { /* private mode */ }
     let W = 0, H = 0, dpr = 1, dprCap = touch ? 1.5 : 2;
@@ -2010,7 +2013,7 @@ export function mountFrogGame(stage, opts = {}) {
         W = stage.clientWidth; H = stage.clientHeight;
         canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
         // (behind the frog: fruit falling behind it, planks on the water, the splash; three quarters of the field's sharpness)
-        const bk = potato ? 0.5 : Math.max(Math.min(dpr, 0.75), dpr * 0.75);
+        const bk = potato ? POTATO_BACK : Math.max(Math.min(dpr, 0.75), dpr * 0.75);
         backCv.width = Math.round(W * bk); backCv.height = Math.round(H * bk); bctx.setTransform(bk, 0, 0, bk, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         glowCv.width = canvas.width; glowCv.height = canvas.height;
@@ -2877,7 +2880,7 @@ export function mountFrogGame(stage, opts = {}) {
         try { fetch('/api/v0/game/traces', { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch (e) { /* the page is going anyway */ }
     }
     function onLeave() {
-        if (!opts.onTrace || dbg) return;
+        if (!opts.onTrace || dbg || attract) return;
         if ((phase === 'play' || phase === 'count') && trace.length > 2) {
             log('left', 'mid-run', r2(clockT));
             const ev = fitTrace(trace.filter(e => e[1] !== 'snap'), 56000);
@@ -2960,7 +2963,7 @@ export function mountFrogGame(stage, opts = {}) {
         const msg = String((err && (err.stack || err.message)) || err).split('\n').slice(0, 3).join(' | ').slice(0, 300);
         log('crash', msg); if (crashes === 1) snap('crash');
         if (crashes <= 3 && window.console) console.error('Frog Ninja:', err);
-        if (crashes === 1 && opts.onTrace && trace.length) {
+        if (crashes === 1 && opts.onTrace && trace.length && !attract) {
             opts.onTrace({ score: Math.round(clockT * 1000), duration_ms: Math.min(Math.round(performance.now() - traceT0), 6 * 3600 * 1000), input: 'crash', signals: sig, events: trace });
         }
     }
@@ -3047,15 +3050,15 @@ export function mountFrogGame(stage, opts = {}) {
     // used to start at full sharpness again, so a slow phone stuttered at the start of every run).
     // Potato mode (Marek, 2026-11-25: "the old tablet struggles to keep 60fps, cut further for 'potato mode' if required"): the
     // last step, taken by the governor when the device is still slow at the lowest sharpness with fewer effects, or switched on
-    // in the Menu (kept on this device). It costs looks only, never gameplay: the field stays at 0.75x and the layer behind the
-    // frog at 0.5x, the party on the beach moves 4 times a second instead of 14, the foam in front of the post is redrawn every
-    // other frame, the blade's glow is drawn straight on the field (no full-screen layer in between), far fewer loose bits, and
+    // in the Menu (kept on this device). It costs looks only, never gameplay: the field at 0.53x and the layer behind the
+    // frog at 0.35x (2026-11-26: half the pixels of the first potato), the party on the beach moves 2 times a second instead
+    // of 14, the foam in front of the post is redrawn every fourth frame, the blade's glow is drawn straight on the field (no full-screen layer in between), far fewer loose bits, and
     // the pulsing glows of the pills stop.
     // (its state, potato / potatoPinned, is declared with the sharpness ladder: resize() reads it during mounting)
     function setPotato(on, why) {
         if (on === potato) return;
         potato = on; stage.classList.toggle('fg-potato', on);
-        if (on) { fxLow = true; if (dprCap > 0.75) dprCap = 0.75; }
+        if (on) { fxLow = true; if (dprCap > POTATO_DPR) dprCap = POTATO_DPR; }
         else if (dprCap < 1) dprCap = touch ? 1.5 : 2;
         wholeSprites.clear(); resize(); log('q', on ? 'potato' : 'potato off', why || '');
         const b = stage.querySelector('.fg-potato-pill'); if (b) { b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Potato mode: on' : 'Potato mode'; }
@@ -3079,7 +3082,7 @@ export function mountFrogGame(stage, opts = {}) {
     const thin = (a, n) => { if (a.length > n) a.splice(0, a.length - n); };
     function thinFx() {
         if (!fxLow) return;
-        if (potato) { thin(drops, 24); thin(flames, 16); thin(sparks, 32); thin(bits, 16); thin(seaDrops, 8); return; }
+        if (potato) { thin(drops, 12); if (flames.length > 8) { let n = flames.filter(p => !p.br).length - 8; if (n > 0) flames = flames.filter(p => p.br || n-- <= 0); } thin(sparks, 16); thin(bits, 8); thin(seaDrops, 4); return; }
         thin(drops, 60); thin(flames, 36); thin(sparks, 80); thin(bits, 40); thin(seaDrops, 24);
     }
     // where the sea is on screen (the backdrop is anchored to the bottom and scaled to cover)
@@ -4707,18 +4710,22 @@ export function mountFrogGame(stage, opts = {}) {
                 }
             }
             reach = Math.hypot(W, H);
-            fireEmit += dt * 160;
+            // (potato mode, Marek 2026-11-26: "it can use few particles, but those need to go all the way to indicate the right
+            //  length": a quarter of the flames, bigger, and never thinned, so each one flies its whole way to the cone's end.
+            //  What burns is the cone itself (inFlame below), never the particles: the gameplay is the same.)
+            const pk = potato ? 1.7 : 1;
+            fireEmit += dt * (potato ? 40 : 160);
             while (fireEmit >= 1) {
                 fireEmit -= 1;
                 if (atUs) {
                     // toward the camera: the flames barely travel across the screen, they swell as they come at us
                     const a = rand(0, 6.28), v = H * rand(0.05, 0.5) * (1 + 0.5 * fireWide);
-                    flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.5, 0.85), s: rand(7, 14), grow: 9 });
+                    flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.5, 0.85), s: rand(7, 14) * pk, grow: 9, br: true });
                     continue;
                 }
                 const sp = fireSpread(), a = aimA + rand(-sp, sp) * 0.9, v = H * rand(1.5, 2.3);
                 const toUs = aim ? clamp(1 - Math.abs(aim.x - W / 2) / (fbox.w * 1.2), 0, 1) : 0;      // aimed close to the frog: the flame comes more at the camera, so it swells
-                flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14), grow: toUs ? 5 * toUs : undefined });
+                flames.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, t: 0, life: rand(0.45, 0.75), s: rand(7, 14) * pk, grow: toUs ? 5 * toUs : undefined, br: true });
             }
         }
         flames.forEach(p => { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; const k = Math.pow(0.985, dt * 60); p.vx *= k; p.vy *= k; });
@@ -5056,7 +5063,7 @@ export function mountFrogGame(stage, opts = {}) {
             if (e.button !== 0 && e.pointerType === 'mouse') return;
             markAlong(px, py, px, py, e.pointerType === 'mouse' ? 4 : 18);
             aim = { x: px, y: py }; down = true; pointer = { x: px, y: py }; cut = null; press = null;
-            canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+            if (!e.bot && canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
             return;
         }
         if (e.button !== 0 && e.pointerType === 'mouse') return;
@@ -5064,7 +5071,7 @@ export function mountFrogGame(stage, opts = {}) {
         // licked off: the press is let through so that a tap is the tongue; the slash itself stays blocked in onMove)
         if (phase === 'play' && stunT > 0 && !(headFx && (headFx.mode === 'stuck' || headFx.mode === 'splat'))) return;
         down = true; [lx, ly] = [px, py]; pointer = { x: lx, y: ly };
-        canvas.setPointerCapture && canvas.setPointerCapture(e.pointerId);
+        if (!e.bot && canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
         cut = null; press = { x: px, y: py }; windUp = true;
         // A press that lands on a tongue-only power-up is meant for the tongue: give it the
         // benefit of the doubt. It may slide much further (and take as long as it likes) before
@@ -5076,7 +5083,7 @@ export function mountFrogGame(stage, opts = {}) {
         if (VR_RAY) press.drag = Math.max(press.drag || 0, 24);      // (a ray in the hand wanders: it has to travel this far before the press is a slash; the slash still starts where it was pressed)
     }
     function onMove(e) {
-        if (e.isPrimary === false) return;
+        if (e.isPrimary === false || (attract && !e.bot)) return;      // (a party-mode demo: only its own hand moves the blade)
         noteInput(e);
         // browsers hand us one pointermove per frame; the samples in between are in
         // getCoalescedEvents(). Using all of them keeps a fast slash's trace exact.
@@ -5219,7 +5226,7 @@ export function mountFrogGame(stage, opts = {}) {
         lx = x; ly = y;
     }
     function onUp(e) {
-        if (e.isPrimary === false) return;
+        if (e.isPrimary === false || (attract && !e.bot)) return;
         // a press released where it landed (a tap, or a left click with no drag) is the tongue
         noteInput(e); noteEmptyCut(); closeCut(); windUp = false;
         let tap = down && e.type === 'pointerup' ? press : null;
@@ -6030,9 +6037,10 @@ export function mountFrogGame(stage, opts = {}) {
         on(() => { drawGull(c, 40, lw, {}); drawFried(c, 40, lw); });
         on(() => { c.font = '700 28px Fredoka, Inter, Arial Black, sans-serif'; c.lineWidth = 5; c.strokeText('+0.45s x3', 0, 0); c.fillText('+0.45s x3', 0, 0); glow(c, 0, 0, 60, '129,212,250', 0.5); });
     }
-    function start() {
+    function start(bot) {
         warmUp();
-        el.overlay.hidden = true; el.overlay.classList.remove('fg-first'); el.save.innerHTML = ''; party.pending = 0; partyShow();
+        attract = !!bot; attractMenu = false; el.overlay.classList.remove('fg-attract-menu');      // (bot: a party-mode demo run, see attractStart)
+        el.overlay.hidden = true; if (!bot) el.overlay.classList.remove('fg-first'); el.save.innerHTML = ''; party.pending = 0; partyShow();
         stage.classList.remove('fg-fallen'); dropped = []; pose.noBlades = false; splashT = 0; overT = 0; pose.fallY = 0; pose.fallRot = 0; pose.slip = false; el.count.classList.remove('fg-final'); if (pose.held) readyPose();
         dbg = false; dbgFrozen = false; dbgWake = 0; stage.classList.remove('fg-debugging'); if (stage.querySelector('.fg-debug')) { stage.querySelector('.fg-debug').hidden = true; stage.querySelector('.fg-debug-pill').textContent = 'Debug'; }
         slices = 0; combo = 0; style = 0; gradeIx = -1; updateGrade(false); hurtFlash = 0; clockT = 0; spawnT = 0.6; timeLeft = START_SECONDS;
@@ -6046,7 +6054,7 @@ export function mountFrogGame(stage, opts = {}) {
         bits = []; flames = []; freezeLeft = 0; fireLeft = 0; markSeq = 0; wasFrozen = false; markQueue = []; markAgain = []; slowTail = 0;
         stamina = STAMINA_BARS; sakeLeft = 0; stunT = 0; tongue = null; headFx = null; bumps = null;
         hud();
-        recStart();
+        if (!bot) recStart();
         // 3, 2, 1: the frog does its laptop toss meanwhile (first run only)
         phase = 'load'; loadT = 0; loadN = Math.max(1, warmQ.length); audioWas = '';
         salad = []; trace = []; worth = {}; sndCount = {};
@@ -6099,7 +6107,7 @@ export function mountFrogGame(stage, opts = {}) {
                 }
             }
         }
-        if (overT >= OVER_WAIT && el.overlay.hidden && phase === 'over') {
+        if (overT >= OVER_WAIT && el.overlay.hidden && phase === 'over' && !attract) {
             el.count.hidden = true; el.count.classList.remove('fg-final');
             overAt = performance.now() - 400;                    // any key works almost at once now: the wait is done
             el.overlay.hidden = false;
@@ -6111,21 +6119,23 @@ export function mountFrogGame(stage, opts = {}) {
     function gameOver() {
         phase = 'over'; endedAt = performance.now();
         const ms = Math.round(clockT * 1000);
-        const isBest = ms > best;
+        const isBest = ms > best && !attract;            // (a demo run changes nothing a player keeps)
         snd(isBest ? 'best' : 'over');
         if (isBest) { best = ms; store.set(bestKey, best); el.best.textContent = formatSurvival(best / 1000); hopT = 0.5; }
-        el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
-        el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (PERF ? perfNote() : '');
+        if (!attract) el.title.textContent = (isBest ? 'New best: ' : 'Survived ') + formatSurvival(clockT) + ' s';
+        if (!attract) el.sub.textContent = 'Out of time. Your best on this device: ' + formatSurvival(best / 1000) + ' s.' + (PERF ? perfNote() : '');
         if (PERF) log('perf', el.sub.textContent);
-        partyOver(elder || dbg ? 0 : ms);
-        el.start.textContent = 'Play again';
-        showTips(-1); el.sub.hidden = false;
+        if (!attract) {
+            partyOver(elder || dbg ? 0 : ms);
+            el.start.textContent = 'Play again';
+            showTips(-1); el.sub.hidden = false;
+        }
         // score = ms survived. For the server's time-per-cut check fireflies count as a cut and
         // an alarm clock as 3 (it holds the countdown for 3 s)
         if (Object.keys(bugSeen).length) log('bugs', bugSeen);
         logWorth(); log('salad', salad.length, Math.floor(salad.length / BOWL_HOLDS)); log('signals', sig); log('over', ms, slices, gradeIx);
-        if (opts.onTrace && !dbg) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: fitTrace(trace) });
-        if (opts.onGameOver && !elder) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
+        if (opts.onTrace && !dbg && !attract) opts.onTrace({ score: ms, duration_ms: ms, input: traceInput, signals: sig, events: fitTrace(trace) });
+        if (opts.onGameOver && !elder && !attract) opts.onGameOver({ score: ms, slices: slices + flyCatches + clockCatches * 3, duration_ms: ms, signals: sig }, el.save);
         // the frog topples off the post into the sea, the time survived stands on screen in
         // full, and only then (OVER_WAIT s) the panel comes up
         // its katanas are left behind: they drop and stick, point down, in the top of the post
@@ -6140,6 +6150,7 @@ export function mountFrogGame(stage, opts = {}) {
         el.count.textContent = formatSurvival(clockT) + ' s'; el.count.hidden = false; el.count.classList.remove('pop'); el.count.classList.add('fg-final');
     }
     el.start.addEventListener('click', () => {
+        if (paused && attract) { snd('ui_play'); setPause(false); showTips(-1); start(); return; }      // (the demo's menu: the visitor's own run)
         if (paused) { snd('ui'); setPause(false); return; }
         snd('ui_play');
         showTips(-1); start();
@@ -6180,7 +6191,8 @@ export function mountFrogGame(stage, opts = {}) {
     window.addEventListener('keydown', onEsc);
     function onKey(e) {
         // start screen and game over: any key plays (on game over after a beat, so a key still held doesn't)
-        if (paused || (phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
+        const menu = paused && attract;                        // (the menu over a party-mode demo: any key plays too)
+        if ((paused && !menu) || (!menu && phase !== 'over' && phase !== 'idle') || el.overlay.hidden || dbg) return;
         if (phase === 'over' && performance.now() - overAt < 700) return;
         if (e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab' || e.key === 'Escape' || e.repeat) return;
         if (opts.busy && opts.busy()) return;                  // the scoreboard is open
@@ -6189,6 +6201,7 @@ export function mountFrogGame(stage, opts = {}) {
         const b = e.target && e.target.closest && e.target.closest('button, a');
         if (b && b !== el.start && (e.key === 'Enter' || e.key === ' ')) return;
         e.preventDefault();
+        if (menu) setPause(false);
         showTips(-1); start();
     }
     window.addEventListener('keydown', onKey);
@@ -6247,6 +6260,138 @@ export function mountFrogGame(stage, opts = {}) {
         clearAt = 0; party.list = []; party.me = ''; partyKeep(); b.textContent = 'Clear the board'; partyShow(); log('party', 'cleared');
     });
     partyShow();
+
+    // ---------- party mode: the attract loop ----------
+    // (Marek, 2026-11-26: "in party mode, on idle display the automated gameplay, and show the play button at the bottom, then
+    // when clicked it becomes the normal pause menu. It's to be a casino-like experience, luring people in.") With party mode on
+    // and nobody touching the start or game-over panel for ATTRACT_IDLE s, the frog plays by itself: a real run, driven by the
+    // same hand as design/frog/tools/playtest.py, fed straight into the game's own pointer handlers. A big Play button pulses at
+    // the bottom. Clicking it (or touching the field, or any key) freezes the demo behind the pause menu: Play there starts the
+    // visitor's own run, Escape goes back to the demo, and a menu left alone for ATTRACT_IDLE s goes back to the demo too.
+    // The demo never ends (no clock: see ATTRACT_FLOOR), so the Survived, Best and Time pills are hidden while it plays.
+    // A demo run is never recorded or sent anywhere: no trace, no score, no best, no party board, no replay.
+    const ATTRACT_IDLE = 20, ATTRACT_NAME_WAIT = 60, ATTRACT_NEXT = 2.5, ATTRACT_FLOOR = 20;
+    let attract = false, attractMenu = false, attractIdle = 0, botQ = [], botWait = 0, botDown = false;
+    const attractEl = document.createElement('div');
+    attractEl.className = 'fg-attract'; attractEl.hidden = true;
+    attractEl.innerHTML = `<button type="button" class="btn fg-play fg-attract-play" data-snd="none">Play</button><span class="fg-attract-note">${touch ? 'Tap' : 'Click'} to take on the frog</span>`;
+    stage.appendChild(attractEl);
+    const attractShow = () => { attractEl.hidden = !(attract && !paused && (phase === 'play' || phase === 'over')); stage.classList.toggle('fg-attracting', attract && !paused); };
+    // anything real done on the page puts the idle count back to zero
+    const awake = e => { if (!e || e.isTrusted !== false) attractIdle = 0; };
+    ['pointerdown', 'pointermove', 'wheel'].forEach(t => stage.addEventListener(t, awake, { capture: true, passive: true }));
+    window.addEventListener('keydown', awake, true);
+    // the hand: a fake pointer, handed to the same handlers a mouse uses (canvas coordinates; the seagull's mirror undone)
+    function botEv(type, x, y) {
+        const b = canvas.getBoundingClientRect();
+        return { bot: true, type, isPrimary: true, button: 0, buttons: type === 'pointerup' ? 0 : 1, pointerType: 'mouse', pointerId: 1,
+            clientX: mx(x) + b.left, clientY: y + b.top, timeStamp: performance.now() };
+    }
+    function botDo(a) {
+        if (a.k === 'down') { onDown(botEv('pointerdown', a.x, a.y)); botDown = true; }
+        else if (a.k === 'move') onMove(botEv('pointermove', a.x, a.y));
+        else { onUp(botEv('pointerup', a.x, a.y)); botDown = false; }
+    }
+    const ahead = (o, t) => [o.x + (o.vx || 0) * t, o.y + (o.vy || 0) * t + 0.5 * (o.g || 0) * t * t];
+    function botThink() {
+        const ins = (x, y) => x > 20 && x < W - 20 && y > 70 && y < H - 40, at = (k, x, y, t) => botQ.push({ k, x, y, t });
+        const seen = fruits.filter(f => f.entered && !isBehind(f));
+        if (fireLeft > 0) {                                   // breathing fire: aim at the biggest fruit
+            if (seen.length) { const f = seen.reduce((a, q) => (q.r > a.r ? q : a)); at('move', f.x, f.y, 0); }
+            return 0.12;
+        }
+        const pk = pickups.map(b => ({ x: b.x, y: b.y, vx: b.vx, vy: b.vy })).concat(flies.map(q => ({ x: q.x, y: q.y, vx: q.dir * q.speed, vy: 0 })));
+        for (const b of pk) {                                 // power-ups: the tongue (a press and a release on the spot)
+            const [x, y] = ahead(b, 0.06);
+            if (ins(x, y) && stunT <= 0 && !tongue) { at('down', x, y, 0); at('up', x, y, 0.04); return 0.25; }
+        }
+        if (freezeLeft > 0) {                                 // frozen time: sweep over everything to mark it
+            seen.filter(f => ins(f.x, f.y)).forEach((f, i) => at('move', f.x, f.y, i * 0.03));
+            return 0.3;
+        }
+        if (stamina < 1 && sakeLeft <= 0) return 0.15;
+        const lead = 0.14;
+        let P = seen.map(f => ({ p: ahead(f, lead), r: f.r })).filter(q => ins(q.p[0], q.p[1]));
+        P = P.concat(crates.filter(c => ins(c.x, c.y)).map(c => ({ p: [c.x, c.y], r: 40 })));
+        if (!P.length) return 0.1;
+        const boosted = sakeLeft > 0 || fireLeft > 0, flying = gulls.filter(q => q.state === 'fly');
+        let best = null;
+        for (const A of P) for (const B of P) {
+            const a = A.p, d = Math.hypot(B.p[0] - a[0], B.p[1] - a[1]);
+            let ux, uy;
+            if (A === B) [ux, uy] = Math.random() < 0.5 ? [1, 0] : [0.7, 0.7];
+            else if (d < 8) continue;
+            else { ux = (B.p[0] - a[0]) / d; uy = (B.p[1] - a[1]) / d; }
+            const hits = P.filter(q => Math.abs((q.p[0] - a[0]) * uy - (q.p[1] - a[1]) * ux) < q.r * 0.6).map(q => (q.p[0] - a[0]) * ux + (q.p[1] - a[1]) * uy);
+            const t0 = Math.min(...hits) - 45, t1 = Math.max(...hits) + 45, s0 = [a[0] + ux * t0, a[1] + uy * t0];
+            // the seagull is left alone unless something boosts the blade
+            if (!boosted && flying.some(q => { const u = (q.x - a[0]) * ux + (q.y - a[1]) * uy; return Math.abs((q.x - s0[0]) * uy - (q.y - s0[1]) * ux) < q.r + 14 && u > t0 - 20 && u < t1 + 20; })) continue;
+            if (!best || hits.length > best.n) best = { n: hits.length, A: s0, B: [a[0] + ux * t1, a[1] + uy * t1] };
+        }
+        if (!best) return 0.1;
+        const c = p => [clamp(p[0], 4, W - 4), clamp(p[1], 4, H - 4)];
+        for (let k = 0; k <= 5; k++) { const [x, y] = c([best.A[0] + (best.B[0] - best.A[0]) * k / 5, best.A[1] + (best.B[1] - best.A[1]) * k / 5]); at(k ? 'move' : 'down', x, y, k * 0.016); }
+        const e = c(best.B); at('up', e[0], e[1], 0.1);
+        return rand(0.06, 0.14);                                // (quick, but a person's quick)
+    }
+    function botTick(dt) {
+        if (phase !== 'play') { if (botDown) botDo({ k: 'up', x: W / 2, y: H / 2 }); botQ = []; return; }
+        if (botQ.length) {
+            botQ.forEach(a => { a.t -= dt; });
+            while (botQ.length && botQ[0].t <= 0) botDo(botQ.shift());
+            return;
+        }
+        botWait -= dt;
+        if (botWait <= 0) botWait = botThink();
+    }
+    function attractStart() {
+        if (paused) setPause(false);
+        attractMenu = false; botQ = []; botWait = 1; botDown = false; attractIdle = 0;
+        start(true); log('attract'); attractShow();
+    }
+    // a visitor takes over: the demo stands still behind the pause menu, ready for their own run
+    function attractOpen() {
+        if (!attract || attractMenu) return;
+        if (botDown) botDo({ k: 'up', x: W / 2, y: H / 2 }); botQ = [];
+        attractIdle = 0;
+        if (phase === 'play') {
+            setPause(true);
+            el.title.textContent = 'Your turn'; el.start.textContent = 'Play'; $('.fg-again').hidden = true;
+            el.overlay.classList.add('fg-attract-menu');
+        } else {                                              // between two demos (the frog falling): the start panel as it is
+            el.overlay.hidden = false; el.overlay.classList.add('fg-attract-menu'); el.title.textContent = 'Your turn'; el.sub.hidden = true; el.start.textContent = 'Play'; showTips(-1);
+            overAt = 0;
+        }
+        attractMenu = true; attractShow(); snd('ui');
+    }
+    attractEl.querySelector('.fg-attract-play').addEventListener('click', attractOpen);
+    // the field touched, or a key, during a demo: the same as the Play button (the press never reaches the game)
+    stage.addEventListener('pointerdown', e => {
+        if (!attract || attractMenu || e.target.closest('.fg-attract, .fg-menu, .fg-sound-pill, .fg-vol')) return;
+        e.preventDefault(); e.stopPropagation(); attractOpen();
+    }, true);
+    window.addEventListener('keydown', e => {
+        if (!attract || attractMenu || e.metaKey || e.ctrlKey || e.altKey || e.key === 'Tab') return;
+        e.preventDefault(); e.stopImmediatePropagation(); attractOpen();
+    }, true);
+    // once a frame (real seconds): the demo's hand, the idle count, and the next demo
+    function attractFrame(rdt) {
+        if (!attract && !attractEl.hidden) { attractEl.hidden = true; stage.classList.remove('fg-attracting'); }
+        if (dbg || document.hidden) { attractIdle = 0; return; }
+        if (attractMenu && !paused && el.overlay.hidden) { attractMenu = false; el.overlay.classList.remove('fg-attract-menu'); }     // (Escape: back to the demo)
+        attractIdle += rdt;
+        if (attract && !attractMenu && !paused) {
+            botTick(rdt);
+            if (phase === 'over' && overT >= OVER_WAIT + ATTRACT_NEXT) attractStart();
+            attractShow(); return;
+        }
+        if (!party.on) return;
+        const panel = !el.overlay.hidden && (phase === 'idle' || phase === 'over' || (paused && attract));
+        if (!panel || (opts.busy && opts.busy())) { attractIdle = 0; return; }
+        if (attractIdle < (party.pending ? ATTRACT_NAME_WAIT : ATTRACT_IDLE)) return;
+        if (paused && attract) { attractMenu = false; el.overlay.classList.remove('fg-attract-menu'); setPause(false); log('attract back'); attractShow(); attractIdle = 0; return; }
+        party.pending = 0; attractStart();
+    }
     if (el.boardLink) el.boardLink.addEventListener('click', () => opts.onScoreboard());
 
     // ---------- sound toggle ----------
@@ -6427,6 +6572,7 @@ export function mountFrogGame(stage, opts = {}) {
     // everything plays as in a real run. Dropping something new freezes it again.
     const dbgEl = $('.fg-debug');
     function startDebug() {
+        attract = false; attractMenu = false;
         start();
         dbg = true; dbgFrozen = true; dbgWake = 0; log('debug');
         if (!pose.held) readyPose();
@@ -6729,8 +6875,8 @@ export function mountFrogGame(stage, opts = {}) {
     function frame(now) {
         if (warmQ.length) { try { warmQ.shift()(); } catch (e) { warmQ = []; } }     // one piece of warm-up a frame
         if (dead) return;
-        if (artBg && now - artBg.at > (potato ? 250 : 70)) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
-        if (artBg && artBg.waveEl && !reduced && !(potato && (++potatoN & 1))) { try { drawWaterFront(now); } catch (e) { crashed(e); artBg.waveEl = null; } }
+        if (artBg && now - artBg.at > (potato ? POTATO_BG_MS : 70)) { artBg.at = now; try { drawArtBg(now); } catch (e) { crashed(e); artBg = null; } }
+        if (artBg && artBg.waveEl && !reduced && !(potato && (++potatoN & 3))) { try { drawWaterFront(now); } catch (e) { crashed(e); artBg.waveEl = null; } }
         const t0 = performance.now();
         if (frameAt) frameGap = Math.max(frameGap, t0 - frameAt); frameAt = t0;
         // debug: frames a second, big, top left; green at 60, red at 30 and under
@@ -6759,6 +6905,7 @@ export function mountFrogGame(stage, opts = {}) {
     function frameBody(now) {
         if (dead) return;
         if (!stage.isConnected) { destroy(); return; }
+        attractFrame(Math.min(0.05, (now - last) / 1000));      // (party mode: the demo's hand, and when to start one)
         if (paused) { last = now; return; }                    // the pause menu is up: the world and the clock stand still
         const rdt = Math.min(0.05, (now - last) / 1000); last = now;     // real seconds: the clock
         const dt = rdt * GAME_PACE;                                        // the world's seconds
@@ -6909,6 +7056,9 @@ export function mountFrogGame(stage, opts = {}) {
         const wdt = (dbg && dbgFrozen) || summon ? 0 : frozen ? dt * SLOWMO : slowTail > 0 ? dt * lerp(1, SLOWMO, Math.pow(slowTail / SLOW_TAIL, 0.6)) : dt;
         if (phase === 'play') {
             if (!dbg) { clockT += rdt; if (!slowed) timeLeft -= rdt; else val('clock', rdt); }   // the alarm clock stops the countdown
+            // a party-mode demo plays forever, like a pachinko machine (Marek, 2026-11-26): the clock never runs out, and the
+            // run's age wraps between 40 s and 100 s, so the fruit keeps coming at a lively pace without ever flooding the screen
+            if (attract) { timeLeft = Math.max(timeLeft, ATTRACT_FLOOR); if (clockT > 100) clockT = 40; }
             // The fruit comes a little thicker as the run goes on (FRUIT_MORE every FRUIT_MORE_EVERY s, see
             // PRINCIPLES.md 3a); its flight never changes, and slow motion does not hold it back.
             const difficulty = FRUIT_PACE;
